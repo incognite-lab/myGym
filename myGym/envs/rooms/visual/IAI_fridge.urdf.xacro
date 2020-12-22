@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+
+<robot name="iai_fridge" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:property name="pi" value="3.1415926535897931" />
+
+  <macro name="iai_fridge" params="name parent *origin">
+    
+     <link name="${name}_main">
+      
+      <sphere_inertia radius="0" mass="0"/>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://iai_kitchen/meshes/misc/Fridge.dae"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://iai_kitchen/meshes/misc/Fridge.dae"/>
+        </geometry>
+      </collision>
+    </link>
+    
+    <link name="${name}_door">
+      
+      <sphere_inertia radius="0" mass="0"/>
+      <visual>
+        <origin xyz="0 0.3 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://iai_kitchen/meshes/misc/FridgeDoor.dae"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0.3 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://iai_kitchen/meshes/misc/FridgeDoor.dae"/>
+        </geometry>
+      </collision>
+    </link>
+    
+    <link name="${name}_door_handle">
+      
+      <sphere_inertia radius="0" mass="0"/>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://iai_kitchen/meshes/handles/VHandle90.dae"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://iai_kitchen/meshes/handles/VHandle90.dae"/>
+        </geometry>
+      </collision>
+    </link>
+    
+    <joint name="${name}_main_joint" type="fixed">
+      <xacro:insert_block name="origin" />
+      <parent link="${parent}"/>
+      <child link="${name}_main"/>
+    </joint>
+    
+    <joint name="${name}_door_joint" type="revolute">
+      <origin xyz="0.29 0 0.245" rpy="0 0 0" />
+      <parent link="${name}_main"/>
+      <child link="${name}_door"/>
+      <axis xyz="0 0 1"/>     
+      <limit lower="0" upper="${0.5*pi}" effort="300" velocity="10"/>    
+<!--
+      <limit lower="0" upper="0" effort="300" velocity="10"/>
+-->
+    </joint>
+    
+    <joint name="${name}_door_handle_joint" type="fixed">
+      <origin xyz="0.06 -0.27 0." rpy="0 0 0" />
+      <parent link="${name}_door"/>
+      <child link="${name}_door_handle"/>
+    </joint>
+  </macro>
+
+</robot>

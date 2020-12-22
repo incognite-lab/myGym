@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset>
+    <contributor>
+      <author>Benjamin Brieber</author>
+      <authoring_tool>Blender 2.73.0 commit date:2015-01-20, commit time:18:16, hash:bbf09d9</authoring_tool>
+    </contributor>
+    <created>2015-03-19T09:10:24</created>
+    <modified>2015-03-19T09:10:24</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_images/>
+  <library_effects>
+    <effect id="Handles-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <phong>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <ambient>
+              <color sid="ambient">0.5 0.5 0.5 1</color>
+            </ambient>
+            <diffuse>
+              <color sid="diffuse">0.1247412 0.1153028 0.1019502 1</color>
+            </diffuse>
+            <specular>
+              <color sid="specular">0.05240466 0.05240466 0.05240466 1</color>
+            </specular>
+            <shininess>
+              <float sid="shininess">50</float>
+            </shininess>
+            <index_of_refraction>
+              <float sid="index_of_refraction">1</float>
+            </index_of_refraction>
+          </phong>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_materials>
+    <material id="Handles-material" name="Handles">
+      <instance_effect url="#Handles-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="VHandle90-mesh" name="VHandle90">
+      <mesh>
+        <source id="VHandle90-mesh-positions">
+          <float_array id="VHandle90-mesh-positions-array" count="72">-0.007499992 0.007499933 -0.4375 -0.007499992 0.007499992 0.4375 0.007499992 0.007499992 0.4375 0.007499992 0.007499933 -0.4375 -0.007499992 -0.007499992 -0.4375 -0.007499992 -0.007499992 0.4375 0.007499992 -0.007499992 0.4375 0.007499992 -0.007500052 -0.4375 -0.05311214 0.007499992 0.4375 -0.05311214 0.007499992 0.4225 -0.007470548 0.007499992 0.4225 -0.007470548 0.007499992 0.4375 -0.05311214 -0.007499992 0.4375 -0.05311214 -0.007499992 0.4225 -0.007470548 -0.007499992 0.4225 -0.007470548 -0.007499992 0.4375 -0.05311214 0.007499933 -0.4375 -0.05311214 0.007499933 -0.4225 -0.007470548 0.007499933 -0.4225 -0.007470548 0.007499933 -0.4375 -0.05311214 -0.007499992 -0.4375 -0.05311214 -0.007499992 -0.4225 -0.007470548 -0.007499992 -0.4225 -0.007470548 -0.007499992 -0.4375</float_array>
+          <technique_common>
+            <accessor source="#VHandle90-mesh-positions-array" count="24" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="VHandle90-mesh-normals">
+          <float_array id="VHandle90-mesh-normals-array" count="108">-1 0 0 0 0 1 1 0 0 0 0 -1 0 1 0 -1.98682e-6 -1 0 -1 0 0 0 0 -1 1 0 0 0 0 1 0 1 0 0 -1 0 -1 0 0 0 0 1 1 0 0 0 0 -1 0 1 0 0 -1 0 -1 0 0 0 0 1 1 0 0 0 0 -1 0 1 0 -1.98682e-6 -1 0 -1 0 0 0 0 -1 1 0 0 0 0 1 0 1 0 0 -1 0 -1 0 0 0 0 1 1 0 0 0 0 -1 0 1 0 0 -1 0</float_array>
+          <technique_common>
+            <accessor source="#VHandle90-mesh-normals-array" count="36" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="VHandle90-mesh-vertices">
+          <input semantic="POSITION" source="#VHandle90-mesh-positions"/>
+        </vertices>
+        <polylist material="Handles-material" count="36">
+          <input semantic="VERTEX" source="#VHandle90-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#VHandle90-mesh-normals" offset="1"/>
+          <vcount>3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 </vcount>
+          <p>5 0 1 0 0 0 5 1 6 1 2 1 7 2 3 2 2 2 4 3 0 3 3 3 1 4 2 4 3 4 6 5 5 5 4 5 8 6 9 6 13 6 9 7 10 7 14 7 10 8 11 8 15 8 11 9 8 9 12 9 11 10 10 10 9 10 12 11 13 11 14 11 21 12 17 12 16 12 22 13 18 13 17 13 23 14 19 14 18 14 20 15 16 15 19 15 17 16 18 16 19 16 22 17 21 17 20 17 4 18 5 18 0 18 1 19 5 19 2 19 6 20 7 20 2 20 7 21 4 21 3 21 0 22 1 22 3 22 7 23 6 23 4 23 12 24 8 24 13 24 13 25 9 25 14 25 14 26 10 26 15 26 15 27 11 27 12 27 8 28 11 28 9 28 15 29 12 29 14 29 20 30 21 30 16 30 21 31 22 31 17 31 22 32 23 32 18 32 23 33 20 33 19 33 16 34 17 34 19 34 23 35 22 35 20 35</p>
+        </polylist>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_controllers/>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="VHandle90" name="VHandle90" type="NODE">
+        <matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>
+        <instance_geometry url="#VHandle90-mesh">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="Handles-material" target="#Handles-material"/>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>

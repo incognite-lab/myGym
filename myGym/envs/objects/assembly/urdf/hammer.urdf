@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<robot name="hammer">
+  <link name="baseLink">
+    <contact>
+      <lateral_friction value="1.0"/>
+      <rolling_friction value="0.0"/>
+      <contact_cfm value="0.0"/>
+      <contact_erp value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0142 0.0409 0.0002"/>
+       <mass value="0.079"/>
+       <inertia ixx="0.00001558" ixy="-0.00001557" ixz="0" iyy="0.00057114" iyz="0" izz="0.00058316"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0142 0.0409 0.0002"/>
+      <geometry>
+        <mesh filename="../obj/hammer.obj" scale=".008 .008 .008"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision concave="yes">
+      <origin rpy="0 0 0" xyz="0.0142 0.0409 0.0002"/>
+      <geometry>
+	 	<mesh filename="../obj/hammer.obj" scale=".008 .008 .008"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

@@ -1,0 +1,18 @@
+:root{
+  --main-bg-color: #77A6F7;
+  --link-color: #8860D0;
+}
+
+/* Header fonts */
+h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend, p.caption {
+    font-family: "proxima-nova","Helvetica Neue",Arial,sans-serif;
+}
+
+/* Change link colors */
+a {
+    color: var(--link-color);
+}
+
+.wy-side-nav-search{
+  background-color: var(--main-bg-color);
+}

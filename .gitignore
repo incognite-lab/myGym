@@ -1,0 +1,16 @@
+**/*.pyc
+**/*.swp
+MANIFEST
+*.egg*
+*.ipynb_checkpoints
+**/temp_objects/
+trained_models
+random_force_dataset
+**/data/yolact/
+data
+/.vscode
+build/
+./myGym/envs/dtd/*
+./myGym/envs/dtdseamless/*
+**/.directory
+/vae_datasets/

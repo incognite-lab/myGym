@@ -1,0 +1,119 @@
+<?xml version="0.0" ?>
+<robot name="">
+	<link name="base">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="magnetic_gripper/assets/Base.stl" scale="0.00100 0.00100 0.00100"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="magnetic_gripper/assets/Base.stl" scale="0.00100 0.00100 0.00100"/>
+			</geometry>
+		</collision>
+	</link>
+	<link name="collet">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 3.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="magnetic_gripper/assets/Collet.stl" scale="0.00100 0.00100 0.00100"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="magnetic_gripper/assets/Collet.stl" scale="0.00100 0.00100 0.00100"/>
+			</geometry>
+		</collision>
+	</link>
+	<link name="link0_3">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 5.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+	</link>
+	<link name="slider">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="magnetic_gripper/assets/Slider.stl" scale="0.00100 0.00100 0.00100"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="magnetic_gripper/assets/Slider.stl" scale="0.00100 0.00100 0.00100"/>
+			</geometry>
+		</collision>
+	</link>
+	<link name="sensor">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="magnetic_gripper/assets/Sensor.stl" scale="0.00100 0.00100 0.00100"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="magnetic_gripper/assets/Sensor.stl" scale="0.00100 0.00100 0.00100"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="jointfix_2_0" type="fixed">
+		<parent link="base"/>
+		<child link="collet"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+		<axis xyz="0.00000 0.00000 0.00000"/>
+		<limit effort="0.0" lower="-0.000" upper="0.000" velocity="0.0"/>
+	</joint>
+	<joint name="slider" type="prismatic">
+		<parent link="collet"/>
+		<child link="link0_3"/>
+		<limit effort="0.0" lower="-0.03000" upper="0.0000" velocity="0.0"/>
+    <dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.25000 0.00000"/>
+		<axis xyz="0.00000 1.00000 0.00000"/>
+	</joint>
+	<joint name="jointfix_1_3" type="fixed">
+		<parent link="link0_3"/>
+		<child link="slider"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.2100 0.00000"/>
+		<axis xyz="0.00000 0.00000 0.00000"/>
+		<limit effort="0.0" lower="-0.000" upper="0.000" velocity="0.0"/>
+	</joint>
+	<joint name="jointfix_0_2" type="fixed">
+		<parent link="slider"/>
+		<child link="sensor"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+		<axis xyz="0.00000 0.00000 0.00000"/>
+		<limit effort="0.0" lower="-0.0000" upper="0.0000" velocity="0.0"/>
+	</joint>
+
+</robot>

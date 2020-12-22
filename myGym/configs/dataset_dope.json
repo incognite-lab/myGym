@@ -1,0 +1,56 @@
+{
+# directory
+    "output_folder" : "./data/dope/testing/", #train_object will be added in generator
+# dataset parameters
+    "dataset_type" : "dope", #"coco" (for yolact, detectron)/ "dope"
+    "make_dataset" : "new", #mode of writing files, "new" (override), "resume" (append),"display" (don't store results)
+    "num_episodes" : 30,
+    "num_steps" : 1, #need more steps, because the arms are moving and the objects are first falling down from above the table
+    "make_shot_every_frame" : 1, #used as if episode % make_shot_every_frame : 0, so for 60 % 30 it's 3 shots (0, 30, and 60)
+    "num_episodes_hard_reset" : 10, #hard reset every x episode prevents objects from vanishing when GUI is on
+    "autosafe_episode" : 100, #if episode % auto_safe_episode, write json files to directory (prevent data loss when process crashes)
+    "random_arm_movement" : false,
+    "active_cameras" : [0,0,0,0,0,1,0,0], #set 1 at a position(=camera number) to save images from this camera
+    "camera_resolution" : [960,540],
+    "min_obj_area" : 5000, #each object will have at least this pixels visible, to be reasonably recognizable. If not, skip. (49 ~ 7x7pix img)
+    "train_test_split_pct" : 0.9, #data split, 0.0 = only train, 1.0 = only test 
+    "visualize" : true, #bounding box for each labeled object
+# env parameters
+    "gui_on" : true, #btw, shadows only work if GUI is True
+    "show_bounding_boxes_gui" : true,
+    "changing_light_gui" : true, 
+    "shadows_on" : true,  
+    "color_dict" : null, #use to make (fixed) object colors - textures and color_randomizer will be suppressed, pass null to ignore
+    "object_sampling_area" : [0.1, 0.8, 0.4, 1.0, 1.25, 1.35], # xxyyzz, the z=1.1 is so that objects dont sample under the table
+    "num_objects_range" : [1,5], #range for random count of sampled objects in each scene (>=0)
+# randomization parameters
+    "seed": 42,
+    "texture_randomizer": {
+        "enabled": true,
+        "exclude": [], # objects that will not be texturized, e.g. "table" or "floor" or "objects"
+        "textures_path": "./envs/dtd/images/"},
+    "light_randomizer": {
+        "enabled": false,
+        "randomized_dimensions": {
+            "light_color": true, "light_direction": true,
+            "light_distance": true, "light_ambient": true,
+            "light_diffuse": true, "light_specular": true
+            }},
+    "camera_randomizer": {
+        "enabled": true,
+        "randomized_dimensions": {"target_position": true},
+        "shift": [0.1, 0.1, 0.1]},
+    "color_randomizer": {
+        "enabled": false,
+         "exclude": [], # objects that will not be colorized, e.g. "table" or "floor" or "objects"
+        "randomized_dimensions": {"rgb_color": true, "specular_color": true}},
+# objects parameters
+    #Select here which classes you want to use in the simulator and annotate. Format: [quantity, class_name, class_id] 
+    #If you want to make some classes to be classified as the same, assign them the same value, i.e. screw_round:1, peg:1
+    #If you want some class to appear statistically more often, increase the quantity 
+    "used_class_names_quantity" : [[5,"hammer",2],[1,"wrench",3]],
+    #fix colors of objects, when color_dict = object_colors
+    "object_colors" : {"car_roof": ["yellow"], "cube_holes": ["light_green"], "ex_bucket": ["black"], "hammer": ["red"], 
+        "nut": ["light_blue"], "peg_screw": ["white"], "pliers": ["sepia"], "screw_round": ["light_blue"], 
+        "screwdriver": ["purple"], "sphere_holes": ["gold"], "wafer":["dark_purple"], "wheel":["redwine"], "wrench": ["moccasin"]}
+}

@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<robot name="nut">
+  <link name="baseLink">
+    <contact>
+      <lateral_friction value="1.0"/>
+      <rolling_friction value="0.0"/>
+      <contact_cfm value="0.0"/>
+      <contact_erp value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 -0.000008 0.000003"/>
+       <mass value="0.004"/>
+       <inertia ixx="0.000000398" ixy="0" ixz="0" iyy="0.000000231" iyz="0" izz="0.000000231"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 -0.000008 0.000003"/>
+      <geometry>
+        <mesh filename="../obj/nut.obj" scale=".001 .001 .001"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision concave="yes">
+      <origin rpy="0 0 0" xyz="0.0 -0.000008 0.000003"/>
+      <geometry>
+	 	<mesh filename="../obj/nut.obj" scale=".001 .001 .001"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

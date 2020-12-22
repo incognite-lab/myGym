@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<robot name="table">
+  <link name="baseLink">
+    <contact>
+      <lateral_friction value="1.0"/>
+      <rolling_friction value="0.0"/>
+      <contact_cfm value="0.0"/>
+      <contact_erp value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.8387"/>
+       <mass value="15.0"/>
+       <inertia ixx="3.27780533" ixy="-0.00000134" ixz="0.00028047" iyy="3.27788505" iyz="0.0" izz="5.23985159"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.8387"/>
+      <geometry>
+        <mesh filename="../obj/table.obj" scale="0.02 0.02 0.02"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision concave="yes">
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.8387"/>
+      <geometry>
+	 	<mesh filename="../obj/table.obj" scale="0.02 0.02 0.02"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

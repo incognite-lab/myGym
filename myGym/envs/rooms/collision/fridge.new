@@ -1,0 +1,77 @@
+
+<robot name="fridge">
+     <link name="fridge">
+    <contact>
+      <lateral_friction value="1"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+       <mass value=".0"/>
+       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    \</inertial>
+      <visual>
+        <origin xyz="1 6 1" rpy="0 0 1" />
+        <geometry>
+          <mesh filename="./obj/Fridge.dae"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="1 6 1" rpy="0 0 1" />
+        <geometry>
+          <mesh filename="./obj/Fridge.dae"/>
+        </geometry>
+      </collision>
+    </link>
+    
+    <link name="fridgedoor">
+      
+      <sphere_inertia radius="0" mass="0"/>
+      <visual>
+        <origin xyz="1 6 1" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="./obj/FridgeDoor.dae"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0.3 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="./obj/FridgeDoor.dae"/>
+        </geometry>
+      </collision>
+    </link>
+    
+    <link name="fridgehandle">
+      
+      <sphere_inertia radius="0" mass="0"/>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="./obj/VHandle90.dae"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="./obj/VHandle90.dae"/>
+        </geometry>
+      </collision>
+    </link>
+    
+    <joint name="doorjoint" type="revolute">
+      <origin xyz="0.29 0 0.245" rpy="0 0 0" />
+      <parent link="fridge"/>
+      <child link="fridgedoor"/>
+      <axis xyz="0 0 1"/>     
+      <limit lower="0" upper="${0.5*pi}" effort="300" velocity="10"/>    
+<!--
+      <limit lower="0" upper="0" effort="300" velocity="10"/>
+-->
+    </joint>
+    
+    <joint name="handlejoint" type="fixed">
+      <origin xyz="0.06 -0.27 0." rpy="0 0 0" />
+      <parent link="fridgedoor"/>
+      <child link="fridgehandle"/>
+    </joint>
+
+</robot>

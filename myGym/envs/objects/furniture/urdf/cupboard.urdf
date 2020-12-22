@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<robot name="cupboard">
+  <link name="baseLink">
+    <contact>
+      <lateral_friction value="1.0"/>
+      <rolling_friction value="0.0"/>
+      <contact_cfm value="0.0"/>
+      <contact_erp value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.00 0.0028 0.9194"/>
+       <mass value="80.0"/>
+       <inertia ixx="22.95432271" ixy="0" ixz="-0.00000636" iyy="30.08024237" iyz="-0.00012664" izz="11.86606012"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.00 0.0028 0.9194"/>
+      <geometry>
+        <mesh filename="../obj/cupboard.obj" scale="0.02 0.02 0.02"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision concave="yes">
+      <origin rpy="0 0 0" xyz="0.00 0.0028 0.9194"/>
+      <geometry>
+	 	<mesh filename="../obj/cupboard.obj" scale="0.02 0.02 0.02"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

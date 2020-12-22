@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<robot name="ex_bucket">
+  <link name="baseLink">
+    <contact>
+      <lateral_friction value="1.0"/>
+      <rolling_friction value="0.0"/>
+      <contact_cfm value="0.0"/>
+      <contact_erp value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.014933 0.000041 -0.016845"/>
+       <mass value="0.053"/>
+       <inertia ixx="0.000037467" ixy="-0.000000033" ixz="-0.000012342" iyy="0.00004024" iyz="-0.000000037" izz="0.000049221"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.014933 0.000041 -0.016845"/>
+      <geometry>
+        <mesh filename="../obj/ex_bucket.obj" scale=".001 .001 .001"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision concave="yes">
+      <origin rpy="0 0 0" xyz="-0.014933 0.000041 -0.016845"/>
+      <geometry>
+	 	<mesh filename="../obj/ex_bucket.obj" scale=".001 .001 .001"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

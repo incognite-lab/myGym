@@ -1,0 +1,41 @@
+{
+#Environment
+"env_name":"Gym-v0",
+"workspace":"table",
+"engine":"pybullet",
+"render":"opengl",
+"camera":4,
+"gui":1,
+"visualize":1,
+"visgym":0,
+#Robot
+"robot":"kuka",
+"robot_action":"joints",
+"robot_init":[0.0, 0.5, 0.5],
+#Task
+"task_type":"reach",
+"task_objects":["hammer_virtual"],
+"used_objects":null,
+"object_sampling_area":[-0.7, 0.7, 0.3, 0.9, 0.1, 0.1],
+#Reward
+"reward_type":"2dvu",
+"reward":"distance",
+"distance_type":"euclidean",
+"vae_path":"/vae/trained_models/vae_armtop_12_12/model_best.pth.tar",
+"yolact_path":null,
+"yolact_config":null,
+#Train
+"train_framework":"tensorflow",
+"algo":"ppo2",
+"max_episode_steps":500,
+"algo_steps":1024,
+"steps":800000,
+"pretrained_model":null,
+"multiprocessing":false,
+#Evaluation
+"eval_freq":10000,
+"eval_episodes":100,
+#Saving and logging
+"logdir":"trained_models",
+"record":0
+}

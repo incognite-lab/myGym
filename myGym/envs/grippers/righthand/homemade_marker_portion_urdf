@@ -1,0 +1,56 @@
+
+  <joint name="base_tactile_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="base_tactile" />
+  </joint>
+
+  <link name="base_tactile"/>
+
+  <joint name="prox1_tactile_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="proximal1" />
+    <child link="prox1_tactile" />
+  </joint>
+
+  <link name="prox1_tactile" />
+
+  <joint name="prox2_tactile_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="proximal2" />
+    <child link="prox2_tactile" />
+  </joint>
+
+  <link name="prox2_tactile"/>
+
+  <joint name="prox3_tactile_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="proximal3" />
+    <child link="prox3_tactile" />
+  </joint>
+
+  <link name="prox3_tactile"/>
+
+  <joint name="dist1_tactile_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="distal1" />
+    <child link="dist1_tactile" />
+  </joint>
+
+  <link name="dist1_tactile"/>
+
+  <joint name="dist2_tactile_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="distal2" />
+    <child link="dist2_tactile" />
+  </joint>
+
+  <link name="dist2_tactile"/>
+
+  <joint name="dist3_tactile_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="distal3" />
+    <child link="dist3_tactile" />
+  </joint>
+
+  <link name="dist3_tactile"/>

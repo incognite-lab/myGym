@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<robot name="lorry">
+  <link name="baseLink">
+    <contact>
+      <lateral_friction value="1.0"/>
+      <rolling_friction value="0.0"/>
+      <contact_cfm value="0.0"/>
+      <contact_erp value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.007 0.0025 0.0025"/>
+       <mass value="0.026"/>
+       <inertia ixx="0.00000393" ixy="0" ixz="0.00000003" iyy="0.00000745" iyz="0.0" izz="0.00000508"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.007 0.0025 0.0025"/>
+      <geometry>
+        <mesh filename="./stl/lorry.stl" scale="0.01 0.01 0.01"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision concave="yes">
+      <origin rpy="0 0 0" xyz="0.007 0.0025 0.0025"/>
+      <geometry>
+	 	<mesh filename="./stl/lorry.stl" scale="0.01 0.01 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

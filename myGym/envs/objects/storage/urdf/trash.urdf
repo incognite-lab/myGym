@@ -1,0 +1,38 @@
+<?xml version="0.0" ?>
+<robot name="trash">
+  
+
+  <link name="trash">
+    <contact>
+      <!-- <rolling_friction value="0.03"/> -->
+      <!-- <spinning_friction value="0.03"/> -->
+      <!-- <lateral_friction value="1.5"/> -->
+      <!-- <stiffness value="300"/> -->
+      <!-- <damping value="50"/> -->
+    </contact>
+
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.04 0.0122 0.1387"/>
+       <mass value="2.408"/>
+       <!-- <inertia ixx="0.008852" ixy="0" ixz="0" iyy="0.008852" iyz="0" izz="0.01429"/> -->
+       <inertia ixx="0.04342255" ixy="-0.00000065" ixz="0.00000003" iyy="0.04342169" iyz="0.00000003" izz="0.03512248"/>
+    </inertial>
+
+    <visual>
+      <origin rpy="0 0 0" xyz="0.04 0.0122 0.1387"/>
+      <geometry>
+        <mesh filename="./obj/trash_vhacd.obj" scale="0.01 0.01 0.01"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+
+    <collision>
+      <origin rpy="0 0 0" xyz="0.04 0.0122 0.1387"/>
+      <geometry>
+         <mesh filename="./obj/trash_vhacd.obj" scale="0.01 0.01 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

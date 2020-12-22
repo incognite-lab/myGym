@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<robot name="rake">
+  <link name="baseLink">
+    <contact>
+      <lateral_friction value="1.0"/>
+      <rolling_friction value="0.0"/>
+      <contact_cfm value="0.0"/>
+      <contact_erp value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0119 0.0151"/>
+       <mass value="0.077"/>
+       <inertia ixx="0.00022148" ixy="0" ixz="0" iyy="0.00004317" iyz="-0.00002746" izz="0.00023341"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 0.0119 0.0151"/>
+      <geometry>
+        <mesh filename="./stl/rake.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision concave="yes">
+      <origin rpy="0 0 0" xyz="0.0 0.0119 0.0151"/>
+      <geometry>
+	 	<mesh filename="./stl/rake.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>
+
+

@@ -1,0 +1,23 @@
+
+<?xml version="1.0" ?>
+<robot name="football">
+  <link name="football">
+  <contact>
+      <lateral_friction value="1"/>
+  </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+       <mass value=".0"/>
+       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    <visual>
+      <origin rpy="1.57 0 0" xyz="0 0 -0.0"/>
+      <geometry>
+		<mesh filename="./obj/football.obj" scale="0.1 0.1 0.1"/>
+      </geometry>
+       <material name="white">
+        <color rgba="1 1 0 1"/>
+      </material>
+    </visual>
+  </link>
+</robot>

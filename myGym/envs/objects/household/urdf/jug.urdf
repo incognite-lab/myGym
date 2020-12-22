@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<robot name="jug">
+  <link name="baseLink">
+    <contact>
+      <lateral_friction value="1.0"/>
+      <rolling_friction value="0.0"/>
+      <contact_cfm value="0.0"/>
+      <contact_erp value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0286 0.0050 0.0458"/>
+       <mass value="0.136"/>
+       <inertia ixx="0.00026764" ixy="-0.000000" ixz="-0.00000051" iyy="0.00026246" iyz="0.00000011" izz="0.00017293"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0286 0.0050 0.0458"/>
+      <geometry>
+        <mesh filename="../obj/jug.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision concave="yes">
+      <origin rpy="0 0 0" xyz="0.0286 0.0050 0.0458"/>
+      <geometry>
+	 	<mesh filename="../obj/jug.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

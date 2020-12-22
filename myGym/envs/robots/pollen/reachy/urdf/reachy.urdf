@@ -1,0 +1,291 @@
+<?xml version="1.0"?>
+<robot name="Reachy">
+
+  <material name="blue">
+    <color rgba="0 0 0.8 1"/>
+  </material>
+
+  <material name="white">
+    <color rgba="1 1 1 1"/>
+  </material>
+
+  <material name="red">
+    <color rgba="0.8 0 0 1"/>
+  </material>
+
+<link name="world" />
+<link name="base">
+    <visual>
+      <geometry>
+        <mesh filename="package://reachy/meshes/trunk-visual.stl"></mesh>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <inertial>
+      <inertia ixx= "1.043e-4" ixy= "6.147e-6" ixz= "-1.971e-6" iyy= "1.364e-4" iyz= "1.466e-5" izz= "1.403e-4" ></inertia>
+      <mass value="0.221"></mass>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/trunk-respondable.stl"></mesh>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="world_to_base_link" type="fixed">
+    <parent link="world"/>
+    <child link="base"/>
+  </joint>
+     <link name="shoulder">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/shoulder-visual.stl"></mesh>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <inertial>
+      <inertia ixx= "1.299e-5" ixy= "5.557e-10" ixz= "-2.973e-10" iyy= "2.323e-5" iyz= "-8.199e-8" izz= "2.227e-5" ></inertia>
+      <mass value="0.036"></mass>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/shoulder-respondable.stl"></mesh>
+      </geometry>
+    </collision>
+
+  </link>
+
+  <link name="shoulder_to_arm">
+    <visual>
+      <geometry>
+        <mesh filename="package://reachy/meshes/shoulder-x-visual.stl"></mesh>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <material name="blue"/>
+    </visual>
+    <inertial>
+      <inertia ixx= "6.811e-5" ixy= "-2.299e-10" ixz= "-4.502e-7" iyy= "7.593e-5" iyz= "-1.674e-9" izz= "4.248e-5" ></inertia>
+      <mass value="0.155"></mass>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/shoulder-x-respondable.stl"></mesh>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="upper_arm">
+    <visual>
+      <geometry>
+        <mesh filename="package://reachy/meshes/upper-arm-visual.stl"></mesh>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <material name="white"/>
+    </visual>
+    <inertial>
+      <inertia ixx= "4.171e-3" ixy= "1.333e-7" ixz= "-2.900e-4" iyy= "4.276e-3" iyz= "1.465e-6" izz= "3.177e-4" ></inertia>
+      <mass value="0.430"></mass>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/upper-arm-respondable.stl"></mesh>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="forearm">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/forearm-visual.stl"></mesh>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <material name="blue"/>
+    </visual>
+    <inertial>
+      <inertia ixx= "1.724e-4" ixy= "-1.733e-8" ixz= "1.854e-5" iyy= "1.815e-4" iyz= "-4.191e-8" izz= "9.299e-5" ></inertia>
+      <mass value="0.129"></mass>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/forearm-respondable.stl"></mesh>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="wrist">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/wrist-visual.stl"></mesh>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <material name="white"/>
+    </visual>
+    <inertial>
+      <inertia ixx= "2.215e-4" ixy= "-2.163e-8" ixz= "-4.702e-6" iyy= "2.306e-4" iyz= "-6.577e-7" izz= "5.075e-5" ></inertia>
+      <mass value="0.115"></mass>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/wrist-respondable.stl"></mesh>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="gripper"> <!--wrist_hand-->
+    <visual>
+      <geometry>
+        <mesh filename="package://reachy/meshes/wrist-hand-visual.stl"></mesh>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <material name="blue"/>
+    </visual>
+    <inertial>
+      <inertia ixx= "3.861e-6" ixy= "-2.805e-9" ixz= "-8.067e-8" iyy= "3.694e-6" iyz= "-7.689e-8" izz= "4.987e-6" ></inertia>
+      <mass value="0.009"></mass>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/wrist-hand-respondable.stl"></mesh>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="end_effector">
+    <visual>
+      <geometry>
+        <mesh filename="package://reachy/meshes/ball-tip-visual.stl"></mesh>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <material name="white"/>
+    </visual>
+    <inertial>
+      <inertia ixx= "4.177e-5" ixy= "2.340e-9" ixz= "3.492e-8" iyy= "4.290e-5" iyz= "-2.318e-11" izz= "3.596e-5" ></inertia>
+      <mass value="0.090"></mass>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/ball-tip-respondable.stl"></mesh>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="shoulder_pitch" type="revolute">
+    <parent link="base"/>
+    <child link="shoulder"/>
+    <origin rpy="0 -1.5 0" xyz="0 -0.14 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.5708" upper="3.14159"/>
+  </joint>
+
+  <joint name="shoulder_roll" type="revolute">
+    <parent link="shoulder"/>
+    <child link="shoulder_to_arm"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-3.14159" upper="0.174533"/>
+  </joint>
+
+  <joint name="arm_yaw" type="revolute">
+    <parent link="shoulder_to_arm"/>
+    <child link="upper_arm"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.5708" upper="1.5708"/>
+  </joint>
+
+  <joint name="elbow_pitch" type="revolute">
+    <parent link="upper_arm"/>
+    <child link="forearm"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.30745"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.18166" upper="0"/>
+  </joint>
+
+  <joint name="forearm_yaw" type="revolute">
+    <parent link="forearm"/>
+    <child link="wrist"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-2.61799" upper="2.61799"/>
+  </joint>
+
+  <joint name="wrist_pitch" type="revolute">
+    <parent link="wrist"/>
+    <child link="gripper"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.22425"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.22173" upper="1.22173"/>
+  </joint>
+
+  <joint name="wrist_roll" type="revolute">
+    <parent link="gripper"/>
+    <child link="end_effector"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.03243"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-1.0472" upper="1.0472"/>
+  </joint>
+
+
+
+  <link name="head_U">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/head_u-visual.stl"></mesh>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <inertial>
+      <inertia ixx= "1.299e-5" ixy= "5.557e-10" ixz= "-2.973e-10" iyy= "2.323e-5" iyz= "-8.199e-8" izz= "2.227e-5" ></inertia>
+      <mass value="0.036"></mass>
+    </inertial>
+  </link>
+
+  <link name="head_eyes">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/head-eyes-visual.stl"></mesh>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <inertial>
+      <inertia ixx= "1.299e-5" ixy= "5.557e-10" ixz= "-2.973e-10" iyy= "2.323e-5" iyz= "-8.199e-8" izz= "2.227e-5" ></inertia>
+      <mass value="0.036"></mass>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"></origin>
+      <geometry>
+        <mesh filename="package://reachy/meshes/head-eyes-respondable.stl"></mesh>
+      </geometry>
+    </collision>
+  </link>
+
+    <joint name="head_yaw" type="revolute">
+    <parent link="base"/>
+    <child link="head_U"/>
+    <origin rpy="0 0 0" xyz="0 0 0.13775"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.5708" upper="3.14159"/>
+  </joint>
+
+    <joint name="head_pitch" type="revolute">
+    <parent link="head_U"/>
+    <child link="head_eyes"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="0.174533"/>
+  </joint>
+
+
+</robot>

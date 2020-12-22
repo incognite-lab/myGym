@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<robot name="sofa">
+  <link name="baseLink">
+    <contact>
+      <lateral_friction value="1.0"/>
+      <rolling_friction value="0.0"/>
+      <contact_cfm value="0.0"/>
+      <contact_erp value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.0510 -0.0163  0.1678"/>
+       <mass value="80.0"/>
+       <inertia ixx="3.14560154" ixy="-1.36490831" ixz="-0.19974555" iyy="15.22049989" iyz="-0.51991312" izz="16.86923626"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.0510 -0.0163  0.1678"/>
+      <geometry>
+        <mesh filename="../obj/sofa.obj" scale="0.02 0.02 0.02"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision concave="yes">
+      <origin rpy="0 0 0" xyz="-0.0510 -0.0163  0.1678"/>
+      <geometry>
+	 	<mesh filename="../obj/sofa.obj" scale="0.02 0.02 0.02"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

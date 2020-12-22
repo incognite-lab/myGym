@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<robot name="armchair">
+  <link name="baseLink">
+    <contact>
+      <lateral_friction value="1.0"/>
+      <rolling_friction value="0.0"/>
+      <contact_cfm value="0.0"/>
+      <contact_erp value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0949 0.3238"/>
+       <mass value="25"/>
+       <inertia ixx="3.48340001" ixy="0" ixz="0" iyy="3.16851768" iyz="-0.69085115" izz="4.90483273"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 0.0949 0.3238"/>
+      <geometry>
+        <mesh filename="../obj/armchair.obj" scale="0.02 0.02 0.02"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision concave="yes">
+      <origin rpy="0 0 0" xyz="0.0 0.0949 0.3238"/>
+      <geometry>
+	 	<mesh filename="../obj/armchair.obj" scale="0.02 0.02 0.02"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

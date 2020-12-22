@@ -1,0 +1,735 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="rhr_flex_model">
+
+
+<!-- ################ ################ ################ ################ ################ ################ -->
+<!-- ################ XACRO PORTION OF THE URDF, FOR MAKING THE FLEXIBLE JOINTS ################ -->
+<!-- ################ ################ ################ ################ ################ ################ -->
+
+  <xacro:property name="flex_length" value="0.016" />
+  <xacro:property name="num_steps" value="9" />
+  <xacro:property name="prox_length" value="0.060" />
+  <xacro:property name="pi" value="3.1415" />
+
+  <xacro:macro name="base_color">
+    <color rgba="0.1 0.1 0.1 1"/>
+  </xacro:macro>
+
+  <xacro:macro name="swivel_color">
+    <color rgba="0.1 0.1 0.1 1"/>
+  </xacro:macro>
+
+  <xacro:macro name="proximal_color">
+    <color rgba="0.16 0.16 0.16 1"/>
+  </xacro:macro>
+
+   <xacro:macro name="distal_color">
+    <color rgba="0.16 0.16 0.16 1"/>
+  </xacro:macro>
+
+  <xacro:macro name="flex_color">
+    <color rgba="0.2 0.2 .2 1"/>
+  </xacro:macro>
+
+  <xacro:macro name="pad_color">
+    <color rgba="0.2 0.8 0.75 1"/>
+  </xacro:macro>  
+
+  <!-- Macro to make each part of the link -->
+  <xacro:macro name="flex_link" params="finger_id flex_id">
+    <link
+      name="finger[${finger_id}]/flex_link[${flex_id}]">
+      <visual>
+        <origin
+          xyz="0 -0.008 0.001"
+          rpy="${pi/2} 0 ${pi/2}" />
+        <geometry>
+          <mesh
+            filename="package://reflex_visualizer/meshes/flex_block.STL" />
+        </geometry>
+        <material
+          name="">
+          <xacro:flex_color/>
+        </material>
+      </visual>
+    </link>
+
+    <link name="finger[${finger_id}]/flex_link[${flex_id}]/virtual_link[1]"/>
+    <link name="finger[${finger_id}]/flex_link[${flex_id}]/virtual_link[2]"/>
+
+  </xacro:macro>
+
+  <!-- Macro to one flex body link to the next -->
+  <xacro:macro name="flex_joint" params="finger_id link_parent link_child">
+    <joint name="finger[${finger_id}]/flex_link[${link_parent}]/flex_joint_from_flex_link[${link_parent}]_to_virtual_link[1]" type="continuous">
+      <parent link="finger[${finger_id}]/flex_link[${link_parent}]"/>
+      <child link="finger[${finger_id}]/flex_link[${link_parent}]/virtual_link[1]"/>
+      <origin xyz="${flex_length/num_steps} 0 0" />
+      <axis xyz="0 -1 0"/>
+    </joint>
+
+    <joint name="finger[${finger_id}]/flex_link[${link_parent}]/flex_joint_from_virtual_link[1]_to_virtual_link[2]" type="continuous">
+      <parent link="finger[${finger_id}]/flex_link[${link_parent}]/virtual_link[1]"/>
+      <child link="finger[${finger_id}]/flex_link[${link_parent}]/virtual_link[2]"/>
+      <origin xyz="0 0 0" />
+      <axis xyz="-1 0 0"/>
+    </joint>
+
+    <joint name="finger[${finger_id}]/flex_link[${link_parent}]/flex_joint_from_virtual_link[2]_to_flex_link[${link_child}]" type="continuous">
+      <parent link="finger[${finger_id}]/flex_link[${link_parent}]/virtual_link[2]"/>
+      <child link="finger[${finger_id}]/flex_link[${link_child}]"/>
+      <origin xyz="0 0 0" />
+      <axis xyz="0 0 -1"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Macro to make the joint from proximal to first link and from last link to distal  -->
+  <xacro:macro name="flex_to_segment_joint" params="finger_id">
+    
+    <link name="finger[${finger_id}]/prox/virtual_link[1]"/>
+    <link name="finger[${finger_id}]/prox/virtual_link[2]"/>
+
+    <joint name="finger[${finger_id}]/prox/flex_joint_from_prox_to_virtual_link[1]" type="continuous">
+      <parent link="proximal_${finger_id}"/>
+      <child link="finger[${finger_id}]/prox/virtual_link[1]"/>
+      <origin xyz="${prox_length} 0 -0.004"/>
+      <axis xyz="0 -1 0"/>
+    </joint>
+
+    <joint name="finger[${finger_id}]/prox/flex_joint_from_virtual_link[1]_to_virtual_link[2]" type="continuous">
+      <parent link="finger[${finger_id}]/prox/virtual_link[1]"/>
+      <child link="finger[${finger_id}]/prox/virtual_link[2]"/>
+      <origin xyz="0 0 0"/>
+      <axis xyz="-1 0 0"/>
+    </joint>
+
+    <joint name="finger[${finger_id}]/prox/flex_joint_from_virtual_link[2]_to_flex_link[1]" type="continuous">
+      <parent link="finger[${finger_id}]/prox/virtual_link[2]"/>
+      <child link="finger[${finger_id}]/flex_link[1]"/>
+      <origin xyz="0 0 0"/>
+      <axis xyz="0 0 -1"/>
+    </joint>
+
+
+    <joint name="finger[${finger_id}]/flex_link[${num_steps}]/flex_joint_from_flex_link[${num_steps}]_to_virtual_link[1]" type="continuous">
+      <parent link="finger[${finger_id}]/flex_link[${num_steps}]"/>
+      <child link="finger[${finger_id}]/flex_link[${num_steps}]/virtual_link[1]"/>
+      <origin xyz="${flex_length/num_steps-0.01} 0 0.008"/>
+      <axis xyz="0 -1 0"/>
+    </joint>
+
+    <joint name="finger[${finger_id}]/flex_link[${num_steps}]/flex_joint_from_virtual_link[1]_to_virtual_link[2]" type="continuous">
+      <parent link="finger[${finger_id}]/flex_link[${num_steps}]/virtual_link[1]"/>
+      <child link="finger[${finger_id}]/flex_link[${num_steps}]/virtual_link[2]"/>
+      <origin xyz="0 0 0"/>
+      <axis xyz="-1 0 0"/>
+    </joint>
+
+    <joint name="finger[${finger_id}]/flex_link[${num_steps}]/flex_joint_from_virtual_link[2]_to_dist" type="continuous">
+      <parent link="finger[${finger_id}]/flex_link[${num_steps}]/virtual_link[2]"/>
+      <child link="distal_${finger_id}"/>
+      <origin xyz="0 0 0"/>
+      <axis xyz="0 0 -1"/>
+    </joint>
+  </xacro:macro>
+
+
+  <xacro:flex_link finger_id="1" flex_id="1"/>
+  <xacro:flex_link finger_id="1" flex_id="2"/>
+  <xacro:flex_link finger_id="1" flex_id="3"/>
+  <xacro:flex_link finger_id="1" flex_id="4"/>
+  <xacro:flex_link finger_id="1" flex_id="5"/>
+  <xacro:flex_link finger_id="1" flex_id="6"/>
+  <xacro:flex_link finger_id="1" flex_id="7"/>
+  <xacro:flex_link finger_id="1" flex_id="8"/>
+  <xacro:flex_link finger_id="1" flex_id="9"/>
+  <xacro:flex_joint finger_id="1" link_parent="1" link_child="2"/>
+  <xacro:flex_joint finger_id="1" link_parent="2" link_child="3"/>
+  <xacro:flex_joint finger_id="1" link_parent="3" link_child="4"/>
+  <xacro:flex_joint finger_id="1" link_parent="4" link_child="5"/>
+  <xacro:flex_joint finger_id="1" link_parent="5" link_child="6"/> 
+  <xacro:flex_joint finger_id="1" link_parent="6" link_child="7"/>
+  <xacro:flex_joint finger_id="1" link_parent="7" link_child="8"/>
+  <xacro:flex_joint finger_id="1" link_parent="8" link_child="9"/>
+  <xacro:flex_to_segment_joint finger_id="1"/>
+
+  <xacro:flex_link finger_id="2" flex_id="1"/>
+  <xacro:flex_link finger_id="2" flex_id="2"/>
+  <xacro:flex_link finger_id="2" flex_id="3"/>
+  <xacro:flex_link finger_id="2" flex_id="4"/>
+  <xacro:flex_link finger_id="2" flex_id="5"/>
+  <xacro:flex_link finger_id="2" flex_id="6"/>
+  <xacro:flex_link finger_id="2" flex_id="7"/>  
+  <xacro:flex_link finger_id="2" flex_id="8"/>
+  <xacro:flex_link finger_id="2" flex_id="9"/>
+  <xacro:flex_joint finger_id="2" link_parent="1" link_child="2"/>
+  <xacro:flex_joint finger_id="2" link_parent="2" link_child="3"/>
+  <xacro:flex_joint finger_id="2" link_parent="3" link_child="4"/>
+  <xacro:flex_joint finger_id="2" link_parent="4" link_child="5"/>
+  <xacro:flex_joint finger_id="2" link_parent="5" link_child="6"/> 
+  <xacro:flex_joint finger_id="2" link_parent="6" link_child="7"/>
+  <xacro:flex_joint finger_id="2" link_parent="7" link_child="8"/>
+  <xacro:flex_joint finger_id="2" link_parent="8" link_child="9"/>
+  <xacro:flex_to_segment_joint finger_id="2"/>
+
+  <xacro:flex_link finger_id="3" flex_id="1"/>
+  <xacro:flex_link finger_id="3" flex_id="2"/>
+  <xacro:flex_link finger_id="3" flex_id="3"/>
+  <xacro:flex_link finger_id="3" flex_id="4"/>
+  <xacro:flex_link finger_id="3" flex_id="5"/>
+  <xacro:flex_link finger_id="3" flex_id="6"/>
+  <xacro:flex_link finger_id="3" flex_id="7"/>
+  <xacro:flex_link finger_id="3" flex_id="8"/>
+  <xacro:flex_link finger_id="3" flex_id="9"/>
+  <xacro:flex_joint finger_id="3" link_parent="1" link_child="2"/>
+  <xacro:flex_joint finger_id="3" link_parent="2" link_child="3"/>
+  <xacro:flex_joint finger_id="3" link_parent="3" link_child="4"/>
+  <xacro:flex_joint finger_id="3" link_parent="4" link_child="5"/>
+  <xacro:flex_joint finger_id="3" link_parent="5" link_child="6"/> 
+  <xacro:flex_joint finger_id="3" link_parent="6" link_child="7"/>
+  <xacro:flex_joint finger_id="3" link_parent="7" link_child="8"/>
+  <xacro:flex_joint finger_id="3" link_parent="8" link_child="9"/>
+  <xacro:flex_to_segment_joint finger_id="3"/>
+
+
+
+
+
+
+<!-- ################ ################ ################ ################ ################ ################ -->
+<!-- ################ THE SECTION CREATED BY SOLIDWORKS EXPORTER, CUT AND PASTE THIS IN HERE ################ -->
+<!-- ################ YOU CAN ALTER THE COLORS FROM HERE ################ -->
+<!-- ################ COMMENT OUT ALL dist*_joint PIECES OF THIS URDF SO THE FLEX JOINTS CAN LINK UP ################ -->
+<!-- ################ ################ ################ ################ ################ ################ -->
+  <link
+    name="base_link">
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:base_color/>
+      </material>
+    </visual>
+  </link>
+  <link
+    name="pad">
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/pad.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:pad_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="pad_joint"
+    type="fixed">
+    <origin
+      xyz="0.02 0 0.063"
+      rpy="1.5707963267949 5.55111512312578E-17 -1.5707963267949" />
+    <parent
+      link="base_link" />
+    <child
+      link="pad" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="swivel_1">
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/swivel_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:swivel_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="preshape_1"
+    type="continuous">
+    <origin
+      xyz="0.0503973683071414 -0.026 0.063"
+      rpy="6.75550818663469E-16 1.97993848419069E-16 -2.77555756156289E-16" />
+    <parent
+      link="base_link" />
+    <child
+      link="swivel_1" />
+    <axis
+      xyz="0 0 -1" />
+  </joint>
+  <link
+    name="proximal_1">
+    <visual>
+      <origin
+        xyz="-0.011 0.007 0.011"
+        rpy="3.1459 0 0"/>
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/proximal_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:proximal_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="proximal_joint_1"
+    type="continuous">
+    <origin
+      xyz="0.01 0 0.0186"
+      rpy="-6.20039667432211E-16 0.05 2.22044604925031E-16" />
+    <parent
+      link="swivel_1" />
+    <child
+      link="proximal_1" />
+    <axis
+      xyz="0 -1 0" />
+  </joint>
+  <link
+    name="proximal_pad_1">
+    <visual>
+      <origin
+        xyz="-0.008 0.014 -0.002"
+        rpy="1.5708 1.5708 0" />
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/proximal_pad_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:pad_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="prox1_pad_joint"
+    type="fixed">
+    <origin
+      xyz="0 0 0"
+      rpy="1.5707963267949 0 -1.5707963267949" />
+    <parent
+      link="proximal_1" />
+    <child
+      link="proximal_pad_1" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="distal_1">
+    <visual>
+      <origin
+        xyz="-0.077 0.007 0.007"
+        rpy="3.1459 0 0" />
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/distal_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:distal_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="distal_joint_1"
+    type="continuous">
+    <origin
+      xyz="0.07600000000000001 0 0.00250000000000002"
+      rpy="0 0 0" />
+    <parent
+      link="proximal_1" />
+    <child
+      link="distal_1" />
+    <axis
+      xyz="0 -1 0" />
+  </joint>
+  <link
+    name="distal_pad_1">
+    <visual>
+      <origin
+        xyz="-0.00825 0.009 0.057"
+        rpy="1.5708 1.5708 0" />
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/distal_pad_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:pad_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="dist1_pad_joint"
+    type="fixed">
+    <origin
+      xyz="-0.01 0 0.001"
+      rpy="1.5707963267949 0 -1.5707963267949" />
+    <parent
+      link="distal_1" />
+    <child
+      link="distal_pad_1" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="swivel_2">
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/swivel_2.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:swivel_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="preshape_2"
+    type="continuous">
+    <origin
+      xyz="0.0503973683071413 0.0259999999999999 0.063"
+      rpy="1.22459340959228E-15 -7.33448407631817E-16 -1.66533453693773E-16" />
+    <parent
+      link="base_link" />
+    <child
+      link="swivel_2" />
+    <axis
+      xyz="0 0 -1" />
+  </joint>
+  <link
+    name="proximal_2">
+    <visual>
+      <origin
+        xyz="-0.011 0.007 0.011"
+        rpy="3.1459 0 0"/>
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/proximal_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:proximal_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="proximal_joint_2"
+    type="continuous">
+    <origin
+      xyz="0.01 0 0.0186"
+      rpy="-1.16908225836102E-15 0.05 1.11022302462515E-16" />
+    <parent
+      link="swivel_2" />
+    <child
+      link="proximal_2" />
+    <axis
+      xyz="0 -1 0" />
+  </joint>
+  <link
+    name="proximal_pad_2">
+    <visual>
+      <origin
+        xyz="-0.008 0.014 -0.002"
+        rpy="1.5708 1.5708 0" />
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/proximal_pad_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:pad_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="prox2_pad_joint"
+    type="fixed">
+    <origin
+      xyz="0 0 0"
+      rpy="1.5707963267949 0 -1.5707963267949" />
+    <parent
+      link="proximal_2" />
+    <child
+      link="proximal_pad_2" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="distal_2">
+    <visual>
+      <origin
+        xyz="-0.077 0.007 0.006"
+        rpy="3.1459 0 0" />
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/distal_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:distal_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="distal_joint_2"
+    type="continuous">
+    <origin
+      xyz="0.0760000000000001 0 0.00249999999999997"
+      rpy="0 0 0" />
+    <parent
+      link="proximal_2" />
+    <child
+      link="distal_2" />
+    <axis
+      xyz="0 -1 0" />
+  </joint>
+  <link
+    name="distal_pad_2">
+    <visual>
+      <origin
+        xyz="-0.00825 0.009 0.057"
+        rpy="1.5708 1.5708 0" />
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/distal_pad_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:pad_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="dist2_pad_joint"
+    type="fixed">
+    <origin
+      xyz="-0.01 0 0.001"
+      rpy="1.5707963267949 0 -1.5707963267949" />
+    <parent
+      link="distal_2" />
+    <child
+      link="distal_pad_2" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="proximal_3">
+    <visual>
+      <origin
+        xyz="-0.011 0.007 0.011"
+        rpy="3.1459 0 0"/>
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/proximal_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:proximal_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="proximal_joint_3"
+    type="continuous">
+    <origin
+      xyz="-0.0299999999999996 0 0.0816000000000002"
+      rpy="-5.55111512312578E-17 0.05 3.14159265358979" />
+    <parent
+      link="base_link" />
+    <child
+      link="proximal_3" />
+    <axis
+      xyz="0 -1 0" />
+  </joint>
+  <link
+    name="proximal_pad_3">
+    <visual>
+      <origin
+        xyz="-0.008 0.014 -0.002"
+        rpy="1.5708 1.5708 0" />
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/proximal_pad_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:pad_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="prox3_pad_joint"
+    type="fixed">
+    <origin
+      xyz="0 0 0"
+      rpy="1.5707963267949 1.22460635382238E-16 -1.5707963267949" />
+    <parent
+      link="proximal_3" />
+    <child
+      link="proximal_pad_3" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="distal_3">
+    <visual>
+      <origin
+        xyz="-0.077 0.007 0.006"
+        rpy="3.1459 0 0" />
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/distal_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:distal_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="distal_joint_3"
+    type="continuous">
+    <origin
+      xyz="0.0760000000000001 0 0.0025"
+      rpy="-1.48887961834512E-45 -1.0995850059156E-76 -7.38531841236285E-32" />
+    <parent
+      link="proximal_3" />
+    <child
+      link="distal_3" />
+    <axis
+      xyz="0 -1 0" />
+  </joint>
+  <link
+    name="distal_pad_3">
+    <visual>
+      <origin
+        xyz="-0.00825 0.009 0.057"
+        rpy="1.5708 1.5708 0" />
+      <geometry>
+        <mesh
+          filename="package://reflex_visualizer/meshes/distal_pad_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <xacro:pad_color/>
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="dist3_pad_joint"
+    type="fixed">
+    <origin
+      xyz="-0.01 0 0.001"
+      rpy="1.5707963267949 0 -1.5707963267949" />
+    <parent
+      link="distal_3" />
+    <child
+      link="distal_pad_3" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+
+
+
+
+
+
+
+
+
+<!-- ################ ################ ################ ################ ################ ################ -->
+<!-- ################ THIS SECTION LINKS THE MARKERS (TACTILE DATA) TO THE CAD MESH ################ -->
+<!-- ################ COPY AND PASTE THIS FROM urdf/homemade_marker_portion_urdf  ################ -->
+<!-- ################ ################ ################ ################ ################ ################ -->
+
+  <joint name="base_tactile_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="base_tactile" />
+  </joint>
+
+  <link name="base_tactile"/>
+
+  <link name="proximal_1_tactile" />
+
+  <joint name="proximal_1_tactile_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="proximal_1" />
+    <child link="proximal_1_tactile" />
+  </joint>
+
+  <joint name="proximal_2_tactile_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="proximal_2" />
+    <child link="proximal_2_tactile" />
+  </joint>
+
+  <link name="proximal_2_tactile"/>
+
+  <joint name="proximal_3_tactile_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="proximal_3" />
+    <child link="proximal_3_tactile" />
+  </joint>
+
+  <link name="proximal_3_tactile"/>
+
+  <joint name="distal_1_tactile_joint" type="fixed">
+    <origin xyz="-0.0062 0 0" rpy="0 0 0" />
+    <parent link="distal_1" />
+    <child link="distal_1_tactile" />
+  </joint>
+
+  <link name="distal_1_tactile"/>
+
+  <joint name="distal_2_tactile_joint" type="fixed">
+    <origin xyz="-0.0062 0 0" rpy="0 0 0" />
+    <parent link="distal_2" />
+    <child link="distal_2_tactile" />
+  </joint>
+
+  <link name="distal_2_tactile"/>
+
+  <joint name="distal_3_tactile_joint" type="fixed">
+    <origin xyz="-0.0062 0 0" rpy="0 0 0" />
+    <parent link="distal_3" />
+    <child link="distal_3_tactile" />
+  </joint>
+
+  <link name="distal_3_tactile"/>
+
+
+
+
+
+
+
+
+
+
+</robot>

@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<robot name="bus">
+  <link name="baseLink">
+    <contact>
+      <lateral_friction value="1.0"/>
+      <rolling_friction value="0.0"/>
+      <contact_cfm value="0.0"/>
+      <contact_erp value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.0011 0.0 0.0341"/>
+       <mass value="0.515"/>
+       <inertia ixx="0.00027720" ixy="0.0" ixz="0.00000494" iyy="0.00147559" iyz="0.00000007" izz="0.00146899"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.0011 0.0 0.0341"/>
+      <geometry>
+        <mesh filename="./stl/bus.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision concave="yes">
+      <origin rpy="0 0 0" xyz="-0.0011 0.0 0.0341"/>
+      <geometry>
+	 	<mesh filename="./stl/bus.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

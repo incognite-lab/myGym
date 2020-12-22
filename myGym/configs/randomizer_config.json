@@ -1,0 +1,28 @@
+{
+    "seed": 42,
+    "texture_randomizer": {
+      "enabled": false,
+      "exclude": [],
+      "seamless": false,
+      "textures_path": "./envs/dtd/images/",
+      "seamless_textures_path": "./envs/dtd/images/"
+    },
+    "light_randomizer": {
+      "enabled": false,
+      "randomized_dimensions": {
+                                "light_color": true, "light_direction": true,
+                                "light_distance": true, "light_ambient": true,
+                                "light_diffuse": true, "light_specular": true
+                                }
+    },
+    "camera_randomizer": {
+      "enabled": true,
+      "randomized_dimensions": {"target_position": true},
+      "shift": [0.1, 0.1, 0.1]
+    },
+    "color_randomizer": {
+      "enabled": false,
+      "exclude": [],
+      "randomized_dimensions": {"rgb_color": true, "specular_color": true}
+    }
+}

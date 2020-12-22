@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot>
+  <link
+    name="lowerarm_preroll_d">
+    <inertial>
+      <origin
+        xyz="0.0192090313803226 -0.000209732444885397 -0.00477606520095217"
+        rpy="0 0 0" />
+      <mass
+        value="0.0573922743530686" />
+      <inertia
+        ixx="5.98272304285402E-07"
+        ixy="-9.55132100709239E-09"
+        ixz="2.00959509125472E-06"
+        iyy="7.34863588332809E-06"
+        iyz="2.84343934345717E-09"
+        izz="6.7503906079721E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/lowerarm_preroll_d.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/lowerarm_preroll_d.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="fastswitch"
+    type="fixed">
+    <origin
+      xyz="0.056236 -0.019 -0.006"
+      rpy="0 0 0" />
+    <parent
+      link="lowerarm_preroll_u" />
+    <child
+      link="lowerarm_preroll_d" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="lowerarm">
+    <inertial>
+      <origin
+        xyz="0.076518166900465 0.000154587846369382 0.00668942647768447"
+        rpy="0 0 0" />
+      <mass
+        value="0.214658222402075" />
+      <inertia
+        ixx="2.53797627665925E-05"
+        ixy="-3.78406001691015E-09"
+        ixz="1.36269412886066E-05"
+        iyy="0.000325304336296306"
+        iyz="3.75496083335353E-07"
+        izz="0.000302080494837117" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/lowerarm.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/lowerarm.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="forearm_roll"
+    type="continuous">
+    <origin
+      xyz="0.043506 -0.00023376 -0.019876"
+      rpy="0 0 0" />
+    <parent
+      link="lowerarm_preroll_d" />
+    <child
+      link="lowerarm" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      effort="0"
+      velocity="1" />
+  </joint>
+  <link
+    name="wrist">
+    <inertial>
+      <origin
+        xyz="0.0484512742480244 0.0139768664666073 0.000956995637939325"
+        rpy="0 0 0" />
+      <mass
+        value="0.0644774651698934" />
+      <inertia
+        ixx="8.67406414845019E-06"
+        ixy="-1.3193756197629E-05"
+        ixz="-3.41916035169704E-06"
+        iyy="4.217442276821E-05"
+        iyz="-4.04257224014858E-07"
+        izz="4.91399139463636E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/wrist.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/wrist.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wrist_pitch"
+    type="revolute">
+    <origin
+      xyz="0.1511 -0.01935 0.0048471"
+      rpy="0 0 0" />
+    <parent
+      link="lowerarm" />
+    <child
+      link="wrist" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1"
+      upper="1"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <!--
+  making sure I can move my fingers in a synchronized way. also if they move at
+  different rates, set the mimic tag to something different. it allows for an
+  offset and a multiplication rate. check ros docs for details
+  -->
+  <joint name="gripper" type="revolute">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="wrist"/>
+    <child link="dummygripper"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="0" lower="0" upper="2" velocity="0"/>
+  </joint>
+  <link name="dummygripper"/>
+  <link
+    name="i1">
+    <inertial>
+      <origin
+        xyz="0.0230748926267925 0.00588066789200992 0.00129219082652174"
+        rpy="0 0 0" />
+      <mass
+        value="0.00632408233084942" />
+      <inertia
+        ixx="3.56498343502738E-08"
+        ixy="-7.51978011656011E-09"
+        ixz="7.65091950170785E-08"
+        iyy="1.38099634070148E-06"
+        iyz="2.95085409823962E-09"
+        izz="1.34584197546666E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/i1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/i1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="i1f"
+    type="revolute">
+    <origin
+      xyz="0.059922 -0.031986 0.0029515"
+      rpy="-0.79367 0.12795 -0.91441" />
+    <parent
+      link="wrist" />
+    <child
+      link="i1" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0.8"
+      effort="0"
+      velocity="0" />
+    <mimic joint="gripper"/>
+
+  </joint>
+  <link
+    name="i2">
+    <inertial>
+      <origin
+        xyz="0.029386051121549 0.00499999330192313 0.000893559269171462"
+        rpy="0 0 0" />
+      <mass
+        value="0.00478605585780196" />
+      <inertia
+        ixx="1.44402270123506E-08"
+        ixy="-2.56581222941725E-11"
+        ixz="2.53254035448901E-08"
+        iyy="1.75264603448073E-06"
+        iyz="-2.73166158730175E-14"
+        izz="1.73820581728879E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/i2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/i2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="i2f"
+    type="revolute">
+    <origin
+      xyz="0.12886 -0.0060786 -0.0024749"
+      rpy="-6.9389E-16 -8.4436E-17 -0.12109" />
+    <parent
+      link="wrist" />
+    <child
+      link="i2" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0.8"
+      effort="0"
+      velocity="0" />
+    <mimic joint="gripper"/>
+
+  </joint>
+  <link
+    name="i3">
+    <inertial>
+      <origin
+        xyz="0.0333094448268015 0.00500062828207009 0.000926424894512667"
+        rpy="0 0 0" />
+      <mass
+        value="0.00575461720344836" />
+      <inertia
+        ixx="1.7528524706522E-08"
+        ixy="5.05837929681755E-11"
+        ixz="3.40539002999804E-08"
+        iyy="2.72253553073577E-06"
+        iyz="-1.34658964758198E-11"
+        izz="2.70500702907738E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/i3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/i3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="i3f"
+    type="revolute">
+    <origin
+      xyz="0.13223 0.0086295 -0.0025"
+      rpy="-1.0408E-15 -5.7778E-30 -5.5511E-15" />
+    <parent
+      link="wrist" />
+    <child
+      link="i3" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0.8"
+      effort="0"
+      velocity="0" />
+    <mimic joint="gripper"/>
+
+  </joint>
+  <link
+    name="i4">
+    <inertial>
+      <origin
+        xyz="0.0292482948728239 0.00500042157737766 0.00089292978084992"
+        rpy="0 0 0" />
+      <mass
+        value="0.00478456052942582" />
+      <inertia
+        ixx="1.4454849144576E-08"
+        ixy="2.0656237329945E-11"
+        ixz="2.47125764221831E-08"
+        iyy="1.78182532599838E-06"
+        iyz="-7.47440915183542E-12"
+        izz="1.76737048495524E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/i4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/i4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="i4f"
+    type="revolute">
+    <origin
+      xyz="0.13046 0.023543 -0.0025"
+      rpy="-1.0408E-15 1.4051E-16 0.13418" />
+    <parent
+      link="wrist" />
+    <child
+      link="i4" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0.8"
+      effort="0"
+      velocity="0" />
+    <mimic joint="gripper"/>
+
+  </joint>
+  <link
+    name="i5">
+    <inertial>
+      <origin
+        xyz="0.0271094932224739 0.00500024784027392 0.000539597160873585"
+        rpy="0 0 0" />
+      <mass
+        value="0.00396686667442233" />
+      <inertia
+        ixx="8.23853712957584E-09"
+        ixy="2.89272292618791E-12"
+        ixz="-1.05009595857809E-08"
+        iyy="1.12916579855789E-06"
+        iyz="-4.09427058097684E-12"
+        izz="1.12092726589941E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/i5.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://gummi_arm/meshes/i5.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="i5f"
+    type="revolute">
+    <origin
+      xyz="0.12703 0.037692 -0.0025"
+      rpy="1.9429E-14 -3.8109E-15 0.19369" />
+    <parent
+      link="wrist" />
+    <child
+      link="i5" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0.8"
+      effort="0"
+      velocity="0" />
+    <mimic joint="gripper"/>
+
+  </joint>
+</robot>

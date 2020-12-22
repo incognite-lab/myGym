@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+<robot name="cube.urdf">
+  <link name="baseLink">
+    <contact>
+      <!-- <lateral_friction value="1.0"/>
+      <inertia_scaling value="3.0"/> -->
+      <!-- <friction_anchor/> -->
+      <!-- <lateral_friction value="1.3"/> -->
+      <!-- <rolling_friction value="1.3"/> -->
+      <!-- <lateral_friction value="20"/> -->
+      <stiffness value="300"/>
+      <!-- <damping value="10"/> -->
+      <!-- <damping value="20"/> -->
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
+       <mass value="0.113"/>
+       <inertia ixx="0.00004688" ixy="0" ixz="0" iyy="0.00004688" iyz="0" izz="0.00004688"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
+      <geometry>
+	<mesh filename="./obj/cube.obj" scale=".001 .001 .001"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+     </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
+      <geometry>
+	<mesh filename="./obj/cube.obj" scale=".001 .001 .001"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>
