@@ -1,1 +1,1 @@
-sphinx-argparse=0.2.5
+sphinx-argparse==0.2.5
