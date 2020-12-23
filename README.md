@@ -220,7 +220,10 @@ In preparation
 
 ## Authors
 
+
 ![alt text](myGym/images/incognitelogo.png "test_work")
+
+
 [Incognite lab - CIIRC CTU](https://incognite.ciirc.cvut.cz) 
 
 Core team:
