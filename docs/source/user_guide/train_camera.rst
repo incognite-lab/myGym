@@ -24,9 +24,9 @@ and specify the path to YOLACT preptrained model and model config:
 .. note:: 
     If you do not have myGym's pretrained vision model, download it first:
 
-    ``cd mygym`` 
+    ``cd myGym`` 
 
-    ``sh ./utils/download_vision.sh``
+    ``sh download_vision.sh``
 
 We recommed to turn the visgym parameter off:
 

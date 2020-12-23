@@ -3,10 +3,6 @@
 Workspaces
 ==========
 
-The Gym is a prepared environment for training and testing various robotic tasks.
-Visualized as a gym, it contains several specialized workspaces where the training can take place.
-* baskets, collabtable, darts, drawer, football, fridge, maze, stairs, table, verticalmaze
-
 The environment setup is adjusted based on selected workspace. The origin of coordinate frame is always 
 placed at the center of the top face of the robot's stand, the positive x-axis points right from the robot, 
 the positive y-axis points to the front from the robot. At each workspace, 5 cameras are initialized, 
@@ -105,7 +101,3 @@ Verticalmaze
 .. image:: ur3_verticalmaze.png
   :width: 700
   :alt: Ur3 verticalmaze
-
-
-.. automodule:: myGym.envs.gym_env
-  :members:

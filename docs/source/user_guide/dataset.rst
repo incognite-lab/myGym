@@ -15,6 +15,11 @@ the scene. Thanks to randomizer, you can change textures of static and dynamic o
 change light conditions such as light intensity, direction or color. Camera randomizer slightly changes camera properties. 
 Joint randomizer enables robots and dynamic objects to change their configuration.
 
+.. note::
+  To be able to use texture randomizer, download the texture dataset first:
+
+  ``cd myGym`` ``sh download_textures.sh``
+
 Dataset json file
 -----------------
 

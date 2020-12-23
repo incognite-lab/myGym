@@ -23,7 +23,7 @@ image from the active camera to project the object's centroid into 3D worl coord
 position of task objects is obtained only from sensory data without any ground truth inputs.
 
 The current pre-trained model can detect all :ref:`mygym_objects` and three of :ref:`mygym_robots` including 
-their grippers (kuka, jaco, panda). .. todo:: how to download weights.
+their grippers (kuka, jaco, panda).
 
 If you would like to train new YOLACT model, you can use prepared dataset generator available in myGym, 
 see :ref:`dataset`. For instructions regarding training itself, visit `YOLACT`_ home page.
@@ -33,7 +33,6 @@ see :ref:`dataset`. For instructions regarding training itself, visit `YOLACT`_ 
 
 VAE
 ---
-
 
 The objective of an unsupervised version of the prepared tasks (reach
 task, push task, pick and place etc.) is to minimize the difference
@@ -52,7 +51,13 @@ and place.
 
 We provide a pretrained VAE for some of the task scenarios, but we also
 include code for training of your own VAE (including dataset
-generation), so that you can create custom experiments.   .. todo:: how to download weights.
+generation), so that you can create custom experiments.   
+
+.. note::
+  If you want to use pretrained visual modules, please download them
+  first:
+
+  ``cd myGym`` ``sh download_vision.sh``
 
 .. automodule:: myGym.envs.vision_module
   :members:

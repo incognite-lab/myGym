@@ -28,7 +28,7 @@
     "texture_randomizer": {
         "enabled": true,
         "exclude": [], # objects that will not be texturized, e.g. "table" or "floor" or "objects"
-        "textures_path": "./envs/dtd/images/"},
+        "textures_path": "./envs/dtdseamless/"},
     "light_randomizer": {
         "enabled": false,
         "randomized_dimensions": {

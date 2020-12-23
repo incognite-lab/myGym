@@ -1,7 +1,7 @@
 .. _mygym_objects:
 
 Objects
-=============
+=======
 
 The toolkit allows you to add various objects to your training environment. Here are presented the implemented objects sorted into categories. You can also add custom object by placing its model and URDF file into envs/objects directory. For details about how myGym works with objects in the simulation, see :ref:`env_object`.
 

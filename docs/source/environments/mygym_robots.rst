@@ -1,7 +1,7 @@
 .. _mygym_robots:
 
 Robots
-============
+======
 
 The toolkit allows you to add various robots to your training environment. Here are presented the implemented robots. 
 You can also add custom robot by placing its model and URDF file into envs/robots directory. For details about how 

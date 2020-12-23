@@ -4,8 +4,8 @@
       "enabled": false,
       "exclude": [],
       "seamless": false,
-      "textures_path": "./envs/dtd/images/",
-      "seamless_textures_path": "./envs/dtd/images/"
+      "textures_path": "./envs/dtdseamless/",
+      "seamless_textures_path": "./envs/dtdseamless/"
     },
     "light_randomizer": {
       "enabled": false,

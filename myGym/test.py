@@ -81,7 +81,7 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
             is_successful = not info['f']
             distance_error = info['d']
 
-            if arg_dict["record"]:
+            if arg_dict["record"] and len(images) < 250:
                 render_info = env.render(mode="rgb_array", camera_id = arg_dict["camera"])
                 image = render_info[arg_dict["camera"]]["image"]
                 images.append(image)

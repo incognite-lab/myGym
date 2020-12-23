@@ -82,7 +82,6 @@ class VisionModule:
         """
         if self.src == "ground_truth":
             pass
-            # @TODO
         elif self.src in ["dope", "yolact"]:
             if img is not None:
                 if self.src == "yolact":

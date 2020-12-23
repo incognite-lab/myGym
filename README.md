@@ -21,7 +21,7 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 
 
 
-Learn more about the toolbox in [documentation](https://www.incognite-lab.github.io/mymgym)
+Learn more about the toolbox in [documentation](https://incognite.ciirc.cvut.cz/mygym/)
 
 ## Modular Structure
 
@@ -59,13 +59,13 @@ Install mygym:
 
 If you want to use pretrained visual modules, please download them first:
 
-`cd mygym`
-`sh ./utils/download_vision.sh`
+`cd myGym`
+`sh download_vision.sh`
 
 If you want to use pretrained baselines models, download them here:
 
-`cd mygym`
-`sh ./utils/download_baselines.sh`
+`cd myGym`
+`sh download_baselines.sh`
 
 ## Visualization
 
@@ -218,14 +218,18 @@ As myGym is focused on curicullum learning all the worspaces and tasks are conce
 Core team:
 
 [Michal Vavrecka](https://kognice.wixsite.com/vavrecka)
+
 [Gabriela Sejnova](https://kognice.wixsite.com/vavrecka)
-[Megi Mejdrechova](https://kognice.wixsite.com/vavrecka)
+
+[Megi Mejdrechova](https://www.linkedin.com/in/megi-mejdrechova)
+
 [Nikita Sokovnin](https://kognice.wixsite.com/vavrecka)
 
 Contributors:
 
-Radoslav Skoviera, Marek Otahal, Peter Basar, Vojtech Pospisil, Jiri Kulisek, Sara Thu Nguyen
+Radoslav Skoviera, Peter Basar, Vojtech Pospisil, Jiri Kulisek, Anastasia Ostapenko, Sara Thu Nguyen
 
 
 ## Paper
 
+[myGym: Modular Toolkit for Visuomotor Robotic Tasks](https://arxiv.org/abs/2012.11643)

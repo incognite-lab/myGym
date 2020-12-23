@@ -48,7 +48,7 @@ Overview
 |                                   | PicknPlace, Throw, Hit, Catch,     |
 |                                   | Navigate                           |
 +-----------------------------------+------------------------------------+
-| Randomizers                       | Light, Texture, Size, Camera        |
+| Randomizers                       | Light, Texture, Size, Camera       |
 |                                   | position                           |
 +-----------------------------------+------------------------------------+
 | Baselines                         | Tensorflow, Pytorch                |
@@ -96,6 +96,7 @@ custom modules.
    environments/workspace
    environments/mygym_objects
    environments/mygym_robots
+   environments/gym_env
 
 .. toctree::
    :maxdepth: 1
@@ -129,6 +130,25 @@ Citing myGym
       journal = {GitHub repository},
       howpublished = {},
     }
+
+Authors
+-------
+
+Core team:
+
+`Michal Vavrecka <https://kognice.wixsite.com/vavrecka>`_, 
+`Gabriela Sejnova <https://kognice.wixsite.com/vavrecka>`_, 
+`Megi Mejdrechova <https://www.linkedin.com/in/megi-mejdrechova>`_, 
+`Nikita Sokovnin <https://kognice.wixsite.com/vavrecka>`_
+
+Contributors:
+
+Radoslav Skoviera, Peter Basar, Vojtech Pospisil, Jiri Kulisek, Anastasia Ostapenko, Sara Thu Nguyen
+
+Paper
+-----
+
+`myGym: Modular Toolkit for Visuomotor Robotic Tasks <https://arxiv.org/abs/2012.11643>`_
 
 Indices and tables
 ==================

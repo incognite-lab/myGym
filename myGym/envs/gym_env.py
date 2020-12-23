@@ -94,6 +94,8 @@ class GymEnv(CameraEnv):
         self.color_dict = color_dict
 
         self.task_type = task_type
+        if dataset:
+            task_objects = []
         self.task_objects_names = task_objects
         self.reward_type = reward_type
         self.distance_type = distance_type

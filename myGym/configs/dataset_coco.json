@@ -1,6 +1,6 @@
 {
 # directory
-    "output_folder" : "../mygym/yolact_vision/data/yolact/datasets/my_dataset",
+    "output_folder" : "../myGym/yolact_vision/data/yolact/datasets/my_dataset",
 # dataset parameters
     "dataset_type" : "coco", #"coco" (for yolact, detectron)/ "dope"
     "make_dataset" : "display", #mode of writing files, "new" (override), "resume" (append),"display" (don't store results)
@@ -33,7 +33,7 @@
       "enabled": true,
       "exclude": [], #objects that will not be texturized, e.g. "table" or "floor" or "objects"
       "seamless": true,
-      "textures_path": "./envs/dtd/images/",
+      "textures_path": "./envs/dtdseamless/",
       "seamless_textures_path": "./envs/dtdseamless/"
     },
     "light_randomizer": {

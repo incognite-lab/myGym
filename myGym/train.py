@@ -1,12 +1,13 @@
 import pkg_resources
 import os, sys, time, yaml
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from myGym import envs
+import json, commentjson
 import gym
+from myGym import envs
 import myGym.utils.cfg_comparator as cfg
 from stable_baselines.common.policies import MlpPolicy
-import json, commentjson
 from stable_baselines.common import make_vec_env
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines.bench import Monitor
@@ -25,10 +26,7 @@ from stable_baselines.sac.policies import MlpPolicy as MlpPolicySAC
 from stable_baselines.ddpg.policies import MlpPolicy as MlpPolicyDDPG
 from stable_baselines.td3.policies import MlpPolicy as MlpPolicyTD3
 
-import argparse
-
 # Import helper classes and functions for monitoring
-#from myGym.utils.run_monitor_helper import VecMonitor, plot_extended_results
 from myGym.utils.callbacks import ProgressBarManager, SaveOnBestTrainingRewardCallback,  PlottingCallback, CustomEvalCallback
 
 # This is global variable for the type of engine we are working with

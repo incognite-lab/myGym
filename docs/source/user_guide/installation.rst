@@ -1,13 +1,13 @@
 .. _installation:
 
 Install
-==============
+=======
 
 You can install myGym by standard procedure:
 
 ``git clone https://github.com/incognite/mygym.git``
 
-``cd mygym``
+``cd myGym``
 
 We reccomend to create conda environment:
 
@@ -15,7 +15,7 @@ We reccomend to create conda environment:
 
 ``conda activate mygym``
 
-Install mygym:
+Install myGym:
 
 ``python setup.py develop``
 
@@ -25,11 +25,11 @@ Pretrained modules
 If you want to use pretrained visual modules, please download them
 first:
 
-``cd mygym`` ``sh ./utils/download_vision.sh``
+``cd myGym`` ``sh download_vision.sh``
 
 If you want to use pretrained baselines models, download them here:
 
-``cd mygym`` ``sh ./utils/download_baselines.sh``
+``cd myGym`` ``sh download_baselines.sh``
 
 Supported systems
 -----------------

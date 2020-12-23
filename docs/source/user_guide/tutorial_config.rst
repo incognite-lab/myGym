@@ -9,7 +9,7 @@ results. In this tutorial, we present the basics you should know in order to
 configure the training parameters to fit your needs.
 
 The example of basic config file is
-[here TODO(../../../myGym/configs/train_example.json)]. Yo can clone and edit this
+`here <https://github.com/incognite-lab/myGym/blob/master/myGym/configs/train_example.json>`_. Yo can clone and edit this
 file according to your needs and run the training just by typing:
 
 ``python train.py --config ./configs/train_example.json``
@@ -30,8 +30,8 @@ arguments. See the complete list of parameters here :ref:`tutorial_parametric`.
       :name: environment
 
    Specify the name of a gym environment, where the training will take
-   place. We recommend you to choose the one we prepared, :ref:`workspace`. 
-   This environment contains several workspaces suitable for tasks of 
+   place. We recommend you to choose the one we prepared, :ref:`gym_env`. 
+   This environment contains several :ref:`workspace` suitable for tasks of 
    different type and difficulty and you can easily choose the right one using 
    workspace parameter. In case you wish to build your own environment,
    we advise you to create it as a child class of the Workspace.
@@ -47,7 +47,7 @@ for watching training progress, especially if you use vision data in
 your env. The 3D render of the scene during evaluation episodes in GUI window
 may be enabled as well.
 
-Lastly, there is an option to show only minimal version of :ref:`workspace`
+Lastly, there is an option to show only minimal version of Gym
 environment and render only the one selected workspace, that is controlled
 by visgym parameter.
 

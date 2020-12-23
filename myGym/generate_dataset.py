@@ -26,7 +26,7 @@ def color_names_to_rgb():
     """
     Assign RGB colors to objects by name as specified in the training config file
     """
-    with open(pkg_resources.resource_filename("myGym", 'utils/rgbcolors.json'), "r") as read_file:
+    with open(pkg_resources.resource_filename("myGym", 'configs/rgbcolors.json'), "r") as read_file:
         clr = json.load(read_file) #json file with suggested colors
         new_dict = {}
         for key, value in config['object_colors'].items():
