@@ -35,7 +35,7 @@ We developed fully modular toolbox where user can easily combine the predefined 
 
 Ubuntu 18.04, 20.04
 Python 3.5, 3.6.,3.7,3.8
-GPU acceleration strongly supported
+GPU acceleration strongly reccomended
 
 
 
@@ -238,7 +238,7 @@ Core team:
 
 Contributors:
 
-Radoslav Skoviera, Peter Basar, Vojtech Pospisil, Jiri Kulisek, Anastasia Ostapenko, Sara Thu Nguyen
+Radoslav Skoviera, Peter Basar, Michael Tesar, Vojtech Pospisil, Jiri Kulisek, Anastasia Ostapenko, Sara Thu Nguyen
 
 
 ## Paper
