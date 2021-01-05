@@ -3,7 +3,7 @@
 
 
 
-We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so you can train your network to control different robots in several envinronments defined parametrically. You can also create curicullum of tasks and test your network set of tasks with inreasing complexity. There is automatic evaluation and benchmark tool for your network. We pretrained the neural networks for visual recognition of all objects in the simulator. We constantly train networks to provide baselines for the tasks in the toolbox. The training is 50x faster with the visualization turned on than realtime simulations.
+We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so you can train your network with different robots  in several envinronments and various tasks. You can also create curicullum of tasks and test your network set of tasks with inreasing complexity. There is automatic evaluation and benchmark tool for your network. We pretrained the neural networks for visual recognition of all objects in the simulator so you can reward your networks based on visual sensors. We constantly train networks to provide baselines for the tasks in the toolbox. There is also leaderboard for most general network, capable to learn tasks in basic curricullum.
 
 ## Overview
 
@@ -43,7 +43,7 @@ GPU acceleration strongly reccomended
 
 Clone the repository:
 
-`git clone https://github.com/incognite/mygym.git`
+`git clone https://github.com/incognite-lab/mygym.git`
 
 `cd mygym`
 
