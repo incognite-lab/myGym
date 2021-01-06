@@ -216,14 +216,14 @@ As myGym allows curicullum learning the worspaces and tasks are concentrated in 
 
 ## Leaderboard
 
-Compared to baselines the leaderboard compares overall quality of the proposed algorhitm within the gym tasks. The leaderboard score is calvulated as a mean success rate of the algorhitm in series of tasks with increasing comlexity of robot (3DOF,7DOF,13DOF), environment (no obstacle, static obstacles, barriers) and tasks (reach, push, pinknplace). The algorhitm will pass 27 train&test steps and the final value is represented in leaderboard.
+Compared to baselines the leaderboard compares overall quality of the proposed algorhitm within the gym tasks. The leaderboard score is calculated as a mean success rate of the algorhitm in series of tasks with increasing complexity of robot (3DOF,7DOF,13DOF), environment (no obstacle, static obstacles, barriers) and tasks (reach, push, pinknplace). The algorhitm will pass 27 train&test steps to obtain the leaderboard score. Be first who will reach 100 points.
 
 | Pos. | Algorhitm  | Author | Score | Data |
 |---|---|---|---|---|
 |1.| PPO2 | --  | -- | link |
-|2.| PPO2 | --  | -- | link |
-|3.| PPO2 | --  | -- | link |
-|4.| PPO2 | --  | -- | link |
+|2.| PPO | --  | -- | link |
+|3.| SAC | --  | -- | link |
+|4.| DQN | --  | -- | link |
 
 
 ## Authors
