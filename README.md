@@ -12,7 +12,7 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 |---|---|
 | Workspaces | Table, Collaborative table, Maze, Vertical maze, Drawer, Darts, Football, Fridge, Stairs, Baskets |
 | Vision  | Cartesians, RGB, Depth, Class, Centroid, Bounding Box, Semantic Mask, Latent vector |
-| Robots  | 7 robotic arms, 2 dualarms, humanoid |
+| Robots  | 8 robotic arms, 2 dualarms, humanoid |
 | Robot actions  | Absolute, Relative, Joints |
 | Objects  | 54 objects in 5 categories |
 | Tasks  | Reach, Push, Pick, Place, PicknPlace, Throw, Hit, Catch, Navigate|
@@ -34,7 +34,7 @@ We developed fully modular toolbox where user can easily combine the predefined 
 ## Supported systems
 
 Ubuntu 18.04, 20.04
-Python 3.5, 3.6.,3.7,3.8
+Python 3
 GPU acceleration strongly reccomended
 
 
@@ -138,7 +138,7 @@ We developed scripts for parallel training to speed up this process. You can edi
 
 `python train_parallel.py`
 
-The default config will train 4 parallel simulation with different RL in the same conditions. After several training steps you can see the difference in performace among algorhitms. For better performance the backround visualization is turned off:
+The default config will train 4 parallel simulation with different RL algorhitms in the same conditions. After several training steps you can see the difference in performace among algorhitms. For better performance the backround visualization is turned off:
 
 ![alt text](myGym/images/workspaces/4kuka_trained.gif "training")
 
@@ -165,26 +165,26 @@ If you want to interactively compare different parameters, just run the tensorbo
 
 ## Environment
 
-As myGym is focused on curicullum learning all the worspaces and tasks are concentrated in one gym, so you can easily transfer robot from one workspace to another, or from task to task without necessity to reload envinronment. The basic envinronment is called Gym-v0. There are more gyms for navigation and multiagent collaboration in preparation stage. 
+As myGym allows curicullum learning the worspaces and tasks are concentrated in one gym, so you can easily transfer robot. The basic envinronment is called Gym-v0. There are more gyms for navigation and multiagent collaboration in preparation. 
 
 ## Robots
 
 | Robot  |Type| Gripper  | DOF  | Parameter value |
 |---|---|---|---|---|
-| Kuka IIWA | arm  | magnetic  |  7 |  kuka |
-|  Franka-Emica | arm  | two finger  | 6  |  panda |
-| Jaco arm  | arm  |  two finger |  6 | jaco  |
-| UR-3  | arm  | tactile gripper  |  6 | ur3  |
-| UR-5  | arm  | tactile gripper  |  6 | ur5  |
-| UR-10  | arm  | tactile gripper  |  6 | ur10  |
-| Gummiarm  | arm  | passive palm  |  6 | gummi  |
-| Reachy  | arm  | passive palm  |  8 | reachy  |
-| Leachy  | arm  | passive palm  |  8 | leachy  |
-| ReachyLeachy  | dualarm  | passive palms  |  16 | reachy_and_leachy |
-| ABB Yumi  | dualarm  | two finger  |  24 | yummi  |
-| Pepper  | humanoid | --  |  -- | --  |
-| Thiago | humanoid  | --  |  -- | --  |
-| Atlas  | humanoid  | --  |  -- | --  |
+| UR-3  | arm  | no gripper  |  6 | ur3  |
+| UR-5  | arm  | no gripper  |  6 | ur5  |
+| UR-10  | arm  | no gripper  |  6 | ur10  |
+| Kuka IIWA | arm  | magnetic  |  6 |  kuka |
+| Reachy  | arm  | passive palm  |  7 | reachy  |
+| Leachy  | arm  | passive palm  |  7 | leachy  |
+|  Franka-Emica | arm  | gripper  | 7  |  panda |
+| Jaco arm  | arm  |  two finger |  13 | jaco  |
+| Gummiarm  | arm  | passive palm  |  13 | gummi  |
+| ABB Yumi  | dualarm  | two finger  |  12 | yummi  |
+| ReachyLeachy  | dualarm  | passive palms  |  14 | reachy_and_leachy |
+| Pepper  | humanoid | --  |  20 | --  |
+| Thiago | humanoid  | --  |  19 | --  |
+| Atlas  | humanoid  | --  |  28 | --  |
 
 ## Workspaces
 
@@ -216,7 +216,15 @@ As myGym is focused on curicullum learning all the worspaces and tasks are conce
 
 ## Leaderboard
 
-In preparation
+Compared to baselines the leaderboard compares overall quality of the proposed algorhitm within the gym tasks. The leaderboard score is calvulated as a mean success rate of the algorhitm in series of tasks with increasing comlexity of robot (3DOF,7DOF,13DOF), environment (no obstacle, static obstacles, barriers) and tasks (reach, push, pinknplace). The algorhitm will pass 27 train&test steps and the final value is represented in leaderboard.
+
+| Pos. | Algorhitm  | Author | Score | Data |
+|---|---|---|---|---|
+|1.| PPO2 | --  | -- | link |
+|2.| PPO2 | --  | -- | link |
+|3.| PPO2 | --  | -- | link |
+|4.| PPO2 | --  | -- | link |
+
 
 ## Authors
 
