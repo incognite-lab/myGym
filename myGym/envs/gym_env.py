@@ -169,8 +169,10 @@ class GymEnv(CameraEnv):
                                 'table':    {'urdf': 'table.urdf', 'texture': 'table.jpg', 
                                             'transform': {'position':[-0.0, -0.0, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.5, 1.0], [1.8, 0.9, 1.0], [-1.8, 0.9, 1.0], [0.0, 0.9, 1.3]], 
-                                                        'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.898, 1.28]]},
+                                            'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.5, 1.0], [1.8, 0.9, 1.0], [-1.8, 0.9, 1.0], [0.0, 0.9, 1.3],
+                                                                    [0.0, 1.6, 0.8], [-0.0, -0.5, 0.8], [0.8, 0.9, 0.6], [-0.8, 0.9, 0.8], [0.0, 0.9, 1.]], 
+                                                        'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.898, 1.28],
+                                                                   [0.0, 1.3, 0.5], [-0.0, -0.0, 0.6], [0.6, 0.9, 0.4], [-0.6, 0.9, 0.5], [0.0, 0.898, 0.8]]},
                                             'boarders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1]}, 
                                 'verticalmaze': {'urdf': 'verticalmaze.urdf', 'texture': 'verticalmaze.jpg',
                                             'transform': {'position':[-5.7, -7.55, -1.05], 'orientation':[0.0, 0.0, 0.5*np.pi]},
@@ -294,7 +296,6 @@ class GymEnv(CameraEnv):
         """
         super().reset(hard=hard)
 
-        self.robot.reset(random_robot=random_robot)
         self.env_objects = []
         self.task_objects = []
         if self.used_objects is not None:
@@ -303,9 +304,20 @@ class GymEnv(CameraEnv):
             else:
                 num_objects = int(np.random.uniform(0, len(self.used_objects)))
             self.env_objects = self._randomly_place_objects(num_objects, self.used_objects, random_pos)
-        for obj_name in self.task_objects_names:
-            self.task_objects.append(self._randomly_place_objects(1, [obj_name], random_pos)[0])
+        if self.task_type == 'push':
+            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=False, pos=[0.0, 0.5, 0.05])[0])
+            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=True, pos=[-0.0, 0.9, 0.05])[0])
+            direction = np.array(self.task_objects[0].get_position()) - np.array(self.task_objects[1].get_position())
+            direction = direction/(10*np.linalg.norm(direction))
+            init_joint_poses = np.array(self.task_objects[0].get_position()) + direction
+            init_joint_poses[0] = 0
+            init_joint_poses[2] = 0.15            
+            self.robot.init_joint_poses = list(self.robot._calculate_accurate_IK(init_joint_poses))
+        else:
+            for obj_name in self.task_objects_names:
+                self.task_objects.append(self._randomly_place_objects(1, [obj_name], random_pos)[0])
         self.env_objects += self.task_objects
+        self.robot.reset(random_robot=random_robot)
         self.task.reset_task()
         self.reward.reset()
         self.p.stepSimulation()
@@ -410,7 +422,7 @@ class GymEnv(CameraEnv):
         for object in self.env_objects:
             object.draw_bounding_box()
 
-    def _randomly_place_objects(self, n, object_names=None, random_pos=True):
+    def _randomly_place_objects(self, n, object_names=None, random_pos=True, pos=[0.6,0.6,1.2], orn=[0,0,0,1]):
         """
         Place dynamic objects to the scene randomly
 
@@ -432,7 +444,7 @@ class GymEnv(CameraEnv):
                 object = env_object.EnvObject(object_filename, pos, orn, pybullet_client=self.p)
             else:
                 object = env_object.EnvObject(
-                    object_filename, [0.6, 0.6, 1.2], [0, 0, 0, 1], pybullet_client=self.p)
+                    object_filename, pos, orn, pybullet_client=self.p)
             if self.color_dict:
                 object.set_color(self.color_of_object(object))
             env_objects.append(object)

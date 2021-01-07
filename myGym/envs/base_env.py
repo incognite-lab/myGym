@@ -104,6 +104,7 @@ class BaseEnv(gym.Env):
         self.p.setPhysicsEngineParameter(solverResidualThreshold=0.001, numSolverIterations=150, numSubSteps=10, useSplitImpulse=1, collisionFilterMode=1, constraintSolverType=self.p.CONSTRAINT_SOLVER_LCP_DANTZIG, globalCFM=0.000001)
         self.p.setTimeStep(self.time_step)
         self.p.setRealTimeSimulation(0)
+        self.p.setPhysicsEngineParameter(enableConeFriction=1)
         print(self.p.getPhysicsEngineParameters())
 
     def _setup_scene(self):

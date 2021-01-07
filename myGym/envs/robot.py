@@ -30,7 +30,7 @@ class Robot:
     def __init__(self,
                  robot='kuka',
                  position=[-0.1, 0, 0.07], orientation=[0, 0, 0],
-                 end_effector_index=7, gripper_index=6, 
+                 end_effector_index=None, gripper_index=6, 
                  init_joint_poses=None,
                  robot_action="step",
                  use_fixed_gripper_orn=False,
@@ -41,7 +41,8 @@ class Robot:
                  pybullet_client=None):
 
         self.p = pybullet_client
-        self.robot_dict =   {'kuka': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_magnetic_gripper.sdf', 'position': np.array([0.0, 0, 0.029])},
+        self.robot_dict =   {'kuka': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_magnetic_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
+                             'kuka_push': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_push_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'panda': {'path': '/envs/robots/franka_emika/panda/urdf/panda.urdf', 'position': np.array([0.0, 0.0, -0.04])},
                              'jaco': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq.urdf', 'position': np.array([0.0, 0.0, -0.041])},
                              'jaco_fixed': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq_fixed.urdf', 'position': np.array([0.0, 0.0, -0.041])},
@@ -114,14 +115,16 @@ class Robot:
             joint_info = self.p.getJointInfo(self.robot_uid, i)
             if joint_info[12].decode("utf-8") == 'gripper':
                 self.gripper_index = i
-                print("Gripper index is: " + str(i))
             if joint_info[12].decode("utf-8") == 'end_effector':
                 self.end_effector_index = i
-                print("End effector index is: " + str(i))
             q_index = joint_info[3]
             if q_index > -1: # Fixed joints have q_index -1
                 self.motor_names.append(str(joint_info[1]))
                 self.motor_indices.append(i)
+        if self.end_effector_index == None:
+            self.end_effector_index = self.gripper_index
+        print("Gripper index is: " + str(self.gripper_index))
+        print("End effector index is: " + str(self.end_effector_index))
 
     def reset(self, random_robot=False):
         """
