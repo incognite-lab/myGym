@@ -43,7 +43,7 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
     results_plotter.plot_results([model_logdir], arg_dict["steps"], results_plotter.X_TIMESTEPS, arg_dict["algo"] + " " + arg_dict["env_name"] + " reward")
     plt.gcf().set_size_inches(8, 6)
     plt.savefig(os.path.join(model_logdir, model_name) + '_reward_results.png')
-    plot_extended_results(model_logdir, 'd', results_plotter.X_TIMESTEPS, arg_dict["algo"] + " " + arg_dict["env_name"] + " distance", "Episode Distances")
+    #plot_extended_results(model_logdir, 'd', results_plotter.X_TIMESTEPS, arg_dict["algo"] + " " + arg_dict["env_name"] + " distance", "Episode Distances")
     plt.gcf().set_size_inches(8, 6)
     plt.savefig(os.path.join(model_logdir, model_name) + '_distance_results.png')
     plt.close()
@@ -119,7 +119,7 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
 def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None):
     model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
     conf_pth = os.path.join(model_logdir, "train.json")
-    model_path=os.path.join(model_logdir, model_name) + ".zip"
+    model_path=os.path.join(model_logdir, "best_model.zip")
     arg_dict["model_path"] = model_path
     with open(conf_pth, "w") as f:
         json.dump(arg_dict, f)
