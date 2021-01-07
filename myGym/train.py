@@ -21,6 +21,9 @@ try:
 except:
     print("Torch isn't probably installed correctly")
 
+from myGym.stable_baselines_mygym.algo import MyAlgo
+from myGym.stable_baselines_mygym.policies import MyMlpPolicy
+
 from stable_baselines.gail import ExpertDataset, generate_expert_traj
 from stable_baselines.sac.policies import MlpPolicy as MlpPolicySAC
 from stable_baselines.ddpg.policies import MlpPolicy as MlpPolicyDDPG
@@ -105,7 +108,8 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                           "acktr": {"tensorflow": [ACKTR_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "trpo": {"tensorflow": [TRPO_T, (MlpPolicy, env), {"verbose": 1, "tensorboard_log": model_logdir}]},
                           "gail": {"tensorflow": [SAC_T, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]},
-                          "a2c": {"tensorflow": [A2C_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}],},}
+                          "a2c": {"tensorflow": [A2C_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}],},
+                          "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]}}
 
     if "PPO_P" in sys.modules:
         implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env), {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir}]
