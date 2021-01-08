@@ -219,7 +219,6 @@ class GeneratorCoco: #COCO
             #make inverse map id->name  (just to pretty print)
             inv_map = dict(zip(config['used_class_names'].values(), config['used_class_names'].keys()))
             self.too_small_obj = inv_map[class_id]
-            print("Oh boy, the data is corrupted like your soul! Fixit in image {} for class {} with area {}".format(name,self.too_small_obj,area))
         self.data_dict = dict(
                     id=self.id_unique,
                     image_id=image_id,
