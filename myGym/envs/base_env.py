@@ -178,7 +178,7 @@ class BaseEnv(gym.Env):
         self.p.disconnect()
         self._connect_to_physics_server()
         self.scene_objects_uids = {}
-        self.episode_number = 0
+        #self.episode_number = 0
         self._set_physics()
         self._setup_scene()
 

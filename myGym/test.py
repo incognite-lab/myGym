@@ -81,7 +81,7 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
             is_successful = not info['f']
             distance_error = info['d']
 
-            if arg_dict["record"] and len(images) < 250:
+            if (arg_dict["record"] > 0) and (len(images) < 250):
                 render_info = env.render(mode="rgb_array", camera_id = arg_dict["camera"])
                 image = render_info[arg_dict["camera"]]["image"]
                 images.append(image)
@@ -110,11 +110,19 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     file.write("#Mean number of steps {}\n".format(mean_steps_num))
     file.close()
 
-    if arg_dict["record"]:
+    if arg_dict["record"] == 1:
         gif_path = os.path.join(model_logdir, "train_" + model_name + ".gif")
         imageio.mimsave(gif_path, [np.array(img) for i, img in enumerate(images) if i%2 == 0], fps=15)
         os.system('./utils/gifopt -O3 --lossy=5 -o {dest} {source}'.format(source=gif_path, dest=gif_path))
         print("Record saved to " + gif_path)
+    elif arg_dict["record"] == 2:
+        video_path = os.path.join(model_logdir, "train_" + model_name + ".avi")
+        height, width, layers = image.shape
+        out = cv2.VideoWriter(video_path,cv2.VideoWriter_fourcc(*'XVID'), 30, (width,height))
+        for img in images:
+            out.write(cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+        out.release()
+        print("Record saved to " + video_path)
 
 
 def main():

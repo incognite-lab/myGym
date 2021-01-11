@@ -127,8 +127,8 @@ class GymEnv(CameraEnv):
                                 'collabtable': {'urdf': 'collabtable.urdf', 'texture': 'collabtable.jpg', 
                                             'transform': {'position':[0.45, -5.1, -1.05], 'orientation':[0.0, 0.0, -0.35*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[-0.44, -1.34, 1.0], [-0.25, 3.24, 1.2], [-1.5, 2.6, 1.0], [1.35, -1.0, 1.0], [-0.1, 1.32, 1.4]], 
-                                                        'target': [[-0.27, 0.42, 0.7], [-0.0, 0.56, 0.6], [-1, 2.21, 0.8], [-0.42, 2.03, 0.2], [-0.1, 1.2, 0.7]]},
+                                            'camera': {'position': [[-0.25, 3.24, 1.2], [-0.44, -1.34, 1.0], [-1.5, 2.6, 1.0], [1.35, -1.0, 1.0], [-0.1, 1.32, 1.4]], 
+                                                        'target': [[-0.0, 0.56, 0.6], [-0.27, 0.42, 0.7], [-1, 2.21, 0.8], [-0.42, 2.03, 0.2], [-0.1, 1.2, 0.7]]},
                                             'boarders':[-0.7, 0.7, 0.5, 1.2, 0.2, 0.2]}, 
                                 'darts':    {'urdf': 'darts.urdf', 'texture': 'darts.jpg', 
                                             'transform': {'position':[-1.4, -6.7, -1.05], 'orientation':[0.0, 0.0, -1.0*np.pi]},
@@ -310,8 +310,7 @@ class GymEnv(CameraEnv):
             direction = np.array(self.task_objects[0].get_position()) - np.array(self.task_objects[1].get_position())
             direction = direction/(10*np.linalg.norm(direction))
             init_joint_poses = np.array(self.task_objects[0].get_position()) + direction
-            init_joint_poses[0] = 0
-            init_joint_poses[2] = 0.15            
+            init_joint_poses = [0, 0.42, 0.15]            
             self.robot.init_joint_poses = list(self.robot._calculate_accurate_IK(init_joint_poses))
         else:
             for obj_name in self.task_objects_names:
