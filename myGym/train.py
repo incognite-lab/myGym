@@ -217,7 +217,7 @@ def get_parser():
     parser.add_argument("-e", "--eval_episodes", type=int,  help="Number of episodes to evaluate performance of the robot")
     #Saving and Logging
     parser.add_argument("-l", "--logdir", type=str,  help="Where to save results of training and trained models")
-    parser.add_argument("-r", "--record", type=int, help="True: make a gif of model perfomance, False: don't make a gif")
+    parser.add_argument("-r", "--record", type=int, help="1: make a gif of model perfomance, 2: make a video of model performance, 0: don't record")
     #Mujoco
     parser.add_argument("-i", "--multiprocessing", type=int,  help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
     parser.add_argument("-v", "--vectorized_envs", type=int,  help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
