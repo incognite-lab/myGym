@@ -44,20 +44,94 @@ latent space (scenes with objects close to each other will have their
 encoded vectors also closer to each other), it is possible to measure
 the euclidean distance between the encoded scenes and use it for reward
 calculation - i.e., the smaller the euclidean distance between actual
-and goal image, the higher the reward. Pleas note that the limitation of
+and goal image, the higher the reward. Please note that the limitation of
 using VAE is that it works conveniently only with 2D information - i.e.,
-it is a very weak source of visal information in 3D tasks such as pick
+it is a very weak source of visual information in 3D tasks such as pick
 and place.
 
 We provide a pretrained VAE for some of the task scenarios, but we also
 include code for training of your own VAE (including dataset
-generation), so that you can create custom experiments.   
+generation), so that you can create custom experiments. To learn how to train your robot with the pretrained weights, see :ref:`train_vae`
 
-.. note::
-  If you want to use pretrained visual modules, please download them
-  first:
+How to train a custom VAE
+~~~~~~~~~~~~~~~~~~~~
 
-  ``cd myGym`` ``sh download_vision.sh``
+You are free to train your own VAE with a custom set of objects, level
+of randomisation, background scene or type of robot. Here we describe
+how.
+
+Generating a dataset
+~~~~~~~~~~~~~~~~~~~~
+
+To generate a VAE dataset, run the following script:
+
+``python generate_dataset.py configs/dataset_vae.json``
+
+All the dataset parameters shall be adjusted in
+configs/dataset_vae.json. They are described in comments, so here we
+highlight the most important ones:
+
+-  **output_folder**: where to save the resulting dataset
+-  **imsize**: the resulting square image size, that will be saved. We
+   currently only support VAE architectures for imsize of 128 or 64. The
+   cropping of the image is done atomatically and can be adjusted in the
+   code.
+-  **num_episodes**: corresponds to the overall number of images in the
+   dataset (in case the make_shot_every_frame parameter is set to 1)
+-  **random_arm_movement**: whether to move the robot randomly,
+   otherwise it stays fixed in its default position
+-  **used_class_names_quantity**: what kind of objects do you want to
+   show in the scene and how often. The names correspond to the urdf
+   object names in the envs/objects directory. The first number in each
+   list corresponds to the frequency, i.e. 1 is a default frequency and
+   values above 1 make the object appear more ofthen than the others.
+-  **object_sampling_area**: set the area in which the selected objects
+   will be sampled; the format is *xxyyzz*
+-  **num_objects_range**: in each image taken, a random number of
+   objects from this range will appear in the scene
+-  **object_colors**: if you have a color randomizer enabled and want
+   some objects to have fixed color, you can set it up here
+-  **active_camera**: the viewpoint from which the scene will be
+   captured. The number 1 defines the active camera that will be used.
+   We currently only support one camera viewpoint for dataset
+   generation.
+
+Training VAE
+~~~~~~~~~~~~
+
+Once you have your dataset ready, you can continue with VAE training.
+This is handled with the following script:
+
+``python train_vae.py --config vae/config.ini --offscreen``
+
+The –offscreen parameter turns off any kind of visualisation, so if you
+want to see the progress, do not use it. Otherwise, all parameters can
+be set in the config.ini file as follows:
+
+-  **n_latents**: the dimensionality of the latent vector z
+-  **batch_size**: choose any integer
+-  **lr**: the learning rate
+-  **beta**: size of the beta paremeter to induce disentanglement of the
+   latent space as proposed in `this
+   paper <https://openreview.net/forum?id=Sy2fzU9gl>`__
+-  **img_size**: size of the square images to train on. Currently the
+   only supported sizes are 64 or 128
+-  **use_cuda**
+-  **n_epochs**: the number of training epochs
+-  **viz_every_n_epochs**: how often to save the image reconstruction to
+   monitor the training progress
+-  **annealing_epochs**: the number of epochs for which to gradually
+   increase the impact of KLD term in the ELBO loss. See `this
+   paper <https://arxiv.org/abs/1903.10145>`__ for more info
+-  **log_interval**: how often to print out the log about the training
+   progress in the console
+-  **test_data_percentage**: the fraction of the training dataset that
+   will be used as testing data
+-  **dataset_path**: path to the dataset folder containing images
+
+The trained VAE will be saved in the ciircgym/vae/trained_models/ folder,
+along with the config used for the training and visualisations.
 
 .. automodule:: myGym.envs.vision_module
   :members:
+
