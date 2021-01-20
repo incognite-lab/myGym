@@ -440,7 +440,12 @@ class GymEnv(CameraEnv):
                     self.objects_area_boarders)
                 #orn = env_object.EnvObject.get_random_object_orientation()
                 orn = [0, 0, 0, 1]
-                object = env_object.EnvObject(object_filename, pos, orn, pybullet_client=self.p)
+                fixed = False
+                for x in ["target", "crate", "bin", "box", "trash"]:
+                    if x in object_filename:
+                        fixed = True
+                        pos[2] = 0
+                object = env_object.EnvObject(object_filename, pos, orn, pybullet_client=self.p, fixed=fixed)
             else:
                 object = env_object.EnvObject(
                     object_filename, pos, orn, pybullet_client=self.p)
