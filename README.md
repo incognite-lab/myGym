@@ -121,6 +121,8 @@ You can fully control the environment, robot, object, task, reward, learning par
 
 `python train.py --env_name Gym-v0  --workspace table --engine=pybullet --render=opengl --camera=8 --gui=1 --visualize=1 --robot=kuka --robot_action=joints --robot_init=[0.5, 0.5, 2.0] --task_type=reach --task_objects=[hammer] --used_objects=None --object_sampling_area=[-0.2, 0.7, 0.3, 0.9, 0.65, 0.65] --reward_type=gt --reward=distance --distance_type=euclidean --train=1 --train_framework=tensorflow --algo=ppo2 --max_episode_steps=1024 --algo_steps=1024 --steps=500000 --eval_freq=5000 --eval_episodes=100 --test_after_train=0 --logdir=trained_models --model_path=./trained_models/test/best_model.zip --record=0`
 
+![alt text](myGym/images/results/kuka_reach_yolact_fast.gif "yolact")
+
 Learn more about simulation parameters in the [documentation](https://incognite.ciirc.cvut.cz/mygym/user_guide/tutorial_parametric.html)
 
 
