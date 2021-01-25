@@ -39,7 +39,7 @@ class TaskModule():
         self.stored_observation = []
         self.fig = None
         if self.task_type == '2stepreach':
-            self.subgoals = [False]*2 #subgoal completed?
+            self.subgoals = [False] #subgoal completed?
             self.obs_sub = [[0,2],[0,1]] #objects to have in observation for given subgoal
             self.sub_idx = 0
         self.threshold = 0.1 # distance threshold for successful task completion
