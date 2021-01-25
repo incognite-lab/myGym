@@ -137,11 +137,11 @@ class GymEnv(CameraEnv):
                                                         'target': [[0.0, 0.0, 0.7], [-0.0, 1.3, 0.6], [1.0, 0.9, 0.9], [-1.6, 0.9, 0.9], [-0.0, 1.2, 3.1]]},
                                             'boarders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]}, 
                                 'drawer':   {'urdf': 'drawer.urdf', 'texture': 'drawer.jpg', 
-                                            'transform': {'position':[4.81, -3.75, -1.05], 'orientation':[0.0, 0.0, 0.75*np.pi]},
+                                            'transform': {'position':[-4.81, 1.75, -1.05], 'orientation':[0.0, 0.0, 0.0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0, 0, 0.5*np.pi]}, 
                                             'camera': {'position': [[-0.14, -1.63, 1.0], [-0.14, 3.04, 1.0], [-1.56, -0.92, 1.0], [1.2, -1.41, 1.0], [-0.18, 0.88, 2.5]], 
                                                         'target': [[-0.14, -0.92, 0.8], [-0.14, 2.33, 0.8], [-0.71, -0.35, 0.7], [0.28, -0.07, 0.6], [-0.18, 0.84, 2.1]]},
-                                            'boarders':[-0.78, -0.78, 0.95, 0.95, 0.6, 0.6]}, 
+                                            'boarders':[-0.7, 0.7, 0.4, 1.3, 0.8, 0.1]}, 
                                 'football': {'urdf': 'football.urdf', 'texture': 'football.jpg', 
                                             'transform': {'position':[4.2, -5.4, -1.05], 'orientation':[0.0, 0.0, -1.0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
@@ -440,7 +440,12 @@ class GymEnv(CameraEnv):
                     self.objects_area_boarders)
                 #orn = env_object.EnvObject.get_random_object_orientation()
                 orn = [0, 0, 0, 1]
-                object = env_object.EnvObject(object_filename, pos, orn, pybullet_client=self.p)
+                fixed = False
+                for x in ["target", "crate", "bin", "box", "trash"]:
+                    if x in object_filename:
+                        fixed = True
+                        pos[2] = 0
+                object = env_object.EnvObject(object_filename, pos, orn, pybullet_client=self.p, fixed=fixed)
             else:
                 object = env_object.EnvObject(
                     object_filename, pos, orn, pybullet_client=self.p)
