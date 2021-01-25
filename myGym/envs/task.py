@@ -38,8 +38,14 @@ class TaskModule():
         self.current_norm_distance = None
         self.stored_observation = []
         self.fig = None
+        if self.task_type == '2stepreach':
+            self.subgoals = [False]*2 #subgoal completed?
+            self.obs_sub = [[0,2],[0,1]] #objects to have in observation for given subgoal
+            self.sub_idx = 0
         self.threshold = 0.1 # distance threshold for successful task completion
         self.obsdim = (len(env.task_objects_names) + 1) * 3
+        if self.task_type == '2stepreach':
+            self.obsdim = 6
         if self.reward_type == 'gt':
             src = 'ground_truth'
         elif self.reward_type == '3dvs':
@@ -105,7 +111,11 @@ class TaskModule():
             obj_positions.append(list(self.env.robot.get_position()))
             self.visualize_2dvu(recons) if self.env.visualize == 1 else None
         else:
-            for env_object in self.env.task_objects:
+            if self.task_type == '2stepreach':
+                current_task_objects = [self.env.task_objects[x] for x in self.obs_sub[self.sub_idx]] #change objects in observation based on subgoal
+            else:
+                current_task_objects = self.env.task_objects #all objects in observation
+            for env_object in current_task_objects:
                 obj_positions.append(self.vision_module.get_obj_position(env_object,self.image,self.depth))
                 if self.reward_type == '6dvs' and self.task_type != 'reach' and env_object != self.env.task_objects[-1]:
                     obj_orientations.append(self.vision_module.get_obj_orientation(env_object,self.image))
@@ -121,10 +131,10 @@ class TaskModule():
             :return: (bool)
         """
         self.stored_observation.append(self._observation)
-        if len(self.stored_observation) > 9:
+        if len(self.stored_observation) > 19:
             self.stored_observation.pop(0)
             if self.reward_type == '3dvs': # Yolact assigns 10 to not detected objects
-                if all(10 in obs for obs in self.stored_observation):
+                if all(20 in obs for obs in self.stored_observation):
                     return True
         return False
 
@@ -179,13 +189,18 @@ class TaskModule():
         self.last_distance = self.current_norm_distance
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
-        if (self.task_type == 'reach' or self.task_type == 'push') and self.check_distance_threshold(self._observation): #threshold for successful push/throw/pick'n'place
+
+        if self.check_distance_threshold(self._observation): #threshold for successful push/throw/pick'n'place
             self.env.episode_over = True
             if self.env.episode_steps == 1:
                 self.env.episode_info = "Task completed in initial configuration"
             else:
                 self.env.episode_info = "Task completed successfully"
-        elif self.check_time_exceeded() or (self.task_type == 'reach' and self.check_object_moved(self.env.task_objects[0])):
+            if (self.task_type == '2stepreach') and (False in self.subgoals):
+                self.env.episode_over = False
+                self.subgoals[self.sub_idx] = True
+                self.sub_idx += 1
+        elif self.check_time_exceeded(): #or (self.task_type == 'reach' and self.check_object_moved(self.env.task_objects[0])):
             self.env.episode_over = True
             self.env.episode_failed = True
         elif self.env.episode_steps == self.env.max_steps:
