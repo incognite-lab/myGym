@@ -137,11 +137,11 @@ class GymEnv(CameraEnv):
                                                         'target': [[0.0, 0.0, 0.7], [-0.0, 1.3, 0.6], [1.0, 0.9, 0.9], [-1.6, 0.9, 0.9], [-0.0, 1.2, 3.1]]},
                                             'boarders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]}, 
                                 'drawer':   {'urdf': 'drawer.urdf', 'texture': 'drawer.jpg', 
-                                            'transform': {'position':[-4.81, 1.75, -1.05], 'orientation':[0.0, 0.0, 0.0*np.pi]},
+                                            'transform': {'position':[-4.81, 1.5, -1.05], 'orientation':[0.0, 0.0, 0.0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0, 0, 0.5*np.pi]}, 
                                             'camera': {'position': [[-0.14, -1.63, 1.0], [-0.14, 3.04, 1.0], [-1.56, -0.92, 1.0], [1.2, -1.41, 1.0], [-0.18, 0.88, 2.5]], 
                                                         'target': [[-0.14, -0.92, 0.8], [-0.14, 2.33, 0.8], [-0.71, -0.35, 0.7], [0.28, -0.07, 0.6], [-0.18, 0.84, 2.1]]},
-                                            'boarders':[-0.7, 0.7, 0.4, 1.3, 0.8, 0.1]}, 
+                                            'boarders':[[-0.65, 0.65, 0.2, 0.8, 0.1, 0.1],[-0.65, -0.2, 0.7, 0.8, 0.35, 0.35],[0.05, 0.7, 0.7, 0.8, 0.35, 0.35],[-0.7, -0.2, 0.7, 0.8, 0.65, 0.65]]}, 
                                 'football': {'urdf': 'football.urdf', 'texture': 'football.jpg', 
                                             'transform': {'position':[4.2, -5.4, -1.05], 'orientation':[0.0, 0.0, -1.0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
@@ -265,8 +265,14 @@ class GymEnv(CameraEnv):
             self.action_low = np.array([-1] * action_dim)
             self.action_high = np.array([1] * action_dim)
         elif self.robot_action == "absolute":
-            self.action_low = np.array(self.objects_area_boarders[0:7:2])
-            self.action_high = np.array(self.objects_area_boarders[1:7:2])
+            if any(isinstance(i, list) for i in self.objects_area_boarders):
+                boarders_max = np.max(self.objects_area_boarders,0)
+                boarders_min = np.min(self.objects_area_boarders,0)
+                self.action_low = np.array(boarders_min[0:7:2])
+                self.action_high = np.array(boarders_max[1:7:2])
+            else:
+                self.action_low = np.array(self.objects_area_boarders[0:7:2])
+                self.action_high = np.array(self.objects_area_boarders[1:7:2])
         else:
             self.action_low = np.array(self.robot.joints_limits[0])
             self.action_high = np.array(self.robot.joints_limits[1])
@@ -294,6 +300,9 @@ class GymEnv(CameraEnv):
         Returns:
             :return self._observation: (list) Observation data of the environment
         """
+        if self.episode_number % 2 == 0 and self.gui_on:
+            self.interactive()
+
         super().reset(hard=hard)
 
         self.env_objects = []
@@ -312,6 +321,9 @@ class GymEnv(CameraEnv):
             init_joint_poses = np.array(self.task_objects[0].get_position()) + direction
             init_joint_poses = [0, 0.42, 0.15]            
             self.robot.init_joint_poses = list(self.robot._calculate_accurate_IK(init_joint_poses))
+        elif self.task_type == '2stepreach':
+            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=True, pos=[0.0, 0.5, 0.05])[0])
+            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=False, pos=[-0.6, 0.5, 0.05])[0])
         else:
             for obj_name in self.task_objects_names:
                 self.task_objects.append(self._randomly_place_objects(1, [obj_name], random_pos)[0])
@@ -323,6 +335,28 @@ class GymEnv(CameraEnv):
         self._observation = self.get_observation()
         self.prev_gripper_position = self.robot.get_observation()[:3]
         return self._observation
+
+    def interactive(self):
+        #self.reset()
+        self.p.configureDebugVisualizer(self.p.COV_ENABLE_GUI, 1)
+        if self.episode_number == 0:
+            self.slider = []
+            for i in range(len(self.robot.joints_limits[0])):
+                self.slider.append(self.p.addUserDebugParameter("Joint {}".format(self.robot.motor_indices[i]), self.robot.joints_limits[0][i], self.robot.joints_limits[1][i], 0))
+            self.button = self.p.addUserDebugParameter("exit",0,1,0)
+            self.p.stepSimulation()
+        while True:
+            if self.p.readUserDebugParameter(self.button) == 1:
+                time.sleep(3)
+                self.p.configureDebugVisualizer(self.p.COV_ENABLE_GUI, 0)
+                #self.p.removeUserDebugItem(button) #not working
+                break
+            slider_state = []
+            for slider_id in self.slider:
+                slider_state.append(self.p.readUserDebugParameter(slider_id))
+            self.robot._run_motors(slider_state)
+            self.p.stepSimulation()
+        #self.p.removeAllUserParameters() #not working         
 
     def _set_cameras(self):
         """
@@ -440,15 +474,12 @@ class GymEnv(CameraEnv):
                     self.objects_area_boarders)
                 #orn = env_object.EnvObject.get_random_object_orientation()
                 orn = [0, 0, 0, 1]
-                fixed = False
-                for x in ["target", "crate", "bin", "box", "trash"]:
-                    if x in object_filename:
-                        fixed = True
-                        pos[2] = 0
-                object = env_object.EnvObject(object_filename, pos, orn, pybullet_client=self.p, fixed=fixed)
-            else:
-                object = env_object.EnvObject(
-                    object_filename, pos, orn, pybullet_client=self.p)
+            fixed = False
+            for x in ["target", "crate", "bin", "box", "trash"]:
+                if x in object_filename:
+                    fixed = True
+                    pos[2] = 0
+            object = env_object.EnvObject(object_filename, pos, orn, pybullet_client=self.p, fixed=fixed)
             if self.color_dict:
                 object.set_color(self.color_of_object(object))
             env_objects.append(object)

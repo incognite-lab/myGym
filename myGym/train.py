@@ -235,9 +235,10 @@ def get_arguments(parser):
             arg_dict = commentjson.load(f)
     for key, value in vars(args).items():
         if value is not None and key is not "config":
-            arg_dict[key] = value
-    arg_dict["robot_init"] = [float(arg_dict["robot_init"][i]) for i in range(0, len(arg_dict["robot_init"]))]
-    arg_dict["object_sampling_area"] = [float(arg_dict["object_sampling_area"][i]) for i in range(len(arg_dict["object_sampling_area"]))]
+            if key in ["robot_init", "object_sampling_area"]:
+                arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
+            else:
+                arg_dict[key] = value
     return arg_dict
 
 

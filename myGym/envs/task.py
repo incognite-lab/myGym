@@ -38,14 +38,10 @@ class TaskModule():
         self.current_norm_distance = None
         self.stored_observation = []
         self.fig = None
-        if self.task_type == '2stepreach':
-            self.subgoals = [False] #subgoal completed?
-            self.obs_sub = [[0,2],[0,1]] #objects to have in observation for given subgoal
-            self.sub_idx = 0
-        self.threshold = 0.1 # distance threshold for successful task completion
         self.obsdim = (len(env.task_objects_names) + 1) * 3
         if self.task_type == '2stepreach':
             self.obsdim = 6
+        self.threshold = 0.1 # distance threshold for successful task completion
         if self.reward_type == 'gt':
             src = 'ground_truth'
         elif self.reward_type == '3dvs':
@@ -74,6 +70,10 @@ class TaskModule():
         self.env.task_objects.append(self.env.robot)
         if self.reward_type == '2dvu':
             self.generate_new_goal(self.env.objects_area_boarders, self.env.active_cameras)
+        if self.task_type == '2stepreach':
+            self.subgoals = [False] #subgoal completed?
+            self.obs_sub = [[0,2],[1,2]] #objects to have in observation for given subgoal
+            self.sub_idx = 0
 
     def render_images(self):
         render_info = self.env.render(mode="rgb_array", camera_id=self.env.active_cameras)
@@ -112,10 +112,10 @@ class TaskModule():
             self.visualize_2dvu(recons) if self.env.visualize == 1 else None
         else:
             if self.task_type == '2stepreach':
-                current_task_objects = [self.env.task_objects[x] for x in self.obs_sub[self.sub_idx]] #change objects in observation based on subgoal
+                self.current_task_objects = [self.env.task_objects[x] for x in self.obs_sub[self.sub_idx]] #change objects in observation based on subgoal
             else:
-                current_task_objects = self.env.task_objects #all objects in observation
-            for env_object in current_task_objects:
+                self.current_task_objects = self.env.task_objects #all objects in observation
+            for env_object in self.current_task_objects:
                 obj_positions.append(self.vision_module.get_obj_position(env_object,self.image,self.depth))
                 if self.reward_type == '6dvs' and self.task_type != 'reach' and env_object != self.env.task_objects[-1]:
                     obj_orientations.append(self.vision_module.get_obj_orientation(env_object,self.image))
@@ -182,6 +182,11 @@ class TaskModule():
         self.current_norm_distance = self.calc_distance(o1, o2)
         return self.current_norm_distance < self.threshold
 
+    def check_points_distance_threshold(self): #@TODO: better than check_distance_threshold
+        o1 = self.current_task_objects[0]
+        o2 = self.current_task_objects[1]
+        #close_points = self.p.getClosestPoints(self.task_objects, )
+
     def check_goal(self):
         """
         Check if goal of the task was completed successfully
@@ -191,15 +196,19 @@ class TaskModule():
             self.init_distance = self.current_norm_distance
 
         if self.check_distance_threshold(self._observation): #threshold for successful push/throw/pick'n'place
-            self.env.episode_over = True
             if self.env.episode_steps == 1:
                 self.env.episode_info = "Task completed in initial configuration"
+                self.env.episode_over = True
+            elif (self.task_type == '2stepreach') and (False in self.subgoals):
+                self.env.episode_info = "Subgoal {}/{} completed successfully".format(self.sub_idx+1, len(self.subgoals))
+                self.subgoals[self.sub_idx] = True #current subgoal done
+                self.env.episode_over = False #don't reset episode
+                self.env.robot.magnetize_object(self.env.task_objects[self.obs_sub[self.sub_idx][0]]) #magnetize first object
+                self.sub_idx += 1 #continue with next subgoal
+                self.env.reward.reset() #reward reset
             else:
                 self.env.episode_info = "Task completed successfully"
-            if (self.task_type == '2stepreach') and (False in self.subgoals):
-                self.env.episode_over = False
-                self.subgoals[self.sub_idx] = True
-                self.sub_idx += 1
+                self.env.episode_over = True
         elif self.check_time_exceeded(): #or (self.task_type == 'reach' and self.check_object_moved(self.env.task_objects[0])):
             self.env.episode_over = True
             self.env.episode_failed = True

@@ -41,7 +41,7 @@ class Robot:
                  pybullet_client=None):
 
         self.p = pybullet_client
-        self.robot_dict =   {'kuka': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_magnetic_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
+        self.robot_dict =   {'kuka': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_magnetic_gripper.sdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'kuka_push': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_push_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'panda': {'path': '/envs/robots/franka_emika/panda/urdf/panda.urdf', 'position': np.array([0.0, 0.0, -0.04])},
                              'jaco': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq.urdf', 'position': np.array([0.0, 0.0, -0.041])},
@@ -75,6 +75,7 @@ class Robot:
         self.motor_names = []
         self.motor_indices = []
         self.robot_action = robot_action
+        self.magnetized_objects = {}
 
         self._load_robot()
         self.num_joints = self.p.getNumJoints(self.robot_uid)
@@ -370,6 +371,21 @@ class Robot:
             self.apply_action_absolute(action)
         elif self.robot_action == "joints":
             self.apply_action_joints(action)
+
+    def magnetize_object(self, object):
+        # Creates fixed joint between kuka gripper and object
+        # TODO: Set constraint position
+        # constraint_id = self.p.createConstraint(self.robot_uid, self.end_effector_index, object.uid, -1,
+        #                     jointType=self.p.JOINT_FIXED,
+        #                     jointAxis=[0, 0, 0],
+        #                     parentFramePosition=[ 0.0, 0.082, -0.033], #[ 0.0, 0.0, 0.135]
+        #                     childFramePosition=[-0.0, -0.0, -0.0])
+        self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
+        #self.magnetized_objects[object] = constraint_id
+
+    def release_object(self, object):
+        self.p.removeConstraint(self.magnetized_objects[object])
+        self.magnetized_objects.pop(object)
 
     def get_name(self):
         """
