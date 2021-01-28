@@ -101,7 +101,8 @@ class BaseEnv(gym.Env):
         Set physics engine parameters
         """
         self.p.setGravity(0, 0, -9.81)
-        self.p.setPhysicsEngineParameter(solverResidualThreshold=0.001, numSolverIterations=150, numSubSteps=10, useSplitImpulse=1, collisionFilterMode=1, constraintSolverType=self.p.CONSTRAINT_SOLVER_LCP_DANTZIG, globalCFM=0.000001)
+        self.p.setPhysicsEngineParameter(solverResidualThreshold=0.001, numSolverIterations=150, numSubSteps=20, useSplitImpulse=1, collisionFilterMode=1, constraintSolverType=self.p.CONSTRAINT_SOLVER_LCP_DANTZIG, globalCFM=0.000001, contactBreakingThreshold=0.001)
+        #self.p.setPhysicsEngineParameter(solverResidualThreshold=0.001, numSolverIterations=150, numSubSteps=20, useSplitImpulse=1, collisionFilterMode=1, constraintSolverType=self.p.CONSTRAINT_SOLVER_LCP_DANTZIG, globalCFM=0.000001)
         self.p.setTimeStep(self.time_step)
         self.p.setRealTimeSimulation(0)
         self.p.setPhysicsEngineParameter(enableConeFriction=1)

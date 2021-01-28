@@ -211,6 +211,7 @@ class EnvObject:
             :return self.uid: (int) ID of loaded object
         """
         self.uid = self.p.loadURDF(self.urdf_path, self.init_position, self.init_orientation, useFixedBase=self.fixed,  flags=self.p.URDF_USE_SELF_COLLISION)
+        self.p.changeDynamics(self.uid, 0, collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
         return self.uid
 
     def get_bounding_box(self):
