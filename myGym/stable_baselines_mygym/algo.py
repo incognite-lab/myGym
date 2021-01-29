@@ -52,7 +52,7 @@ class MyAlgo(ActorCriticRLModel):
     """
     def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
-                 verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
+                 verbose=0, num_nets=1, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
                  full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
 
         self.learning_rate = learning_rate
@@ -68,6 +68,7 @@ class MyAlgo(ActorCriticRLModel):
         self.noptepochs = noptepochs
         self.tensorboard_log = tensorboard_log
         self.full_tensorboard_log = full_tensorboard_log
+        self.nun_nets = num_nets
 
         self.action_ph = None
         self.advs_ph = None
@@ -89,7 +90,7 @@ class MyAlgo(ActorCriticRLModel):
         self.n_batch = None
         self.summary = None
 
-        super().__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
+        super().__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=False,
                          _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
                          seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
 

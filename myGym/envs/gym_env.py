@@ -34,6 +34,7 @@ class GymEnv(CameraEnv):
         :param robot_action: (string) Mechanism of robot control (absolute, step, joints)
         :param robot_init_joint_poses: (list) Configuration in which robot will be initialized in the environment. Specified either in joint space as list of joint poses or in the end-effector space as [x,y,z] coordinates.
         :param task_type: (string) Type of learned task (reach, push, ...)
+        :param num_subgoals: (int) Number of subgoals in task
         :param task_objects: (list of strings) Objects that are relevant for performing the task
         :param reward_type: (string) Type of reward signal source (gt, 3dvs, 2dvu)
         :param reward: (string) Defines how to compute the reward
@@ -62,6 +63,7 @@ class GymEnv(CameraEnv):
                  robot_action="step",
                  robot_init_joint_poses=[],
                  task_type='reach',
+                 num_subgoals=0,
                  task_objects=["virtual_cube_holes"],
                  reward_type='gt',
                  reward = 'distance',
@@ -100,6 +102,7 @@ class GymEnv(CameraEnv):
         self.reward_type = reward_type
         self.distance_type = distance_type
         self.task = t.TaskModule(task_type=self.task_type,
+                                 num_subgoals=num_subgoals,
                                  task_objects=self.task_objects_names,
                                  reward_type=self.reward_type,
                                  vae_path=vae_path,
@@ -141,7 +144,7 @@ class GymEnv(CameraEnv):
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0, 0, 0.5*np.pi]}, 
                                             'camera': {'position': [[-0.14, -1.63, 1.0], [-0.14, 3.04, 1.0], [-1.56, -0.92, 1.0], [1.2, -1.41, 1.0], [-0.18, 0.88, 2.5]], 
                                                         'target': [[-0.14, -0.92, 0.8], [-0.14, 2.33, 0.8], [-0.71, -0.35, 0.7], [0.28, -0.07, 0.6], [-0.18, 0.84, 2.1]]},
-                                            'boarders':[[-0.65, 0.65, 0.2, 0.8, 0.1, 0.1],[-0.65, -0.2, 0.7, 0.8, 0.35, 0.35],[0.05, 0.7, 0.7, 0.8, 0.35, 0.35],[-0.7, -0.2, 0.7, 0.8, 0.65, 0.65]]}, 
+                                            'boarders':[[-0.65, 0.65, 0.2, 0.8, 0.15, 0.15],[-0.65, -0.2, 0.7, 0.8, 0.4, 0.4],[0.05, 0.7, 0.7, 0.8, 0.4, 0.4],[-0.7, -0.2, 0.7, 0.8, 0.7, 0.7]]}, 
                                 'football': {'urdf': 'football.urdf', 'texture': 'football.jpg', 
                                             'transform': {'position':[4.2, -5.4, -1.05], 'orientation':[0.0, 0.0, -1.0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
@@ -173,7 +176,7 @@ class GymEnv(CameraEnv):
                                                                     [0.0, 1.6, 0.8], [-0.0, -0.5, 0.8], [0.8, 0.9, 0.6], [-0.8, 0.9, 0.8], [0.0, 0.9, 1.]], 
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.898, 1.28],
                                                                    [0.0, 1.3, 0.5], [-0.0, -0.0, 0.6], [0.6, 0.9, 0.4], [-0.6, 0.9, 0.5], [0.0, 0.898, 0.8]]},
-                                            'boarders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1]}, 
+                                            'boarders':[-0.7, 0.7, 0.5, 1.3, 0.15, 0.15]}, 
                                 'verticalmaze': {'urdf': 'verticalmaze.urdf', 'texture': 'verticalmaze.jpg',
                                             'transform': {'position':[-5.7, -7.55, -1.05], 'orientation':[0.0, 0.0, 0.5*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
@@ -300,7 +303,7 @@ class GymEnv(CameraEnv):
         Returns:
             :return self._observation: (list) Observation data of the environment
         """
-        if self.episode_number % 2 == 0 and self.gui_on:
+        if self.episode_number % 2 == 2 and self.gui_on:
             self.interactive()
 
         super().reset(hard=hard)
@@ -323,7 +326,7 @@ class GymEnv(CameraEnv):
             self.robot.init_joint_poses = list(self.robot._calculate_accurate_IK(init_joint_poses))
         elif self.task_type == '2stepreach':
             self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=True, pos=[0.0, 0.5, 0.05])[0])
-            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=False, pos=[-0.6, 0.5, 0.05])[0])
+            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=True, pos=[-0.6, 0.5, 0.05])[0])
         else:
             for obj_name in self.task_objects_names:
                 self.task_objects.append(self._randomly_place_objects(1, [obj_name], random_pos)[0])
@@ -478,7 +481,7 @@ class GymEnv(CameraEnv):
             for x in ["target", "crate", "bin", "box", "trash"]:
                 if x in object_filename:
                     fixed = True
-                    pos[2] = 0
+                    pos[2] = 0.05
             object = env_object.EnvObject(object_filename, pos, orn, pybullet_client=self.p, fixed=fixed)
             if self.color_dict:
                 object.set_color(self.color_of_object(object))

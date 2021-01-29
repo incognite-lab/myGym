@@ -374,16 +374,20 @@ class Robot:
         elif self.robot_action == "joints":
             self.apply_action_joints(action)
 
-    def magnetize_object(self, object):
+    def magnetize_object(self, object, contacts):
         # Creates fixed joint between kuka gripper and object
         # TODO: Set constraint position
+        if any(isinstance(i, tuple) for i in contacts):
+            contacts = contacts[0]
+        parent = np.array(contacts[5]) - np.array(self.get_position())
+        child = np.array(contacts[6]) - np.array(object.get_position())
         # constraint_id = self.p.createConstraint(self.robot_uid, self.end_effector_index, object.uid, -1,
         #                     jointType=self.p.JOINT_FIXED,
         #                     jointAxis=[0, 0, 0],
-        #                     parentFramePosition=[ 0.0, 0.082, -0.033], #[ 0.0, 0.0, 0.135]
-        #                     childFramePosition=[-0.0, -0.0, -0.0])
+        #                     parentFramePosition=parent, #[ 0.0, 0.0, 0.135]
+        #                     childFramePosition=child)
         self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
-        #self.magnetized_objects[object] = constraint_id
+        # self.magnetized_objects[object] = constraint_id
 
     def release_object(self, object):
         self.p.removeConstraint(self.magnetized_objects[object])

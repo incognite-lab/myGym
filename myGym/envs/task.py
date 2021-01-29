@@ -16,13 +16,14 @@ class TaskModule():
 
     Parameters:
         :param task_type: (string) Type of learned task (reach, push, ...)
+        :param num_subgoals: (int) Number of subgoals in task
         :param task_objects: (list of strings) Objects that are relevant for performing the task
         :param reward_type: (string) Type of reward signal source (gt, 3dvs, 2dvu)
         :param distance_type: (string) Way of calculating distances (euclidean, manhattan)
         :param logdir: (string) Directory for logging
         :param env: (object) Environment, where the training takes place
     """
-    def __init__(self, task_type='reach', task_objects='cube_holes',
+    def __init__(self, task_type='reach', task_objects='cube_holes', num_subgoals=0,
                  reward_type='gt', vae_path=None, yolact_path=None, yolact_config=None, distance_type='euclidean',
                  logdir=currentdir, env=None):
         self.task_type = task_type
@@ -30,6 +31,7 @@ class TaskModule():
         self.distance_type = distance_type
         self.logdir = logdir
         self.task_objects_names = task_objects
+        self.num_subgoals = num_subgoals
         self.env = env
         self.image = None
         self.depth = None
@@ -39,7 +41,7 @@ class TaskModule():
         self.stored_observation = []
         self.fig = None
         self.obsdim = (len(env.task_objects_names) + 1) * 3
-        if self.task_type == '2stepreach':
+        if self.task_type in ['2stepreach','4stepreach']:
             self.obsdim = 6
         self.threshold = 0.1 # distance threshold for successful task completion
         if self.reward_type == 'gt':
@@ -71,8 +73,12 @@ class TaskModule():
         if self.reward_type == '2dvu':
             self.generate_new_goal(self.env.objects_area_boarders, self.env.active_cameras)
         if self.task_type == '2stepreach':
-            self.subgoals = [False] #subgoal completed?
+            self.subgoals = [False]*self.num_subgoals #subgoal completed?
             self.obs_sub = [[0,2],[1,2]] #objects to have in observation for given subgoal
+            self.sub_idx = 0
+        elif self.task_type == '4stepreach':
+            self.subgoals = [False]*self.num_subgoals #subgoal completed?
+            self.obs_sub = [[0,3],[1,3],[2,3],[1,3]] #objects to have in observation for given subgoal
             self.sub_idx = 0
 
     def render_images(self):
@@ -111,7 +117,7 @@ class TaskModule():
             obj_positions.append(list(self.env.robot.get_position()))
             self.visualize_2dvu(recons) if self.env.visualize == 1 else None
         else:
-            if self.task_type == '2stepreach':
+            if self.task_type in ['2stepreach','4stepreach']:
                 self.current_task_objects = [self.env.task_objects[x] for x in self.obs_sub[self.sub_idx]] #change objects in observation based on subgoal
             else:
                 self.current_task_objects = self.env.task_objects #all objects in observation
@@ -185,7 +191,32 @@ class TaskModule():
     def check_points_distance_threshold(self): #@TODO: better than check_distance_threshold
         o1 = self.current_task_objects[0]
         o2 = self.current_task_objects[1]
-        #close_points = self.p.getClosestPoints(self.task_objects, )
+
+        if o1 == self.env.robot:
+            closest_points = p.getClosestPoints(o1.robot_uid, o2.get_uid(), self.threshold, o1.end_effector_index, -1)
+        elif o2 == self.env.robot:
+            closest_points = p.getClosestPoints(o2.robot_uid, o1.get_uid(), self.threshold, o2.end_effector_index, -1)
+        else:
+            closest_points = p.getClosestPoints(o1.get_uid(), o2.get_uid(), self.threshold, -1, -1)
+        if len(closest_points) > 0:
+            return closest_points
+        else:
+            return False
+
+    def check_points_contact(self): #@TODO: better than check_distance_threshold
+        o1 = self.current_task_objects[0]
+        o2 = self.current_task_objects[1]
+
+        if o1 == self.env.robot:
+            closest_points = [p.getContactPoints(o1.robot_uid, o2.get_uid(), x, -1) for x in range(o1.gripper_index,o1.end_effector_index+1)]
+        elif o2 == self.env.robot:
+            closest_points = [p.getContactPoints(o2.robot_uid, o1.get_uid(), x, -1) for x in range(o2.gripper_index,o2.end_effector_index+1)]
+        else:
+            closest_points = p.getContactPoints(o1.get_uid(), o2.get_uid(), -1, -1)
+        if any(closest_points):
+            return list(filter(None, closest_points))[0]
+        else:
+            return False
 
     def check_goal(self):
         """
@@ -195,15 +226,18 @@ class TaskModule():
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
 
-        if self.check_distance_threshold(self._observation): #threshold for successful push/throw/pick'n'place
+        #if self.check_distance_threshold(self._observation): #threshold for successful push/throw/pick'n'place
+        #if self.check_points_distance_threshold(): #threshold for successful push/throw/pick'n'place
+        contacts = self.check_points_distance_threshold()
+        if contacts: #check for successful push/throw/pick'n'place
             if self.env.episode_steps == 1:
                 self.env.episode_info = "Task completed in initial configuration"
                 self.env.episode_over = True
-            elif (self.task_type == '2stepreach') and (False in self.subgoals):
-                self.env.episode_info = "Subgoal {}/{} completed successfully".format(self.sub_idx+1, len(self.subgoals))
+            elif (self.task_type in ['2stepreach','4stepreach']) and (False in self.subgoals):
+                self.env.episode_info = "Subgoal {}/{} completed successfully".format(self.sub_idx+1, self.num_subgoals)
                 self.subgoals[self.sub_idx] = True #current subgoal done
                 self.env.episode_over = False #don't reset episode
-                self.env.robot.magnetize_object(self.env.task_objects[self.obs_sub[self.sub_idx][0]]) #magnetize first object
+                self.env.robot.magnetize_object(self.env.task_objects[self.obs_sub[self.sub_idx][0]], contacts) #magnetize first object
                 self.sub_idx += 1 #continue with next subgoal
                 self.env.reward.reset() #reward reset
             else:
