@@ -90,7 +90,7 @@ class MyAlgo(ActorCriticRLModel):
         self.n_batch = None
         self.summary = None
 
-        super().__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=False,
+        super().__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
                          _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
                          seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
 
@@ -336,7 +336,7 @@ class MyAlgo(ActorCriticRLModel):
                 # true_reward is the reward without discount
                 rollout = self.runner.run(callback)
                 # Unpack
-                obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward = rollout
+                obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward = rollout ############ adjust for different parts of episode - distribute among models
 
                 callback.on_rollout_end()
 
@@ -357,7 +357,7 @@ class MyAlgo(ActorCriticRLModel):
                             end = start + batch_size
                             mbinds = inds[start:end]
                             slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                            mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, writer=writer,
+                            mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, writer=writer, ############ run miltiple _train_steps - for different models
                                                                  update=timestep, cliprange_vf=cliprange_vf_now))
                 else:  # recurrent version
                     update_fac = max(self.n_batch // self.nminibatches // self.noptepochs // self.n_steps, 1)
@@ -470,7 +470,7 @@ class Runner(AbstractEnvRunner):
         mb_states = self.states
         ep_infos = []
         for _ in range(self.n_steps):
-            actions, values, self.states, neglogpacs = self.model.step(self.obs, self.states, self.dones)
+            actions, values, self.states, neglogpacs = self.model.step(self.obs, self.states, self.dones) ############# policy - mix policies - based on INFO
             mb_obs.append(self.obs.copy())
             mb_actions.append(actions)
             mb_values.append(values)
@@ -480,7 +480,7 @@ class Runner(AbstractEnvRunner):
             # Clip the actions to avoid out of bound error
             if isinstance(self.env.action_space, gym.spaces.Box):
                 clipped_actions = np.clip(actions, self.env.action_space.low, self.env.action_space.high)
-            self.obs[:], rewards, self.dones, infos = self.env.step(clipped_actions)
+            self.obs[:], rewards, self.dones, infos = self.env.step(clipped_actions) ################## env - mix rewards - based on INFO
 
             self.model.num_timesteps += self.n_envs
 
@@ -504,12 +504,12 @@ class Runner(AbstractEnvRunner):
         mb_values = np.asarray(mb_values, dtype=np.float32)
         mb_neglogpacs = np.asarray(mb_neglogpacs, dtype=np.float32)
         mb_dones = np.asarray(mb_dones, dtype=np.bool)
-        last_values = self.model.value(self.obs, self.states, self.dones)
+        last_values = self.model.value(self.obs, self.states, self.dones) ################ policy
         # discount/bootstrap off value fn
         mb_advs = np.zeros_like(mb_rewards)
         true_reward = np.copy(mb_rewards)
         last_gae_lam = 0
-        for step in reversed(range(self.n_steps)):
+        for step in reversed(range(self.n_steps)): ############ adjust for different parts of episode
             if step == self.n_steps - 1:
                 nextnonterminal = 1.0 - self.dones
                 nextvalues = last_values
