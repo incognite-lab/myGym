@@ -49,12 +49,18 @@ def test_env(env, arg_dict):
                 break
 
 def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_logdir=None, deterministic=False):
-    if arg_dict.get("model_path") is None and model is None:
+    model_path = arg_dict.get("model_path")
+    if model_path is None and model is None:
         print("Path to the model using --model_path argument not specified. Testing random actions in selected environment.")
         test_env(env, arg_dict)
     else:
         try:
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"])
+            model = []
+            if isinstance(model_path, list):
+                for m_path in model_path:
+                    model.append(implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(m_path))
+            else:
+                model.append(implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(model_path))
         except:
             if (arg_dict["algo"] in implemented_combos.keys()) and (arg_dict["train_framework"] not in list(implemented_combos[arg_dict["algo"]].keys())):
                 err = "{} is only implemented with {}".format(arg_dict["algo"],list(implemented_combos[arg_dict["algo"]].keys())[0])
@@ -70,18 +76,20 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     steps_sum = 0
 
     for e in range(arg_dict["eval_episodes"]):
+        model_idx = 0
         done = False
         obs = env.reset()
         is_successful = 0
         distance_error = 0
         while not done:
             steps_sum += 1
-            action, _state = model.predict(obs, deterministic=deterministic)
+            action, _state = model[model_idx].predict(obs, deterministic=deterministic)
             obs, reward, done, info = env.step(action)
             is_successful = not info['f']
             distance_error = info['d']
+            model_idx = info['s']
 
-            if (arg_dict["record"] > 0) and (len(images) < 250):
+            if (arg_dict["record"] > 0):# and (len(images) < 250):
                 render_info = env.render(mode="rgb_array", camera_id = arg_dict["camera"])
                 image = render_info[arg_dict["camera"]]["image"]
                 images.append(image)
@@ -133,8 +141,11 @@ def main():
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
-
-    model_logdir = os.path.dirname(arg_dict.get("model_path",""))
+    model_path = arg_dict.get("model_path","")
+    if isinstance(model_path, list):
+        model_logdir = arg_dict['logdir']
+    else:
+        model_logdir = os.path.dirname(model_path)
     env = configure_env(arg_dict, model_logdir, for_train=0)
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
 

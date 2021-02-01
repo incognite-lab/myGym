@@ -422,7 +422,8 @@ class GymEnv(CameraEnv):
             self.task.check_goal()
             done = self.episode_over
             info = {'d': self.task.last_distance / self.task.init_distance,
-                    'f': int(self.episode_failed)}
+                    'f': int(self.episode_failed),
+                    's': sum(self.task.subgoals)}
 
         if done:
             self.episode_final_reward.append(self.episode_reward)

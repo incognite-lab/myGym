@@ -199,7 +199,7 @@ def get_parser():
     parser.add_argument("-ba", "--robot_action", type=str, help="Robot's action control: step - end-effector relative position, absolute - end-effector absolute position, joints - joints' coordinates")
     #Task
     parser.add_argument("-tt", "--task_type", type=str,  help="Type of task to learn: reach, push, throw, pick_and_place")
-    parser.add_argument("-ns", "--num_subgoals", type=int, default=0, help="Number of subgoals in task")
+    parser.add_argument("-ns", "--num_subgoals", type=int, help="Number of subgoals in task")
     parser.add_argument("-to", "--task_objects", nargs="*", type=str, help="Object (for reach) or a pair of objects (for other tasks) to manipulate with")
     parser.add_argument("-u", "--used_objects", nargs="*", type=str, help="List of extra objects to randomly appear in the scene")
     parser.add_argument("-oa", "--object_sampling_area", nargs="*", type=float, help="Area in the scene where objects can appear")

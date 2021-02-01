@@ -72,12 +72,11 @@ class TaskModule():
         self.env.task_objects.append(self.env.robot)
         if self.reward_type == '2dvu':
             self.generate_new_goal(self.env.objects_area_boarders, self.env.active_cameras)
+        self.subgoals = [False]*self.num_subgoals #subgoal completed?
         if self.task_type == '2stepreach':
-            self.subgoals = [False]*self.num_subgoals #subgoal completed?
             self.obs_sub = [[0,2],[1,2]] #objects to have in observation for given subgoal
             self.sub_idx = 0
         elif self.task_type == '4stepreach':
-            self.subgoals = [False]*self.num_subgoals #subgoal completed?
             self.obs_sub = [[0,3],[1,3],[2,3],[1,3]] #objects to have in observation for given subgoal
             self.sub_idx = 0
 
