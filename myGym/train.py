@@ -22,7 +22,11 @@ except:
     print("Torch isn't probably installed correctly")
 
 from myGym.stable_baselines_mygym.algo import MyAlgo
+from myGym.stable_baselines_mygym.TorchPPO import TorchPPO
+from myGym.stable_baselines_mygym.TorchTD3sde import TD3sde
 from myGym.stable_baselines_mygym.policies import MyMlpPolicy
+from myGym.stable_baselines_mygym.TorchPPOpolicies import TorchMlpPolicy
+from myGym.stable_baselines_mygym.TorchTD3sdepolicies import TD3Policy
 
 from stable_baselines.gail import ExpertDataset, generate_expert_traj
 from stable_baselines.sac.policies import MlpPolicy as MlpPolicySAC
@@ -109,6 +113,8 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                           "trpo": {"tensorflow": [TRPO_T, (MlpPolicy, env), {"verbose": 1, "tensorboard_log": model_logdir}]},
                           "gail": {"tensorflow": [SAC_T, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]},
                           "a2c": {"tensorflow": [A2C_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}],},
+                          "torchppo": {"tensorflow": [TorchPPO, (TorchMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
+                          "torchtd3sde": {"tensorflow": [TD3sde, (TD3Policy, env), {"buffer_size": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir, "num_nets": arg_dict["num_subgoals"]}]}}
 
     if "PPO_P" in sys.modules:
@@ -128,23 +134,23 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     with open(conf_pth, "w") as f:
         json.dump(arg_dict, f)
 
-    try:
+    #try:
         model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
         model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
-        if pretrained_model:
-            if not os.path.isabs(pretrained_model):
-                pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
-            env = model_args[1]
-            vec_env = DummyVecEnv([lambda: env])
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env)
-        else:
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0](*model_args, **model_kwargs)
-    except:
-        if arg_dict["algo"] in implemented_combos.keys():
-            err = "{} is only implemented with {}".format(arg_dict["algo"], list(implemented_combos[arg_dict["algo"]].keys())[0])
-        else:
-            err = "{} algorithm is not implemented.".format(arg_dict["algo"])
-        raise Exception(err)
+        #if pretrained_model:
+        #    if not os.path.isabs(pretrained_model):
+        #        pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
+        #    env = model_args[1]
+        #    vec_env = DummyVecEnv([lambda: env])
+        #    model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env)
+        #else:
+    model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0](*model_args, **model_kwargs)
+    #except:
+    #    if arg_dict["algo"] in implemented_combos.keys():
+    #        err = "{} is only implemented with {}".format(arg_dict["algo"], list(implemented_combos[arg_dict["algo"]].keys())[0])
+    #    else:
+    #        err = "{} algorithm is not implemented.".format(arg_dict["algo"])
+    #    raise Exception(err)
 
     if arg_dict["algo"] == "gail":
         # Multi processing: (using MPI)
@@ -184,7 +190,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     #Envinronment
-    parser.add_argument("-cfg", "--config", default="configs/train.json", help="Can be passed instead of all arguments")
+    parser.add_argument("-cfg", "--config", default="configs/trainTD3sde.json", help="Can be passed instead of all arguments")
     parser.add_argument("-n", "--env_name", type=str, help="The name of environment")
     parser.add_argument("-ws", "--workspace", type=str, help="The name of workspace")
     parser.add_argument("-p", "--engine", type=str,  help="Name of the simulation engine you want to use")
