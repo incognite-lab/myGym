@@ -87,7 +87,8 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
             obs, reward, done, info = env.step(action)
             is_successful = not info['f']
             distance_error = info['d']
-            model_idx = info['s']
+            if len(model) > 1:
+                model_idx = info['s']
 
             if (arg_dict["record"] > 0):# and (len(images) < 250):
                 render_info = env.render(mode="rgb_array", camera_id = arg_dict["camera"])

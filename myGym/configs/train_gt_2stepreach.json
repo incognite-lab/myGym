@@ -1,11 +1,11 @@
 {
 #Environment
 "env_name":"Gym-v0",
-"workspace":"drawer",
+"workspace":"table",
 "engine":"pybullet",
 "render":"opengl",
 "camera":1,
-"gui":0,
+"gui":1,
 "visualize":1,
 "visgym":0,
 #Robot
@@ -14,9 +14,10 @@
 "robot_init":[0.0, 0.5, 0.5],
 #Task
 "task_type":"2stepreach",
+"num_subgoals": 1,
 "task_objects":["cube_holes", "target"],
 "used_objects":null,
-"object_sampling_area":[-0.7, 0.7, 0.4, 1.3, 0.8, 0.1],
+"object_sampling_area":[-0.7, 0.7, 0.2, 1.0, 0.1, 0.1],
 #Reward
 "reward_type":"gt",
 "reward":"distance",
@@ -29,13 +30,13 @@
 "algo":"ppo2",
 "max_episode_steps":1024,
 "algo_steps":1024,
-"steps":110000,
+"steps":500100,
 "pretrained_model":null,
 "multiprocessing":false,
 #Evaluation
-"eval_freq":10000,
-"eval_episodes":50,
+"eval_freq":50000,
+"eval_episodes":10,
 #Saving and logging
-"logdir":"trained_models/drawer",
+"logdir":"trained_models/reach_2",
 "record":0
 }
