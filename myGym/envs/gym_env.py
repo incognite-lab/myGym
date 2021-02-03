@@ -170,7 +170,7 @@ class GymEnv(CameraEnv):
                                                         'target': [[0.18, -1.12, 0.85], [0.81, 2.99, 0.8], [-1.82, 1.57, 0.7], [3.15, 0.43, 0.55], [2.17, 1.25, 3.1]]},
                                             'boarders':[-0.5, 2.5, 0.8, 1.6, 0.1, 0.1]},
                                 'table':    {'urdf': 'table.urdf', 'texture': 'table.jpg', 
-                                            'transform': {'position':[-0.0, -0.0, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
+                                            'transform': {'position':[-0.0, 0.025, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
                                             'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.3, 1.0], [1.8, 0.7, 1.0], [-1.8, 0.7, 1.0], [0.0, 0.7, 1.3],
                                                                     [0.0, 1.6, 0.8], [-0.0, -0.3, 0.8], [0.8, 0.7, 0.6], [-0.8, 0.7, 0.8], [0.0, 0.7, 1.]], 
@@ -264,7 +264,7 @@ class GymEnv(CameraEnv):
         Set action space dimensions and range
         """
         action_dim = self.robot.get_action_dimension()
-        if self.robot_action == "step":
+        if self.robot_action in ["step", "joints_step"]:
             self.action_low = np.array([-1] * action_dim)
             self.action_high = np.array([1] * action_dim)
         elif self.robot_action == "absolute":
@@ -276,7 +276,7 @@ class GymEnv(CameraEnv):
             else:
                 self.action_low = np.array(self.objects_area_boarders[0:7:2])
                 self.action_high = np.array(self.objects_area_boarders[1:7:2])
-        else:
+        elif self.robot_action == "joints":
             self.action_low = np.array(self.robot.joints_limits[0])
             self.action_high = np.array(self.robot.joints_limits[1])
         self.action_space = spaces.Box(np.array([-1]*action_dim), np.array([1]*action_dim))
@@ -317,13 +317,14 @@ class GymEnv(CameraEnv):
                 num_objects = int(np.random.uniform(0, len(self.used_objects)))
             self.env_objects = self._randomly_place_objects(num_objects, self.used_objects, random_pos)
         if self.task_type == 'push':
-            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=False, pos=[0.0, 0.5, 0.05])[0])
-            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=True, pos=[-0.0, 0.9, 0.05])[0])
+            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=False, pos=[0.0, 0.35, 0.1])[0])
+            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=True, pos=[-0.0, 0.9, 0.1])[0])
             direction = np.array(self.task_objects[0].get_position()) - np.array(self.task_objects[1].get_position())
             direction = direction/(10*np.linalg.norm(direction))
             init_joint_poses = np.array(self.task_objects[0].get_position()) + direction
-            init_joint_poses = [0, 0.42, 0.15]            
+            init_joint_poses = [0, 0.2, 0.2]           
             self.robot.init_joint_poses = list(self.robot._calculate_accurate_IK(init_joint_poses))
+            #self.robot.init_joint_poses = [0, -0,551, 0, 2.072, -1.437, 0] 
         elif self.task_type == '2stepreach':
             self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=True, pos=[0.0, 0.5, 0.05])[0])
             self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=True, pos=[-0.6, 0.5, 0.05])[0])

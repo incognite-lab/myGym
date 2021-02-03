@@ -41,9 +41,9 @@ class Robot:
                  pybullet_client=None):
 
         self.p = pybullet_client
-        self.robot_dict =   {'kuka': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_magnetic_gripper.sdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 1*np.pi]},
-                             'kuka_push': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_push_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
-                             'panda': {'path': '/envs/robots/franka_emika/panda/urdf/panda.urdf', 'position': np.array([0.0, -0.05, -0.04])},
+        self.robot_dict =   {'kuka': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_magnetic_gripper.sdf', 'position': np.array([0.0, -0.05, -0.041]), 'orientation': [0.0, 0.0, 1*np.pi]},
+                             'kuka_push': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_push_gripper.sdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 1*np.pi]},
+                             'panda': {'path': '/envs/robots/franka_emika/panda/urdf/panda.urdf', 'position': np.array([0.0, 0.0, -0.04])},
                              'jaco': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq.urdf', 'position': np.array([0.0, 0.0, -0.041])},
                              'jaco_fixed': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq_fixed.urdf', 'position': np.array([0.0, 0.0, -0.041])},
                              'reachy': {'path': '/envs/robots/pollen/reachy/urdf/reachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
@@ -196,7 +196,7 @@ class Robot:
         Returns:
             :return dimension: (int) The dimension of action data
         """
-        if self.robot_action == "joints":
+        if self.robot_action in ["joints", "joints_step"]:
             return len(self.motor_indices)
         else:
             return 3
@@ -248,11 +248,12 @@ class Robot:
                                     jointIndex=self.motor_indices[i],
                                     controlMode=self.p.POSITION_CONTROL,
                                     targetPosition=joint_poses[i],
+                                    targetVelocity=0,
                                     force=self.max_force,
                                     maxVelocity=self.max_velocity,
                                     positionGain=0.7,
                                     velocityGain=0.3)
-            #self.joints_state.append(self.p.getJointState(self.robot_uid, self.motor_indices[i])[0])
+            self.joints_state.append(self.p.getJointState(self.robot_uid, self.motor_indices[i])[0])
         #print('poses',joint_poses)
         #print('state',self.joints_state)
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
@@ -296,8 +297,8 @@ class Robot:
         thresholdOrn = 0.01
         maxIter = 100
         closeEnough = False
-        iter = 0
-        while (not closeEnough and iter < maxIter):
+        itera = 0
+        while (not closeEnough and itera < maxIter):
             if (self.use_fixed_gripper_orn):
                 joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                             self.gripper_index,
@@ -325,7 +326,7 @@ class Robot:
             else:
                 diffOrn = 0
             closeEnough = ((diffPos < thresholdPos) and (diffOrn < thresholdOrn))
-            iter = iter + 1
+            itera = itera + 1
         return joint_poses
 
     def apply_action_step(self, action):
@@ -359,6 +360,17 @@ class Robot:
             :param action: (list) Desired action data
         """
         self._run_motors(action)
+
+    def apply_action_joints_step(self, action):
+        """
+        Apply action command to robot using joint-step control mechanism
+
+        Parameters:
+            :param action: (list) Desired action data
+        """
+        action = [i * self.dimension_velocity for i in action]
+        joint_poses = np.add(self.joints_state, action)
+        self._run_motors(joint_poses)
         
     def apply_action(self, action):
         """
@@ -369,6 +381,8 @@ class Robot:
         """
         if self.robot_action == "step":
             self.apply_action_step(action)
+        elif self.robot_action == "joints_step":
+            self.apply_action_joints_step(action)
         elif self.robot_action == "absolute":
             self.apply_action_absolute(action)
         elif self.robot_action == "joints":
@@ -379,8 +393,8 @@ class Robot:
         # TODO: Set constraint position
         if any(isinstance(i, tuple) for i in contacts):
             contacts = contacts[0]
-        parent = np.array(contacts[5]) - np.array(self.get_position())
-        child = np.array(contacts[6]) - np.array(object.get_position())
+        # parent = np.array(contacts[5]) - np.array(self.get_position())
+        # child = np.array(contacts[6]) - np.array(object.get_position())
         # constraint_id = self.p.createConstraint(self.robot_uid, self.end_effector_index, object.uid, -1,
         #                     jointType=self.p.JOINT_FIXED,
         #                     jointAxis=[0, 0, 0],
