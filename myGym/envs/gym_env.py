@@ -1,7 +1,7 @@
 from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs.base_env import CameraEnv
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward
+from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, PnPDistanceReward, SparseReward
 import pybullet
 import time
 import numpy as np
@@ -114,6 +114,8 @@ class GymEnv(CameraEnv):
             self.reward = DistanceReward(env=self, task=self.task)
         elif reward == "complex_distance":
             self.reward = ComplexDistanceReward(env=self, task=self.task)
+        elif reward == "pnp_distance":
+            self.reward = PnPDistanceReward(env=self, task=self.task)
         elif reward == 'sparse':
             self.reward = SparseReward(env=self, task=self.task)
         self.dataset = dataset
@@ -317,13 +319,13 @@ class GymEnv(CameraEnv):
                 num_objects = int(np.random.uniform(0, len(self.used_objects)))
             self.env_objects = self._randomly_place_objects(num_objects, self.used_objects, random_pos)
         if self.task_type == 'push':
-            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=False, pos=[0.0, 0.35, 0.1])[0])
+            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=False, pos=[0.35, 0.5, 0.1])[0])
             self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=True, pos=[-0.0, 0.9, 0.1])[0])
             direction = np.array(self.task_objects[0].get_position()) - np.array(self.task_objects[1].get_position())
             direction = direction/(10*np.linalg.norm(direction))
-            init_joint_poses = np.array(self.task_objects[0].get_position()) + direction
-            init_joint_poses = [0, 0.2, 0.2]           
-            self.robot.init_joint_poses = list(self.robot._calculate_accurate_IK(init_joint_poses))
+            #init_joint_poses = np.array(self.task_objects[0].get_position()) + direction
+            #init_joint_poses = [0.3, 0.5, 0.3]           
+            #self.robot.init_joint_poses = list(self.robot._calculate_accurate_IK(init_joint_poses))
             #self.robot.init_joint_poses = [0, -0,551, 0, 2.072, -1.437, 0] 
         elif self.task_type == '2stepreach':
             self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=True, pos=[0.0, 0.5, 0.05])[0])
@@ -427,6 +429,9 @@ class GymEnv(CameraEnv):
                     's': sum(self.task.subgoals)}
 
         if done:
+            # if info['f'] == 0:
+            #     reward += 10
+            #     self.episode_reward += 10
             self.episode_final_reward.append(self.episode_reward)
             self.episode_final_distance.append(self.task.last_distance / self.task.init_distance)
             self.episode_number += 1

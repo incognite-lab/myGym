@@ -178,6 +178,100 @@ class ComplexDistanceReward(DistanceReward):
 
         return norm_diff
 
+class PnPDistanceReward(DistanceReward):
+    """
+    Reward class for reward signal calculation based on distance differences between 4 objects, e.g. 1 object and gripper, finger1, finger2 for Panda
+
+    Parameters:
+        :param env: (object) Environment, where the training takes place
+        :param task: (object) Task that is being trained, instance of a class TaskModule
+    """
+    def __init__(self, env, task):
+        super(PnPDistanceReward,self).__init__(env, task)
+        self.prev_obj3_position = None
+        self.prev_obj4_position = None
+
+
+    def compute(self, observation):
+        """
+        Compute reward signal based on distances between 4 objects. The position of the objects must be present in observation.
+
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        reward = self.calc_dist_diff(observation[0:3], observation[3:6], observation[6:9], observation[9:12])
+        reward += self.calc_orn_diff(observation[12:16])
+        self.task.check_distance_threshold(observation=observation)
+        self.rewards_history.append(reward)
+        return reward
+
+    def reset(self):
+        """
+        Reset stored value of distance between objects. Call this after the end of an episode.
+        """
+        super().reset()
+        self.prev_obj3_position = None
+        self.prev_obj4_position = None
+        self.prev_gripper_orn = None
+
+    def calc_dist_diff(self, obj1_position, obj2_position, obj3_position, obj4_position):
+        """
+        Calculate change in the distances between 4 objects in previous and in current step. Normalize the change by the value of distance in previous step.
+
+        Params:
+            :param obj1_position: (list) Position of the first object
+            :param obj2_position: (list) Position of the second object
+            :param obj3_position: (list) Position of the third object
+            :param obj4_position: (list) Position of the fourth object
+        Returns:
+            :return norm_diff: (float) Sum of normalized differences of distances between 4 objects in previsous and in current step
+        """
+        if self.prev_obj1_position is None and self.prev_obj2_position is None and self.prev_obj3_position is None and self.prev_obj4_position is None:
+            self.prev_obj1_position = obj1_position
+            self.prev_obj2_position = obj2_position
+            self.prev_obj3_position = obj3_position
+            self.prev_obj4_position = obj4_position
+
+        prev_diff_12 = self.task.calc_distance(self.prev_obj1_position, self.prev_obj2_position)
+        current_diff_12 = self.task.calc_distance(obj1_position, obj2_position)
+
+        prev_diff_13 = self.task.calc_distance(self.prev_obj1_position, self.prev_obj3_position)
+        current_diff_13 = self.task.calc_distance(obj1_position, obj3_position)
+
+        prev_diff_14 = self.task.calc_distance(self.prev_obj1_position, self.prev_obj4_position)
+        current_diff_14 = self.task.calc_distance(obj1_position, obj4_position)
+        
+        #norm_diff = (prev_diff_12 - current_diff_12) / prev_diff_12 + (prev_diff_13 - current_diff_13) / prev_diff_13 + (prev_diff_14 - current_diff_14) / prev_diff_14
+        norm_diff = (prev_diff_12 - current_diff_12) / prev_diff_12 + (prev_diff_13 - current_diff_13) / prev_diff_13# + (prev_diff_14 - current_diff_14) / prev_diff_14
+
+        self.prev_obj1_position = obj1_position
+        self.prev_obj2_position = obj2_position
+        self.prev_obj3_position = obj3_position
+        self.prev_obj4_position = obj4_position
+
+        return norm_diff
+
+    def calc_orn_diff(self, gripper_orn):
+        """
+        Calculate change in the distances between 4 objects in previous and in current step. Normalize the change by the value of distance in previous step.
+
+        Params:
+            :param gripper_orn: (list) Orientation of gripper
+        Returns:
+            :return norm_diff: (float) Normalized differences of distances between desired orientation and orientation of gripper
+        """
+        if self.prev_gripper_orn is None:
+            self.prev_gripper_orn = gripper_orn
+
+        prev_diff_orn = self.task.calc_rotation_diff(self.prev_gripper_orn, None)
+        current_diff_orn = self.task.calc_rotation_diff(gripper_orn, None)
+        norm_diff = (prev_diff_orn - current_diff_orn) / prev_diff_orn
+
+        self.prev_gripper_orn = gripper_orn
+
+        return norm_diff
 
 class SparseReward(Reward):
     """
