@@ -21,7 +21,7 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 
 
 
-Learn more about the toolbox in [documentation](https://incognite.ciirc.cvut.cz/mygym/)
+Learn more about the toolbox in [documentation](https://incognite-lab.github.io/mygym/index.html)
 
 ## Modular Structure
 
@@ -81,7 +81,7 @@ There are also visual outputs from the active cameras (both RGB and Depth):
 
 ![alt text](myGym/images/workspaces/gym_table_test_cameras.png "test_work")
 
-Find more details about this function in the [documentation](https://incognite.ciirc.cvut.cz/mygym/user_guide/visualization.html)
+Find more details about this function in the [documentation](https://incognite-lab.github.io/mygym/user_guide/visualization.html)
 
 ## Basic Training
 
@@ -101,7 +101,7 @@ After 100000 steps the arm is able to reach the goal object with 80% accuracy:
 
 ![alt text](myGym/images/workspaces/kuka100000.gif "training")
 
-There are more training tutorials in the [documentation](https://incognite.ciirc.cvut.cz/mygym/user_guide/basic_training.html)
+There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/basic_training.html)
 
 ##  Parametric Training
 
@@ -123,7 +123,7 @@ You can fully control the environment, robot, object, task, reward, learning par
 
 ![alt text](myGym/images/results/kuka_reach_yolact_fast.gif "yolact")
 
-Learn more about simulation parameters in the [documentation](https://incognite.ciirc.cvut.cz/mygym/user_guide/tutorial_parametric.html)
+Learn more about simulation parameters in the [documentation](https://incognite-lab.github.io/mygym/user_guide/tutorial_parametric.html)
 
 
 ## Config Training
