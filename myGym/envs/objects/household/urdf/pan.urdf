@@ -21,7 +21,7 @@
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
       <geometry>
 	 	<mesh filename="../obj/pan.obj" scale="0.001 0.001 0.001"/>

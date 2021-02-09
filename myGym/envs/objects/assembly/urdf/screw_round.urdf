@@ -21,7 +21,7 @@
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="0.032274 0.000008 -0.000003"/>
       <geometry>
 	 	<mesh filename="../obj/screw_round.obj" scale=".001 .001 .001"/>

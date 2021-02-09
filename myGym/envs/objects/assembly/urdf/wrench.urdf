@@ -21,7 +21,7 @@
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="0.008606 -0.000558 -0.001708"/>
       <geometry>
 	 	<mesh filename="../obj/wrench.obj" scale=".001 .001 .001"/>

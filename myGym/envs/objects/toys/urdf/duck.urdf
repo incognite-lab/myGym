@@ -21,7 +21,7 @@
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="-0.0016 -0.0014  0.0364"/>
       <geometry>
 	 	<mesh filename="./stl/duck.stl" scale="0.001 0.001 0.001"/>

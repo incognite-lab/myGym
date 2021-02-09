@@ -21,7 +21,7 @@
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="0.0049 -0.0003 0.0072"/>
       <geometry>
 	 	<mesh filename="./stl/plane.stl" scale="0.001 0.001 0.001"/>

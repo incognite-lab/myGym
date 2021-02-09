@@ -21,7 +21,7 @@
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="0.0142 0.0409 0.0002"/>
       <geometry>
 	 	<mesh filename="../obj/hammer.obj" scale=".008 .008 .008"/>

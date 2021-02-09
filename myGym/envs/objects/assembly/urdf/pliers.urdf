@@ -21,7 +21,7 @@
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="0.0013 0.0113 0.0035"/>
       <geometry>
 	 	<mesh filename="../obj/pliers.obj" scale=".02 .02 .02"/>

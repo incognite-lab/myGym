@@ -21,7 +21,7 @@
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="0.0 0.0 -0.006380"/>
       <geometry>
 	 	<mesh filename="../obj/car_roof.obj" scale=".001 .001 .001"/>
