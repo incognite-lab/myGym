@@ -20,7 +20,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
       <geometry>
-	<mesh filename="./obj/cube.obj" scale=".001 .001 .001"/>
+	<mesh filename="./obj/cube_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
       <material name="black">
         <color rgba="0 0 0 1"/>
@@ -29,7 +29,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
       <geometry>
-	<mesh filename="./obj/cube.obj" scale=".001 .001 .001"/>
+	<mesh filename="./obj/cube_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
     </collision>
   </link>

@@ -15,7 +15,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0 0.0949 0.3238"/>
       <geometry>
-        <mesh filename="../obj/armchair.obj" scale="0.02 0.02 0.02"/>
+        <mesh filename="../obj/armchair_vhacd.obj" scale="0.02 0.02 0.02"/>
       </geometry>
        <material name="black">
         <color rgba="0 0 0 1"/>
@@ -24,7 +24,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0.0 0.0949 0.3238"/>
       <geometry>
-	 	<mesh filename="../obj/armchair.obj" scale="0.02 0.02 0.02"/>
+	 	<mesh filename="../obj/armchair_vhacd.obj" scale="0.02 0.02 0.02"/>
       </geometry>
     </collision>
   </link>
