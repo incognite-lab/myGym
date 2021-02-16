@@ -36,8 +36,8 @@ class Robot:
                  use_fixed_gripper_orn=False,
                  gripper_orn=[0, -math.pi, 0],
                  dimension_velocity = 0.5,
-                 max_velocity = 10.,
-                 max_force = 300.,
+                 max_velocity = None, #1
+                 max_force = None, #300
                  pybullet_client=None):
 
         self.p = pybullet_client
@@ -185,8 +185,8 @@ class Robot:
             joints_limits_u.append(joint_info[9])
             joints_ranges.append(joint_info[9] - joint_info[8])
             joints_rest_poses.append((joint_info[9] + joint_info[8])/2)
-            joints_max_force.append(max(joint_info[10],self.max_force))
-            joints_max_velo.append(max(joint_info[11],self.max_velocity))
+            joints_max_force.append(self.max_force if self.max_force else joint_info[10])
+            joints_max_velo.append(self.max_velocity if self.max_velocity else joint_info[11])
         return [joints_limits_l, joints_limits_u], joints_ranges, joints_rest_poses, joints_max_force, joints_max_velo
 
     def get_action_dimension(self):
