@@ -126,6 +126,8 @@ class Robot:
                 self.motor_indices.append(i)
         if self.end_effector_index == None:
             self.end_effector_index = self.gripper_index
+        if 'gripper' not in self.robot_action:
+            self.motor_indices = [x for x in self.motor_indices if x < self.gripper_index]
         print("Gripper index is: " + str(self.gripper_index))
         print("End effector index is: " + str(self.end_effector_index))
 
@@ -196,7 +198,7 @@ class Robot:
         Returns:
             :return dimension: (int) The dimension of action data
         """
-        if self.robot_action in ["joints", "joints_step"]:
+        if self.robot_action in ["joints", "joints_step", "joints_gripper"]:
             return len(self.motor_indices)
         else:
             return 3
@@ -280,7 +282,11 @@ class Robot:
             joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                        self.gripper_index,
                                                        end_effector_pos)
+<<<<<<< HEAD
 
+=======
+        joint_poses = joint_poses[:len(self.motor_indices)]
+>>>>>>> cb112e7c1857e91d9ee6f30bedfe5e8a76aa1bda
         joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
         return joint_poses
 
@@ -312,6 +318,7 @@ class Robot:
                                                             upperLimits=self.joints_limits[1],
                                                             jointRanges=self.joints_ranges,
                                                             restPoses=self.joints_rest_poses)
+            joint_poses = joint_poses[:len(self.motor_indices)]
             joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
             #reset the joint state (ignoring all dynamics, not recommended to use during simulation)
             for jid in range(len(self.motor_indices)):
@@ -385,11 +392,8 @@ class Robot:
             self.apply_action_joints_step(action)
         elif self.robot_action == "absolute":
             self.apply_action_absolute(action)
-        elif self.robot_action == "joints":
+        elif self.robot_action in ["joints", "joints_gripper"]:
             self.apply_action_joints(action)
-        if 'panda' in self.name:
-            for i in range(2):
-                self.p.resetJointState(self.robot_uid, self.motor_indices[-1-i], self.joints_limits[1][-1-i])
         if len(self.magnetized_objects):
             pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
             for key,val in self.magnetized_objects.items():
