@@ -5,11 +5,11 @@
 "engine":"pybullet",
 "render":"opengl",
 "camera":0,
-"gui":1,
+"gui":0,
 "visualize":1,
-"visgym":1,
+"visgym":0,
 #Robot
-"robot":"kuka",
+"robot":"panda",
 "robot_action":"joints",
 "robot_init":[0.0, 0.5, 0.5],
 #Task
@@ -30,12 +30,12 @@
 "algo":"ppo2",
 "max_episode_steps":1024,
 "algo_steps":1024,
-"steps":100000,
+"steps":1100,
 "pretrained_model":null,
 "multiprocessing":false,
 #Evaluation
-"eval_freq":10000,
-"eval_episodes":100,
+"eval_freq": 1000,
+"eval_episodes":10,
 #Saving and logging
 "logdir":"trained_models",
 "record":0

@@ -110,7 +110,7 @@ class TaskModule():
         Get task relevant observation data based on reward signal source
 
         Returns:
-            :return self._observation: (array) Task relevant observation data, positions of task objects 
+            :return self._observation: (array) Task relevant observation data, positions of task objects
         """
         obj_positions, obj_orientations = [], []
         self.render_images() if self.reward_type != "gt" else None
@@ -199,9 +199,9 @@ class TaskModule():
             o1 = self.current_task_objects[0]
             o2 = self.current_task_objects[1]
             closest_points = []
-            closest_points.append(self.env.p.getClosestPoints(o2.robot_uid, o1.get_uid(), self.threshold, o2.end_effector_index, -1))
-            closest_points.append(self.env.p.getClosestPoints(o2.robot_uid, o1.get_uid(), self.threshold, o2.end_effector_index-1, -1))
-            #closest_points.append(self.env.p.getClosestPoints(o2.robot_uid, o1.get_uid(), self.threshold, o2.end_effector_index-2, -1))
+            closest_points.append(self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), self.threshold, o2.end_effector_index, -1))
+            closest_points.append(self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), self.threshold, o2.end_effector_index-1, -1))
+            #closest_points.append(self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), self.threshold, o2.end_effector_index-2, -1))
             if all(closest_points) and self.calc_rotation_diff(self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index-2)[1], None) < self.threshold:
                 return list(filter(None, closest_points))[0]
             else:
@@ -212,7 +212,7 @@ class TaskModule():
             if o1 == self.env.robot:
                 closest_points = self.env.p.getClosestPoints(o1.robot_uid, o2.get_uid(), self.threshold, o1.end_effector_index, -1)
             elif o2 == self.env.robot:
-                closest_points = self.env.p.getClosestPoints(o2.robot_uid, o1.get_uid(), self.threshold, o2.end_effector_index, -1)
+                closest_points = self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), self.threshold, o2.end_effector_index, -1)
             else:
                 closest_points = self.env.p.getClosestPoints(o1.get_uid(), o2.get_uid(), self.threshold, -1, -1)
             if len(closest_points) > 0:
@@ -225,9 +225,9 @@ class TaskModule():
             o1 = self.current_task_objects[0]
             o2 = self.current_task_objects[1]
             closest_points = []
-            closest_points.append(self.env.p.getContactPoints(o2.robot_uid, o1.get_uid(), o2.end_effector_index, -1))
-            closest_points.append(self.env.p.getContactPoints(o2.robot_uid, o1.get_uid(), o2.end_effector_index-1, -1))
-            #closest_points.append(self.env.p.getContactPoints(o2.robot_uid, o1.get_uid(), o2.end_effector_index-2, -1))
+            closest_points.append(self.env.p.getContactPoints(o2.get_uid(), o1.get_uid(), o2.end_effector_index, -1))
+            closest_points.append(self.env.p.getContactPoints(o2.get_uid(), o1.get_uid(), o2.end_effector_index-1, -1))
+            #closest_points.append(self.env.p.getContactPoints(o2.get_uid(), o1.get_uid(), o2.end_effector_index-2, -1))
             if all(closest_points):
                 return list(filter(None, closest_points))[0]
             else:
@@ -238,7 +238,7 @@ class TaskModule():
             if o1 == self.env.robot:
                 closest_points = [self.env.p.getContactPoints(o1.robot_uid, o2.get_uid(), x, -1) for x in range(o1.gripper_index,o1.end_effector_index+1)]
             elif o2 == self.env.robot:
-                closest_points = [self.env.p.getContactPoints(o2.robot_uid, o1.get_uid(), x, -1) for x in range(o2.gripper_index,o2.end_effector_index+1)]
+                closest_points = [self.env.p.getContactPoints(o2.get_uid(), o1.get_uid(), x, -1) for x in range(o2.gripper_index,o2.end_effector_index+1)]
             else:
                 closest_points = self.env.p.getContactPoints(o1.get_uid(), o2.get_uid(), -1, -1)
             if self.task_type == 'pnp' and all(closest_points):
@@ -310,7 +310,7 @@ class TaskModule():
         Parameters:
             :param obj1: (float array) First object position representation
             :param obj2: (float array) Second object position representation
-        Returns: 
+        Returns:
             :return dist: (float) Distance between 2 float arrays
         """
         if self.distance_type == "euclidean":
@@ -326,7 +326,7 @@ class TaskModule():
         Parameters:
             :param obj1: (float array) First object orientation (Quaternion xyzw)
             :param obj2: (float array) Second object orientation (Quaterion xyzw)
-        Returns: 
+        Returns:
             :return diff: (float) Distance between 2 float arrays
         """
         if obj2 is None:
@@ -341,7 +341,7 @@ class TaskModule():
     def generate_new_goal(self, object_area_borders, camera_id):
         """
         Generate an image of new goal for VEA vision model. This function is supposed to be called from env workspace.
-        
+
         Parameters:
             :param object_area_borders: (list) Volume in space where task objects can be located
             :param camera_id: (int) ID of environment camera active for image rendering
@@ -367,4 +367,3 @@ class TaskModule():
             self.goal_image  = self.env.render(mode="rgb_array", camera_id=self.env.active_cameras)[self.env.active_cameras]['image']
             self.env.robot.reset_up()
             #self.goal_image = self.vision_module.vae_generate_sample()
-
