@@ -318,7 +318,7 @@ class GymEnv(CameraEnv):
             else:
                 num_objects = int(np.random.uniform(0, len(self.used_objects)))
             self.env_objects = self._randomly_place_objects(num_objects, self.used_objects, random_pos)
-        if self.task_type == 'push':
+        if self.task_type == 'Mpush':
             self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=False, pos=[0.35, 0.5, 0.1])[0])
             self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=True, pos=[-0.0, 0.9, 0.1])[0])
             direction = np.array(self.task_objects[0].get_position()) - np.array(self.task_objects[1].get_position())

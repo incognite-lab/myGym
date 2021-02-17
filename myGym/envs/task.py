@@ -44,7 +44,7 @@ class TaskModule():
         self.obsdim = (len(env.task_objects_names) + 1) * 3
         if self.task_type in ['2stepreach','4stepreach']:
             self.obsdim = 6
-        if self.task_type == 'pnp':
+        if self.task_type == 'Mpnp':
             self.obsdim += 10 #finger1_pos + finger2_pos + gripper_orn
         self.threshold = 0.04 # distance threshold for successful task completion
         if self.reward_type == 'gt':
@@ -77,7 +77,7 @@ class TaskModule():
             self.generate_new_goal(self.env.objects_area_boarders, self.env.active_cameras)
         self.subgoals = [False]*self.num_subgoals #subgoal completed?
         if self.task_type == '2stepreach':
-            self.obs_sub = [[0,2],[1,0]] #objects to have in observation for given subgoal
+            self.obs_sub = [[0,2],[0,1]] #objects to have in observation for given subgoal
             self.sub_idx = 0
         elif self.task_type == '4stepreach':
             self.obs_sub = [[0,3],[1,3],[2,3],[1,3]] #objects to have in observation for given subgoal
@@ -127,7 +127,7 @@ class TaskModule():
                 obj_positions.append(self.vision_module.get_obj_position(env_object,self.image,self.depth))
                 if self.reward_type == '6dvs' and self.task_type != 'reach' and env_object != self.env.task_objects[-1]:
                     obj_orientations.append(self.vision_module.get_obj_orientation(env_object,self.image))
-            if self.task_type == 'pnp':
+            if self.task_type == 'Mpnp':
                 obj_positions.append(list(self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index-1)[0]))
                 obj_positions.append(list(self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index-2)[0]))
                 obj_positions.append(list(self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index-2)[1]))
@@ -195,7 +195,7 @@ class TaskModule():
         return self.current_norm_distance < self.threshold
 
     def check_points_distance_threshold(self): #@TODO: better than check_distance_threshold
-        if self.task_type == 'pnp':
+        if self.task_type == 'Mpnp':
             o1 = self.current_task_objects[0]
             o2 = self.current_task_objects[1]
             closest_points = []
@@ -221,7 +221,7 @@ class TaskModule():
                 return False
 
     def check_points_contact(self): #@TODO: better than check_distance_threshold
-        if self.task_type == 'pnp':
+        if self.task_type == 'Mpnp':
             o1 = self.current_task_objects[0]
             o2 = self.current_task_objects[1]
             closest_points = []
@@ -241,7 +241,7 @@ class TaskModule():
                 closest_points = [self.env.p.getContactPoints(o2.robot_uid, o1.get_uid(), x, -1) for x in range(o2.gripper_index,o2.end_effector_index+1)]
             else:
                 closest_points = self.env.p.getContactPoints(o1.get_uid(), o2.get_uid(), -1, -1)
-            if self.task_type == 'pnp' and all(closest_points):
+            if self.task_type == 'Mpnp' and all(closest_points):
                 return list(filter(None, closest_points))[0]
             elif any(closest_points):
                 return list(filter(None, closest_points))[0]
@@ -258,6 +258,7 @@ class TaskModule():
 
         #if self.check_distance_threshold(self._observation): #threshold for successful push/throw/pick'n'place
         #if self.check_points_distance_threshold(): #threshold for successful push/throw/pick'n'place
+        #if self.check_points_contact():
         contacts = self.check_points_distance_threshold()
         if contacts: #check for successful push/throw/pick'n'place
             if self.env.episode_steps == 1:
@@ -270,7 +271,7 @@ class TaskModule():
                 self.env.robot.magnetize_object(self.env.task_objects[self.obs_sub[self.sub_idx][0]], contacts) #magnetize first object
                 self.sub_idx += 1 #continue with next subgoal
                 self.env.reward.reset() #reward reset
-            elif self.task_type == 'pnp':
+            elif self.task_type == 'Mpnp':
                 for _ in range(100):
                     self.env.robot.grasp_panda()
                     contacts = self.check_points_contact()
