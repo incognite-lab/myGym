@@ -278,7 +278,7 @@ class GymEnv(CameraEnv):
             else:
                 self.action_low = np.array(self.objects_area_boarders[0:7:2])
                 self.action_high = np.array(self.objects_area_boarders[1:7:2])
-        elif self.robot_action == "joints":
+        elif self.robot_action in ["joints", "joints_gripper"]:
             self.action_low = np.array(self.robot.joints_limits[0])
             self.action_high = np.array(self.robot.joints_limits[1])
         self.action_space = spaces.Box(np.array([-1]*action_dim), np.array([1]*action_dim))
