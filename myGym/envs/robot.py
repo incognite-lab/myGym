@@ -282,11 +282,7 @@ class Robot:
             joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                        self.gripper_index,
                                                        end_effector_pos)
-<<<<<<< HEAD
-
-=======
         joint_poses = joint_poses[:len(self.motor_indices)]
->>>>>>> cb112e7c1857e91d9ee6f30bedfe5e8a76aa1bda
         joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
         return joint_poses
 

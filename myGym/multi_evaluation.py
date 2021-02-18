@@ -6,7 +6,7 @@ from sklearn.model_selection import ParameterGrid
 import json
 
 parameters = {
-    "robot_action": ["joints", "step", "absolute"],
+    "robot_action": ["step", "joints", "joints_gripper"],
     "task_type": ["reach", "push", "pnp"],
     "max_episode_steps": [256, 512, 1024]
 }
@@ -17,7 +17,7 @@ last_eval_results = {}
 
 
 def train(params, i):
-    if params["task_type"] != "reach":
+    if "task_type" in params and params["task_type"] != "reach":
         params["task_objects"] = "cube_holes target"
     print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
     command = 'python train.py --config {configfile} '.format(configfile=configfile) + " ".join(f"--{key} {value}" for key, value in params.items())
