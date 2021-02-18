@@ -3,6 +3,7 @@ import re
 import threading
 import subprocess
 from sklearn.model_selection import ParameterGrid
+import json
 
 parameters = {
     "robot_action": ["joints", "step", "absolute"],
@@ -11,7 +12,8 @@ parameters = {
 }
 parameter_grid = ParameterGrid(parameters)
 configfile = 'configs/train.json'
-evaluation_results = [None] * len(parameter_grid)
+evaluation_results_paths = [None] * len(parameter_grid)
+last_eval_results = {}
 
 
 def train(params, i):
@@ -19,9 +21,8 @@ def train(params, i):
         params["task_objects"] = "cube_holes target"
     print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
     command = 'python train.py --config {configfile} '.format(configfile=configfile) + " ".join(f"--{key} {value}" for key, value in params.items())
-    #command = re.sub(r'(?<=,) ', '', command)
-    output = subprocess.check_output(command.split()) # space which is not preceded by comma
-    evaluation_results[i] = output.splitlines()[-1].decode('UTF-8') + "/evaluation_results.json"
+    output = subprocess.check_output(command.split())
+    evaluation_results_paths[i] = output.splitlines()[-1].decode('UTF-8') + "/evaluation_results.json"
     # os.system('python train.py --config {configfile} '.format(configfile=configfile)
     #           + " ".join(f"--{key} {value}" for key, value in params.items()))
 
@@ -29,7 +30,10 @@ def train(params, i):
 if __name__ == '__main__':
     threads = []
     for i, params in enumerate(parameter_grid):
-        train(params, i)
+        train(params.copy(), i)
+        with open(evaluation_results_paths[i]) as f:
+            data = json.load(f)
+        last_eval_results[str(list(params.values()))] = list(data.values())[-1]
         # thread = threading.Thread(target=train, args=(params, i))
         # thread.start()
         # threads.append(thread)
@@ -37,4 +41,6 @@ if __name__ == '__main__':
     # for thread in threads:
     #     thread.join()
 
-    print(evaluation_results)
+    print(last_eval_results)
+    with open("trained_models/multi_evaluation_results.json", 'w') as f:
+        json.dump(last_eval_results, f, indent=4)
