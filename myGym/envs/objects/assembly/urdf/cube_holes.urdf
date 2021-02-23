@@ -3,8 +3,9 @@
   <link name="baseLink">
     <contact>
             <restitution value="0.0" />
-            <rolling_friction value="0.03"/>
-            <spinning_friction value="0.03"/>
+            <lateral_friction value="0.7"/>
+            <rolling_friction value="0.0"/>
+            <spinning_friction value="0.0"/>
     </contact>
     <inertial>
       <origin rpy="0 0 0" xyz="0.0001 0.0 0.0"/>
@@ -14,7 +15,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0001 0.0 0.0"/>
       <geometry>
-        <mesh filename="../obj/cube_holes.obj" scale=".001 .001 .001"/>
+        <mesh filename="../obj/cube_holes_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
        <material name="black">
         <color rgba="0 0 0 1"/>
@@ -23,7 +24,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0.0001 0.0 0.0"/>
       <geometry>
-	 	<mesh filename="../obj/cube_holes.obj" scale=".001 .001 .001"/>
+	 	<mesh filename="../obj/cube_holes_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
     </collision>
   </link>

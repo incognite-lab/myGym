@@ -278,7 +278,7 @@ class GymEnv(CameraEnv):
             else:
                 self.action_low = np.array(self.objects_area_boarders[0:7:2])
                 self.action_high = np.array(self.objects_area_boarders[1:7:2])
-        elif self.robot_action == "joints":
+        elif self.robot_action in ["joints", "joints_gripper"]:
             self.action_low = np.array(self.robot.joints_limits[0])
             self.action_high = np.array(self.robot.joints_limits[1])
         self.action_space = spaces.Box(np.array([-1]*action_dim), np.array([1]*action_dim))
@@ -318,7 +318,7 @@ class GymEnv(CameraEnv):
             else:
                 num_objects = int(np.random.uniform(0, len(self.used_objects)))
             self.env_objects = self._randomly_place_objects(num_objects, self.used_objects, random_pos)
-        if self.task_type == 'push':
+        if self.task_type == 'Mpush':
             self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=False, pos=[0.35, 0.5, 0.1])[0])
             self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=True, pos=[-0.0, 0.9, 0.1])[0])
             direction = np.array(self.task_objects[0].get_position()) - np.array(self.task_objects[1].get_position())

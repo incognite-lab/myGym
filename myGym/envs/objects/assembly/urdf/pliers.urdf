@@ -15,7 +15,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0013 0.0113 0.0035"/>
       <geometry>
-        <mesh filename="../obj/pliers.obj" scale=".02 .02 .02"/>
+        <mesh filename="../obj/pliers_vhacd.obj" scale=".02 .02 .02"/>
       </geometry>
        <material name="black">
         <color rgba="0 0 0 1"/>
@@ -24,7 +24,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0.0013 0.0113 0.0035"/>
       <geometry>
-	 	<mesh filename="../obj/pliers.obj" scale=".02 .02 .02"/>
+	 	<mesh filename="../obj/pliers_vhacd.obj" scale=".02 .02 .02"/>
       </geometry>
     </collision>
   </link>

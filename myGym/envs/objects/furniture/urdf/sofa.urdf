@@ -15,7 +15,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="-0.0510 -0.0163  0.1678"/>
       <geometry>
-        <mesh filename="../obj/sofa.obj" scale="0.02 0.02 0.02"/>
+        <mesh filename="../obj/sofa_vhacd.obj" scale="0.02 0.02 0.02"/>
       </geometry>
        <material name="black">
         <color rgba="0 0 0 1"/>
@@ -24,7 +24,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="-0.0510 -0.0163  0.1678"/>
       <geometry>
-	 	<mesh filename="../obj/sofa.obj" scale="0.02 0.02 0.02"/>
+	 	<mesh filename="../obj/sofa_vhacd.obj" scale="0.02 0.02 0.02"/>
       </geometry>
     </collision>
   </link>

@@ -114,7 +114,7 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                           "gail": {"tensorflow": [SAC_T, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]},
                           "a2c": {"tensorflow": [A2C_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}],},
                           "torchppo": {"tensorflow": [TorchPPO, (TorchMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
-                          "torchtd3sde": {"tensorflow": [TD3sde, (TD3Policy, env), {"buffer_size": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
+                          #"torchtd3sde": {"tensorflow": [TD3sde, (TD3Policy, env), {"buffer_size": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir, "num_nets": arg_dict["num_subgoals"]}]}}
 
     if "PPO_P" in sys.modules:
@@ -274,6 +274,7 @@ def main():
     env = configure_env(arg_dict, model_logdir, for_train=1)
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
     train(env, implemented_combos, model_logdir, arg_dict, arg_dict["pretrained_model"])
+    print(model_logdir)
 
 
 if __name__ == "__main__":

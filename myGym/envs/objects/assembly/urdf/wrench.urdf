@@ -15,7 +15,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.008606 -0.000558 -0.001708"/>
       <geometry>
-        <mesh filename="../obj/wrench.obj" scale=".001 .001 .001"/>
+        <mesh filename="../obj/wrench_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
        <material name="black">
         <color rgba="0 0 0 1"/>
@@ -24,7 +24,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0.008606 -0.000558 -0.001708"/>
       <geometry>
-	 	<mesh filename="../obj/wrench.obj" scale=".001 .001 .001"/>
+	 	<mesh filename="../obj/wrench_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
     </collision>
   </link>

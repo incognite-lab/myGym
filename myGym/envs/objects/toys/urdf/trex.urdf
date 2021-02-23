@@ -15,7 +15,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
       <geometry>
-        <mesh filename="../obj/trex.obj" scale="0.001 0.001 0.001"/>
+        <mesh filename="../obj/trex_vhacd.obj" scale="0.001 0.001 0.001"/>
       </geometry>
        <material name="black">
         <color rgba="0 0 0 1"/>
@@ -24,7 +24,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
       <geometry>
-	 	<mesh filename="../obj/trex.obj" scale="0.001 0.001 0.001"/>
+	 	<mesh filename="../obj/trex_vhacd.obj" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
