@@ -12,180 +12,180 @@
     </inertial>
 <!--table-->
     <visual>
-      <origin rpy="0 0 0*np.pi" xyz="4.81 -0.85 1.025"/>
+      <origin rpy="0 0 0*np.pi" xyz="4.81 -0.85 1.075"/>
       <geometry>
-				<mesh filename="./obj/table.obj" scale="1.5 1 0.05"/>
+				<box size="1.5 1 0.05"/>
       </geometry>
        <material name="framemat0">
         <color rgba="1 0 1 1"/>
       </material>
     </visual>
 	  <visual>
-      <origin rpy="0.000 0 0*np.pi" xyz="4.16 -1.25 0.5"/>
+      <origin rpy="0.000 0 0*np.pi" xyz="4.16 -1.25 0.525"/>
       <geometry>
-	    <mesh filename="./obj/table.obj" scale="0.1 0.1 1"/>
+	    <box size="0.1 0.1 1.05"/>
       </geometry>
 	  <material name="framemat0"/>	 
     </visual>
     <visual>
-      <origin rpy="0.000 0 0*np.pi" xyz="4.16 -0.45 0.5"/>
+      <origin rpy="0.000 0 0*np.pi" xyz="4.16 -0.45 0.525"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.1 0.1 1"/>
+        <box size="0.1 0.1 1.05"/>
       </geometry>
 	  <material name="framemat0"/>
 	  </visual>
     <visual>
-      <origin rpy="0.000 0 0*np.pi" xyz="5.46 -1.25 0.5"/>
+      <origin rpy="0.000 0 0*np.pi" xyz="5.46 -1.25 0.525"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.1 0.1 1"/>
+        <box size="0.1 0.1 1.05"/>
       </geometry>
 	  <material name="framemat0"/>
 	  </visual>
     <visual>
-      <origin rpy="0.000 0 0*np.pi" xyz="5.46 -0.45 0.5"/>
+      <origin rpy="0.000 0 0*np.pi" xyz="5.46 -0.45 0.525"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.1 0.1 1"/>
+        <box size="0.1 0.1 1.05"/>
       </geometry>
     <material name="framemat0"/>
     </visual>
 <!--bottom shelf-->
     <visual>
-      <origin rpy="0 0 0*np.pi" xyz="5.535 -0.6 1.175"/>
+      <origin rpy="0 0 0*np.pi" xyz="5.535 -0.6 1.225"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.05 0.5 0.25"/>
+        <box size="0.05 0.5 0.25"/>
       </geometry>
     <material name="framemat0"/>
     </visual>
     <visual>
-      <origin rpy="0 0 0*np.pi" xyz="4.085 -0.6 1.175"/>
+      <origin rpy="0 0 0*np.pi" xyz="4.085 -0.6 1.225"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.05 0.5 0.25"/>
+        <box size="0.05 0.5 0.25"/>
       </geometry>
     <material name="framemat0"/>
     </visual>
     <visual>
-      <origin rpy="0 0 0*np.pi" xyz="4.81 -0.6 1.325"/>
+      <origin rpy="0 0 0*np.pi" xyz="4.81 -0.6 1.375"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="1.5 0.5 0.05"/>
+        <box size="1.5 0.5 0.05"/>
       </geometry>
     <material name="framemat0"/>
     </visual>
 <!--top shelf-->
     <visual>
-      <origin rpy="0 0 0*np.pi" xyz="4.685 -0.6 1.475"/>
+      <origin rpy="0 0 0*np.pi" xyz="4.685 -0.6 1.525"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.05 0.5 0.25"/>
+        <box size="0.05 0.5 0.25"/>
       </geometry>
     <material name="framemat0"/>
     </visual>
     <visual>
-      <origin rpy="0 0 0*np.pi" xyz="4.085 -0.6 1.475"/>
+      <origin rpy="0 0 0*np.pi" xyz="4.085 -0.6 1.525"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.05 0.5 0.25"/>
+        <box size="0.05 0.5 0.25"/>
       </geometry>
     <material name="framemat0"/>
     </visual>
     <visual>
-      <origin rpy="0 0 0*np.pi" xyz="4.385 -0.6 1.625"/>
+      <origin rpy="0 0 0*np.pi" xyz="4.385 -0.6 1.675"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.65 0.5 0.05"/>
+        <box size="0.65 0.5 0.05"/>
       </geometry>
     <material name="framemat0"/>
     </visual>
 <!--stand-->
     <visual>
-      <origin rpy="1.57 0 0*np.pi" xyz="6.21 4.95 -0.0"/>
+      <origin rpy="1.57 0 0*np.pi" xyz="6.21 5.2 -0.0"/>
       <geometry>
         <mesh filename="./obj/stand.obj" scale="0.1 0.1 0.1"/>
       </geometry>
     <material name="framemat0"/>
     </visual>
-  <!--collision-->
+<!--collision-->
 <!--table-->
     <collision>
-      <origin rpy="0 0 0*np.pi" xyz="4.81 -0.85 1.025"/>
+      <origin rpy="0 0 0*np.pi" xyz="4.81 -0.85 1.075"/>
       <geometry>
-				<mesh filename="./obj/table.obj" scale="1.5 1 0.05"/>
+				<box size="1.5 1 0.05"/>
       </geometry>
        <material name="framemat0">
         <color rgba="1 0 1 1"/>
       </material>
     </collision>
 	  <collision>
-      <origin rpy="0.000 0 0*np.pi" xyz="4.16 -1.25 0.5"/>
+      <origin rpy="0.000 0 0*np.pi" xyz="4.16 -1.25 0.525"/>
       <geometry>
-	    <mesh filename="./obj/table.obj" scale="0.1 0.1 1"/>
+	    <box size="0.1 0.1 1.05"/>
       </geometry>
 	  <material name="framemat0"/>	 
     </collision>
     <collision>
-      <origin rpy="0.000 0 0*np.pi" xyz="4.16 -0.45 0.5"/>
+      <origin rpy="0.000 0 0*np.pi" xyz="4.16 -0.45 0.525"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.1 0.1 1"/>
+        <box size="0.1 0.1 1.05"/>
       </geometry>
 	  <material name="framemat0"/>
 	  </collision>
     <collision>
-      <origin rpy="0.000 0 0*np.pi" xyz="5.46 -1.25 0.5"/>
+      <origin rpy="0.000 0 0*np.pi" xyz="5.46 -1.25 0.525"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.1 0.1 1"/>
+        <box size="0.1 0.1 1.05"/>
       </geometry>
 	  <material name="framemat0"/>
 	  </collision>
     <collision>
-      <origin rpy="0.000 0 0*np.pi" xyz="5.46 -0.45 0.5"/>
+      <origin rpy="0.000 0 0*np.pi" xyz="5.46 -0.45 0.525"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.1 0.1 1"/>
+        <box size="0.1 0.1 1.05"/>
       </geometry>
     <material name="framemat0"/>
     </collision>
 <!--bottom shelf-->
     <collision>
-      <origin rpy="0 0 0*np.pi" xyz="5.535 -0.6 1.175"/>
+      <origin rpy="0 0 0*np.pi" xyz="5.535 -0.6 1.225"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.05 0.5 0.25"/>
+        <box size="0.05 0.5 0.25"/>
       </geometry>
     <material name="framemat0"/>
     </collision>
     <collision>
-      <origin rpy="0 0 0*np.pi" xyz="4.085 -0.6 1.175"/>
+      <origin rpy="0 0 0*np.pi" xyz="4.085 -0.6 1.225"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.05 0.5 0.25"/>
+        <box size="0.05 0.5 0.25"/>
       </geometry>
     <material name="framemat0"/>
     </collision>
     <collision>
-      <origin rpy="0 0 0*np.pi" xyz="4.81 -0.6 1.325"/>
+      <origin rpy="0 0 0*np.pi" xyz="4.81 -0.6 1.375"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="1.5 0.5 0.05"/>
+        <box size="1.5 0.5 0.05"/>
       </geometry>
     <material name="framemat0"/>
     </collision>
 <!--top shelf-->
     <collision>
-      <origin rpy="0 0 0*np.pi" xyz="4.685 -0.6 1.475"/>
+      <origin rpy="0 0 0*np.pi" xyz="4.685 -0.6 1.525"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.05 0.5 0.25"/>
+        <box size="0.05 0.5 0.25"/>
       </geometry>
     <material name="framemat0"/>
     </collision>
     <collision>
-      <origin rpy="0 0 0*np.pi" xyz="4.085 -0.6 1.475"/>
+      <origin rpy="0 0 0*np.pi" xyz="4.085 -0.6 1.525"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.05 0.5 0.25"/>
+        <box size="0.05 0.5 0.25"/>
       </geometry>
     <material name="framemat0"/>
     </collision>
     <collision>
-      <origin rpy="0 0 0*np.pi" xyz="4.385 -0.6 1.625"/>
+      <origin rpy="0 0 0*np.pi" xyz="4.385 -0.6 1.675"/>
       <geometry>
-        <mesh filename="./obj/table.obj" scale="0.65 0.5 0.05"/>
+        <box size="0.65 0.5 0.05"/>
       </geometry>
     <material name="framemat0"/>
     </collision>
 <!--stand-->
     <collision>
-      <origin rpy="1.57 0 0*np.pi" xyz="6.21 4.95 -0.0"/>
+      <origin rpy="1.57 0 0*np.pi" xyz="6.21 5.2 -0.0"/>
       <geometry>
         <mesh filename="./obj/stand.obj" scale="0.1 0.1 0.1"/>
       </geometry>
