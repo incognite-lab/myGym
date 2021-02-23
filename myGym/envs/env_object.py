@@ -323,6 +323,8 @@ class EnvObject:
         Returns:
             :return pos: (list) Position in specified volume ([x,y,z])
         """
+        if any(isinstance(i, list) for i in boarders):
+            boarders = boarders[random.randint(0,len(boarders)-1)]
         pos = []
         pos.append(random.uniform(boarders[0], boarders[1])) #x
         pos.append(random.uniform(boarders[2], boarders[3])) #y

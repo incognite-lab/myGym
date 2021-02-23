@@ -36,15 +36,15 @@ class Robot:
                  use_fixed_gripper_orn=False,
                  gripper_orn=[0, -math.pi, 0],
                  dimension_velocity = 0.5,
-                 max_velocity = 1.,
-                 max_force = 50.,
+                 max_velocity = None, #1.,
+                 max_force = None, #50.,
                  pybullet_client=None):
 
         self.p = pybullet_client
         self.robot_dict =   {'kuka': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_magnetic_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'kuka_push': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_push_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'kuka_realrobot': {'path': '/envs/robots/kuka_gripper/kuka_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
-                             'panda': {'path': '/envs/robots/franka_emika/panda/urdf/panda.urdf', 'position': np.array([0.0, 0.0, -0.04])},
+                             'panda': {'path': '/envs/robots/franka_emika/panda_moveit/urdf/panda.urdf', 'position': np.array([0.0, -0.05, -0.04])},
                              'jaco': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq.urdf', 'position': np.array([0.0, 0.0, -0.041])},
                              'jaco_fixed': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq_fixed.urdf', 'position': np.array([0.0, 0.0, -0.041])},
                              'reachy': {'path': '/envs/robots/pollen/reachy/urdf/reachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
@@ -76,11 +76,12 @@ class Robot:
         self.motor_names = []
         self.motor_indices = []
         self.robot_action = robot_action
+        self.magnetized_objects = {}
 
         self._load_robot()
         self.num_joints = self.p.getNumJoints(self.robot_uid)
         self._set_motors()
-        self.joints_limits, self.joints_ranges, self.joints_rest_poses = self.get_joints_limits()
+        self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits()
         if len(init_joint_poses) == 3:
             joint_poses = list(self._calculate_accurate_IK(init_joint_poses))
             self.init_joint_poses = joint_poses
@@ -126,6 +127,8 @@ class Robot:
                 self.motor_indices.append(i)
         if self.end_effector_index == None:
             self.end_effector_index = self.gripper_index
+        if 'gripper' not in self.robot_action:
+            self.motor_indices = [x for x in self.motor_indices if x < self.gripper_index]
         print("Gripper index is: " + str(self.gripper_index))
         print("End effector index is: " + str(self.end_effector_index))
 
@@ -177,17 +180,16 @@ class Robot:
             :return joints_ranges: (list) Ranges of movement of all joints
             :return joints_rest_poses: (list) Rest poses of all joints
         """
-        joints_limits_l = []
-        joints_limits_u = []
-        joints_ranges = []
-        joints_rest_poses = []
+        joints_limits_l, joints_limits_u, joints_ranges, joints_rest_poses, joints_max_force, joints_max_velo = [], [], [], [], [], []
         for jid in self.motor_indices:
             joint_info = self.p.getJointInfo(self.robot_uid, jid)
             joints_limits_l.append(joint_info[8])
             joints_limits_u.append(joint_info[9])
             joints_ranges.append(joint_info[9] - joint_info[8])
             joints_rest_poses.append((joint_info[9] + joint_info[8])/2)
-        return [joints_limits_l, joints_limits_u], joints_ranges, joints_rest_poses
+            joints_max_force.append(self.max_force if self.max_force else joint_info[10])
+            joints_max_velo.append(self.max_velocity if self.max_velocity else joint_info[11])
+        return [joints_limits_l, joints_limits_u], joints_ranges, joints_rest_poses, joints_max_force, joints_max_velo
 
     def get_action_dimension(self):
         """
@@ -196,7 +198,7 @@ class Robot:
         Returns:
             :return dimension: (int) The dimension of action data
         """
-        if self.robot_action == "joints":
+        if self.robot_action in ["joints", "joints_step", "joints_gripper"]:
             return len(self.motor_indices)
         else:
             return 3
@@ -248,8 +250,8 @@ class Robot:
                                     jointIndex=self.motor_indices[i],
                                     controlMode=self.p.POSITION_CONTROL,
                                     targetPosition=joint_poses[i],
-                                    force=self.max_force,
-                                    maxVelocity=self.max_velocity,
+                                    force=self.joints_max_force[i],
+                                    maxVelocity=self.joints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3)
             #self.joints_state.append(self.p.getJointState(self.robot_uid, self.motor_indices[i])[0])
@@ -279,7 +281,7 @@ class Robot:
             joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                        self.gripper_index,
                                                        end_effector_pos)
-    
+        joint_poses = joint_poses[:len(self.motor_indices)]
         joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
         return joint_poses
 
@@ -311,6 +313,7 @@ class Robot:
                                                             upperLimits=self.joints_limits[1],
                                                             jointRanges=self.joints_ranges,
                                                             restPoses=self.joints_rest_poses)
+            joint_poses = joint_poses[:len(self.motor_indices)]
             joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
             #reset the joint state (ignoring all dynamics, not recommended to use during simulation)
             for jid in range(len(self.motor_indices)):
@@ -360,6 +363,16 @@ class Robot:
         """
         self._run_motors(action)
         
+    def apply_action_joints_step(self, action):
+        """
+        Apply action command to robot using joint-step control mechanism
+        Parameters:
+            :param action: (list) Desired action data
+        """
+        action = [i * self.dimension_velocity for i in action]
+        joint_poses = np.add(self.joints_state, action)
+        self._run_motors(joint_poses)
+
     def apply_action(self, action):
         """
         Apply action command to robot in simulated environment
@@ -369,10 +382,34 @@ class Robot:
         """
         if self.robot_action == "step":
             self.apply_action_step(action)
+        elif self.robot_action == "joints_step":
+            self.apply_action_joints_step(action)
         elif self.robot_action == "absolute":
             self.apply_action_absolute(action)
-        elif self.robot_action == "joints":
+        elif self.robot_action in ["joints", "joints_gripper"]:
             self.apply_action_joints(action)
+        if len(self.magnetized_objects):
+            pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
+            for key,val in self.magnetized_objects.items():
+                self.p.changeConstraint(val, key.get_position()+pos_diff)
+            self.end_effector_prev_pos = self.end_effector_pos
+        if 'gripper' not in self.robot_action:
+            for joint_index in range(self.gripper_index, self.end_effector_index + 1):
+                self.p.resetJointState(self.robot_uid, joint_index, self.p.getJointInfo(self.robot_uid, joint_index)[9])
+
+    def magnetize_object(self, object, contacts):
+        if any(isinstance(i, tuple) for i in contacts):
+            contacts = contacts[0]
+        self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
+
+        self.end_effector_prev_pos = self.end_effector_pos
+        constraint_id = self.p.createConstraint(object.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0],
+                              object.get_position())
+        self.magnetized_objects[object] = constraint_id
+
+    def release_object(self, object):
+        self.p.removeConstraint(self.magnetized_objects[object])
+        self.magnetized_objects.pop(object)
 
     def get_name(self):
         """
@@ -382,3 +419,11 @@ class Robot:
             :return name: (string) Name of robot
         """
         return self.name
+
+    def get_uid(self):
+        """
+        Get robot's unique ID
+        Returns:
+            :return self.uid: Robot's unique ID
+        """
+        return self.robot_uid

@@ -4,19 +4,19 @@
 "workspace":"table",
 "engine":"pybullet",
 "render":"opengl",
-"camera":1,
-"gui":1,
+"camera":0,
+"gui":0,
 "visualize":1,
-"visgym":1,
+"visgym":0,
 #Robot
-"robot":"kuka",
+"robot":"panda",
 "robot_action":"joints",
-"robot_init":[0.0, 0.5, 0.5],
+"robot_init":[0.0, 0.3, 0.9],
 #Task
 "task_type":"reach",
 "task_objects":["cube_holes"],
 "used_objects":null,
-"object_sampling_area":[-0.7, 0.7, 0.3, 0.9, 0.1, 0.1],
+"object_sampling_area":[-0.7, 0.7, 0.2, 0.8, 0.1, 0.1],
 #Reward
 "reward_type":"gt",
 "reward":"distance",
@@ -29,13 +29,13 @@
 "algo":"ppo2",
 "max_episode_steps":1024,
 "algo_steps":1024,
-"steps":100000,
+"steps":500000,
 "pretrained_model":null,
 "multiprocessing":false,
 #Evaluation
-"eval_freq":10000,
+"eval_freq":50000,
 "eval_episodes":100,
 #Saving and logging
-"logdir":"trained_models",
+"logdir":"trained_models/panda_new",
 "record":0
 }

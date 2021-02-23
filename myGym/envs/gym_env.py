@@ -261,13 +261,19 @@ class GymEnv(CameraEnv):
         Set action space dimensions and range
         """
         action_dim = self.robot.get_action_dimension()
-        if self.robot_action == "step":
+        if self.robot_action in ["step", "joints_step"]:
             self.action_low = np.array([-1] * action_dim)
             self.action_high = np.array([1] * action_dim)
         elif self.robot_action == "absolute":
-            self.action_low = np.array(self.objects_area_boarders[0:7:2])
-            self.action_high = np.array(self.objects_area_boarders[1:7:2])
-        else:
+            if any(isinstance(i, list) for i in self.objects_area_boarders):
+                boarders_max = np.max(self.objects_area_boarders,0)
+                boarders_min = np.min(self.objects_area_boarders,0)
+                self.action_low = np.array(boarders_min[0:7:2])
+                self.action_high = np.array(boarders_max[1:7:2])
+            else:
+                self.action_low = np.array(self.objects_area_boarders[0:7:2])
+                self.action_high = np.array(self.objects_area_boarders[1:7:2])
+        elif self.robot_action in ["joints", "joints_gripper"]:
             self.action_low = np.array(self.robot.joints_limits[0])
             self.action_high = np.array(self.robot.joints_limits[1])
         self.action_space = spaces.Box(np.array([-1]*action_dim), np.array([1]*action_dim))
@@ -440,15 +446,12 @@ class GymEnv(CameraEnv):
                     self.objects_area_boarders)
                 #orn = env_object.EnvObject.get_random_object_orientation()
                 orn = [0, 0, 0, 1]
-                fixed = False
-                for x in ["target", "crate", "bin", "box", "trash"]:
-                    if x in object_filename:
-                        fixed = True
-                        pos[2] = 0
-                object = env_object.EnvObject(object_filename, pos, orn, pybullet_client=self.p, fixed=fixed)
-            else:
-                object = env_object.EnvObject(
-                    object_filename, pos, orn, pybullet_client=self.p)
+            fixed = False
+            for x in ["target", "crate", "bin", "box", "trash"]:
+                if x in object_filename:
+                    fixed = True
+                    pos[2] = 0.05
+            object = env_object.EnvObject(object_filename, pos, orn, pybullet_client=self.p, fixed=fixed)
             if self.color_dict:
                 object.set_color(self.color_of_object(object))
             env_objects.append(object)

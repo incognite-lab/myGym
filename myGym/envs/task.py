@@ -172,6 +172,24 @@ class TaskModule():
         self.current_norm_distance = self.calc_distance(o1, o2)
         return self.current_norm_distance < self.threshold
 
+    def check_points_distance_threshold(self): 
+        if (self.task_type == 'pnp') and (self.env.robot_action != 'joints_gripper') and (len(self.env.robot.magnetized_objects) == 0):
+            o1 = self.env.task_objects[0]
+            o2 = self.env.task_objects[2]
+        else:
+            o1 = self.env.task_objects[0]
+            o2 = self.env.task_objects[1]
+        if o1 == self.env.robot:
+            closest_points = self.env.p.getClosestPoints(o1.get_uid, o2.get_uid(), self.threshold, o1.end_effector_index, -1)
+        elif o2 == self.env.robot:
+            closest_points = self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), self.threshold, o2.end_effector_index, -1)
+        else:
+            closest_points = self.env.p.getClosestPoints(o1.get_uid(), o2.get_uid(), self.threshold, -1, -1)
+        if len(closest_points) > 0:
+            return closest_points
+        else:
+            return False
+
     def check_goal(self):
         """
         Check if goal of the task was completed successfully
@@ -179,13 +197,25 @@ class TaskModule():
         self.last_distance = self.current_norm_distance
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
-        if (self.task_type == 'reach' or self.task_type == 'push') and self.check_distance_threshold(self._observation): #threshold for successful push/throw/pick'n'place
+        contacts = self.check_points_distance_threshold()
+        
+        if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and contacts:
+            if len(self.env.robot.magnetized_objects) == 0:
+                self.env.episode_over = False
+                self.env.robot.magnetize_object(self.env.task_objects[0], contacts)
+            else:
+                self.env.episode_over = True
+                if self.env.episode_steps == 1:
+                    self.env.episode_info = "Task completed in initial configuration"
+                else:
+                    self.env.episode_info = "Task completed successfully"
+        elif contacts: #threshold for successful push/throw/pick'n'place
             self.env.episode_over = True
             if self.env.episode_steps == 1:
                 self.env.episode_info = "Task completed in initial configuration"
             else:
                 self.env.episode_info = "Task completed successfully"
-        elif self.check_time_exceeded() or (self.task_type == 'reach' and self.check_object_moved(self.env.task_objects[0])):
+        elif self.check_time_exceeded():
             self.env.episode_over = True
             self.env.episode_failed = True
         elif self.env.episode_steps == self.env.max_steps:
