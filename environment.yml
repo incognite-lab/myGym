@@ -48,5 +48,6 @@ dependencies:
     - stable-baselines3[extra]
     - configargparse
     - stable-baselines
+    - sklearn
 prefix: /home/megi/miniconda3/envs/mygym
 
