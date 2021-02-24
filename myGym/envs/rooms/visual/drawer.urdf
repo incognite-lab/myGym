@@ -72,7 +72,7 @@
     </visual>
 <!--top shelf-->
     <visual>
-      <origin rpy="0 0 0*np.pi" xyz="4.685 -0.6 1.475"/>
+      <origin rpy="0 0 0*np.pi" xyz="4.685 -0.6 1.525"/>
       <geometry>
         <box size="0.05 0.5 0.25"/>
       </geometry>
