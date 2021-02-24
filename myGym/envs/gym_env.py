@@ -34,6 +34,7 @@ class GymEnv(CameraEnv):
         :param robot_action: (string) Mechanism of robot control (absolute, step, joints)
         :param robot_init_joint_poses: (list) Configuration in which robot will be initialized in the environment. Specified either in joint space as list of joint poses or in the end-effector space as [x,y,z] coordinates.
         :param task_type: (string) Type of learned task (reach, push, ...)
+        :param num_subgoals: (int) Number of subgoals in task
         :param task_objects: (list of strings) Objects that are relevant for performing the task
         :param reward_type: (string) Type of reward signal source (gt, 3dvs, 2dvu)
         :param reward: (string) Defines how to compute the reward
@@ -62,6 +63,7 @@ class GymEnv(CameraEnv):
                  robot_action="step",
                  robot_init_joint_poses=[],
                  task_type='reach',
+                 num_subgoals=0,
                  task_objects=["virtual_cube_holes"],
                  reward_type='gt',
                  reward = 'distance',
@@ -100,6 +102,7 @@ class GymEnv(CameraEnv):
         self.reward_type = reward_type
         self.distance_type = distance_type
         self.task = t.TaskModule(task_type=self.task_type,
+                                 num_subgoals=num_subgoals,
                                  task_objects=self.task_objects_names,
                                  reward_type=self.reward_type,
                                  vae_path=vae_path,
