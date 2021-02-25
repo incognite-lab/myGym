@@ -170,7 +170,7 @@ class ComplexDistanceReward(DistanceReward):
         prev_diff_23 = self.task.calc_distance(self.prev_obj2_position, self.prev_obj3_position)
         current_diff_23 = self.task.calc_distance(obj2_position, obj3_position)
         
-        norm_diff = (prev_diff_13 - current_diff_13) / prev_diff_13 + (prev_diff_23 - current_diff_23) / prev_diff_23 + (prev_diff_12 - current_diff_12) / prev_diff_12
+        norm_diff = (prev_diff_13 - current_diff_13) / prev_diff_13 + (prev_diff_23 - current_diff_23) / prev_diff_23 + 10*(prev_diff_12 - current_diff_12) / prev_diff_12
 
         self.prev_obj1_position = obj1_position
         self.prev_obj2_position = obj2_position

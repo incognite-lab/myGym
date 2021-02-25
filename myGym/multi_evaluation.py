@@ -19,6 +19,7 @@ last_eval_results = {}
 def train(params, i):
     if "task_type" in params and params["task_type"] != "reach":
         params["task_objects"] = "cube_holes target"
+        params["reward"] = "complex_distance"
     print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
     command = 'python train.py --config {configfile} '.format(configfile=configfile) + " ".join(f"--{key} {value}" for key, value in params.items())
     output = subprocess.check_output(command.split())
