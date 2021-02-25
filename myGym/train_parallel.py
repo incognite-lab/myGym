@@ -3,7 +3,7 @@ import threading
 
 algos = [' ppo ',' ppo2 ','sac','trpo']
 api = '/home/michal/code/myGym/myGym'
-configfile = 'configs/train.conf'
+configfile = 'configs/train.json'
 script_path = api + '/train.py'
 
 def train(algo):
