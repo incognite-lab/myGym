@@ -3,7 +3,7 @@
 
 
 
-We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks  with increasing complexity and test your network on them. We also included an automatic evaluation and benchmark tool for your developed model. We have pretained the Yolact network for visual recognition of all objects in the simulator, so that you can reward your networks based on visual sensors only. We keep training the current state-of-the-art algorithms to provide baselines for the tasks in the toolbox. There is also a leaderboard showing algorithms with the best generalization capability, tested on the tasks in our basic curricullum.
+We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks  with increasing complexity and test your network on them. We also included an automatic evaluation and benchmark tool for your developed model. We have pretained the Yolact network for visual recognition of all objects in the simulator, so that you can reward your networks based on visual sensors only. We keep training the current state-of-the-art algorithms to provide baselines for the tasks in the toolbox. There is also a leaderboard showing algorithms with the best generalization capability, tested on the tasks in our basic curriculum.
 
 ## Overview
 
@@ -11,7 +11,7 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 | Environment  | Gym-v0 is suitable for manipulation, navigation and planning tasks|
 |---|---|
 | Workspaces | Table, Collaborative table, Maze, Vertical maze, Drawer, Darts, Football, Fridge, Stairs, Baskets |
-| Vision  | Cartesians, RGB, Depth, Class, Centroid, Bounding Box, Semantic Mask, Latent vector |
+| Vision  | Cartesians, RGB, Depth, Class, Centroid, Bounding Box, Semantic Mask, Latent Vector |
 | Robots  | 8 robotic arms, 2 dualarms, humanoid |
 | Robot actions  | Absolute, Relative, Joints |
 | Objects  | 54 objects in 5 categories |
@@ -34,8 +34,10 @@ We have developed a fully modular toolbox where the user can easily combine the 
 ## Supported systems
 
 Ubuntu 18.04, 20.04
+
 Python 3
-GPU acceleration strongly reccomended
+
+GPU acceleration strongly recommended
 
 
 
@@ -53,27 +55,27 @@ We recommend to create a conda environment:
 
 `conda activate mygym`
 
-Install mygym:
+Install myGym:
 
 `python setup.py develop`
 
-If you want to use pretrained visual modules, please download them first:
+If you want to use the pretrained visual modules, please download them first:
 
 `cd myGym`
 `sh download_vision.sh`
 
-If you want to use pretrained baseline models, download them here:
+If you want to use the pretrained baseline models, download them here:
 
 `cd myGym`
 `sh download_baselines.sh`
 
 ## Visualization
 
-You can visualize the virtual gym prior to the training.
+You can visualize the virtual gym env prior to the training.
 
 `python test.py`
 
-There will be the default worskpace activated. The commands to the robot joints are random. 
+There will be the default workspace activated. The commands to the robot joints are random. 
 
 ![alt text](myGym/images/workspaces/gym_table_test2.png "test_work")
 
@@ -85,7 +87,7 @@ Find more details about this function in the [documentation](https://incognite-l
 
 ## Basic Training
 
-Run the default training without specifying parameters:
+Run the default training without specifying the parameters:
 
 `python train.py`
 
@@ -111,7 +113,7 @@ As myGym is modular, you can easily train with different robots:
 
 ![alt text](myGym/images/workspaces/jacoabsolute90000.gif "training")
 
-You can also change the workspace within the gym, task or a goal object. If you want to store ouput video, just add the record parameter:
+You can also change the workspace within the gym, the task or the goal object. If you want to store an ouput video, just add the record parameter:
 
 `python train.py  --workspace collabtable --robot panda --task push --task_objects wrench --record 1`
 
@@ -123,7 +125,7 @@ You can fully control the environment, robot, object, task, reward, learning par
 
 ![alt text](myGym/images/results/kuka_reach_yolact_fast.gif "yolact")
 
-Learn more about simulation parameters in the [documentation](https://incognite-lab.github.io/mygym/user_guide/tutorial_parametric.html)
+Learn more about the simulation parameters in the [documentation](https://incognite-lab.github.io/mygym/user_guide/tutorial_parametric.html)
 
 
 ## Config Training
@@ -167,7 +169,7 @@ If you want to interactively compare different parameters, just run tensorboard 
 
 ## Environment
 
-As myGym allows curriculum learning, the worskpaces and tasks are concentrated in single gym, so that you can easily transfer the robot. The basic environment is called Gym-v0. There are more gyms for navigation and multi-agent collaboration in preparation. 
+As myGym allows curriculum learning, the workspaces and tasks are concentrated in single gym, so that you can easily transfer the robot. The basic environment is called Gym-v0. There are more gyms for navigation and multi-agent collaboration in preparation. 
 
 ## Robots
 
