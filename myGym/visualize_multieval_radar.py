@@ -14,6 +14,8 @@ import numpy as np
 import pkg_resources
 import numpy as np
 from matplotlib.lines import Line2D
+https://python-graph-gallery.com/radar-chart/
+https://plotly.com/python/radar-chart/
 
 currentdir = pkg_resources.resource_filename("myGym", "trained_models")
 algo_1_results_path = os.path.join(currentdir, "fake_multi_evaluation_results_ppo2.json")
