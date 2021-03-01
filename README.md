@@ -3,7 +3,7 @@
 
 
 
-We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so you can train your network with different robots  in several envinronments and various tasks. You can also create curicullum of tasks and test your network set of tasks with inreasing complexity. There is automatic evaluation and benchmark tool for your network. We pretrained the neural networks for visual recognition of all objects in the simulator so you can reward your networks based on visual sensors. We constantly train networks to provide baselines for the tasks in the toolbox. There is also leaderboard for most general network, capable to learn tasks in basic curricullum.
+We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks  with increasing complexity and test your network on them. We also included an automatic evaluation and benchmark tool for your developed model. We have pretained the Yolact network for visual recognition of all objects in the simulator, so that you can reward your networks based on visual sensors only. We keep training the current state-of-the-art algorithms to provide baselines for the tasks in the toolbox. There is also a leaderboard showing algorithms with the best generalization capability, tested on the tasks in our basic curricullum.
 
 ## Overview
 
@@ -21,11 +21,11 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 
 
 
-Learn more about the toolbox in [documentation](https://incognite-lab.github.io/mygym/)
+Learn more about the toolbox in our [documentation](https://incognite-lab.github.io/mygym/)
 
 ## Modular Structure
 
-We developed fully modular toolbox where user can easily combine the predefined elements into custom envinronment. There are specific modules for each component of the simulation. User can easily modify and add custom modules. 
+We have developed a fully modular toolbox where the user can easily combine the predefined elements into a custom environment. There are specific modules for each component of the simulation, as depicted in the following scheme. 
 
 
 ![alt text](myGym/images/schemas/mygym_scheme.png "myGymscheme")
@@ -47,7 +47,7 @@ Clone the repository:
 
 `cd mygym`
 
-We recommend to create conda environment:
+We recommend to create a conda environment:
 
 `conda env create -f environment.yml`
 
@@ -62,7 +62,7 @@ If you want to use pretrained visual modules, please download them first:
 `cd myGym`
 `sh download_vision.sh`
 
-If you want to use pretrained baselines models, download them here:
+If you want to use pretrained baseline models, download them here:
 
 `cd myGym`
 `sh download_baselines.sh`
@@ -89,15 +89,15 @@ Run the default training without specifying parameters:
 
 `python train.py`
 
-The training will start with gui window and standstill visualization. Wait until the first evaluation after 10000 steps to check the progress: 
+The training will start with the GUI window and a standstill visualization. Wait until the first evaluation after 10000 steps to check the progress: 
 
 ![alt text](myGym/images/workspaces/kuka10000.gif "training")
 
-After 50000 steps the arm starts to move towards the goal object:
+After 50000 steps, the arm starts to move towards the goal object:
 
 ![alt text](myGym/images/workspaces/kuka50000.gif "training")
 
-After 100000 steps the arm is able to reach the goal object with 80% accuracy:
+After 100000 steps, the arm is able to reach the goal object with 80% accuracy:
 
 ![alt text](myGym/images/workspaces/kuka100000.gif "training")
 
@@ -105,13 +105,13 @@ There are more training tutorials in the [documentation](https://incognite-lab.g
 
 ##  Parametric Training
 
-As the myGym is modular toolbox you can easily train different robots:
+As myGym is modular, you can easily train with different robots:
 
 `python train.py --robot jaco`
 
 ![alt text](myGym/images/workspaces/jacoabsolute90000.gif "training")
 
-You can also change the workspace within the gym, task or a goal object. If you want to store ouput video just add record parameter:
+You can also change the workspace within the gym, task or a goal object. If you want to store ouput video, just add the record parameter:
 
 `python train.py  --workspace collabtable --robot panda --task push --task_objects wrench --record 1`
 
@@ -128,7 +128,7 @@ Learn more about simulation parameters in the [documentation](https://incognite-
 
 ## Config Training
 
-As the parametric definition is problematic in more complex projects, we present config files that will help with the reproducibility of the results. The example of basic config file is [here(myGym/configs/train_example.conf)]. Yo can edit and clone this file according to your needs and run the training just by typing:
+As the parametric definition is problematic in more complex projects, we present config files that will help with the reproducibility of results. The example of basic config file is [here(myGym/configs/train_example.conf)]. You can edit and clone this file according to your needs and run the training just by typing:
 
 `python train.py --config ./configs/train_example.json`
 
@@ -136,11 +136,11 @@ As the parametric definition is problematic in more complex projects, we present
 
 ## Parallel Training
 
-We developed scripts for parallel training to speed up this process. You can edit the desired parameter in train_parallel.py and run it:
+We have developed scripts for parallel training to speed up this process. You can edit the desired parameter in train_parallel.py and run it:
 
 `python train_parallel.py`
 
-The default config will train 4 parallel simulation with different RL algorhitms in the same conditions. After several training steps you can see the difference in performace among algorhitms. For better performance the backround visualization is turned off:
+The default config will train 4 parallel simulations with different RL algorithms under the same conditions. After several training steps, you can see the difference in performace among algorithms. For better performance, the background visualization is turned off:
 
 ![alt text](myGym/images/workspaces/4kuka_trained.gif "training")
 
@@ -150,24 +150,24 @@ You can use the test script for the visualization of pretrained models:
 
 `python test.py --config ./trained_models/yourmodel/train.json`
 
-It will load pretrained model and test it in the task and workspace defined in config file:
+It will load the pretrained model and test it in the task and workspace defined in the config file.
 
 
 ## Evaluation
 
-There is automatic evaluation and logging in the train script. It is controlled by parameters --eval_freq and --eval_episodes. The log files are stored in the folder with trained model and you can easily visualize learning progress after the training and compare training parameters. There are also gifs for each eval period stored to compare robot performance during training. We also implemented evaluation in tensorboard:
+There is automatic evaluation and logging included in the train script. It is controlled by parameters --eval_freq and --eval_episodes. The log files are stored in the folder with the trained model and you can easily visualize the learning progress after the training. There are also gifs for each eval period stored to compare the robot performance during training. We have also implemented evaluation in tensorboard:
 
 `tensorboard --logdir ./trained_models/yourmodel`
 
 ![alt text](myGym/images/results/tensorboard_eval.png "training")
 
-If you want to interactively compare different parameters, just run the tensorboard without model dir specification:
+If you want to interactively compare different parameters, just run tensorboard without model dir specification:
 
 ![alt text](myGym/images/results/tensorboard_compare.png "training")
 
 ## Environment
 
-As myGym allows curicullum learning the worspaces and tasks are concentrated in one gym, so you can easily transfer robot. The basic envinronment is called Gym-v0. There are more gyms for navigation and multiagent collaboration in preparation. 
+As myGym allows curriculum learning, the worskpaces and tasks are concentrated in single gym, so that you can easily transfer the robot. The basic environment is called Gym-v0. There are more gyms for navigation and multi-agent collaboration in preparation. 
 
 ## Robots
 
@@ -218,7 +218,7 @@ As myGym allows curicullum learning the worspaces and tasks are concentrated in 
 
 ## Leaderboard
 
-Compared to baselines the leaderboard compares overall quality of the proposed algorhitm within the gym tasks. The leaderboard score is calculated as a mean success rate of the algorhitm in series of tasks with increasing complexity of robot (3DOF,7DOF,13DOF), environment (no obstacle, static obstacles, barriers) and tasks (reach, push, pinknplace). The algorhitm will pass 27 train&test steps to obtain the leaderboard score. Be first who will reach 100 points.
+Compared to baselines, the leaderboard compares the overall quality of the proposed algorithm within the gym tasks. The leaderboard score is calculated as a mean success rate of the algorithm in series of tasks with increasing complexity of the robot control space (3DOF, 7DOF, 13DOF), the environment (no obstacle, static obstacles, barriers) and the tasks (reach, push, pick and place). The algorithm will pass 27 train & test steps to obtain the leaderboard score. Be the first who will reach 100 points!
 
 | Pos. | Algorhitm  | Author | Score | Data |
 |---|---|---|---|---|
@@ -240,11 +240,11 @@ Core team:
 
 [Michal Vavrecka](https://kognice.wixsite.com/vavrecka)
 
-[Gabriela Sejnova](https://kognice.wixsite.com/vavrecka)
+[Gabriela Sejnova](https://www.linkedin.com/in/gabriela-sejnova/)
 
 [Megi Mejdrechova](https://www.linkedin.com/in/megi-mejdrechova)
 
-[Nikita Sokovnin](https://kognice.wixsite.com/vavrecka)
+[Nikita Sokovnin](https://www.linkedin.com/in/nikita-sokovnin-250939198/)
 
 Contributors:
 
