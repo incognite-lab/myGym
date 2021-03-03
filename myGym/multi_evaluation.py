@@ -9,7 +9,7 @@ import time
 parameters = {
     "robot_action": ["step", "joints","joints_gripper"],
     "task_type": ["reach", "push","pnp"],
-    "max_episode_steps": [1024, 512,256]
+    "max_episode_steps": [1024, 512, 256]
 }
 parameter_grid = ParameterGrid(parameters)
 configfile = 'configs/multi.json'

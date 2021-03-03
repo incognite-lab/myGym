@@ -14,13 +14,12 @@ import numpy as np
 import pkg_resources
 import numpy as np
 from matplotlib.lines import Line2D
-https://python-graph-gallery.com/radar-chart/
-https://plotly.com/python/radar-chart/
+import operator
 
 currentdir = pkg_resources.resource_filename("myGym", "trained_models")
-algo_1_results_path = os.path.join(currentdir, "fake_multi_evaluation_results_ppo2.json")
-algo_2_results_path = os.path.join(currentdir, "fake_multi_evaluation_results_sac.json")
-fixed_parameter_value = 256
+algo_1_results_path = os.path.join(currentdir, "multi_evaluation_results_ppo2.json")
+algo_2_results_path = os.path.join(currentdir, "multi_evaluation_results_ppo.json")
+algo_3_results_path = os.path.join(currentdir, "multi_evaluation_results_sac.json")
 selected_metric = "success_rate"
 
 
@@ -29,12 +28,20 @@ def load_algo_results(results_path):
         results = json.load(f)
     list_results = [json.loads(key.replace('\'', '"'))
                     + [float(value[selected_metric])] for key, value
-                    in results.items() if str(fixed_parameter_value) in key]
+                    in results.items()]# if str(fixed_parameter_value) in key]
     #list_results = list(map(lambda x: [v for v in x if v != fixed_parameter_value], list_results))
+    df = pd.DataFrame(list_results)
+    order2=['reach', 'push', 'pnp']
+    order1=['step', 'joints', 'joints_gripper']
+    order3=[1024, 512, 256]
+    df[1] = pd.Categorical(df[1], order1)
+    df[2] = pd.Categorical(df[2], order2)
+    df[0] = pd.Categorical(df[0], order3)
+    df = df.sort_values([2,1,0])
+    list_results = df.values.tolist()
     return list_results
 
-
-def plot_algo_results(ax, list_results, label, c, nr):
+def plot_algo_results(ax, list_results, label, c):
     w_labels = [result[0] for result in list_results]
     w_set = sorted(set(w_labels), key=w_labels.index)
     w = np.asarray([w_set.index(label) for label in w_labels])
@@ -42,71 +49,112 @@ def plot_algo_results(ax, list_results, label, c, nr):
     #ax.set_zticklabels(w_set)
 
     x_labels = [result[1] for result in list_results]
+    x_labels = [x.replace('joints_gripper', 'gripper') for x in x_labels]
     x_set = sorted(set(x_labels), key=x_labels.index)
     x = np.asarray([x_set.index(label) for label in x_labels])
-    ax.set_xticks(np.arange(0,4,1))
-    ax.set_xticklabels(x_set)
+    #ax.set_xticks(np.arange(0,4,1))
+    #ax.set_xticklabels(x_set)
 
     y_labels = [result[2] for result in list_results]
     y_set = sorted(set(y_labels), key=y_labels.index)
     y = np.asarray([y_set.index(label) for label in y_labels])
-    ax.set_yticks(np.arange(0,4,1))
-    ax.set_yticklabels(y_set)
+    #ax.set_yticks(np.arange(0,4,1))
+    #ax.set_yticklabels(y_set)
 
-    z = np.asarray([result[3] for result in list_results])
+    z = [result[3] for result in list_results]
+    z += z[:1]
 
-    # setup a Normalization instance
-    norm = colors.Normalize(0,np.asarray(w_labels).max())
-    # define the colormap
-    cmap = plt.get_cmap(c)
-    # Use the norm and cmap to define the edge colours
-    edgecols = cmap(norm(np.asarray(w_labels)))
-
-    verts = np.asarray([[[0,0],[zz/100,0],[zz/100,zz/100],[0,zz/100],[0,0]] for zz in z])
-
-    for i in range(len(z)):
-        ax.scatter(x[i]+0.5*nr, y[i], alpha=1, s=100*500, c='None', lw=2, edgecolors=edgecols[i], marker=[[0,0],[1,0],[1,1],[0,1],[0,0]])
-        ax.scatter(x[i]+0.5*nr, y[i], alpha=1, s=z[i]*500, c=edgecols[i], lw=2, edgecolors=edgecols[i], marker=verts[i])
-
-    legend_elements = [Line2D([0], [0], linewidth=0, marker='s', color='r', label='PPO2', markersize=10),
-                       Line2D([0], [0], linewidth=0, marker='s', color='b', label='SAC', markersize=10),
-                       Line2D([0], [0], linewidth=0, marker='s', color='k', markerfacecolor='k', label='success high', markersize=4),
-                       Line2D([0], [0], linewidth=0, marker='s', color='k', markerfacecolor='k', label='success higher', markersize=6),
-                       Line2D([0], [0], linewidth=0, marker='s', color='k', markerfacecolor='k', label='success highest', markersize=8),
-                       Line2D([0], [0], linewidth=0, marker='s', color='k', markerfacecolor='None', label='success 100%', markersize=10)]
-                       #Line2D([0], [0], linewidth=0, marker='s', color=edgecols[len(z)//2], markerfacecolor='None', label='num steps '+str(w_set[1]), markersize=10),
-                       #Line2D([0], [0], linewidth=0, marker='s', color=edgecols[-1], markerfacecolor='None', label='num steps '+str(w_set[2]), markersize=10)]
-    ax.legend(handles=legend_elements)
+    # Make data: I have 3 groups and 7 subgroups
+    group_names = y_set
+    n_groups = len(group_names)
+    group_size = [100/n_groups]*n_groups
     
+    subgroup_names = x_set*n_groups
+    n_subgroups = len(subgroup_names)
+    subgroup_size = [100/n_subgroups]*n_subgroups
+    
+    subsubgroup_names = w_set*n_subgroups
+    n_subsubgroups = len(subsubgroup_names)
+    subsubgroup_size = [100/n_subsubgroups]*n_subsubgroups
+    
+    # Create colors
+    r, g, b=[plt.cm.Reds, plt.cm.Greens, plt.cm.Blues]
+    
+    # First Ring (outside)
+    ax.set(aspect="equal")
+    mypie, txt = ax.pie(group_size, radius=1.6, labels=group_names, startangle=0, pctdistance=-5.125, colors=[r(0.4), r(0.6), r(0.8)], rotatelabels=True)
+    plt.setp(mypie, width=0.12, edgecolor='white')
+
+    # Second Ring (Inside)
+    mypie2, txt2 = ax.pie(subgroup_size, radius=1.6-0.12, labels=subgroup_names, startangle=0, colors=[b(0.4), b(0.6), b(0.8)]*n_groups, rotatelabels=True)
+    plt.setp(mypie2, width=0.12, edgecolor='white')
+
+    # Third Ring    
+    mypie3, txt3 = ax.pie(subsubgroup_size, radius=1.6-0.24, labels=subsubgroup_names, startangle=0, colors=[g(0.4), g(0.6), g(0.8)]*n_subgroups, rotatelabels=True)
+    plt.setp(mypie3, width=0.12, edgecolor='white')
+    plt.margins(0,0)
+
+    for t in range(len(txt)):
+        txt[t]._x = np.cos((0.5+t)*group_size[0]/100*np.pi*2)*(1.5)
+        txt[t]._y = np.sin((0.5+t)*group_size[0]/100*np.pi*2)*(1.5)
+        txt[t]._rotation -= 90*np.sign(txt[t]._x)
+    for t in range(len(txt2)):
+        txt2[t]._x = np.cos((0.5+t)*subgroup_size[0]/100*np.pi*2)*(1.36)
+        txt2[t]._y = np.sin((0.5+t)*subgroup_size[0]/100*np.pi*2)*(1.36)
+        txt2[t]._rotation -= 90*np.sign(txt2[t]._x)
+    for t in range(len(txt3)):
+        txt3[t]._x = np.cos((0.5+t)*subsubgroup_size[0]/100*np.pi*2)*(1.25)
+        txt3[t]._y = np.sin((0.5+t)*subsubgroup_size[0]/100*np.pi*2)*(1.25)
+        txt3[t]._rotation -= 90*np.sign(txt3[t]._x)
 
     #plt.show()
 
-    print("Mean succes rate for {}: {}".format(label, np.mean(z)))
+    categories=w_labels
+    N = len(categories)
+    angles = [n / float(N) * 2 * np.pi + 0.5 / float(N) * 2 * np.pi for n in range(N)]
+    angles += angles[:1]
+    
+    # Initialise the spider plot
+    radar = fig.add_subplot(111, polar=True)
+    
+    # Draw one axe per variable + add labels labels yet
+    plt.xticks(angles[:-1], categories, color='None')
+    
+    # Draw ylabels
+    radar.set_rlabel_position(90)
+    plt.yticks(np.arange(0,101,10), color="black", size=8)
+    plt.ylim(0,110)
+    
+    # Plot data
+    radar.plot(angles, z, c, linewidth=1, linestyle='solid')
+    radar.fill(angles, z, c, alpha=0.3)
 
+    #plt.show()
+    learnability = np.mean(z)
+    print("Mean succes rate for {}: {}".format(label, learnability))
+    return learnability
 
 if __name__ == '__main__':
     algo_1_list_results = load_algo_results(algo_1_results_path)
     algo_2_list_results = load_algo_results(algo_2_results_path)
+    algo_3_list_results = load_algo_results(algo_3_results_path)
 
     fig = plt.figure()
-    ax = fig.add_subplot()    
-    ax.set_xlabel("Robot control complexity", labelpad=5)
-    ax.set_ylabel("Task complexity", labelpad=5)
+    ax = fig.subplots()    
+    #ax.set_xlabel("Robot control complexity", labelpad=5)
+    #ax.set_ylabel("Task complexity", labelpad=5)
     #ax.set_zlabel("Num steps", labelpad=15)
 
-    # Move the left and bottom spines to x = 0 and y = 0, respectively.
-    ax.spines["left"].set_position(("data", 0))
-    ax.spines["bottom"].set_position(("data", 0))
-    # Hide the top and right spines.
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.plot(1, 0, ">k", transform=ax.get_yaxis_transform(), clip_on=False)
-    ax.plot(0, 1, "^k", transform=ax.get_xaxis_transform(), clip_on=False)
-
-    plot_algo_results(ax, algo_1_list_results, "ppo2", "Reds", 0)
-    plot_algo_results(ax, algo_2_list_results, "sac", "Blues", 1)
-    plt.grid(axis='both', which='both')
-    plt.title('Success evaluation - max episode steps {}'.format(fixed_parameter_value))
-    #plt.savefig("multieval_visualization.png")
+    learnability_ppo = plot_algo_results(ax, algo_1_list_results, "ppo2", "r")
+    learnability_ppo2 = plot_algo_results(ax, algo_2_list_results, "ppo", "g")
+    learnability_sac = plot_algo_results(ax, algo_3_list_results, "sac", "b")
+    txt = plt.title('Learnability', fontsize=18)
+    txt._x=1.05
+    txt._y=1.07
+    legend_elements = [Line2D([0], [1], linewidth=2, color='r', label='PPO2, {:.2f}'.format(learnability_ppo)),
+                       Line2D([0], [1], linewidth=2, color='g', label='PPO, {:.2f}'.format(learnability_ppo2)),
+                       Line2D([0], [1], linewidth=2, color='b', label='SAC, {:.2f}'.format(learnability_sac))]
+    ax.legend(handles=legend_elements, loc=(0.97, 0.95), prop={'size': 16})
+    plt.savefig("multieval_visualization.png")
 
     plt.show()
