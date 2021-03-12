@@ -186,9 +186,9 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 | Gummiarm  | arm  | passive palm  |  13 | gummi  |
 | ABB Yumi  | dualarm  | two finger  |  12 | yummi  |
 | ReachyLeachy  | dualarm  | passive palms  |  14 | reachy_and_leachy |
-| Pepper  | humanoid | --  |  20 | --  |
-| Thiago | humanoid  | --  |  19 | --  |
-| Atlas  | humanoid  | --  |  28 | --  |
+| Pepper  | humanoid | --  |  20 | WIP  |
+| Thiago | humanoid  | --  |  19 | WIP  |
+| Atlas  | humanoid  | --  |  28 | WIP  |
 
 ## Workspaces
 
