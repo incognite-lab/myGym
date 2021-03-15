@@ -1,6 +1,6 @@
 cudatoolkit==10.1.243
-pytorch::torchvision
-pytorch::pytorch
+pytorch
+torchvision
 numpy
 matplotlib-base
 pillow==6.2.1
