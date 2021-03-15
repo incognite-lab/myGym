@@ -32,6 +32,7 @@ jsonmerge
 open3d-python
 dill
 stable-baselines3[extra]
+stable-baselines
 wrapt==1.12.1
 pyquaternion==0.9.9
 configargparse==1.3
