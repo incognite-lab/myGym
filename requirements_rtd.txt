@@ -3,7 +3,7 @@ torchvision
 numpy
 matplotlib
 pillow==6.2.1
-openssl
+pyOpenSSL
 cython
 dill
 flake8
