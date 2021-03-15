@@ -15,6 +15,21 @@
 # sys.path.insert(0, os.path.abspath('../..'))
 # sys.setrecursionlimit(1500)
 
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+
+# Mock modules that requires C modules
+MOCK_MODULES = ['joblib', 'scipy', 'scipy.signal',
+                'mpi4py', 'mujoco-py', 'cv2', 'tensorflow',
+                'tensorflow.contrib', 'tensorflow.contrib.layers',
+                'tensorflow.python', 'tensorflow.python.client', 'tensorflow.python.ops',
+                'tqdm', 'matplotlib', 'matplotlib.pyplot',
+                'seaborn', 'tensorflow.core', 'tensorflow.core.util', 'tensorflow.python.util',
+                'zmq']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
 # -- Project information -----------------------------------------------------
 
 project = 'mygym'
