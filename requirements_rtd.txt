@@ -25,7 +25,6 @@ pybullet==2.6.6
 qibullet==1.4.0
 cvae
 scipy
-'git+https://github.com/nightrome/cocostuffapi.git#subdirectory=PythonAPI'
 pillow-SIMD
 PyQt5
 commentjson #for generate_dataset
