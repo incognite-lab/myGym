@@ -22,7 +22,7 @@ pybullet==2.6.6
 qibullet==1.4.0
 cvae==0.0.3
 scipy
-pillow-SIMD==7.0.0
+pillow-SIMD==7.0.0.post3
 PyQt5==5.15.2
 commentjson==0.7.1 #for generate_dataset
 bbox==0.9.2
