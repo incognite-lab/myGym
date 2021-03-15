@@ -1,4 +1,3 @@
-cudatoolkit==10.1.243
 pytorch
 torchvision
 numpy
