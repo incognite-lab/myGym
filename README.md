@@ -237,7 +237,7 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 
 The new global evaluation metric, which we call \textit{learnability}, allows the user to evaluate and compare algorithms in a more systematic fashion. Learnability is defined as a general ability to learn irrespective of environmental conditions. The goal is to test an algorithm with respect to the complexity of environment. We have decomposed the environment complexity into independent scales. The first scale is dedicated to the complexity of the task. Second scale exploits the complexity of the robotic body that is controlled by the neural network. The third scale stands for the temporal complexity of the environment. 
 
-![alt text](myGym/images/schemas/learnability.png "learnability")
+![alt text](myGym/images/schemas/multieval_visualization.png "learnability")
 
 
 ## Authors
