@@ -23,6 +23,21 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 
 Learn more about the toolbox in our [documentation](https://incognite-lab.github.io/mygym/)
 
+## Leaderboard
+
+Learnability is represented as a single value metric that evaluates algorithms under various conditions, allowing us to compare different RL algorithms. The number of conditions is limited for practical reasons, as the number of training configurations grows exponentially with each new condition, and each configuration requires standalone training and evaluation. Therefore, we limited the total number of combinations to $3^3$ = 27, which can be evaluated in few hours with a standard computer infrastructure.
+
+| Pos. | Algorhitm | Score |
+|---|---|---|
+|1.| PPO2 | 30.11  |
+|2.| TRPO | 28.75  |
+|3.| ACKTR | 27.5  |
+|4.| SAC | 27.43 |
+|5.| PPO | 27.21 |
+|5.| myAlgo | 15.00  |
+
+
+
 ## Modular Structure
 
 We have developed a fully modular toolbox where the user can easily combine the predefined elements into a custom environment. There are specific modules for each component of the simulation, as depicted in the following scheme. 
@@ -218,16 +233,11 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 | Collaborative table | :heavy_check_mark: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: |
 
 
-## Leaderboard
+## Learnability 
 
-Compared to baselines, the leaderboard compares the overall quality of the proposed algorithm within the gym tasks. The leaderboard score is calculated as a mean success rate of the algorithm in series of tasks with increasing complexity of the robot control space (3DOF, 7DOF, 13DOF), the environment (no obstacle, static obstacles, barriers) and the tasks (reach, push, pick and place). The algorithm will pass 27 train & test steps to obtain the leaderboard score. Be the first who will reach 100 points!
+The new global evaluation metric, which we call \textit{learnability}, allows the user to evaluate and compare algorithms in a more systematic fashion. Learnability is defined as a general ability to learn irrespective of environmental conditions. The goal is to test an algorithm with respect to the complexity of environment. We have decomposed the environment complexity into independent scales. The first scale is dedicated to the complexity of the task. Second scale exploits the complexity of the robotic body that is controlled by the neural network. The third scale stands for the temporal complexity of the environment. 
 
-| Pos. | Algorhitm  | Author | Score | Data |
-|---|---|---|---|---|
-|1.| PPO2 | --  | -- | link |
-|2.| PPO | --  | -- | link |
-|3.| SAC | --  | -- | link |
-|4.| DQN | --  | -- | link |
+![alt text](myGym/images/schemas/learnability.png "learnability")
 
 
 ## Authors
