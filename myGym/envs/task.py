@@ -42,7 +42,7 @@ class TaskModule():
         self.stored_observation = []
         self.fig = None
         self.obsdim = (len(env.task_objects_names) + 1) * 3
-        if self.task_type in ['2stepreach','4stepreach']:
+        if self.task_type in ['2stepreach','4stepreach','2steppush']:
             self.obsdim = 6
         if self.task_type == 'Mpnp':
             self.obsdim += 10 #finger1_pos + finger2_pos + gripper_orn
@@ -76,8 +76,8 @@ class TaskModule():
         if self.reward_type == '2dvu':
             self.generate_new_goal(self.env.objects_area_boarders, self.env.active_cameras)
         self.subgoals = [False]*self.num_subgoals #subgoal completed?
-        if self.task_type == '2stepreach':
-            self.obs_sub = [[0,2],[0,1]] #objects to have in observation for given subgoal
+        if self.task_type in ['2stepreach','2steppush']:
+            self.obs_sub = [[0,2],[1,0]] #objects to have in observation for given subgoal
             self.sub_idx = 0
         elif self.task_type == '4stepreach':
             self.obs_sub = [[0,3],[1,3],[2,3],[1,3]] #objects to have in observation for given subgoal
@@ -119,7 +119,7 @@ class TaskModule():
             obj_positions.append(list(self.env.robot.get_position()))
             self.visualize_2dvu(recons) if self.env.visualize == 1 else None
         else:
-            if self.task_type in ['2stepreach','4stepreach']:
+            if self.task_type in ['2stepreach','4stepreach','2steppush']:
                 self.current_task_objects = [self.env.task_objects[x] for x in self.obs_sub[self.sub_idx]] #change objects in observation based on subgoal
             else:
                 self.current_task_objects = self.env.task_objects #all objects in observation
@@ -269,6 +269,12 @@ class TaskModule():
                 self.subgoals[self.sub_idx] = True #current subgoal done
                 self.env.episode_over = False #don't reset episode
                 self.env.robot.magnetize_object(self.env.task_objects[self.obs_sub[self.sub_idx][0]], contacts) #magnetize first object
+                self.sub_idx += 1 #continue with next subgoal
+                self.env.reward.reset() #reward reset
+            elif (self.task_type in ['2steppush']) and (False in self.subgoals):
+                self.env.episode_info = "Subgoal {}/{} completed successfully".format(self.sub_idx+1, self.num_subgoals)
+                self.subgoals[self.sub_idx] = True #current subgoal done
+                self.env.episode_over = False #don't reset episode
                 self.sub_idx += 1 #continue with next subgoal
                 self.env.reward.reset() #reward reset
             elif self.task_type == 'Mpnp':
