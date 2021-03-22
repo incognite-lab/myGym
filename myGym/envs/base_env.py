@@ -161,6 +161,8 @@ class BaseEnv(gym.Env):
     def get_scene_object_uid_by_name(self, name):
         for uid, object_name in self.scene_objects_uids.items():
             if name == object_name:
+                if isinstance(uid, tuple):
+                    uid = uid[0]
                 return uid
         return None
 

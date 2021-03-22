@@ -179,8 +179,8 @@ class GymEnv(CameraEnv):
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -1.0, 0.9], [1.4, 0.7, 0.88], [-1.4, 0.7, 0.88], [0.0, 0.698, 1.28],
                                                                    [0.0, 1.3, 0.5], [-0.0, -0.2, 0.6], [0.6, 0.7, 0.4], [-0.6, 0.7, 0.5], [0.0, 0.698, 0.8]]},
                                             'boarders':[-0.7, 0.7, 0.5, 1.3, 0.15, 0.15]}, 
-                                'verticalmaze': {'urdf': 'verticalmaze.urdf', 'texture': 'verticalmaze.jpg',
-                                            'transform': {'position':[-5.7, -7.55, -1.05], 'orientation':[0.0, 0.0, 0.5*np.pi]},
+                                'compactmaze': {'urdf': 'compactmaze.urdf', 'texture': 'table.jpg',
+                                            'transform': {'position':[-7.5, 5, 0], 'orientation':[0.0, 0.0, 0.0]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
                                             'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.05, 2.5]], 
                                                         'target': [[-0.0, -1.05, 1.0], [0.0, 0.55, 1.3], [1.4, -0.75, 0.9], [-1.3, -0.75, 0.9], [0.0, 0.15, 2.1]]},
@@ -206,9 +206,13 @@ class GymEnv(CameraEnv):
                         pkg_resources.resource_filename("myGym", "/envs/rooms/visual/"+self.workspace_dict[workspace]['urdf']),
                                                     transform['position'],self.p.getQuaternionFromEuler(transform['orientation']),useFixedBase=True, useMaximalCoordinates=True), workspace)
         # Load selected workspace
-        self._add_scene_object_uid(self.p.loadURDF(
-            pkg_resources.resource_filename("myGym", "/envs/rooms/collision/"+self.workspace_dict[self.workspace]['urdf']),
-                                            transform['position'],self.p.getQuaternionFromEuler(transform['orientation']),useFixedBase=True, useMaximalCoordinates=True), self.workspace)
+        ws_pth = pkg_resources.resource_filename("myGym", "/envs/rooms/collision/"+self.workspace_dict[self.workspace]['urdf'])
+        if ".bullet" in self.workspace_dict[self.workspace]['urdf']:
+            fctn = self.p.loadBullet(ws_pth, physicsClientId=0)
+        else:
+            fctn = self.p.loadURDF(ws_pth, transform['position'],self.p.getQuaternionFromEuler(transform['orientation']),useFixedBase=True, useMaximalCoordinates=True)
+        self._add_scene_object_uid(fctn, self.workspace)
+
         # Add textures
         if self.task.reward_type != "2dvu":
              if self.workspace_dict[self.workspace]['texture'] is not None:
@@ -219,8 +223,6 @@ class GymEnv(CameraEnv):
         else:
              workspace_texture_id = self.p.loadTexture(pkg_resources.resource_filename("myGym",
                                                 "/envs/textures/grey.png"))
-        self.p.changeVisualShape(self.get_scene_object_uid_by_name(self.workspace), -1,
-                                     rgbaColor=[1, 1, 1, 1], textureUniqueId=workspace_texture_id)
         floor_texture_id = self.p.loadTexture(
             pkg_resources.resource_filename("myGym", "/envs/textures/parquet1.jpg"))
         self.p.changeVisualShape(self.get_scene_object_uid_by_name("floor"), -1,
