@@ -3,6 +3,8 @@ import pkg_resources
 import pybullet
 import numpy as np
 import math
+import matplotlib.pyplot as plt
+from stable_baselines import results_plotter
 
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 repodir = pkg_resources.resource_filename("myGym", "")
@@ -38,6 +40,7 @@ class Robot:
                  dimension_velocity = 0.5,
                  max_velocity = None, #1
                  max_force = None, #300
+                 timestep = 1/240.,
                  pybullet_client=None):
 
         self.p = pybullet_client
@@ -63,9 +66,12 @@ class Robot:
         self.orientation = np.array(orientation) + self.robot_dict[robot].get('orientation',np.zeros(len(orientation)))
         self.orientation = self.p.getQuaternionFromEuler(self.orientation)
         self.name = robot + '_gripper'
+        self.joint_poses_history = []
+        self.joints_state_history = []
 
         self.max_velocity = max_velocity
         self.max_force = max_force
+        self.timestep = timestep
 
         self.end_effector_index = end_effector_index
         self.gripper_index = gripper_index
@@ -87,6 +93,55 @@ class Robot:
         else:
             self.init_joint_poses = np.zeros((len(self.motor_names)))
         self.reset()
+
+    def visualize_actions_over_steps(self, logdir, episode_steps, episode_number, timestep):
+        """
+        Plot and save a graph of action values assigned to individual steps during an episode. Call this method after the end of the episode.
+        """
+        save_dir = os.path.join(logdir, "actions")
+        os.makedirs(save_dir, exist_ok=True)
+        if episode_steps > 0:
+            for joint in range(len(self.motor_indices)):
+                results_plotter.EPISODES_WINDOW=50
+                results_plotter.plot_curves([(np.arange(episode_steps),np.asarray(self.joint_poses_history[-episode_steps:]).transpose()[joint])],'step','Step actions')
+                plt.ylabel("action")
+                plt.gcf().set_size_inches(8, 6)
+                plt.savefig(save_dir + "/actions_over_steps_episode{}_{}.png".format(episode_number, joint))
+                plt.close()
+
+                # results_plotter.EPISODES_WINDOW=50
+                # results_plotter.plot_curves([(np.arange(episode_steps),np.asarray(self.joints_state_history[-episode_steps:]).transpose()[joint])],'step','Step actions achieved')
+                # plt.ylabel("action achieved")
+                # plt.gcf().set_size_inches(8, 6)
+                # plt.savefig(save_dir + "/actions_achieved_over_steps_episode{}_{}.png".format(episode_number, joint))
+                # plt.close()
+                joints_state_diff = np.abs(np.asarray(self.joints_state_history) - np.asarray(self.joint_poses_history))
+                results_plotter.EPISODES_WINDOW=50
+                results_plotter.plot_curves([(np.arange(episode_steps),joints_state_diff[-episode_steps:].transpose()[joint])],'step','Step actions diffs')
+                plt.ylabel("action diff")
+                plt.gcf().set_size_inches(8, 6)
+                plt.savefig(save_dir + "/actions_diff_over_steps_episode{}_{}.png".format(episode_number, joint))
+                plt.close()
+
+            #self.joints_state_history.insert(0, self.joints_state_history[0])
+            joints_velocities_history = (np.asarray(self.joints_state_history[1:]) - np.asarray(self.joints_state_history[:-1]))/timestep
+            for joint in range(len(self.motor_indices)):
+                results_plotter.EPISODES_WINDOW=50
+                results_plotter.plot_curves([(np.arange(episode_steps-1),np.asarray(joints_velocities_history[-episode_steps+1:]).transpose()[joint])],'step','Step velocities achieved')
+                plt.ylabel("velocities achieved")
+                plt.gcf().set_size_inches(8, 6)
+                plt.savefig(save_dir + "/velocities_achieved_over_steps_episode{}_{}.png".format(episode_number, joint))
+                plt.close()
+
+            #joints_velocities_history = np.vstack((joints_velocities_history[0], joints_velocities_history))
+            joints_acc_history = (np.asarray(joints_velocities_history[1:]) - np.asarray(joints_velocities_history[:-1]))/timestep
+            for joint in range(len(self.motor_indices)):
+                results_plotter.EPISODES_WINDOW=50
+                results_plotter.plot_curves([(np.arange(episode_steps-2),np.asarray(joints_acc_history[-episode_steps+2:]).transpose()[joint])],'step','Step acc achieved')
+                plt.ylabel("acc achieved")
+                plt.gcf().set_size_inches(8, 6)
+                plt.savefig(save_dir + "/acc_achieved_over_steps_episode{}_{}.png".format(episode_number, joint))
+                plt.close()
 
     def _load_robot(self):
         """
@@ -198,7 +253,7 @@ class Robot:
         Returns:
             :return dimension: (int) The dimension of action data
         """
-        if self.robot_action in ["joints", "joints_step", "joints_gripper"]:
+        if self.robot_action in ["joints", "joints_step", "joints_gripper", "velo_step"]:
             return len(self.motor_indices)
         else:
             return 3
@@ -244,6 +299,7 @@ class Robot:
             :param joint_poses: (list) Desired poses of individual joints
         """
         joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
+        self.joint_poses_history.append(joint_poses)
         self.joints_state = []
         for i in range(len(self.motor_indices)):
             self.p.setJointMotorControl2(bodyUniqueId=self.robot_uid,
@@ -253,9 +309,10 @@ class Robot:
                                     targetVelocity=0,
                                     force=self.joints_max_force[i],
                                     maxVelocity=self.joints_max_velo[i],
-                                    positionGain=0.7,
-                                    velocityGain=0.3)
+                                    positionGain=30,
+                                    velocityGain=10)
             self.joints_state.append(self.p.getJointState(self.robot_uid, self.motor_indices[i])[0])
+        self.joints_state_history.append(self.joints_state)
         #print('poses',joint_poses)
         #print('state',self.joints_state)
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
@@ -375,6 +432,25 @@ class Robot:
         joint_poses = np.add(self.joints_state, action)
         self._run_motors(joint_poses)
 
+    def apply_action_velo_step(self, action):
+        """
+        Apply action command to robot using velocity-step control mechanism
+
+        Parameters:
+            :param action: (list) Desired action data
+        """
+        action = [i * self.dimension_velocity for i in action]
+        joint_velos = []
+        joint_states = []
+        for motor in self.motor_indices:
+            j_info = self.p.getJointState(self.robot_uid, motor)
+            joint_velos.append(j_info[1])
+            joint_states.append(j_info[0])
+        new_velo = np.add(joint_velos, action)
+        new_velo = np.clip(new_velo, np.asarray(self.joints_max_velo)*-1, self.joints_max_velo)
+        joint_poses = np.add(joint_states, new_velo*self.timestep)
+        self._run_motors(joint_poses)
+
     def apply_action(self, action):
         """
         Apply action command to robot in simulated environment
@@ -390,6 +466,8 @@ class Robot:
             self.apply_action_absolute(action)
         elif self.robot_action in ["joints", "joints_gripper"]:
             self.apply_action_joints(action)
+        elif self.robot_action == "velo_step":
+            self.apply_action_velo_step(action)
         if len(self.magnetized_objects):
             pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
             for key,val in self.magnetized_objects.items():

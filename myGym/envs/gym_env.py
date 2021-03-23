@@ -52,7 +52,7 @@ class GymEnv(CameraEnv):
     def __init__(self,
                  workspace="table",
                  object_sampling_area=None,
-                 dimension_velocity=0.05,
+                 dimension_velocity=0.1,
                  used_objects=None,
                  num_objects_range=None,
                  action_repeat=1,
@@ -249,6 +249,7 @@ class GymEnv(CameraEnv):
                                  init_joint_poses=self.robot_init_joint_poses,
                                  robot_action=self.robot_action,
                                  dimension_velocity=self.dimension_velocity,
+                                 timestep=self.time_step,
                                  pybullet_client=self.p)
         # Add human                         
         if self.workspace == 'collabtable':
@@ -280,7 +281,7 @@ class GymEnv(CameraEnv):
         Set action space dimensions and range
         """
         action_dim = self.robot.get_action_dimension()
-        if self.robot_action in ["step", "joints_step"]:
+        if self.robot_action in ["step", "joints_step", "velo_step"]:
             self.action_low = np.array([-1] * action_dim)
             self.action_high = np.array([1] * action_dim)
         elif self.robot_action == "absolute":
@@ -450,6 +451,8 @@ class GymEnv(CameraEnv):
             self.episode_final_distance.append(self.task.last_distance / self.task.init_distance)
             self.episode_number += 1
             self._print_episode_summary(info)
+            if self.visualize:
+                self.robot.visualize_actions_over_steps(self.logdir, self.episode_steps, self.episode_number, self.time_step)
 
         return self._observation, reward, done, info
 
