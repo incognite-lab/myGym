@@ -48,7 +48,7 @@ def test_env(env, arg_dict):
                 print("Episode finished after {} timesteps".format(t + 1))
                 break
 
-def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_logdir=None, deterministic=False):
+def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_logdir=None, deterministic=True):
     model_path = arg_dict.get("model_path")
     if model_path is None and model is None:
         print("Path to the model using --model_path argument not specified. Testing random actions in selected environment.")

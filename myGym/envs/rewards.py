@@ -296,7 +296,8 @@ class SparseReward(Reward):
         Returns:
             :return reward: (float) Reward signal for the environment
         """
-        reward = -1
+        #reward = -1
+        reward = 0
 
         if self.task.check_distance_threshold(observation):
             reward += 1.0

@@ -133,6 +133,9 @@ class TaskModule():
                 obj_positions.append(list(self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index-2)[1]))
         obj_positions[len(obj_orientations):len(obj_orientations)] = obj_orientations
         self._observation = np.array(sum(obj_positions, []))
+        robot_joint_pos, robot_joint_velo = self.env.robot.get_joints_state()
+        if self.env.robot.obsdim > 0:
+            self._observation = np.hstack((self._observation, np.asarray(robot_joint_pos), np.asarray(robot_joint_velo)))
         return self._observation
 
     def check_vision_failure(self):

@@ -267,11 +267,11 @@ class GymEnv(CameraEnv):
         """
         if self.obs_space == "dict":
             goaldim = int(self.task.obsdim/2) if self.task.obsdim % 2 == 0 else int(self.task.obsdim / 3)
-            self.observation_space = spaces.Dict({"observation": spaces.Box(low=-10, high=10, shape=(self.task.obsdim,)),
+            self.observation_space = spaces.Dict({"observation": spaces.Box(low=-10, high=10, shape=(self.task.obsdim + self.robot.obsdim,)),
                                                   "achieved_goal": spaces.Box(low=-10, high=10, shape=(goaldim,)),
                                                   "desired_goal": spaces.Box(low=-10, high=10, shape=(goaldim,))})
         else:
-            observationDim = self.task.obsdim
+            observationDim = self.task.obsdim + self.robot.obsdim
             observation_high = np.array([100] * observationDim)
             self.observation_space = spaces.Box(-observation_high,
                                                 observation_high)
