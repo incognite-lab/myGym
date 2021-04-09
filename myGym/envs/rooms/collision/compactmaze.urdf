@@ -148,7 +148,7 @@
     </visual>
 <!--ramp front half-->
     <visual>
-      <origin rpy="0.4 0 0*np.pi" xyz="7.35 -4.43 -.01"/>
+      <origin rpy="0.4 0 0*np.pi" xyz="7.35 -4.43 .01"/>
       <geometry>
 				<box size="0.15 .32 0.1"/>
       </geometry>
@@ -156,7 +156,7 @@
     </visual>
 <!--ramp rear half-->
     <visual>
-      <origin rpy="0.4 0 3.15" xyz="7.85 -4.07 -.01"/>
+      <origin rpy="0.4 0 3.15" xyz="7.85 -4.07 .01"/>
       <geometry>
 				<box size="0.15 .32 0.1"/>
       </geometry>
@@ -337,7 +337,7 @@
     </collision>
 <!--ramp front half-->
     <collision>
-      <origin rpy="0.4 0 0*np.pi" xyz="7.35 -4.43 -.01"/>
+      <origin rpy="0.4 0 0*np.pi" xyz="7.35 -4.43 .01"/>
       <geometry>
 				<box size="0.15 .32 0.1"/>
       </geometry>
@@ -345,7 +345,7 @@
     </collision>
 <!--ramp rear half-->
     <collision>
-      <origin rpy="0.4 0 3.15" xyz="7.85 -4.07 -.01"/>
+      <origin rpy="0.4 0 3.15" xyz="7.85 -4.07 .01"/>
       <geometry>
 				<box size="0.15 .32 0.1"/>
       </geometry>
