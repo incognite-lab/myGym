@@ -17,8 +17,8 @@
       <geometry>
         <mesh filename="../obj/wafer_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
-       <material name="black">
-        <color rgba="0 0 0 1"/>
+       <material name="violet">
+        <color rgba="1 0 1 1"/>
       </material>
     </visual>
     <collision>

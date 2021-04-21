@@ -17,8 +17,8 @@
       <geometry>
         <mesh filename="../obj/sphere_holes_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
-       <material name="black">
-        <color rgba="0 0 0 1"/>
+       <material name="gold">
+        <color rgba="204/255 153/255 0 1"/>
       </material>
     </visual>
     <collision>

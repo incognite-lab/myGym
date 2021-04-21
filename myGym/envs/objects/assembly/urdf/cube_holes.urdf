@@ -17,8 +17,8 @@
       <geometry>
         <mesh filename="../obj/cube_holes_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
-       <material name="black">
-        <color rgba="0 0 0 1"/>
+       <material name="green">
+        <color rgba="0 1 0 1"/>
       </material>
     </visual>
     <collision>

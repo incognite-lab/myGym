@@ -18,7 +18,7 @@
         <mesh filename="../obj/torus_vhacd.obj" scale="0.001 0.001 0.001"/>
       </geometry>
        <material name="black">
-        <color rgba="0 0 0 1"/>
+        <color rgba="0 1 1 1"/>
       </material>
     </visual>
     <collision>

@@ -17,8 +17,8 @@
       <geometry>
         <mesh filename="../obj/nut_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
-       <material name="black">
-        <color rgba="0 0 0 1"/>
+       <material name="light_blue">
+        <color rgba="0 153/255 1 1"/>
       </material>
     </visual>
     <collision>

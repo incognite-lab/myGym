@@ -17,8 +17,8 @@
       <geometry>
         <mesh filename="../obj/screw_round_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
-       <material name="black">
-        <color rgba="0 0 0 1"/>
+       <material name="blue">
+        <color rgba="0 0 1 1"/>
       </material>
     </visual>
     <collision>

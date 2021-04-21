@@ -17,8 +17,8 @@
       <geometry>
         <mesh filename="../obj/pliers_vhacd.obj" scale=".02 .02 .02"/>
       </geometry>
-       <material name="black">
-        <color rgba="0 0 0 1"/>
+       <material name="yellow">
+        <color rgba="1 1 0 1"/>
       </material>
     </visual>
     <collision>

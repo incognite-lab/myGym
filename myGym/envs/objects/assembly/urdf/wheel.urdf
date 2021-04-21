@@ -17,8 +17,8 @@
       <geometry>
         <mesh filename="../obj/wheel_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
-       <material name="black">
-        <color rgba="0 0 0 1"/>
+       <material name="red_wine">
+        <color rgba="102/255 0 0 1"/>
       </material>
     </visual>
     <collision>
