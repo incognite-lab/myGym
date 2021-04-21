@@ -281,10 +281,10 @@ class GymEnv(CameraEnv):
         Set action space dimensions and range
         """
         action_dim = self.robot.get_action_dimension()
-        if self.robot_action in ["step", "joints_step", "velo_step"]:
+        if self.robot_action in ["step", "joints_step", "velo_step", "torque_step"]:
             self.action_low = np.array([-1] * action_dim)
             self.action_high = np.array([1] * action_dim)
-        elif self.robot_action == "absolute":
+        elif self.robot_action in ["absolute", "torque_control"]:
             if any(isinstance(i, list) for i in self.objects_area_boarders):
                 boarders_max = np.max(self.objects_area_boarders,0)
                 boarders_min = np.min(self.objects_area_boarders,0)
@@ -293,7 +293,7 @@ class GymEnv(CameraEnv):
             else:
                 self.action_low = np.array(self.objects_area_boarders[0:7:2])
                 self.action_high = np.array(self.objects_area_boarders[1:7:2])
-        elif self.robot_action in ["joints", "joints_gripper"]:
+        elif self.robot_action in ["joints", "joints_gripper", "pybulletx"]:
             self.action_low = np.array(self.robot.joints_limits[0])
             self.action_high = np.array(self.robot.joints_limits[1])
         self.action_space = spaces.Box(np.array([-1]*action_dim), np.array([1]*action_dim))
