@@ -187,7 +187,7 @@ class GymEnv(CameraEnv):
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -1.0, 0.9], [1.4, 0.7, 0.88], [-1.4, 0.7, 0.88], [0.0, 0.698, 1.28],
                                                                    [0.0, 1.3, 0.5], [-0.0, -0.2, 0.6], [0.6, 0.7, 0.4], [-0.6, 0.7, 0.5], [0.0, 0.698, 0.8]]},
                                             'boarders':[-0.7, 0.7, 0.5, 1.3, 0.15, 0.15]},  
-                                'compactmaze': {'urdf': 'compactmaze.urdf', 'texture': 'grey.png',
+                                'compactmaze': {'urdf': 'compactmaze.urdf', 'texture': None,
                                             'transform': {'position':[-7.5, 5, 0.0], 'orientation':[0.0, 0.0, 0.0]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
                                             'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.05, 2.5]], 
@@ -227,12 +227,13 @@ class GymEnv(CameraEnv):
                 if self.workspace_dict[self.workspace]['texture'] is not None:
                     workspace_texture_id = self.p.loadTexture(
                         pkg_resources.resource_filename("myGym", "/envs/textures/"+self.workspace_dict[self.workspace]['texture']))
-                    self.p.changeVisualShape(self.get_scene_object_uid_by_name(self.workspace), -1,
-                                                rgbaColor=[1, 1, 1, 1], textureUniqueId=workspace_texture_id)
+                else:
+                    workspace_texture_id = None
             else:
                 workspace_texture_id = self.p.loadTexture(pkg_resources.resource_filename("myGym",
                                                     "/envs/textures/grey.png"))
-            self.p.changeVisualShape(self.get_scene_object_uid_by_name(self.workspace), -1,
+            if workspace_texture_id is not None:                                        
+                self.p.changeVisualShape(self.get_scene_object_uid_by_name(self.workspace), -1,
                                         rgbaColor=[1, 1, 1, 1], textureUniqueId=workspace_texture_id)
             floor_texture_id = self.p.loadTexture(
                 pkg_resources.resource_filename("myGym", "/envs/textures/parquet1.jpg"))
