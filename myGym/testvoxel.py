@@ -48,8 +48,16 @@ def test_env(env, arg_dict):
                 #        visualizations[1].append(255*np.ones(visualizations[1][0].shape, dtype=np.float32))
                 #fig_rgb = np.vstack((np.hstack((visualizations[0][0::2])),np.hstack((visualizations[0][1::2]))))
                 #fig_depth = np.vstack((np.hstack((visualizations[1][0::2])),np.hstack((visualizations[1][1::2]))))
+                far = 1.
+                near = 0.01
+                depthim = far * near / (far - (far - near) * depth)
+                norm = np.linalg.norm(depth)
+                normal_array = depth/norm
+                #image *= (255.0/d.max())
+
                 depth_image = np.stack((depth, depth, depth), axis=2)[:, :, :]
                 depth_image = (255*depth_image).astype(np.uint8)
+                
                 #cv2.imshow('Camera RGB', image)
                 winname='CameraD'
                 cv2.namedWindow(winname)        # Create a named window
@@ -64,7 +72,7 @@ def test_env(env, arg_dict):
                     o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault))
                 pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
                 voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd,
-                                                            voxel_size=.00003)
+                                                            voxel_size=.00004)
                 
                 vis.add_geometry(voxel_grid)
                 

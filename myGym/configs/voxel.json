@@ -7,17 +7,17 @@
 "camera":0,
 "gui":1,
 "visualize":1,
-"visgym":0,
+"visgym":1,
 #Robot
 "robot":"panda",
 "robot_action":"velo_step",
 "robot_init":[0.0, 0.5, 0.5],
 #Task
-"task_type":"2stepreach",
-"num_subgoals": 1,
-"task_objects":["cube_holes", "target"],
-"used_objects":null,
-"object_sampling_area":[-0.7, 0.7, 0.1, 0.8, 0.07, 0.07],
+"task_type":"reach",
+"num_subgoals": 0,
+"task_objects":["car_roof"],
+"used_objects":["car_roof"],
+"object_sampling_area":[-0.1, 0.1, 0.1, 0.2, 0.1, 0.07],
 #Reward
 "reward_type":"gt",
 "reward":"distance",
