@@ -30,7 +30,7 @@ def test_env(env, arg_dict):
             if arg_dict["visualize"]:
                 visualizations = [[],[]]
                 env.render("human")
-                camera_id=4
+                camera_id=0
                 camera_render = env.render(mode="rgb_array", camera_id=camera_id)
                 image = cv2.cvtColor(camera_render[camera_id]["image"], cv2.COLOR_RGB2BGR)
                 depth = camera_render[camera_id]["depth"]
@@ -48,12 +48,7 @@ def test_env(env, arg_dict):
                 #        visualizations[1].append(255*np.ones(visualizations[1][0].shape, dtype=np.float32))
                 #fig_rgb = np.vstack((np.hstack((visualizations[0][0::2])),np.hstack((visualizations[0][1::2]))))
                 #fig_depth = np.vstack((np.hstack((visualizations[1][0::2])),np.hstack((visualizations[1][1::2]))))
-                far = 1.
-                near = 0.01
-                depthim = far * near / (far - (far - near) * depth)
-                norm = np.linalg.norm(depth)
-                normal_array = depth/norm
-                #image *= (255.0/d.max())
+                depth = (depth - depth.min())/depth.ptp()
 
                 depth_image = np.stack((depth, depth, depth), axis=2)[:, :, :]
                 depth_image = (255*depth_image).astype(np.uint8)
@@ -72,7 +67,7 @@ def test_env(env, arg_dict):
                     o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault))
                 pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
                 voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd,
-                                                            voxel_size=.00004)
+                                                            voxel_size=.00001)
                 
                 vis.add_geometry(voxel_grid)
                 

@@ -1,7 +1,7 @@
 {
 #Environment
 "env_name":"Gym-v0",
-"workspace":"table",
+"workspace":"modularmaze",
 "engine":"pybullet",
 "render":"opengl",
 "camera":0,
@@ -9,7 +9,7 @@
 "visualize":1,
 "visgym":1,
 #Robot
-"robot":"panda",
+"robot":"ur10",
 "robot_action":"velo_step",
 "robot_init":[0.0, 0.5, 0.5],
 #Task
