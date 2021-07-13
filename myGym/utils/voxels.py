@@ -26,8 +26,8 @@ def voxelize(objects, extends, resolution, pb_client):
 
     Args:
         objects: list of pybullet bodies to voxelize
-        extends: dimensions of a 3D box to voxelize in
-        resolution: 3D list of resolution
+        extends: dimensions of a 3D box to voxelize in - [(min_X, max_X), (min_Y, max_Y), (min_Z, max_Z)]
+        resolution: list of resolution - [r_X, r_Y, r_Z]
         pb_client: pybullet client
 
     Returns:
