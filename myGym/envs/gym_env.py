@@ -125,78 +125,86 @@ class GymEnv(CameraEnv):
         self.logdir = logdir
         self.workspace_dict =  {'baskets':  {'urdf': 'baskets.urdf', 'texture': 'baskets.jpg',
                                             'transform': {'position':[3.18, -3.49, -1.05], 'orientation':[0.0, 0.0, -0.4*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[0.56, -1.71, 0.6], [-1.3, 3.99, 0.6], [-3.43, 0.67, 1.0], [2.76, 2.68, 1.0], [-0.54, 1.19, 3.4]], 
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
+                                            'camera': {'position': [[0.56, -1.71, 0.6], [-1.3, 3.99, 0.6], [-3.43, 0.67, 1.0], [2.76, 2.68, 1.0], [-0.54, 1.19, 3.4]],
                                                         'target': [[0.53, -1.62, 0.59], [-1.24, 3.8, 0.55], [-2.95, 0.83, 0.8], [2.28, 2.53, 0.8], [-0.53, 1.2, 3.2]]},
-                                            'boarders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]}, 
-                                'collabtable': {'urdf': 'collabtable.urdf', 'texture': 'collabtable.jpg', 
+                                            'boarders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]},
+                                'collabtable': {'urdf': 'collabtable.urdf', 'texture': 'collabtable.jpg',
                                             'transform': {'position':[0.45, -5.1, -1.05], 'orientation':[0.0, 0.0, -0.35*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[-0.25, 3.24, 1.2], [-0.44, -1.34, 1.0], [-1.5, 2.6, 1.0], [1.35, -1.0, 1.0], [-0.1, 1.32, 1.4]], 
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
+                                            'camera': {'position': [[-0.25, 3.24, 1.2], [-0.44, -1.34, 1.0], [-1.5, 2.6, 1.0], [1.35, -1.0, 1.0], [-0.1, 1.32, 1.4]],
                                                         'target': [[-0.0, 0.56, 0.6], [-0.27, 0.42, 0.7], [-1, 2.21, 0.8], [-0.42, 2.03, 0.2], [-0.1, 1.2, 0.7]]},
-                                            'boarders':[-0.7, 0.7, 0.5, 1.2, 0.2, 0.2]}, 
-                                'darts':    {'urdf': 'darts.urdf', 'texture': 'darts.jpg', 
+                                            'boarders':[-0.7, 0.7, 0.5, 1.2, 0.2, 0.2]},
+                                'darts':    {'urdf': 'darts.urdf', 'texture': 'darts.jpg',
                                             'transform': {'position':[-1.4, -6.7, -1.05], 'orientation':[0.0, 0.0, -1.0*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[-0.0, 2.1, 1.0], [0.0, -1.5, 1.2], [2.3, 0.5, 1.0], [-2.6, 0.5, 1.0], [-0.0, 1.1, 4.9]], 
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
+                                            'camera': {'position': [[-0.0, 2.1, 1.0], [0.0, -1.5, 1.2], [2.3, 0.5, 1.0], [-2.6, 0.5, 1.0], [-0.0, 1.1, 4.9]],
                                                         'target': [[0.0, 0.0, 0.7], [-0.0, 1.3, 0.6], [1.0, 0.9, 0.9], [-1.6, 0.9, 0.9], [-0.0, 1.2, 3.1]]},
-                                            'boarders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]}, 
-                                'drawer':   {'urdf': 'drawer.urdf', 'texture': 'drawer.jpg', 
+                                            'boarders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]},
+                                'drawer':   {'urdf': 'drawer.urdf', 'texture': 'drawer.jpg',
                                             'transform': {'position':[-4.81, 1.5, -1.05], 'orientation':[0.0, 0.0, 0.0*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0, 0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[-0.14, -1.63, 1.0], [-0.14, 3.04, 1.0], [-1.56, -0.92, 1.0], [1.2, -1.41, 1.0], [-0.18, 0.88, 2.5]], 
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0, 0, 0.5*np.pi]},
+                                            'camera': {'position': [[-0.14, -1.63, 1.0], [-0.14, 3.04, 1.0], [-1.56, -0.92, 1.0], [1.2, -1.41, 1.0], [-0.18, 0.88, 2.5]],
                                                         'target': [[-0.14, -0.92, 0.8], [-0.14, 2.33, 0.8], [-0.71, -0.35, 0.7], [0.28, -0.07, 0.6], [-0.18, 0.84, 2.1]]},
-                                            'boarders':[[-0.65, 0.65, 0.2, 0.8, 0.15, 0.15],[-0.65, -0.2, 0.7, 0.8, 0.4, 0.4],[0.05, 0.7, 0.7, 0.8, 0.4, 0.4],[-0.7, -0.2, 0.7, 0.8, 0.7, 0.7]]}, 
-                                'football': {'urdf': 'football.urdf', 'texture': 'football.jpg', 
+                                            'boarders':[[-0.65, 0.65, 0.2, 0.8, 0.15, 0.15],[-0.65, -0.2, 0.7, 0.8, 0.4, 0.4],[0.05, 0.7, 0.7, 0.8, 0.4, 0.4],[-0.7, -0.2, 0.7, 0.8, 0.7, 0.7]]},
+                                'football': {'urdf': 'football.urdf', 'texture': 'football.jpg',
                                             'transform': {'position':[4.2, -5.4, -1.05], 'orientation':[0.0, 0.0, -1.0*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[-0.0, 2.1, 1.0], [0.0, -1.7, 1.2], [3.5, -0.6, 1.0], [-3.5, -0.7, 1.0], [-0.0, 2.0, 4.9]], 
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
+                                            'camera': {'position': [[-0.0, 2.1, 1.0], [0.0, -1.7, 1.2], [3.5, -0.6, 1.0], [-3.5, -0.7, 1.0], [-0.0, 2.0, 4.9]],
                                                         'target': [[0.0, 0.0, 0.7], [-0.0, 1.3, 0.2], [3.05, -0.2, 0.9], [-2.9, -0.2, 0.9], [-0.0, 2.1, 3.6]]},
-                                            'boarders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]}, 
+                                            'boarders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]},
                                 'fridge':   {'urdf': 'fridge.urdf', 'texture': 'fridge.jpg',
                                             'transform': {'position':[1.6, -5.95, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[0.0, -1.3, 1.0], [0.0, 2.35, 1.2], [-1.5, 0.85, 1.0], [1.4, 0.85, 1.0], [0.0, 0.55, 2.5]], 
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
+                                            'camera': {'position': [[0.0, -1.3, 1.0], [0.0, 2.35, 1.2], [-1.5, 0.85, 1.0], [1.4, 0.85, 1.0], [0.0, 0.55, 2.5]],
                                                         'target': [[0.0, 0.9, 0.7], [0.0, 0.9, 0.6], [0.0, 0.55, 0.5], [0.4, 0.55, 0.7], [0.0, 0.45, 1.8]]},
-                                            'boarders':[-0.7, 0.7, 0.3, 0.5, -0.9, -0.9]}, 
-                                'maze':     {'urdf': 'maze.urdf', 'texture': 'maze.jpg', 
+                                            'boarders':[-0.7, 0.7, 0.3, 0.5, -0.9, -0.9]},
+                                'maze':     {'urdf': 'maze.urdf', 'texture': 'maze.jpg',
                                             'transform': {'position':[6.7, -3.1, 0.0], 'orientation':[0.0, 0.0, -0.5*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.1], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[0.0, -1.4, 2.3], [-0.0, 5.9, 1.9], [4.7, 2.7, 2.0], [-3.2, 2.7, 2.0], [-0.0, 3.7, 5.0]], 
+                                            'robot': {'position': [0.0, 0.0, 0.1], 'orientation': [0.0, 0.0, 0.5*np.pi]},
+                                            'camera': {'position': [[0.0, -1.4, 2.3], [-0.0, 5.9, 1.9], [4.7, 2.7, 2.0], [-3.2, 2.7, 2.0], [-0.0, 3.7, 5.0]],
                                                         'target': [[0.0, -1.0, 1.9], [-0.0, 5.6, 1.7], [3.0, 2.7, 1.5], [-2.9, 2.7, 1.7], [-0.0, 3.65, 4.8]]},
-                                            'boarders':[-2.5, 2.2, 0.7, 4.7, 0.05, 0.05]}, 
+                                            'boarders':[-2.5, 2.2, 0.7, 4.7, 0.05, 0.05]},
                                 'stairs':   {'urdf': 'stairs.urdf', 'texture': 'stairs.jpg',
                                             'transform': {'position':[-5.5, -0.08, -1.05], 'orientation':[0.0, 0.0, -0.20*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[0.04, -1.64, 1.0], [0.81, 3.49, 1.0], [-2.93, 1.76, 1.0], [4.14, 0.33, 1.0], [2.2, 1.24, 3.2]], 
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
+                                            'camera': {'position': [[0.04, -1.64, 1.0], [0.81, 3.49, 1.0], [-2.93, 1.76, 1.0], [4.14, 0.33, 1.0], [2.2, 1.24, 3.2]],
                                                         'target': [[0.18, -1.12, 0.85], [0.81, 2.99, 0.8], [-1.82, 1.57, 0.7], [3.15, 0.43, 0.55], [2.17, 1.25, 3.1]]},
                                             'boarders':[-0.5, 2.5, 0.8, 1.6, 0.1, 0.1]},
-                                'table':    {'urdf': 'table.urdf', 'texture': 'table.jpg', 
+                                'table':    {'urdf': 'table.urdf', 'texture': 'table.jpg',
                                             'transform': {'position':[-0.0, 0.025, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.3, 1.0], [1.8, 0.7, 1.0], [-1.8, 0.7, 1.0], [0.0, 0.62, .8],
-                                                                    [0.0, 1.6, 0.8], [-0.0, -0.3, 0.8], [0.8, 0.7, 0.6], [-0.8, 0.7, 0.8], [0.0, 0.7, 1.]], 
+                                                                    [0.0, 1.6, 0.8], [-0.0, -0.3, 0.8], [0.8, 0.7, 0.6], [-0.8, 0.7, 0.8], [0.0, 0.7, 1.]],
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -1.0, 0.9], [1.4, 0.7, 0.88], [-1.4, 0.7, 0.88], [0.0, 0.6199, 0.79],
                                                                    [0.0, 1.3, 0.5], [-0.0, -0.2, 0.6], [0.6, 0.7, 0.4], [-0.6, 0.7, 0.5], [0.0, 0.698, 0.8]]},
-                                            'boarders':[-0.7, 0.7, 0.5, 1.3, 0.15, 0.15]}, 
-                                'test_ws':  {'urdf': 'test_ws.urdf', 'texture': None, 
+                                            'boarders':[-0.7, 0.7, 0.5, 1.3, 0.15, 0.15]},
+                                'test_ws':  {'urdf': 'test_ws.urdf', 'texture': None,
                                             'transform': {'position':[0.0, 0.0, 0.0], 'orientation':[0.0, 0.0, 0*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.07], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
+                                            'robot': {'position': [0.0, 0.0, 0.07], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.3, 1.0], [1.8, 0.7, 1.0], [-1.8, 0.7, 1.0], [0.0, 0.7, 1.3],
-                                                                    [0.0, 1.6, 0.8], [-0.0, -0.3, 0.8], [0.8, 0.7, 0.6], [-0.8, 0.7, 0.8], [0.0, 0.7, 1.]], 
+                                                                    [0.0, 1.6, 0.8], [-0.0, -0.3, 0.8], [0.8, 0.7, 0.6], [-0.8, 0.7, 0.8], [0.0, 0.7, 1.]],
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -1.0, 0.9], [1.4, 0.7, 0.88], [-1.4, 0.7, 0.88], [0.0, 0.698, 1.28],
                                                                    [0.0, 1.3, 0.5], [-0.0, -0.2, 0.6], [0.6, 0.7, 0.4], [-0.6, 0.7, 0.5], [0.0, 0.698, 0.8]]},
-                                            'boarders':[-0.7, 0.7, 0.5, 1.3, 0.15, 0.15]},  
+                                            'boarders':[-0.7, 0.7, 0.5, 1.3, 0.15, 0.15]},
+                                'empty_ws':  {'urdf': 'test_ws.urdf', 'texture': None,
+                                            'transform': {'position':[0.0, 0.0, 0.0], 'orientation':[0.0, 0.0, 0*np.pi]},
+                                            'robot': {'position': [0.0, 0.0, -10], 'orientation': [0.0, 0.0, 0.5*np.pi]},
+                                            'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.3, 1.0], [1.8, 0.7, 1.0], [-1.8, 0.7, 1.0], [0.0, 0.7, 1.3],
+                                                                    [0.0, 1.6, 0.8], [-0.0, -0.3, 0.8], [0.8, 0.7, 0.6], [-0.8, 0.7, 0.8], [0.0, 0.7, 1.]],
+                                                        'target': [[0.0, 2.1, 0.9], [-0.0, -1.0, 0.9], [1.4, 0.7, 0.88], [-1.4, 0.7, 0.88], [0.0, 0.698, 1.28],
+                                                                   [0.0, 1.3, 0.5], [-0.0, -0.2, 0.6], [0.6, 0.7, 0.4], [-0.6, 0.7, 0.5], [0.0, 0.698, 0.8]]},
+                                            'boarders':[-0.7, 0.7, 0.5, 1.3, 0.15, 0.15]},
                                 'compactmaze': {'urdf': 'compactmaze.urdf', 'texture': None,
                                             'transform': {'position':[-7.5, 5, 0.0], 'orientation':[0.0, 0.0, 0.0]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.05, 2.5]], 
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
+                                            'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.05, 2.5]],
                                                         'target': [[-0.0, -1.05, 1.0], [0.0, 0.55, 1.3], [1.4, -0.75, 0.9], [-1.3, -0.75, 0.9], [0.0, 0.15, 2.1]]},
                                             'boarders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]},
                                 'modularmaze': {'urdf': 'modularmaze.urdf', 'texture': None,
                                             'transform': {'position':[-7, 8, 0.0], 'orientation':[0.0, 0.0, 0.0]},
-                                            'robot': {'position': [0.0, -0.5, 0.05], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.7, 2.1], [-0.0, -0.3, 0.2]], 
+                                            'robot': {'position': [0.0, -0.5, 0.05], 'orientation': [0.0, 0.0, 0.5*np.pi]},
+                                            'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.7, 2.1], [-0.0, -0.3, 0.2]],
                                                         'target': [[-0.0, -1.05, 0.9], [0.0, 0.55, 1.3], [1.4, -0.75, 0.9], [-1.3, -0.75, 0.9], [0.0, 0.71, 1.8], [-0.0, -0.25, 0.199]]},
                                             'boarders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]}  }
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
@@ -220,7 +228,7 @@ class GymEnv(CameraEnv):
                         pkg_resources.resource_filename("myGym", "/envs/rooms/visual/"+self.workspace_dict[workspace]['urdf']),
                                                     transform['position'],self.p.getQuaternionFromEuler(transform['orientation']),useFixedBase=True, useMaximalCoordinates=True), workspace)
         # Load selected workspace
-        if self.workspace != 'test_ws':
+        if self.workspace not in ['test_ws', 'empty_ws']:
             ws_pth = pkg_resources.resource_filename("myGym", "/envs/rooms/collision/"+self.workspace_dict[self.workspace]['urdf'])
             if ".bullet" in self.workspace_dict[self.workspace]['urdf']:
                 fctn = self.p.loadBullet(ws_pth, physicsClientId=0)
@@ -238,7 +246,7 @@ class GymEnv(CameraEnv):
             else:
                 workspace_texture_id = self.p.loadTexture(pkg_resources.resource_filename("myGym",
                                                     "/envs/textures/grey.png"))
-            if workspace_texture_id is not None:                                        
+            if workspace_texture_id is not None:
                 self.p.changeVisualShape(self.get_scene_object_uid_by_name(self.workspace), -1,
                                         rgbaColor=[1, 1, 1, 1], textureUniqueId=workspace_texture_id)
             floor_texture_id = self.p.loadTexture(
@@ -258,7 +266,7 @@ class GymEnv(CameraEnv):
                                  dimension_velocity=self.dimension_velocity,
                                  timestep=self.time_step,
                                  pybullet_client=self.p)
-        # Add human                         
+        # Add human
         if self.workspace == 'collabtable':
             self.human = robot.Robot('human',
                                  position=self.workspace_dict[self.workspace]['robot']['position'],
@@ -346,9 +354,9 @@ class GymEnv(CameraEnv):
             direction = np.array(self.task_objects[0].get_position()) - np.array(self.task_objects[1].get_position())
             direction = direction/(10*np.linalg.norm(direction))
             #init_joint_poses = np.array(self.task_objects[0].get_position()) + direction
-            #init_joint_poses = [0.3, 0.5, 0.3]           
+            #init_joint_poses = [0.3, 0.5, 0.3]
             #self.robot.init_joint_poses = list(self.robot._calculate_accurate_IK(init_joint_poses))
-            #self.robot.init_joint_poses = [0, -0,551, 0, 2.072, -1.437, 0] 
+            #self.robot.init_joint_poses = [0, -0,551, 0, 2.072, -1.437, 0]
         elif self.task_type == '2stepreach':
             self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=True, pos=[0.0, 0.5, 0.05])[0])
             self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=True, pos=[-0.6, 0.5, 0.05])[0])
@@ -384,7 +392,7 @@ class GymEnv(CameraEnv):
                 slider_state.append(self.p.readUserDebugParameter(slider_id))
             self.robot._run_motors(slider_state)
             self.p.stepSimulation()
-        #self.p.removeAllUserParameters() #not working         
+        #self.p.removeAllUserParameters() #not working
 
     def _set_cameras(self):
         """
