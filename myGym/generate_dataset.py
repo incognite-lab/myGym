@@ -51,7 +51,7 @@ def _category_coco_format(): #COCO
 def _segmentationToPoly(mask, ):
     """
     Convert segmentation from RLE to polynoms ([[x1 y1 x2 x2 y2 ...]]). Code from https://github.com/facebookresearch/Detectron/issues/100#issuecomment-362882830.
-    
+
     Parameters:
         :param mask: (array) Bitmap mask
         :return segmentationPoly: (list) Segmentation converted to polynoms
@@ -126,8 +126,10 @@ class GeneratorCoco: #COCO
             active_cameras = config['active_cameras'],
             camera_resolution = config['camera_resolution'],
             renderer=p.ER_BULLET_HARDWARE_OPENGL,
+            workspace = config['workspace'],
+            visgym = config['visgym'],
             dataset = True,
-            ), 
+            ),
             config_path = config['output_folder']+'/config_dataset.json')
         p.setGravity(0, 0, -9.81)
         return env
@@ -569,7 +571,7 @@ if __name__ == "__main__":
         env.reset(random_robot=config['random_arm_movement'], random_pos=True, hard=False)
         observation = env.get_observation()
         env_objects = observation["objects"]
-        
+
         for t in range(config['num_steps']): #loop through steps
             # randomize the movements of robots (using joint control)
             action = env.action_space.sample()
