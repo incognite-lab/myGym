@@ -4,7 +4,7 @@
 # dataset parameters
     "dataset_type" : "coco", #"coco" (for yolact, detectron)/ "dope"
     "make_dataset" : "new", #mode of writing files, "new" (override), "resume" (append),"display" (don't store results)
-    "num_episodes" : 3, #total number of episodes
+    "num_episodes" : 3000, #total number of episodes
     "num_steps" : 1, #need more steps, because the arms are moving and the objects are first falling down from above the table
     "make_shot_every_frame" : 1, #used as if episode % make_shot_every_frame : 0, so for 60 % 30 it's 3 shots (0, 30, and 60)
     "num_episodes_hard_reset" : 40, #hard reset every x episode prevents objects from vanishing when GUI is on
@@ -25,7 +25,7 @@
     "changing_light_gui" : false,
     "shadows_on" : true,
     "color_dict" : null, #use to make (fixed) object colors - textures and color_randomizer will be suppressed, pass null to ignore
-    "object_sampling_area" : [-0.7, 0.7, 0.5, 1.3, 0.1, 0.8], # xxyyzz
+    "object_sampling_area" : [-1.7, 1.7, -0.5, 2.3, 0.1, 0.8], # xxyyzz
     "num_objects_range" : [2, 3], #range for random count of sampled objects in each scene (>=0)
 # randomization parameters
 "seed": 42,
@@ -56,7 +56,7 @@
     #If you want to make some classes to be classified as the same, assign them the same value, i.e. screw_round:1, peg:1
     #If you want some class to appear statistically more often, increase the quantity
     #"used_class_names_quantity" : [[1,"kuka",1], [1,"kuka_gripper",2], [1,"car_roof",3], [1,"cube_holes",4], [1,"ex_bucket",5], [1,"hammer",6], [1,"nut",7], [1,"peg_screw",8], [1,"pliers",9], [1,"screw_round",10], [1,"screwdriver",11], [1,"sphere_holes",12],[1,"wafer",13], [1,"wheel",14], [1,"wrench",15]],
-    "used_class_names_quantity" : [[1,"cart_1",1]],
+    "used_class_names_quantity" : [[1,"cart_1",91]],
     #fix colors of objects, when color_dict = object_colors
     "object_colors" : {"car_roof": ["yellow"], "cube_holes": ["light_green"], "ex_bucket": ["black"], "hammer": ["red"],
         "nut": ["light_blue"], "peg_screw": ["white"], "pliers": ["sepia"], "screw_round": ["light_blue"],
