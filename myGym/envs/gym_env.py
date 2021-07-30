@@ -1,7 +1,8 @@
 from myGym.envs import robot, env_object
 from myGym.envs import task as t
+from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward
+from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, DistractorReward, VectorReward, PokeReward, PokeVectorReward, PokeEnviroReward
 import pybullet
 import time
 import numpy as np
@@ -36,6 +37,13 @@ class GymEnv(CameraEnv):
         :param task_type: (string) Type of learned task (reach, push, ...)
         :param num_subgoals: (int) Number of subgoals in task
         :param task_objects: (list of strings) Objects that are relevant for performing the task
+
+        :param distractors: (list of strings) Objects distracting from performed task
+        :param distractor_moveable: (bool) can distractors move
+        :param distractor_constant_speed: (bool) is speed of distractors constant
+        :param distractor_movement_dimensions: (int) number of dimensions of distractors motion
+        :param distractor_movement_endpoints: (list of floats) borders of dostractors movement
+
         :param reward_type: (string) Type of reward signal source (gt, 3dvs, 2dvu)
         :param reward: (string) Defines how to compute the reward
         :param distance_type: (string) Way of calculating distances (euclidean, manhattan)
@@ -65,6 +73,14 @@ class GymEnv(CameraEnv):
                  task_type='reach',
                  num_subgoals=0,
                  task_objects=["virtual_cube_holes"],
+                 
+                 distractors=None,
+                 distractor_moveable=0,
+                 distractor_movement_endpoints=[-0.7+0.12, 0.7-0.15], 
+                 distractor_constant_speed=1, 
+                 distractor_movement_dimensions=2,
+                 observed_links_num=11,
+
                  reward_type='gt',
                  reward = 'distance',
                  distance_type='euclidean',
@@ -80,27 +96,34 @@ class GymEnv(CameraEnv):
                  **kwargs
                  ):
 
-        self.workspace = workspace
-        self.robot_type = robot
-        self.robot_position = robot_position
-        self.robot_orientation = robot_orientation
+        self.workspace              = workspace
+        self.robot_type             = robot
+        self.robot_position         = robot_position
+        self.robot_orientation      = robot_orientation
         self.robot_init_joint_poses = robot_init_joint_poses
-        self.robot_action = robot_action
-        self.dimension_velocity = dimension_velocity
-        self.active_cameras = active_cameras
+        self.robot_action           = robot_action
+        self.dimension_velocity     = dimension_velocity
+        self.active_cameras         = active_cameras
 
-        self.objects_area_boarders = object_sampling_area
-        self.used_objects = used_objects
-        self.action_repeat = action_repeat
-        self.num_objects_range = num_objects_range
-        self.color_dict = color_dict
+        self.objects_area_boarders  = object_sampling_area
+        self.used_objects           = used_objects
+        self.action_repeat          = action_repeat
+        self.num_objects_range      = num_objects_range
+        self.color_dict             = color_dict
 
-        self.task_type = task_type
+        self.observed_links_num     = observed_links_num
+
+        self.task_type              = task_type
         if dataset:
             task_objects = []
-        self.task_objects_names = task_objects
-        self.reward_type = reward_type
-        self.distance_type = distance_type
+        self.task_objects_names     = task_objects
+
+        self.has_distractor         = False
+        self.distractors            = distractors
+
+        self.reward_type            = reward_type
+        self.distance_type          = distance_type
+
         self.task = t.TaskModule(task_type=self.task_type,
                                  num_subgoals=num_subgoals,
                                  task_objects=self.task_objects_names,
@@ -110,12 +133,30 @@ class GymEnv(CameraEnv):
                                  yolact_config=yolact_config,
                                  distance_type=self.distance_type,
                                  env=self)
+        
+        self.dist = d.DistractorModule(distractor_moveable,
+                                       distractor_movement_endpoints, 
+                                       distractor_constant_speed, 
+                                       distractor_movement_dimensions,
+                                       env=self)  
+
         if reward == 'distance':
             self.reward = DistanceReward(env=self, task=self.task)
         elif reward == "complex_distance":
             self.reward = ComplexDistanceReward(env=self, task=self.task)
         elif reward == 'sparse':
             self.reward = SparseReward(env=self, task=self.task)
+        elif reward == 'distractor':
+            self.has_distractor = True
+            if self.distractors == None:
+                self.distractor = ['bus']
+            # self.reward = DistractorReward(env=self, task=self.task)
+            self.reward = VectorReward(env=self, task=self.task)
+        elif reward == 'poke':
+            self.reward = PokeEnviroReward(env=self, task=self.task)
+            # self.reward = PokeVectorReward(env=self, task=self.task)
+            # self.reward = PokeReward(env=self, task=self.task)
+
         self.dataset = dataset
         self.obs_space = obs_space
         self.visualize = visualize
@@ -255,6 +296,10 @@ class GymEnv(CameraEnv):
                                                   "desired_goal": spaces.Box(low=-10, high=10, shape=(goaldim,))})
         else:
             observationDim = self.task.obsdim
+
+            if self.has_distractor:
+                observationDim = (len(self.task_objects_names) + self.observed_links_num + len(self.distractors) + 1) * 3
+
             observation_high = np.array([100] * observationDim)
             self.observation_space = spaces.Box(-observation_high,
                                                 observation_high)
@@ -305,7 +350,7 @@ class GymEnv(CameraEnv):
         """
         super().reset(hard=hard)
 
-        self.env_objects = []
+        self.env_objects  = []
         self.task_objects = []
         if self.used_objects is not None:
             if self.num_objects_range is not None:
@@ -324,6 +369,11 @@ class GymEnv(CameraEnv):
         else:
             for obj_name in self.task_objects_names:
                 self.task_objects.append(self._randomly_place_objects(1, [obj_name], random_pos)[0])
+
+            if self.has_distractor:
+                for distractor in self.distractors:
+                    self.task_objects.append(self.dist.place_distractor(distractor, self.p))
+
         self.env_objects += self.task_objects
         self.robot.reset(random_robot=random_robot)
         self.task.reset_task()
@@ -382,6 +432,10 @@ class GymEnv(CameraEnv):
         """
         action = self._rescale_action(action)
         self._apply_action_robot(action)
+
+        if self.has_distractor:
+            for distractor in self.distractors:
+                self.dist.execute_distractor_step(distractor)
 
         self._observation = self.get_observation()
         if self.dataset:
@@ -445,8 +499,15 @@ class GymEnv(CameraEnv):
         objects_filenames = self._get_random_urdf_filenames(n, object_names)
         for object_filename in objects_filenames:
             if random_pos:
-                pos = env_object.EnvObject.get_random_object_position(
-                    self.objects_area_boarders)
+                borders = self.objects_area_boarders
+                if self.task_type == 'poke':
+                    if "poke" in object_filename:
+                        borders = [0, 0, 0.9, 0.9, 0.025, 0.025]
+                    if "cube" in object_filename:
+                        borders = [0, 0, 1.2, 1.2, 0.025, 0.025]
+                        fixed = True
+
+                pos = env_object.EnvObject.get_random_object_position(borders)
                 #orn = env_object.EnvObject.get_random_object_orientation()
                 orn = [0, 0, 0, 1]
             fixed = False

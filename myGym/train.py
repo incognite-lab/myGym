@@ -65,7 +65,13 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
         env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                          "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
                          "robot_action": arg_dict["robot_action"], "task_type": arg_dict["task_type"], "num_subgoals": arg_dict["num_subgoals"],
-                         "task_objects":arg_dict["task_objects"], "reward_type": arg_dict["reward_type"],
+                         "task_objects":arg_dict["task_objects"], "distractors":arg_dict["distractors"], 
+                         "distractor_moveable":arg_dict["distractor_moveable"],
+                         "distractor_constant_speed":arg_dict["distractor_constant_speed"],
+                         "distractor_movement_dimensions":arg_dict["distractor_movement_dimensions"],
+                         "distractor_movement_endpoints":arg_dict["distractor_movement_endpoints"],
+                         "observed_links_num":arg_dict["observed_links_num"],
+                         "reward_type": arg_dict["reward_type"],
                          "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
                          "object_sampling_area": arg_dict["object_sampling_area"], "active_cameras": arg_dict["camera"],
                          "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
@@ -108,8 +114,9 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                           "acktr": {"tensorflow": [ACKTR_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "trpo": {"tensorflow": [TRPO_T, (MlpPolicy, env), {"verbose": 1, "tensorboard_log": model_logdir}]},
                           "gail": {"tensorflow": [SAC_T, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]},
-                          "a2c": {"tensorflow": [A2C_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}],},
-                          "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]}}
+                          "a2c":    {"tensorflow": [A2C_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}],},
+                          "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
+                          "dual":   {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]}}
 
     if "PPO_P" in sys.modules:
         implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env), {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir}]
@@ -122,8 +129,8 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
 
 def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None):
     model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
-    conf_pth = os.path.join(model_logdir, "train.json")
-    model_path=os.path.join(model_logdir, "best_model.zip")
+    conf_pth   = os.path.join(model_logdir, "train.json")
+    model_path = os.path.join(model_logdir, "best_model.zip")
     arg_dict["model_path"] = model_path
     with open(conf_pth, "w") as f:
         json.dump(arg_dict, f)
@@ -203,6 +210,13 @@ def get_parser():
     parser.add_argument("-to", "--task_objects", nargs="*", type=str, help="Object (for reach) or a pair of objects (for other tasks) to manipulate with")
     parser.add_argument("-u", "--used_objects", nargs="*", type=str, help="List of extra objects to randomly appear in the scene")
     parser.add_argument("-oa", "--object_sampling_area", nargs="*", type=float, help="Area in the scene where objects can appear")
+    #Distractors
+    parser.add_argument("-di", "--distractors", type=str, help="Object (for reach) to evade")
+    parser.add_argument("-dm", "--distractor_moveable", type=int, help="can distractor move (0/1)")
+    parser.add_argument("-ds", "--distractor_constant_speed", type=int, help="is speed of distractor constant (0/1)")
+    parser.add_argument("-dd", "--distractor_movement_dimensions", type=int, help="in how many directions can the distractor move (1/2/3)")
+    parser.add_argument("-de", "--distractor_movement_endpoints", nargs="*", type=float, help="2 coordinates (starting point and ending point)")
+    parser.add_argument("-no", "--observed_links_num", type=int, help="number of robot links in observation space")
     #Reward
     parser.add_argument("-rt", "--reward_type", type=str, help="Type of reward: gt(ground truth), 3dvs(3D vision supervised), 2dvu(2D vision unsupervised), 6dvs(6D vision supervised)")
     parser.add_argument("-re", "--reward", type=str,  help="Defines how to compute the reward")

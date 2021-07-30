@@ -227,6 +227,26 @@ class Robot:
         observation.extend(list(pos))
         return observation
 
+    def get_links_observation(self, num):
+        """
+        Get robot part of observation data
+
+        Returns: 
+            :return observation: (list) Position of all links (center of mass)
+        """
+        observation = []
+        if self.robot == "kuka":
+            for link in range(self.gripper_index-num, self.gripper_index):  
+            # for link in range(4, self.gripper_index):  
+                state = self.p.getLinkState(self.robot_uid, link)
+                pos = state[0]
+                observation.extend(list(pos))
+        else:
+            exit("not implemented for other arms than kuka")
+
+        self.observed_links_num = num
+        return observation
+
     def get_position(self):
         """
         Get position of robot's end-effector link
