@@ -1,16 +1,16 @@
 {
 # directory
-    "output_folder" : "../myGym/yolact_vision/data/yolact/datasets/my_dataset",
+    "output_folder" : "../myGym/yolact_vision/data/yolact/datasets/artwin_ex_dataset",
 # dataset parameters
     "dataset_type" : "coco", #"coco" (for yolact, detectron)/ "dope"
     "make_dataset" : "new", #mode of writing files, "new" (override), "resume" (append),"display" (don't store results)
-    "num_episodes" : 3000, #total number of episodes
+    "num_episodes" : 10, #total number of episodes
     "num_steps" : 1, #need more steps, because the arms are moving and the objects are first falling down from above the table
     "make_shot_every_frame" : 1, #used as if episode % make_shot_every_frame : 0, so for 60 % 30 it's 3 shots (0, 30, and 60)
-    "num_episodes_hard_reset" : 40, #hard reset every x episode prevents objects from vanishing when GUI is on
+    "num_episodes_hard_reset" : 2, #hard reset every x episode prevents objects from vanishing when GUI is on
     "autosafe_episode" : 100, #if episode % auto_safe_episode, write json files to directory (prevent data loss when process crashes)
     "random_arm_movement" : false,
-    "active_cameras" : [1,0,1,1,1], #set 1 at a position(=camera number) to save images from this camera
+    "active_cameras" : [1,1,1,0,0], #set 1 at a position(=camera number) to save images from this camera
     "camera_resolution" : [640,480],
     "min_obj_area" : 49, #each object will have at least this pixels visible, to be reasonably recognizable. If not, skip. (49 ~ 7x7pix img)
     "train_test_split_pct" : 0.1, #data split, 0.0 = only train, 1.0 = only test
@@ -25,8 +25,8 @@
     "changing_light_gui" : false,
     "shadows_on" : true,
     "color_dict" : null, #use to make (fixed) object colors - textures and color_randomizer will be suppressed, pass null to ignore
-    "object_sampling_area" : [-1.7, 1.7, -0.5, 2.3, 0.1, 0.8], # xxyyzz
-    "num_objects_range" : [2, 3], #range for random count of sampled objects in each scene (>=0)
+    "object_sampling_area" : [-1.5, 1.5, -1.5, 1.5, 0.3, 1.3], # xxyyzz
+    "num_objects_range" : [1, 4], #range for random count of sampled objects in each scene (>=0)
 # randomization parameters
 "seed": 42,
     "texture_randomizer": {
@@ -56,7 +56,11 @@
     #If you want to make some classes to be classified as the same, assign them the same value, i.e. screw_round:1, peg:1
     #If you want some class to appear statistically more often, increase the quantity
     #"used_class_names_quantity" : [[1,"kuka",1], [1,"kuka_gripper",2], [1,"car_roof",3], [1,"cube_holes",4], [1,"ex_bucket",5], [1,"hammer",6], [1,"nut",7], [1,"peg_screw",8], [1,"pliers",9], [1,"screw_round",10], [1,"screwdriver",11], [1,"sphere_holes",12],[1,"wafer",13], [1,"wheel",14], [1,"wrench",15]],
-    "used_class_names_quantity" : [[1,"cart_1",91]],
+    "used_class_names_quantity" : [[1,"box_3",1], [1,"cart_2",2], [1,"cart_5",2],
+     [1,"cart_stool_1",2], [1,"chair_8",3], [1,"computer_1",4], [1,"conveyor_1",5], [1,"conveyor_4",5],
+     [1,"crane_1",6], [1,"crane_3",6], [1,"forklift_2",7], [1,"locker_1",8], [1,"locker_4",8],
+     [1,"machine_1",9], [1,"mobile_rack_2",10], [1,"pallets_1",11], [1,"pile_of_boxes_5",12],
+     [1,"trash_can_1",13], [1,"workstation_12",14]],
     #fix colors of objects, when color_dict = object_colors
     "object_colors" : {"car_roof": ["yellow"], "cube_holes": ["light_green"], "ex_bucket": ["black"], "hammer": ["red"],
         "nut": ["light_blue"], "peg_screw": ["white"], "pliers": ["sepia"], "screw_round": ["light_blue"],
