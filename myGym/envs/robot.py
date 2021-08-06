@@ -235,7 +235,7 @@ class Robot:
             :return observation: (list) Position of all links (center of mass)
         """
         observation = []
-        if self.robot == "kuka":
+        if "kuka" in self.name:
             for link in range(self.gripper_index-num, self.gripper_index):  
             # for link in range(4, self.gripper_index):  
                 state = self.p.getLinkState(self.robot_uid, link)
