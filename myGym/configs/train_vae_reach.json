@@ -18,6 +18,13 @@
 "task_objects":["hammer_virtual"],
 "used_objects":null,
 "object_sampling_area":[-0.7, 0.7, 0.3, 0.9, 0.1, 0.1],
+#Distractor
+"distractors"                   : ["sphere"],
+"distractor_moveable"           : 1,
+"distractor_constant_speed"     : 0,
+"distractor_movement_dimensions": 3,
+"distractor_movement_endpoints" : [-0.3, 0.3, 0.4, 0.7, 0.1, 0.3],
+"observed_links_num"            : 5,
 #Reward
 "reward_type":"2dvu",
 "reward":"distance",

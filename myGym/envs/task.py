@@ -121,6 +121,10 @@ class TaskModule():
                 obj_positions.append(self.vision_module.get_obj_position(env_object,self.image,self.depth))
                 if self.reward_type == '6dvs' and self.task_type != 'reach' and env_object != self.env.task_objects[-1]:
                     obj_orientations.append(self.vision_module.get_obj_orientation(env_object,self.image))
+        
+        if self.env.has_distractor:
+            obj_positions.append(self.env.robot.get_links_observation(self.env.observed_links_num))
+        
         obj_positions[len(obj_orientations):len(obj_orientations)] = obj_orientations
         self._observation = np.array(sum(obj_positions, []))
         return self._observation
@@ -184,6 +188,46 @@ class TaskModule():
         self.current_norm_distance = self.calc_distance(o1, o2)
         return self.current_norm_distance < self.threshold
 
+
+    def check_poke_threshold(self, observation):
+        """
+        Check if the distance between relevant task objects is under threshold for successful task completion
+
+        Returns:
+            :return: (bool)
+        """
+        observation = observation["observation"] if isinstance(observation, dict) else observation
+        goal  = observation[0:3]
+        poker = observation[3:6]
+        self.current_norm_distance = self.calc_distance(goal, poker)
+        return self.current_norm_distance < 0.05
+
+
+    # def check_distance_threshold(self, observation):
+    #     """
+    #     Check if the distance between relevant task objects is under threshold for successful task completion
+            # Jonášova verze
+    #     Returns:
+    #         :return: (bool)
+    #     """
+    #     observation = observation["observation"] if isinstance(observation, dict) else observation
+    #     goal = observation[0:3]
+    #     gripper = observation[-4:-1]
+    #     self.current_norm_distance = self.calc_distance(goal, gripper)
+    #     return self.current_norm_distance < self.threshold
+
+    def check_distractor_distance_threshold(self, goal, gripper):
+        """
+        Check if the distance between relevant task objects is under threshold for successful task completion
+
+        Returns:
+            :return: (bool)
+        """
+        self.current_norm_distance = self.calc_distance(goal, gripper)
+        threshold = 0.1
+        return self.current_norm_distance < threshold
+
+
     def check_points_distance_threshold(self): 
         if (self.task_type == 'pnp') and (self.env.robot_action != 'joints_gripper') and (len(self.env.robot.magnetized_objects) == 0):
             o1 = self.current_task_objects[0]
@@ -229,6 +273,12 @@ class TaskModule():
                 self.sub_idx += 1 #continue with next subgoal
                 self.env.reward.reset() #reward reset
         elif contacts: #threshold for successful push/throw/pick'n'place
+            self.env.episode_over = True
+            if self.env.episode_steps == 1:
+                self.env.episode_info = "Task completed in initial configuration"
+            else:
+                self.env.episode_info = "Task completed successfully"
+        elif self.task_type == 'poke'and self.check_poke_threshold(self._observation):
             self.env.episode_over = True
             if self.env.episode_steps == 1:
                 self.env.episode_info = "Task completed in initial configuration"
