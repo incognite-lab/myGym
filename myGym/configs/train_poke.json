@@ -14,6 +14,7 @@
 "robot_init"  :[0.0, 0.5, 0.5],
 #Task
 "task_type"           :"poke",
+"num_subgoals"        : 0,
 "task_objects"        :["cube_holes", "poke_holes"],
 "used_objects"        :null,
 "color_dict"          :null,
@@ -37,13 +38,13 @@
 "algo"             :"ppo2",
 "max_episode_steps":1024,
 "algo_steps"       :2048,
-"steps"            :1000,
-"pretrained_model" :"/home/jonas/myGym/assignment/poke_trained_models/poke_table_kuka_joints_gt_ppo2_109/best_model.zip",
+"steps"            :500000,
+"pretrained_model" :null,
 "multiprocessing"  :false,
 #Evaluation
 "eval_freq"    :10000,
-"eval_episodes":10,
+"eval_episodes":5,
 #Saving and logging
-"logdir": "/home/jonas/myGym/assignment/poke_trained_models/", 
+"logdir": "/home/jonas/myGym/myGym/trained_models/poke/", 
 "record":0
 }

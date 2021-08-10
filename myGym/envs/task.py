@@ -175,18 +175,18 @@ class TaskModule():
                 return True
         return False
 
-    def check_distance_threshold(self, observation):
-        """
-        Check if the distance between relevant task objects is under threshold for successful task completion
+    # def check_distance_threshold(self, observation):
+    #     """
+    #     Check if the distance between relevant task objects is under threshold for successful task completion
 
-        Returns:
-            :return: (bool)
-        """
-        observation = observation["observation"] if isinstance(observation, dict) else observation
-        o1 = observation[0:int(len(observation[:-3])/2)] if self.reward_type == "2dvu" else observation[0:3]
-        o2 = observation[int(len(observation[:-3])/2):-3]if self.reward_type == "2dvu" else observation[3:6]
-        self.current_norm_distance = self.calc_distance(o1, o2)
-        return self.current_norm_distance < self.threshold
+    #     Returns:
+    #         :return: (bool)
+    #     """
+    #     observation = observation["observation"] if isinstance(observation, dict) else observation
+    #     o1 = observation[0:int(len(observation[:-3])/2)] if self.reward_type == "2dvu" else observation[0:3]
+    #     o2 = observation[int(len(observation[:-3])/2):-3]if self.reward_type == "2dvu" else observation[3:6]
+    #     self.current_norm_distance = self.calc_distance(o1, o2)
+    #     return self.current_norm_distance < self.threshold
 
 
     def check_poke_threshold(self, observation):
@@ -203,18 +203,19 @@ class TaskModule():
         return self.current_norm_distance < 0.05
 
 
-    # def check_distance_threshold(self, observation):
-    #     """
-    #     Check if the distance between relevant task objects is under threshold for successful task completion
-            # Jonášova verze
-    #     Returns:
-    #         :return: (bool)
-    #     """
-    #     observation = observation["observation"] if isinstance(observation, dict) else observation
-    #     goal = observation[0:3]
-    #     gripper = observation[-4:-1]
-    #     self.current_norm_distance = self.calc_distance(goal, gripper)
-    #     return self.current_norm_distance < self.threshold
+    def check_distance_threshold(self, observation):
+        """
+        Check if the distance between relevant task objects is under threshold for successful task completion
+            Jonášova verze
+        Returns:
+            :return: (bool)
+        """
+        observation = observation["observation"] if isinstance(observation, dict) else observation
+        # goal is first in obs and griper is last (always)
+        goal = observation[0:3]
+        gripper = observation[-4:-1]
+        self.current_norm_distance = self.calc_distance(goal, gripper)
+        return self.current_norm_distance < self.threshold
 
     def check_distractor_distance_threshold(self, goal, gripper):
         """
@@ -253,7 +254,13 @@ class TaskModule():
         self.last_distance = self.current_norm_distance
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
-        contacts = self.check_points_distance_threshold()
+        finished = None
+        if self.task_type == 'reach':
+            finished = self.check_distance_threshold(self._observation)
+        if self.task_type == 'push' or self.task_type == 'throw' or self.task_type == 'pick_n_place':
+            finished = self.check_points_distance_threshold()
+        if self.task_type == 'poke':
+            finished = self.check_poke_threshold(self._observation)
         
         if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and contacts:
             if len(self.env.robot.magnetized_objects) == 0:
@@ -272,26 +279,21 @@ class TaskModule():
                 self.env.robot.magnetize_object(self.env.task_objects[self.obs_sub[self.sub_idx][0]], contacts) #magnetize first object
                 self.sub_idx += 1 #continue with next subgoal
                 self.env.reward.reset() #reward reset
-        elif contacts: #threshold for successful push/throw/pick'n'place
-            self.env.episode_over = True
-            if self.env.episode_steps == 1:
-                self.env.episode_info = "Task completed in initial configuration"
-            else:
-                self.env.episode_info = "Task completed successfully"
-        elif self.task_type == 'poke'and self.check_poke_threshold(self._observation):
-            self.env.episode_over = True
-            if self.env.episode_steps == 1:
-                self.env.episode_info = "Task completed in initial configuration"
-            else:
-                self.env.episode_info = "Task completed successfully"
-        elif self.check_time_exceeded():
+        elif finished:
+            if self.check_distance_threshold(self._observation):
+                self.env.episode_over = True
+                if self.env.episode_steps == 1:
+                    self.env.episode_info = "Task completed in initial configuration"
+                else:
+                    self.env.episode_info = "Task completed successfully"
+        if self.check_time_exceeded():
             self.env.episode_over = True
             self.env.episode_failed = True
-        elif self.env.episode_steps == self.env.max_steps:
+        if self.env.episode_steps == self.env.max_steps:
             self.env.episode_over = True
             self.env.episode_failed = True
             self.env.episode_info = "Max amount of steps reached"
-        elif self.reward_type != 'gt' and (self.check_vision_failure()):
+        if self.reward_type != 'gt' and (self.check_vision_failure()):
             self.stored_observation = []
             self.env.episode_over = True
             self.env.episode_failed = True

@@ -217,10 +217,10 @@ class SparseReward(Reward):
 
 
 
-class PokeEnviroReward(Reward):
+class PokeReachReward(Reward):
 
     def __init__(self, env, task):
-        super(PokeEnviroReward, self).__init__(env, task)
+        super(PokeReachReward, self).__init__(env, task)
 
         self.threshold             = 0.1
         self.last_distance         = None
@@ -242,9 +242,9 @@ class PokeEnviroReward(Reward):
 
     def compute(self, observation=None):
         poker_position, distance, gripper_distance = self.init(observation)
-
+        
         reward = self.count_reward(poker_position, distance, gripper_distance)
-
+        
         self.finish(observation, poker_position, distance, gripper_distance, reward)
         
         return reward
@@ -255,7 +255,10 @@ class PokeEnviroReward(Reward):
         poker_position   = observation[3:6]
         gripper_position = self.get_accurate_gripper_position(observation[6:9])
 
-        distance = self.env.task.calc_distance(goal_position, poker_position)
+        for i in range(len(poker_position)):
+            poker_position[i] = round(poker_position[i], 4)
+
+        distance = round(self.env.task.calc_distance(goal_position, poker_position), 7)
         gripper_distance = self.env.task.calc_distance(poker_position, gripper_position)
         self.initialize_positions(poker_position, distance, gripper_distance)
 
@@ -269,7 +272,7 @@ class PokeEnviroReward(Reward):
 
     def count_reward(self, poker_position, distance, gripper_distance):
         reward = 0
-        if not self.check_motion(poker_position): 
+        if self.check_motion(poker_position):
             reward += self.last_gripper_distance - gripper_distance
         reward += 100*(self.last_distance - distance)
         return reward
@@ -281,7 +284,7 @@ class PokeEnviroReward(Reward):
         if self.last_gripper_distance is None:
             self.last_gripper_distance = gripper_distance
 
-        if self.prev_poker_position is None:
+        if self.prev_poker_position[0] is None:
             self.prev_poker_position = poker_position
 
     def update_positions(self, poker_position, distance, gripper_distance):
@@ -305,9 +308,9 @@ class PokeEnviroReward(Reward):
         return direction_vector.add_vector(gripper)
 
     def is_poker_moving(self, poker):
-        if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1] and self.prev_poker_position[1] == poker[1]:
+        if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1]:
             return False
-        if self.env.episode_steps > 10:   # it slightly moves on the beginning
+        elif self.env.episode_steps > 25:   # it slightly moves on the beginning
             self.moved = True
         return True
 
@@ -318,8 +321,8 @@ class PokeEnviroReward(Reward):
             self.env.episode_info   = "too weak poke"
             return True
         elif self.is_poker_moving(poker):
-            return True
-        return False
+            return False
+        return True
 
 # vector rewards
 
@@ -571,7 +574,9 @@ class PokeVectorReward(Reward):
         poke_vector = v.Vector(self.prev_poker_position, goal_position, self.env)
         aim_vector  = v.Vector(self.prev_gripper_position, self.prev_poker_position, self.env)
 
-        align = poke_vector.get_align(aim_vector)
+        # align = poke_vector.get_align(aim_vector)
+
+        align = np.dot(self.set_vector_len(poke_vector.vector, 1), self.set_vector_len(aim_vector.vector, 1))
 
         # reward
         align_factor = 0
@@ -581,15 +586,13 @@ class PokeVectorReward(Reward):
         align_factor = (align - self.last_align) + (self.last_len - len)
 
         if align > 0.95:
-            self.owner_id = 1
             real_vector = v.Vector(self.prev_gripper_position, gripper_position, self.env)
-            poke_factor = poke_vector.get_align(real_vector)
-            real_vector.visualize(self.prev_gripper_position, color=(0, 0, 255))
-        else:
-            self.owner_id = 0
+            # poke_factor = poke_vector.get_align(real_vector)
+            poke_factor = np.dot(self.set_vector_len(poke_vector.vector, 1), self.set_vector_len(real_vector.vector, 1))
+            # real_vector.visualize(self.prev_gripper_position, color=(0, 0, 255))
 
-        poke_vector.visualize(self.prev_poker_position, color=(255, 0, 0))
-        aim_vector.visualize(self.prev_gripper_position, color=(0, 255, 0))
+        # poke_vector.visualize(self.prev_poker_position, color=(255, 0, 0))
+        # aim_vector.visualize(self.prev_gripper_position, color=(0, 255, 0))
 
         # print()
         # print("align:        ", align)
@@ -620,6 +623,18 @@ class PokeVectorReward(Reward):
         if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1] and self.prev_poker_position[1] == poker[1]:
             return False
         return True
+
+    def set_vector_len(self, vector, len):
+        norm    = self.count_vector_norm(vector)
+        vector  = self.multiply_vector(vector, 1/norm)
+
+        return self.multiply_vector(vector, len)
+
+    def count_vector_norm(self, vector):
+        return math.sqrt(np.dot(vector, vector))
+
+    def multiply_vector(self, vector, multiplier):
+        return np.array(vector) * multiplier
 
 class VectorReward(Reward):
     """
@@ -746,7 +761,7 @@ class VectorReward(Reward):
         if real_vector.norm == 0:
             reward += 0
         else:
-            reward -= optimal_vector.get_align(real_vector)
+            reward += np.dot(self.set_vector_len(optimal_vector.vector, 1), self.set_vector_len(real_vector.vector, 1))
 
         self.prev_gipper_position = gripper
 

@@ -2,7 +2,7 @@ from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeEnviroReward
+from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward
 import pybullet
 import time
 import numpy as np
@@ -118,7 +118,7 @@ class GymEnv(CameraEnv):
             task_objects = []
         self.task_objects_names     = task_objects
 
-        self.has_distractor         = False
+        self.has_distractor         = False if distractors == None else True
         self.distractors            = distractors
 
         self.reward_type            = reward_type
@@ -150,10 +150,9 @@ class GymEnv(CameraEnv):
             self.has_distractor = True
             if self.distractors == None:
                 self.distractor = ['bus']
-            # self.reward = DistractorReward(env=self, task=self.task)
             self.reward = VectorReward(env=self, task=self.task)
         elif reward == 'poke':
-            self.reward = PokeEnviroReward(env=self, task=self.task)
+            self.reward = PokeReachReward(env=self, task=self.task)
             # self.reward = PokeVectorReward(env=self, task=self.task)
             # self.reward = PokeReward(env=self, task=self.task)
 
@@ -499,18 +498,18 @@ class GymEnv(CameraEnv):
         objects_filenames = self._get_random_urdf_filenames(n, object_names)
         for object_filename in objects_filenames:
             if random_pos:
+                fixed = False
                 borders = self.objects_area_boarders
                 if self.task_type == 'poke':
                     if "poke" in object_filename:
-                        borders = [0, 0, 0.9, 0.9, 0.025, 0.025]
+                        borders = [0, 0, 0.7, 0.7, 0.1, 0.1]
                     if "cube" in object_filename:
-                        borders = [0, 0, 1.2, 1.2, 0.025, 0.025]
+                        borders = [0, 0, 1, 1, 0.1, 0.1]
                         fixed = True
 
                 pos = env_object.EnvObject.get_random_object_position(borders)
                 #orn = env_object.EnvObject.get_random_object_orientation()
                 orn = [0, 0, 0, 1]
-            fixed = False
             for x in ["target", "crate", "bin", "box", "trash"]:
                 if x in object_filename:
                     fixed = True
