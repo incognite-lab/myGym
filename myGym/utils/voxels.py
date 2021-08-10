@@ -53,8 +53,16 @@ def voxelize(objects, extends, resolution, pb_client):
     return voxels
 
 
-def visualize(voxels, extends, pb_client):
-    """Visualizes created voxels by adding a batch multibody of voxel cubes into the pybyllet world"""
+def visualize(voxels, extends, pb_client, color=None):
+    """
+    Visualizes created voxels by adding a batch multibody of voxel cubes into the pybyllet world
+
+    Args:
+        voxels: nparray of voxels to visualize
+        extends: dimensions of a 3D box to voxelize in - [(min_X, max_X), (min_Y, max_Y), (min_Z, max_Z)
+        pb_client: pybullet client
+        color (optional): voxel colors, defaults to white. WARNING: semi-transparent color seriously hits performance
+    """
 
     indices, steps = _linspace(extends, voxels.shape)
 
@@ -68,7 +76,9 @@ def visualize(voxels, extends, pb_client):
 
     pb_client.createMultiBody(
         baseMass=0.0,
-        baseCollisionShapeIndex=pb_client.createCollisionShape(pb.GEOM_BOX, halfExtents=steps * 0.5),
+        baseVisualShapeIndex=pb_client.createVisualShape(
+            pb.GEOM_BOX, halfExtents=steps * 0.5, rgbaColor=color if color else [1.0, 1.0, 1.0, 1.0]
+        ),
         basePosition=[0, 0, 0],
         batchPositions=batch_positions,
     )
