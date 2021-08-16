@@ -2,7 +2,7 @@ from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward
+from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward, DualPoke
 import pybullet
 import time
 import numpy as np
@@ -152,7 +152,12 @@ class GymEnv(CameraEnv):
                 self.distractor = ['bus']
             self.reward = VectorReward(env=self, task=self.task)
         elif reward == 'poke':
-            self.reward = PokeReachReward(env=self, task=self.task)
+            # if "alsgo = dual":
+            #     self.reward = DualPoke(env=self, task=self.task)
+            # else:
+            #     self.reward = PokeReachReward(env=self, task=self.task)
+
+            self.reward = DualPoke(env=self, task=self.task)
             # self.reward = PokeVectorReward(env=self, task=self.task)
             # self.reward = PokeReward(env=self, task=self.task)
 

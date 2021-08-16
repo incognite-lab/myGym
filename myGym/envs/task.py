@@ -202,6 +202,18 @@ class TaskModule():
         self.current_norm_distance = self.calc_distance(goal, poker)
         return self.current_norm_distance < 0.05
 
+    def check_reach_distance_threshold(self, observation):
+        """
+        Check if the distance between relevant task objects is under threshold for successful task completion
+            Jonášova verze
+        Returns:
+            :return: (bool)
+        """
+        observation = observation["observation"] if isinstance(observation, dict) else observation
+        goal    = observation[0:3]
+        gripper = self.env.reward.get_accurate_gripper_position(observation[3:6])
+        self.current_norm_distance = self.calc_distance(goal, gripper)
+        return self.current_norm_distance < self.threshold
 
     def check_distance_threshold(self, observation):
         """
@@ -212,8 +224,8 @@ class TaskModule():
         """
         observation = observation["observation"] if isinstance(observation, dict) else observation
         # goal is first in obs and griper is last (always)
-        goal = observation[0:3]
-        gripper = observation[-4:-1]
+        goal    = observation[0:3]
+        gripper = self.env.reward.get_accurate_gripper_position(observation[-4:-1])
         self.current_norm_distance = self.calc_distance(goal, gripper)
         return self.current_norm_distance < self.threshold
 
@@ -262,30 +274,29 @@ class TaskModule():
         if self.task_type == 'poke':
             finished = self.check_poke_threshold(self._observation)
         
-        if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and contacts:
+        if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
             if len(self.env.robot.magnetized_objects) == 0:
                 self.env.episode_over = False
-                self.env.robot.magnetize_object(self.current_task_objects[0], contacts)
+                self.env.robot.magnetize_object(self.current_task_objects[0], finished)
             else:
                 self.env.episode_over = True
                 if self.env.episode_steps == 1:
                     self.env.episode_info = "Task completed in initial configuration"
                 else:
                     self.env.episode_info = "Task completed successfully"
-        elif (self.task_type == '2stepreach') and (False in self.subgoals) and contacts:
+        elif (self.task_type == '2stepreach') and (False in self.subgoals) and finished:
                 self.env.episode_info = "Subgoal {}/{} completed successfully".format(self.sub_idx+1, self.num_subgoals)
                 self.subgoals[self.sub_idx] = True #current subgoal done
                 self.env.episode_over = False #don't reset episode
-                self.env.robot.magnetize_object(self.env.task_objects[self.obs_sub[self.sub_idx][0]], contacts) #magnetize first object
+                self.env.robot.magnetize_object(self.env.task_objects[self.obs_sub[self.sub_idx][0]], finished) #magnetize first object
                 self.sub_idx += 1 #continue with next subgoal
                 self.env.reward.reset() #reward reset
         elif finished:
-            if self.check_distance_threshold(self._observation):
-                self.env.episode_over = True
-                if self.env.episode_steps == 1:
-                    self.env.episode_info = "Task completed in initial configuration"
-                else:
-                    self.env.episode_info = "Task completed successfully"
+            self.env.episode_over = True
+            if self.env.episode_steps == 1:
+                self.env.episode_info = "Task completed in initial configuration"
+            else:
+                self.env.episode_info = "Task completed successfully"
         if self.check_time_exceeded():
             self.env.episode_over = True
             self.env.episode_failed = True

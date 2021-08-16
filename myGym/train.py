@@ -22,6 +22,8 @@ except:
     print("Torch isn't probably installed correctly")
 
 from myGym.stable_baselines_mygym.algo import MyAlgo
+from myGym.stable_baselines_mygym.reference import REFER
+from myGym.stable_baselines_mygym.dual_ppo2 import Dual
 from myGym.stable_baselines_mygym.policies import MyMlpPolicy
 
 from stable_baselines.gail import ExpertDataset, generate_expert_traj
@@ -105,18 +107,19 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
 
 
 def configure_implemented_combos(env, model_logdir, arg_dict):
-    implemented_combos = {"ppo2": {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
-                          "ppo": {"tensorflow": [PPO2_T, (MlpPolicy, env),  {"verbose": 1, "tensorboard_log": model_logdir}],},
-                          "her": {"tensorflow": [HER_T, (MlpPolicyDDPG, env, DDPG_T), {"goal_selection_strategy": 'future', "verbose": 1,"tensorboard_log": model_logdir}]},
-                          "sac": {"tensorflow": [SAC_T, (MlpPolicySAC, env), {"verbose": 1, "tensorboard_log": model_logdir}],},
-                          "ddpg": {"tensorflow": [DDPG_T, (MlpPolicyDDPG, env),{"verbose": 1, "tensorboard_log": model_logdir}]},
-                          "td3": {"tensorflow": [TD3_T, (MlpPolicyTD3, env), {"verbose": 1, "tensorboard_log": model_logdir}],},
-                          "acktr": {"tensorflow": [ACKTR_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
-                          "trpo": {"tensorflow": [TRPO_T, (MlpPolicy, env), {"verbose": 1, "tensorboard_log": model_logdir}]},
-                          "gail": {"tensorflow": [SAC_T, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]},
-                          "a2c":    {"tensorflow": [A2C_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}],},
-                          "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
-                          "dual":   {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]}}
+    implemented_combos = {"ppo2":  {"tensorflow": [PPO2_T, (MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
+                          "ppo":   {"tensorflow": [PPO2_T, (MlpPolicy, env),    {"verbose": 1, "tensorboard_log": model_logdir}],},
+                          "her":   {"tensorflow": [HER_T,  (MlpPolicyDDPG, env, DDPG_T), {"goal_selection_strategy": 'future', "verbose": 1,"tensorboard_log": model_logdir}]},
+                          "sac":   {"tensorflow": [SAC_T,  (MlpPolicySAC, env), {"verbose": 1, "tensorboard_log": model_logdir}],},
+                          "ddpg":  {"tensorflow": [DDPG_T, (MlpPolicyDDPG, env),{"verbose": 1, "tensorboard_log": model_logdir}]},
+                          "td3":   {"tensorflow": [TD3_T,  (MlpPolicyTD3, env), {"verbose": 1, "tensorboard_log": model_logdir}],},
+                          "acktr": {"tensorflow": [ACKTR_T,(MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
+                          "trpo":  {"tensorflow": [TRPO_T, (MlpPolicy, env),    {"verbose": 1, "tensorboard_log": model_logdir}]},
+                          "gail":  {"tensorflow": [SAC_T,  ('MlpPolicy', env),  {"verbose": 1, "tensorboard_log": model_logdir}]},
+                          "a2c":   {"tensorflow": [A2C_T,  (MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}],},
+                          "myalgo":{"tensorflow": [MyAlgo, (MyMlpPolicy, env),  {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
+                          "ref":   {"tensorflow": [REFER,  (MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
+                          "dual":  {"tensorflow": [Dual,   (MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]}}
 
     if "PPO_P" in sys.modules:
         implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env), {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir}]

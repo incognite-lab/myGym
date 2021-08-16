@@ -77,9 +77,12 @@ class DistanceReward(Reward):
         """
         observation = observation["observation"] if isinstance(observation, dict) else observation
         o1 = observation[0:3] if self.env.reward_type != "2dvu" else observation[0:int(len(observation[:-3])/2)]
-        o2 = observation[3:6] if self.env.reward_type != "2dvu" else observation[int(len(observation[:-3])/2):-3]
-        reward = self.calc_dist_diff(o1, o2)
-        self.task.check_distance_threshold(observation=observation)
+        o2 = self.get_accurate_gripper_position(observation[3:6]) if self.env.reward_type != "2dvu" else observation[int(len(observation[:-3])/2):-3]
+        reward = self.calc_dist_diff(o1, o2)         
+        if self.task.check_object_moved(self.env.task_objects[0]): # if pushes goal too far
+            self.env.episode_over   = True
+            self.env.episode_failed = True
+        self.task.check_reach_distance_threshold(observation)
         self.rewards_history.append(reward)
         return reward
 
@@ -112,6 +115,15 @@ class DistanceReward(Reward):
         self.prev_obj2_position = obj2_position
 
         return norm_diff
+
+    def get_accurate_gripper_position(self, gripper_position):
+        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
+        gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
+        direction_vector    = v.Vector([0,0,0], [0, 0, 0.1], self.env)
+        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
+        direction_vector.rotate_with_matrix(m)
+        gripper = v.Vector([0,0,0], gripper_position, self.env)
+        return direction_vector.add_vector(gripper)
 
 
 class ComplexDistanceReward(DistanceReward):
@@ -823,6 +835,15 @@ class VectorReward(Reward):
             links.append(list(observation[j:j+3]))
             j += 3
 
+    def get_accurate_gripper_position(self, gripper_position):
+        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
+        gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
+        direction_vector    = v.Vector([0,0,0], [0, 0, 0.1], self.env)
+        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
+        direction_vector.rotate_with_matrix(m)
+        gripper = v.Vector([0,0,0], gripper_position, self.env)
+        return direction_vector.add_vector(gripper)
+
     def add_vectors(self, v1, v2):
         r = []
 
@@ -859,3 +880,175 @@ class VectorReward(Reward):
 
     def get_angle_between_vectors(self, v1, v2):
         return math.acos(np.dot(v1, v2)/(self.count_vector_norm(v1)*self.count_vector_norm(v2)))
+
+# dual rewards
+
+class DualPoke(Reward):
+    """
+    Reward class for reward signal calculation based on distance differences between 2 objects
+
+    Parameters:
+        :param env: (object) Environment, where the training takes place
+        :param task: (object) Task that is being trained, instance of a class TaskModule
+    """
+    def __init__(self, env, task):
+        super(DualPoke, self).__init__(env, task)
+
+        # self.prev_goal_position    = [None]*3
+        self.prev_poker_position   = [None]*3
+        self.prev_gripper_position = [None]*3
+
+        self.last_align            = 0
+        self.last_len              = 0
+
+        self.owner_id              = -1
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+        # self.prev_goal_position    = [None]*3
+        self.prev_poker_position   = [None]*3
+        self.prev_gripper_position = [None]*3
+
+        self.last_align            = 0
+        self.last_len              = 0
+
+    def compute(self, observation=None):
+        """
+        Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
+
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        observation = observation["observation"] if isinstance(observation, dict) else observation
+        # load positions
+        goal_position    = observation[0:3]
+        poker_position   = observation[3:6]
+        gripper_position = self.get_accurate_gripper_position(observation[6:9])
+
+        self.initialize_positions(poker_position, gripper_position)
+
+        # align
+        poke_vector = v.Vector(self.prev_poker_position, goal_position, self.env)
+        aim_vector  = v.Vector(self.prev_gripper_position, self.prev_poker_position, self.env)
+
+        # align = poke_vector.get_align(aim_vector)
+        align = np.dot(self.set_vector_len(poke_vector.vector, 1), self.set_vector_len(aim_vector.vector, 1))
+
+        len = aim_vector.norm
+        align_factor = (align - self.last_align) + 0*(self.last_len - len)
+
+        self.env.p.addUserDebugText("Align: " + str(round(align, 3)), [0.5,0.5,0.5], lifeTime=0.1)
+
+        if align > 0.95:
+            real_vector = v.Vector(self.prev_gripper_position, gripper_position, self.env)
+            # poke_factor = poke_vector.get_align(real_vector)
+            poke_factor = np.dot(self.set_vector_len(poke_vector.vector, 1), self.set_vector_len(real_vector.vector, 1))
+            real_vector.visualize(self.prev_gripper_position, color=(0, 0, 255))
+            poke_vector.visualize(self.prev_poker_position, color=(255, 0, 0))
+            reward = poke_factor
+        else:
+            reward = align_factor
+            aim_vector.visualize(self.prev_gripper_position, color=(0, 255, 0))
+
+        if self.env.episode_steps > 25:
+            if self.is_poker_moving(poker_position):
+                reward = 0
+        elif self.env.episode_steps < 2:
+            reward = 0
+
+        self.prev_poker_position   = poker_position
+        self.prev_gripper_position = gripper_position
+        self.last_align            = align
+        self.last_len              = len
+
+        if self.task.check_object_moved(self.env.task_objects[1], 2):
+            self.env.episode_over   = True
+            self.env.episode_failed = True
+            self.env.episode_info   = "too strong poke"
+        self.task.check_poke_threshold(observation)
+        # import random
+        # reward = random.random()
+
+        self.rewards_history.append(reward)
+        return reward
+
+    def initialize_positions(self, poker_position, gripper_position):
+        # make sure none is None
+        if self.prev_poker_position[0] is None:
+            self.prev_poker_position   = poker_position
+
+        if self.prev_gripper_position[0] is None:
+            self.prev_gripper_position = gripper_position
+
+    def get_accurate_gripper_position(self, gripper_position):
+        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
+        gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
+        direction_vector    = v.Vector([0,0,0], [0, 0, 0.1], self.env)
+        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
+        direction_vector.rotate_with_matrix(m)
+        gripper = v.Vector([0,0,0], gripper_position, self.env)
+        return direction_vector.add_vector(gripper)
+
+    def is_poker_moving(self, poker):
+        if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1] and self.prev_poker_position[1] == poker[1]:
+            return False
+        return True
+
+    def decide(self, observation=None):
+
+        observation = observation["observation"] if isinstance(observation, dict) else observation
+        observation = observation[0]
+        # load positions
+        goal_position    = observation[0:3]
+        poker_position   = observation[3:6]
+        gripper_position = observation[6:9]
+
+        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
+        gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
+
+        direction_vector = v.Vector([0, 0, 0], [0, 0, 0.1], self.env)
+        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3],
+                       gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
+
+        direction_vector.rotate_with_matrix(m)
+        
+        gripper          = v.Vector([0, 0, 0], gripper_position, self.env)
+        gripper_position = direction_vector.add_vector(gripper)
+
+        if self.prev_poker_position[0] is None:
+            self.prev_poker_position = poker_position
+
+        if self.prev_gripper_position[0] is None:
+            self.prev_gripper_position = gripper_position
+
+        # align
+        poke_vector = v.Vector(self.prev_poker_position, goal_position, self.env)
+        aim_vector  = v.Vector(self.prev_gripper_position, self.prev_poker_position, self.env)
+
+        self.prev_gripper_position = gripper_position
+        self.prev_poker_position   = poker_position
+        
+        align = np.dot(self.set_vector_len(poke_vector.vector, 1), self.set_vector_len(aim_vector.vector, 1))
+
+        if align > 9.5:
+            owner = 1
+        else:
+            owner = 0
+
+        return owner
+
+    def set_vector_len(self, vector, len):
+        norm    = self.count_vector_norm(vector)
+        vector  = self.multiply_vector(vector, 1/norm)
+
+        return self.multiply_vector(vector, len)
+
+    def multiply_vector(self, vector, multiplier):
+        return np.array(vector) * multiplier
+    
+    def count_vector_norm(self, vector):
+        return math.sqrt(np.dot(vector, vector))
