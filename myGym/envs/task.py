@@ -7,6 +7,7 @@ import pkg_resources
 import cv2
 import random
 from scipy.spatial.distance import cityblock
+import math
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
 
@@ -42,6 +43,9 @@ class TaskModule():
         self.fig = None
         self.threshold = 0.1 # distance threshold for successful task completion
         self.obsdim = (len(env.task_objects_names) + 1) * 3
+        self.angle = None
+        self.prev_angle = None
+        self.pressed = None
         if self.task_type == '2stepreach':
             self.obsdim = 6
         if self.reward_type == 'gt':
@@ -66,6 +70,8 @@ class TaskModule():
         self.last_distance = None
         self.init_distance = None
         self.current_norm_distance = None
+        self.angle = None
+        self.pressed = None
         self.vision_module.mask = {}
         self.vision_module.centroid = {}
         self.vision_module.centroid_transformed = {}
@@ -175,6 +181,21 @@ class TaskModule():
                 return True
         return False
 
+    def check_switch_threshold(self):
+        self.angle = self.env.reward.get_angle()
+
+        if abs(self.angle) >= 18:
+            return True
+        else:
+            return False
+
+    def check_press_threshold(self):
+        self.pressed = self.env.reward.is_pressed()
+        if self.pressed >= 1.71:
+            return True
+        else:
+            return False
+
     # def check_distance_threshold(self, observation):
     #     """
     #     Check if the distance between relevant task objects is under threshold for successful task completion
@@ -254,6 +275,7 @@ class TaskModule():
         self.last_distance = self.current_norm_distance
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
+        contacts = self.check_points_distance_threshold()
         finished = None
         if self.task_type == 'reach':
             finished = self.check_distance_threshold(self._observation)
@@ -261,6 +283,23 @@ class TaskModule():
             finished = self.check_points_distance_threshold()
         if self.task_type == 'poke':
             finished = self.check_poke_threshold(self._observation)
+        if self.task_type == "switch":
+            if self.check_switch_threshold():
+                self.env.episode_over = True
+                self.env.episode_info = "Task completed successfully"
+            # elif self.env.episode_steps == self.env.max_steps:
+            #     self.env.episode_over = True
+            #     self.env.episode_failed = True
+            #     self.env.episode_info = "Max amount of steps reached"
+
+        if self.task_type == "press":
+            if self.check_press_threshold():
+                self.env.episode_over = True
+                self.env.episode_info = "Task completed successfully"
+            # elif self.env.episode_steps == self.env.max_steps:
+            #     self.env.episode_over = True
+            #     self.env.episode_failed = True
+            #     self.env.episode_info = "Max amount of steps reached"
         
         if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and contacts:
             if len(self.env.robot.magnetized_objects) == 0:

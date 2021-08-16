@@ -2,7 +2,7 @@ from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward
+from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward, SwitchReward, ButtonReward
 import pybullet
 import time
 import numpy as np
@@ -155,7 +155,12 @@ class GymEnv(CameraEnv):
             self.reward = PokeReachReward(env=self, task=self.task)
             # self.reward = PokeVectorReward(env=self, task=self.task)
             # self.reward = PokeReward(env=self, task=self.task)
-
+        elif reward == 'switch':
+            print("switch")
+            self.reward = SwitchReward(env=self, task=self.task)
+        elif reward == 'btn':
+            print("btn")
+            self.reward = ButtonReward(env=self, task=self.task)
         self.dataset = dataset
         self.obs_space = obs_space
         self.visualize = visualize
@@ -211,7 +216,7 @@ class GymEnv(CameraEnv):
                                             'boarders':[-0.5, 2.5, 0.8, 1.6, 0.1, 0.1]},
                                 'table':    {'urdf': 'table.urdf', 'texture': 'table.jpg', 
                                             'transform': {'position':[-0.0, -0.0, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.5, 1.0], [1.8, 0.9, 1.0], [-1.8, 0.9, 1.0], [0.0, 0.9, 1.3],
                                                                     [0.0, 1.6, 0.8], [-0.0, -0.5, 0.8], [0.8, 0.9, 0.6], [-0.8, 0.9, 0.8], [0.0, 0.9, 1.]], 
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.898, 1.28],
@@ -349,7 +354,7 @@ class GymEnv(CameraEnv):
         """
         super().reset(hard=hard)
 
-        self.env_objects  = []
+        self.env_objects = []
         self.task_objects = []
         if self.used_objects is not None:
             if self.num_objects_range is not None:
@@ -443,6 +448,8 @@ class GymEnv(CameraEnv):
             info = {}
         else:
             reward = self.reward.compute(observation=self._observation)
+            if reward is None:
+                reward = 0
             self.episode_reward += reward
             self.task.check_goal()
             done = self.episode_over
@@ -510,7 +517,7 @@ class GymEnv(CameraEnv):
                 pos = env_object.EnvObject.get_random_object_position(borders)
                 #orn = env_object.EnvObject.get_random_object_orientation()
                 orn = [0, 0, 0, 1]
-            for x in ["target", "crate", "bin", "box", "trash"]:
+            for x in ["target", "crate", "bin", "box", "trash", "switch", "btn", "steering_wheel"]:
                 if x in object_filename:
                     fixed = True
                     pos[2] = 0.05
