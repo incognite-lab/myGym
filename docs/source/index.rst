@@ -76,8 +76,8 @@ custom modules.
    user_guide/tutorial_config
    user_guide/train_camera
    user_guide/train_vae
-   user_guide/train_with_distractors
    user_guide/parallel_training
+   user_guide/train_switch
    user_guide/tensorboard
    user_guide/test_model
 
