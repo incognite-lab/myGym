@@ -54,7 +54,11 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
         test_env(env, arg_dict)
     else:
         try:
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"])
+            if arg_dict["algo"] == "dual":
+                model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
+                model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env=model_args[1].env)
+            else:
+                model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"])
         except:
             if (arg_dict["algo"] in implemented_combos.keys()) and (arg_dict["train_framework"] not in list(implemented_combos[arg_dict["algo"]].keys())):
                 err = "{} is only implemented with {}".format(arg_dict["algo"],list(implemented_combos[arg_dict["algo"]].keys())[0])

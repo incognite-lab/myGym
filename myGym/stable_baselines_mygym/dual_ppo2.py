@@ -1,3 +1,4 @@
+from pickle import NONE
 import time
 import os
 import gym
@@ -224,7 +225,7 @@ class Dual(ActorCriticRLModel):
                 i = 0
                 for rollout in rollouts:
                     obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward = rollout
-                    model  = self.models[i]
+                    model = self.models[i]
                     calc = len(true_reward)
                     model.n_batch = calc
                     # writer = writers[i]
@@ -311,9 +312,9 @@ class Dual(ActorCriticRLModel):
         }
         
         parent_path = parent_path.split("/")
-        start = parent_path[:-1]
-        end = parent_path[-1]
-        start = "/".join(start)
+        start       = parent_path[:-1]
+        end         = parent_path[-1]
+        start       = "/".join(start)
 
         for i in range(self.models_num):
             submodel_path = start + "/submodel_" + str(i) + "/" + end
@@ -325,6 +326,7 @@ class Dual(ActorCriticRLModel):
     def submodel_path(self, i):
         return self.tensorboard_log + "/submodel_" + str(i)
 
+    @classmethod
     def load(cls, load_path, env=None, custom_objects=None, **kwargs):
         """
         Load the model from file
@@ -340,10 +342,15 @@ class Dual(ActorCriticRLModel):
             file that can not be deserialized.
         :param kwargs: extra arguments to change the model when loading
         """
+        load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
         models = 2
+        load = [] # data, params
         for i in range(models):
-            load_path = cls.submodel_path()
-            data, params = cls._load_from_file(load_path, custom_objects=custom_objects)
+            load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
+            load_path = load_path + "/submodel_" + str(i) + "/best_model.zip"
+            load.append(cls._load_from_file(load_path, custom_objects=custom_objects))
+
+        data = load[0][0]
 
         if 'policy_kwargs' in kwargs and kwargs['policy_kwargs'] != data['policy_kwargs']:
             raise ValueError("The specified policy kwargs do not equal the stored policy kwargs. "
@@ -353,10 +360,16 @@ class Dual(ActorCriticRLModel):
         model = cls(policy=data["policy"], env=None, _init_setup_model=False)  # pytype: disable=not-instantiable
         model.__dict__.update(data)
         model.__dict__.update(kwargs)
-        model.set_env(env)
+        if env:
+            model.env = env
+        # model.set_env(env)
+        model.tensorboard_log = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
         model.setup_model()
 
-        model.load_parameters(params)
+        i = 0
+        for submodel in model.models:
+            submodel.load_parameters(load[i][1])
+            i += 1
 
         return model
 
@@ -435,7 +448,12 @@ class Dual(ActorCriticRLModel):
         vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
 
         observation = observation.reshape((-1,) + self.observation_space.shape)
-        model = self.models[self.models[0].approved(observation)]
+        # print(self.models[0].__dict__)
+        # print(self.models[0].env)
+        # for d in self.models[0].__dict__:
+        #     print(d, ":", self.models[0].__dict__[d])
+        # exit()
+        model = self.models[self.approved(observation)]
         actions, _, states, _ = model.step(observation, state, mask, deterministic=deterministic)
 
         clipped_actions = actions
@@ -450,10 +468,21 @@ class Dual(ActorCriticRLModel):
 
         return clipped_actions, states
 
+    def approved(self, observation):
+        # based on obs, decide which model should be used
+        try:
+            return self.env.envs[0].env.env.reward.decide(observation)
+        except:
+            return self.env.reward.decide(observation)
+
 class SubModel(Dual):
     def __init__(self, parent, i):
-
-        os.makedirs(parent.tensorboard_log + "/submodel_" + str(i))
+        self._param_load_ops = None
+        self.path = parent.tensorboard_log + "/submodel_" + str(i)
+        try:
+            os.makedirs(self.path)
+        except:
+            pass
 
         self.env = parent.env
 
@@ -602,10 +631,6 @@ class SubModel(Dual):
         if parent.ep_info_buf is None:
             parent.ep_info_buf = deque(maxlen=100)
 
-    def approved(self, observation):
-        # based on obs, decide which model should be used
-        return self.env.envs[0].env.env.reward.decide(observation)
-
 class Runner(AbstractEnvRunner):
     def __init__(self, *, env, model, models, n_steps, gamma, lam):
         """
@@ -619,8 +644,8 @@ class Runner(AbstractEnvRunner):
         """
         super().__init__(env=env, model=model, n_steps=n_steps)
         self.models = models
-        self.lam   = lam
-        self.gamma = gamma
+        self.lam    = lam
+        self.gamma  = gamma
 
     def _run(self):
         """
@@ -648,7 +673,7 @@ class Runner(AbstractEnvRunner):
         ep_infos = []
         for _ in range(self.n_steps):
 
-            owner = self.models[0].approved(self.obs)
+            owner = self.model.approved(self.obs)
 
             model = self.models[owner]
             actions, values, self.states, neglogpacs = model.step(self.obs, self.states, self.dones)
