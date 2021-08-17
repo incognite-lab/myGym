@@ -133,7 +133,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     model_path = os.path.join(model_logdir, "best_model.zip")
     arg_dict["model_path"] = model_path
     with open(conf_pth, "w") as f:
-        json.dump(arg_dict, f)
+        json.dump(arg_dict, f, indent=4)
 
     try:
         model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
