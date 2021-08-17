@@ -280,12 +280,11 @@ class TaskModule():
                 self.sub_idx += 1 #continue with next subgoal
                 self.env.reward.reset() #reward reset
         elif finished:
-            if self.check_distance_threshold(self._observation):
-                self.env.episode_over = True
-                if self.env.episode_steps == 1:
-                    self.env.episode_info = "Task completed in initial configuration"
-                else:
-                    self.env.episode_info = "Task completed successfully"
+            self.env.episode_over = True
+            if self.env.episode_steps == 1:
+                self.env.episode_info = "Task completed in initial configuration"
+            else:
+                self.env.episode_info = "Task completed successfully"
         if self.check_time_exceeded():
             self.env.episode_over = True
             self.env.episode_failed = True
