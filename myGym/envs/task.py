@@ -261,19 +261,6 @@ class TaskModule():
         threshold = 0.1
         return self.current_norm_distance < threshold
 
-    def check_reach_distance_threshold(self, observation):
-        """
-        Check if the distance between relevant task objects is under threshold for successful task completion
-            Jonášova verze
-        Returns:
-            :return: (bool)
-        """
-        observation = observation["observation"] if isinstance(observation, dict) else observation
-        goal    = observation[0:3]
-        gripper = self.env.reward.get_accurate_gripper_position(observation[3:6])
-        self.current_norm_distance = self.calc_distance(goal, gripper)
-        return self.current_norm_distance < self.threshold
-
     def check_points_distance_threshold(self): 
         if (self.task_type == 'pnp') and (self.env.robot_action != 'joints_gripper') and (len(self.env.robot.magnetized_objects) == 0):
             o1 = self.current_task_objects[0]
