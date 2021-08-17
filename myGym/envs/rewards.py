@@ -1,5 +1,4 @@
 import numpy as np
-import vector as v
 import matplotlib.pyplot as plt
 from stable_baselines import results_plotter
 import os
@@ -123,10 +122,10 @@ class DistanceReward(Reward):
     def get_accurate_gripper_position(self, gripper_position):
         gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
         gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
-        direction_vector    = v.Vector([0,0,0], [0, 0, 0.1], self.env)
+        direction_vector    = Vector([0,0,0], [0, 0, 0.1], self.env)
         m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
         direction_vector.rotate_with_matrix(m)
-        gripper = v.Vector([0,0,0], gripper_position, self.env)
+        gripper = Vector([0,0,0], gripper_position, self.env)
         return direction_vector.add_vector(gripper)
 
 
@@ -317,10 +316,10 @@ class PokeReachReward(Reward):
     def get_accurate_gripper_position(self, gripper_position):
         gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
         gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
-        direction_vector    = v.Vector([0,0,0], [0, 0, 0.1], self.env)
+        direction_vector    = Vector([0,0,0], [0, 0, 0.1], self.env)
         m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
         direction_vector.rotate_with_matrix(m)
-        gripper = v.Vector([0,0,0], gripper_position, self.env)
+        gripper = Vector([0,0,0], gripper_position, self.env)
         return direction_vector.add_vector(gripper)
 
     def is_poker_moving(self, poker):
@@ -566,14 +565,14 @@ class PokeVectorReward(Reward):
         gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
 
         # direction = [0, 0, 0.1]                         # length is 0.1
-        direction_vector = v.Vector([0,0,0], [0, 0, 0.1], self.env)
+        direction_vector = Vector([0,0,0], [0, 0, 0.1], self.env)
         m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
 
         # orientation_vector = m.dot(direction)           # length is 0.1
         direction_vector.rotate_with_matrix(m)
 
         # gripper_position = np.add(gripper_position, direction_vector.vector)
-        gripper = v.Vector([0,0,0], gripper_position, self.env)
+        gripper = Vector([0,0,0], gripper_position, self.env)
         gripper_position = direction_vector.add_vector(gripper)
 
         # make sure none is None
@@ -587,8 +586,8 @@ class PokeVectorReward(Reward):
         #     self.prev_goal_position    = goal_position
 
         # align
-        poke_vector = v.Vector(self.prev_poker_position, goal_position, self.env)
-        aim_vector  = v.Vector(self.prev_gripper_position, self.prev_poker_position, self.env)
+        poke_vector = Vector(self.prev_poker_position, goal_position, self.env)
+        aim_vector  = Vector(self.prev_gripper_position, self.prev_poker_position, self.env)
 
         # align = poke_vector.get_align(aim_vector)
 
@@ -602,7 +601,7 @@ class PokeVectorReward(Reward):
         align_factor = (align - self.last_align) + (self.last_len - len)
 
         if align > 0.95:
-            real_vector = v.Vector(self.prev_gripper_position, gripper_position, self.env)
+            real_vector = Vector(self.prev_gripper_position, gripper_position, self.env)
             # poke_factor = poke_vector.get_align(real_vector)
             poke_factor = np.dot(self.set_vector_len(poke_vector.vector, 1), self.set_vector_len(real_vector.vector, 1))
             # real_vector.visualize(self.prev_gripper_position, color=(0, 0, 255))
@@ -739,9 +738,9 @@ class VectorReward(Reward):
         if push_amplifier < 0:
             push_amplifier = 0
 
-        ideal_vector = v.Vector(self.prev_gipper_position, goal_position, self.env)
-        push_vector  = v.Vector(closest_distractor_point, self.prev_gipper_position, self.env)
-        pull_vector  = v.Vector(self.prev_gipper_position, goal_position, self.env)
+        ideal_vector = Vector(self.prev_gipper_position, goal_position, self.env)
+        push_vector  = Vector(closest_distractor_point, self.prev_gipper_position, self.env)
+        pull_vector  = Vector(self.prev_gipper_position, goal_position, self.env)
 
         push_vector.set_len(push_amplifier)
         pull_vector.set_len(pull_amplifier)
@@ -761,7 +760,7 @@ class VectorReward(Reward):
         # optimal_vector.visualize(origin=self.prev_gipper_position, time = 0.3, color = (255, 255, 255))
         optimal_vector.multiply(0.005)
 
-        real_vector = v.Vector(self.prev_gipper_position, gripper, self.env)
+        real_vector = Vector(self.prev_gipper_position, gripper, self.env)
         # real_vector.visualize(origin=self.prev_gipper_position, time = 0.3, color = (0, 0, 0))
 
         # ideal_vector   = self.move_to_origin([self.prev_gipper_position, goal_position])
