@@ -77,9 +77,12 @@ class DistanceReward(Reward):
         """
         observation = observation["observation"] if isinstance(observation, dict) else observation
         o1 = observation[0:3] if self.env.reward_type != "2dvu" else observation[0:int(len(observation[:-3])/2)]
-        o2 = observation[3:6] if self.env.reward_type != "2dvu" else observation[int(len(observation[:-3])/2):-3]
-        reward = self.calc_dist_diff(o1, o2)
-        self.task.check_distance_threshold(observation=observation)
+        o2 = self.get_accurate_gripper_position(observation[3:6]) if self.env.reward_type != "2dvu" else observation[int(len(observation[:-3])/2):-3]
+        reward = self.calc_dist_diff(o1, o2)         
+        if self.task.check_object_moved(self.env.task_objects[0]): # if pushes goal too far
+            self.env.episode_over   = True
+            self.env.episode_failed = True
+        self.task.check_reach_distance_threshold(observation)
         self.rewards_history.append(reward)
         return reward
 
@@ -112,6 +115,15 @@ class DistanceReward(Reward):
         self.prev_obj2_position = obj2_position
 
         return norm_diff
+
+    def get_accurate_gripper_position(self, gripper_position):
+        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
+        gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
+        direction_vector    = v.Vector([0,0,0], [0, 0, 0.1], self.env)
+        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
+        direction_vector.rotate_with_matrix(m)
+        gripper = v.Vector([0,0,0], gripper_position, self.env)
+        return direction_vector.add_vector(gripper)
 
 
 class ComplexDistanceReward(DistanceReward):
