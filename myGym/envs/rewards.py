@@ -924,22 +924,15 @@ class DualPoke(Reward):
             :return reward: (float) Reward signal for the environment
         """
         observation = observation["observation"] if isinstance(observation, dict) else observation
-        # load positions
-        goal_position    = observation[0:3]
-        poker_position   = observation[3:6]
-        gripper_position = self.get_accurate_gripper_position(observation[6:9])
-
-        self.initialize_positions(poker_position, gripper_position)
-
-        # align
-        poke_vector = v.Vector(self.prev_poker_position, goal_position, self.env)
-        aim_vector  = v.Vector(self.prev_gripper_position, self.prev_poker_position, self.env)
+        poker_position, gripper_position, poke_vector, aim_vector = self.init(observation)
 
         # align = poke_vector.get_align(aim_vector)
         align = np.dot(self.set_vector_len(poke_vector.vector, 1), self.set_vector_len(aim_vector.vector, 1))
 
         len = aim_vector.norm
-        align_factor = (align - self.last_align) + 0*(self.last_len - len)
+        align_factor = (align - self.last_align) + 0.5*(self.last_len - len)
+        self.env.p.addUserDebugText("align_factor: " + str(align - self.last_align), [-0.5,0.5,0.5], lifeTime=0.1)
+        self.env.p.addUserDebugText("dist_factor: " + str((self.last_len - len)*0.5), [-0.7,0.7,0.7], lifeTime=0.1)
 
         self.env.p.addUserDebugText("Align: " + str(round(align, 3)), [0.5,0.5,0.5], lifeTime=0.1)
 
@@ -960,6 +953,25 @@ class DualPoke(Reward):
         elif self.env.episode_steps < 2:
             reward = 0
 
+        self.finish(observation, poker_position, gripper_position, align, len, reward)
+
+        self.env.p.addUserDebugText("Reward: " + str(round(self.env.episode_reward, 7)), [0.7,0.7,0.7], lifeTime=0.1)
+        return reward
+
+    def init(self, observation):
+        # load positions
+        goal_position    = observation[0:3]
+        poker_position   = observation[3:6]
+        gripper_position = self.get_accurate_gripper_position(observation[6:9])
+
+        self.initialize_positions(poker_position, gripper_position)
+
+        # align
+        poke_vector = v.Vector(self.prev_poker_position, goal_position, self.env)
+        aim_vector  = v.Vector(self.prev_gripper_position, self.prev_poker_position, self.env)
+        return poker_position,gripper_position,poke_vector,aim_vector
+
+    def finish(self, observation, poker_position, gripper_position, align, len, reward):
         self.prev_poker_position   = poker_position
         self.prev_gripper_position = gripper_position
         self.last_align            = align
@@ -970,11 +982,8 @@ class DualPoke(Reward):
             self.env.episode_failed = True
             self.env.episode_info   = "too strong poke"
         self.task.check_poke_threshold(observation)
-        # import random
-        # reward = random.random()
 
         self.rewards_history.append(reward)
-        return reward
 
     def initialize_positions(self, poker_position, gripper_position):
         # make sure none is None
@@ -994,7 +1003,7 @@ class DualPoke(Reward):
         return direction_vector.add_vector(gripper)
 
     def is_poker_moving(self, poker):
-        if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1] and self.prev_poker_position[1] == poker[1]:
+        if round(self.prev_poker_position[0], 4) == round(poker[0], 4) and round(self.prev_poker_position[1], 4) == round(poker[1], 4) and round(self.prev_poker_position[1], 4) == round(poker[1], 4):
             return False
         return True
 

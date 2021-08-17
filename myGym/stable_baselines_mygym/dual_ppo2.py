@@ -186,12 +186,7 @@ class Dual(ActorCriticRLModel):
 
         with SetVerbosity(self.verbose), TensorboardWriter(self.models[0].graph, self.tensorboard_log, tb_log_name, new_tb_log) as writer:
 
-            # writers = []
-
             for model in self.models:
-                # writer = TensorboardWriter(self.models[0].graph, self.tensorboard_log, "Dual_1", new_tb_log)
-                # writer = writer.__enter__()
-                # writers.append(writer)
                 model._setup_learn(self)
 
             t_first_start = time.time()
@@ -228,8 +223,6 @@ class Dual(ActorCriticRLModel):
                     model = self.models[i]
                     calc = len(true_reward)
                     model.n_batch = calc
-                    # writer = writers[i]
-                    # batches = rollout
 
                     if calc == 0:
                         pass
@@ -237,15 +230,11 @@ class Dual(ActorCriticRLModel):
                         self.ep_info_buf.extend(ep_infos)   
                         mb_loss_vals = []
                         if states is None:  # nonrecurrent version
-                            # calc = self.n_batch
                             update_fac = max(calc // self.nminibatches // self.noptepochs, 1)
                             inds = np.arange(calc)
                             for epoch_num in range(self.noptepochs):
-                                # print()
-                                # print("epoch: ")
                                 np.random.shuffle(inds)
                                 for start in range(0, calc, batch_size):
-                                    # print("batch: ")
                                     timestep = self.num_timesteps // update_fac + ((epoch_num * calc + start) // batch_size)
                                     end      = start + batch_size
                                     mbinds   = inds[start:end]
@@ -279,11 +268,7 @@ class Dual(ActorCriticRLModel):
                             logger.dumpkvs()
 
             callback.on_training_end()
-            # for writer in writers:
-            #     writer.__exit__()
             return self
-
-
 
 # dual
 
@@ -373,72 +358,6 @@ class Dual(ActorCriticRLModel):
 
         return model
 
-    def load_parameters(self, load_path_or_dict, exact_match=True):
-        """
-        Load model parameters from a file or a dictionary
-
-        Dictionary keys should be tensorflow variable names, which can be obtained
-        with ``get_parameters`` function. If ``exact_match`` is True, dictionary
-        should contain keys for all model's parameters, otherwise RunTimeError
-        is raised. If False, only variables included in the dictionary will be updated.
-
-        This does not load agent's hyper-parameters.
-
-        .. warning::
-            This function does not update trainer/optimizer variables (e.g. momentum).
-            As such training after using this function may lead to less-than-optimal results.
-
-        :param load_path_or_dict: (str or file-like or dict) Save parameter location
-            or dict of parameters as variable.name -> ndarrays to be loaded.
-        :param exact_match: (bool) If True, expects load dictionary to contain keys for
-            all variables in the model. If False, loads parameters only for variables
-            mentioned in the dictionary. Defaults to True.
-        """
-        # Make sure we have assign ops
-        if self._param_load_ops is None:
-            self._setup_load_operations()
-
-        if isinstance(load_path_or_dict, dict):
-            # Assume `load_path_or_dict` is dict of variable.name -> ndarrays we want to load
-            params = load_path_or_dict
-        elif isinstance(load_path_or_dict, list):
-            warnings.warn("Loading model parameters from a list. This has been replaced " +
-                          "with parameter dictionaries with variable names and parameters. " +
-                          "If you are loading from a file, consider re-saving the file.",
-                          DeprecationWarning)
-            # Assume `load_path_or_dict` is list of ndarrays.
-            # Create param dictionary assuming the parameters are in same order
-            # as `get_parameter_list` returns them.
-            params = dict()
-            for i, param_name in enumerate(self._param_load_ops.keys()):
-                params[param_name] = load_path_or_dict[i]
-        else:
-            # Assume a filepath or file-like.
-            # Use existing deserializer to load the parameters.
-            # We only need the parameters part of the file, so
-            # only load that part.
-            _, params = BaseRLModel._load_from_file(load_path_or_dict, load_data=False)
-            params = dict(params)
-
-        feed_dict = {}
-        param_update_ops = []
-        # Keep track of not-updated variables
-        not_updated_variables = set(self._param_load_ops.keys())
-        for param_name, param_value in params.items():
-            placeholder, assign_op = self._param_load_ops[param_name]
-            feed_dict[placeholder] = param_value
-            # Create list of tf.assign operations for sess.run
-            param_update_ops.append(assign_op)
-            # Keep track which variables are updated
-            not_updated_variables.remove(param_name)
-
-        # Check that we updated all parameters if exact_match=True
-        if exact_match and len(not_updated_variables) > 0:
-            raise RuntimeError("Load dictionary did not contain all variables. " +
-                               "Missing variables: {}".format(", ".join(not_updated_variables)))
-
-        self.sess.run(param_update_ops, feed_dict=feed_dict)
-
     def predict(self, observation, state=None, mask=None, deterministic=False):
         if state is None:
             state = self.initial_state
@@ -448,11 +367,6 @@ class Dual(ActorCriticRLModel):
         vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
 
         observation = observation.reshape((-1,) + self.observation_space.shape)
-        # print(self.models[0].__dict__)
-        # print(self.models[0].env)
-        # for d in self.models[0].__dict__:
-        #     print(d, ":", self.models[0].__dict__[d])
-        # exit()
         model = self.models[self.approved(observation)]
         actions, _, states, _ = model.step(observation, state, mask, deterministic=deterministic)
 
@@ -473,7 +387,7 @@ class Dual(ActorCriticRLModel):
         try:
             return self.env.envs[0].env.env.reward.decide(observation)
         except:
-            return self.env.reward.decide(observation)
+            return self.env.reward.decide(observation) #with unitialized env
 
 class SubModel(Dual):
     def __init__(self, parent, i):
