@@ -284,23 +284,9 @@ class TaskModule():
         if self.task_type == 'poke':
             finished = self.check_poke_threshold(self._observation)
         if self.task_type == "switch":
-            if self.check_switch_threshold():
-                self.env.episode_over = True
-                self.env.episode_info = "Task completed successfully"
-            # elif self.env.episode_steps == self.env.max_steps:
-            #     self.env.episode_over = True
-            #     self.env.episode_failed = True
-            #     self.env.episode_info = "Max amount of steps reached"
-
+            finished = self.check_switch_threshold()
         if self.task_type == "press":
-            if self.check_press_threshold():
-                self.env.episode_over = True
-                self.env.episode_info = "Task completed successfully"
-            # elif self.env.episode_steps == self.env.max_steps:
-            #     self.env.episode_over = True
-            #     self.env.episode_failed = True
-            #     self.env.episode_info = "Max amount of steps reached"
-        
+            finished = self.check_press_threshold()
         if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and contacts:
             if len(self.env.robot.magnetized_objects) == 0:
                 self.env.episode_over = False
