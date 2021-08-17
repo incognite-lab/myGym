@@ -277,6 +277,7 @@ class TaskModule():
             self.init_distance = self.current_norm_distance
         contacts = self.check_points_distance_threshold()
         finished = None
+        tasks = ["switch", "press"]
         if self.task_type == 'reach':
             finished = self.check_distance_threshold(self._observation)
         if self.task_type == 'push' or self.task_type == 'throw' or self.task_type == 'pick_n_place':
@@ -306,6 +307,12 @@ class TaskModule():
                 self.env.reward.reset() #reward reset
         elif finished:
             if self.check_distance_threshold(self._observation):
+                self.env.episode_over = True
+                if self.env.episode_steps == 1:
+                    self.env.episode_info = "Task completed in initial configuration"
+                else:
+                    self.env.episode_info = "Task completed successfully"
+            elif self.task_type in tasks:
                 self.env.episode_over = True
                 if self.env.episode_steps == 1:
                     self.env.episode_info = "Task completed in initial configuration"
