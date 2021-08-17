@@ -447,8 +447,6 @@ class GymEnv(CameraEnv):
             info = {}
         else:
             reward = self.reward.compute(observation=self._observation)
-            if reward is None:
-                reward = 0
             self.episode_reward += reward
             self.task.check_goal()
             done = self.episode_over
