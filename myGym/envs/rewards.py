@@ -1204,7 +1204,7 @@ class ButtonReward(DistanceReward):
 
     def compute(self, observation):
         """
-        Compute reward signal based on distance between 2 objects, angle of switch and difference between point and line
+        Compute reward signal based on distance between 2 objects, position of button and difference between point and line
          (function used for that: calc_direction_3d()).
         The position of the objects must be present in observation.
         Params:
@@ -1314,6 +1314,9 @@ class ButtonReward(DistanceReward):
 
     @staticmethod
     def set_vector_len(vector, len):
+        """
+        Scale given vector so its length is equal to len
+        """
         norm = math.sqrt(np.dot(vector, vector))
         if norm == 0:
             return 0
