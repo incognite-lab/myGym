@@ -875,6 +875,7 @@ class VectorReward(Reward):
 
     def get_angle_between_vectors(self, v1, v2):
         return math.acos(np.dot(v1, v2)/(self.count_vector_norm(v1)*self.count_vector_norm(v2)))
+      
 
 
 class SwitchReward(DistanceReward):
