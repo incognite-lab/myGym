@@ -299,7 +299,7 @@ class TaskModule():
             finished = self.check_switch_threshold()
         if self.task_type == "press":
             finished = self.check_press_threshold()
-        if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and contacts:
+        if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
             if len(self.env.robot.magnetized_objects) == 0:
                 self.env.episode_over = False
                 self.env.robot.magnetize_object(self.current_task_objects[0], contacts)
