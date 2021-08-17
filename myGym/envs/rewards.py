@@ -930,9 +930,9 @@ class DualPoke(Reward):
         align = np.dot(self.set_vector_len(poke_vector.vector, 1), self.set_vector_len(aim_vector.vector, 1))
 
         len = aim_vector.norm
-        align_factor = (align - self.last_align) + 0.5*(self.last_len - len)
-        self.env.p.addUserDebugText("align_factor: " + str(align - self.last_align), [-0.5,0.5,0.5], lifeTime=0.1)
-        self.env.p.addUserDebugText("dist_factor: " + str((self.last_len - len)*0.5), [-0.7,0.7,0.7], lifeTime=0.1)
+        align_factor = (align - self.last_align) + 0.1*(self.last_len - len)
+        self.env.p.addUserDebugText("align_factor: " + str(round(align - self.last_align, 4)), [-0.5,0.5,0.5], lifeTime=0.1)
+        self.env.p.addUserDebugText("dist_factor: " + str(round((self.last_len - len)*0.1, 4)), [-0.7,0.7,0.7], lifeTime=0.1)
 
         self.env.p.addUserDebugText("Align: " + str(round(align, 3)), [0.5,0.5,0.5], lifeTime=0.1)
 
