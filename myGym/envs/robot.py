@@ -204,6 +204,9 @@ class Robot:
             return 3
 
     def observe_all_links(self):
+        """
+        Get position of all robot's links
+        """
         observation = []
         for link in range(self.end_effector_index+1):
             state = self.p.getLinkState(self.robot_uid, link)
