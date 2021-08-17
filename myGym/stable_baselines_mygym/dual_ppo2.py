@@ -1,7 +1,6 @@
 import time
-
+import os
 import gym
-# from myGym.stable_baselines_mygym.dual import Dual
 import numpy as np
 from numpy.lib.function_base import append
 import tensorflow as tf
@@ -59,39 +58,39 @@ class Dual(ActorCriticRLModel):
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
                  full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
 
-        self.learning_rate = learning_rate
-        self.cliprange = cliprange
-        self.cliprange_vf = cliprange_vf
-        self.n_steps = n_steps
-        self.ent_coef = ent_coef
-        self.vf_coef = vf_coef
-        self.max_grad_norm = max_grad_norm
-        self.gamma = gamma
-        self.lam = lam
-        self.nminibatches = nminibatches
-        self.noptepochs = noptepochs
-        self.tensorboard_log = tensorboard_log
-        self.full_tensorboard_log = full_tensorboard_log
+        self.learning_rate          = learning_rate
+        self.cliprange              = cliprange
+        self.cliprange_vf           = cliprange_vf
+        self.n_steps                = n_steps
+        self.ent_coef               = ent_coef
+        self.vf_coef                = vf_coef
+        self.max_grad_norm          = max_grad_norm
+        self.gamma                  = gamma
+        self.lam                    = lam
+        self.nminibatches           = nminibatches
+        self.noptepochs             = noptepochs
+        self.tensorboard_log        = tensorboard_log
+        self.full_tensorboard_log   = full_tensorboard_log
 
-        self.action_ph = None
-        self.advs_ph = None
-        self.rewards_ph = None
-        self.old_neglog_pac_ph = None
-        self.old_vpred_ph = None
-        self.learning_rate_ph = None
-        self.clip_range_ph = None
-        self.entropy = None
-        self.vf_loss = None
-        self.pg_loss = None
-        self.approxkl = None
-        self.clipfrac = None
-        self._train = None
-        self.loss_names = None
-        self.train_model = None
-        self.act_model = None
-        self.value = None
-        self.n_batch = None
-        self.summary = None
+        self.action_ph          = None
+        self.advs_ph            = None
+        self.rewards_ph         = None
+        self.old_neglog_pac_ph  = None
+        self.old_vpred_ph       = None
+        self.learning_rate_ph   = None
+        self.clip_range_ph      = None
+        self.entropy            = None
+        self.vf_loss            = None
+        self.pg_loss            = None
+        self.approxkl           = None
+        self.clipfrac           = None
+        self._train             = None
+        self.loss_names         = None
+        self.train_model        = None
+        self.act_model          = None
+        self.value              = None
+        self.n_batch            = None
+        self.summary            = None
 
         super().__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
                          _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
@@ -184,17 +183,14 @@ class Dual(ActorCriticRLModel):
         new_tb_log  = self._init_num_timesteps(reset_num_timesteps)
         callback    = self._init_callback(callback)
 
+        with SetVerbosity(self.verbose), TensorboardWriter(self.models[0].graph, self.tensorboard_log, tb_log_name, new_tb_log) as writer:
 
-
-        # with SetVerbosity(self.verbose),  TensorboardWriter(self.models[0].graph, self.tensorboard_log, "Dual_1", new_tb_log) as writer1, TensorboardWriter(self.models[1].graph, self.tensorboard_log, "Dual_2", new_tb_log) as writer2 :
-        with SetVerbosity(self.verbose):
-
-            writers = []
+            # writers = []
 
             for model in self.models:
-                writer = TensorboardWriter(self.models[0].graph, self.tensorboard_log, "Dual_1", new_tb_log)
-                writer = writer.__enter__()
-                writers.append(writer)
+                # writer = TensorboardWriter(self.models[0].graph, self.tensorboard_log, "Dual_1", new_tb_log)
+                # writer = writer.__enter__()
+                # writers.append(writer)
                 model._setup_learn(self)
 
             t_first_start = time.time()
@@ -231,7 +227,7 @@ class Dual(ActorCriticRLModel):
                     model  = self.models[i]
                     calc = len(true_reward)
                     model.n_batch = calc
-                    writer = writers[i]
+                    # writer = writers[i]
                     # batches = rollout
 
                     if calc == 0:
@@ -282,11 +278,15 @@ class Dual(ActorCriticRLModel):
                             logger.dumpkvs()
 
             callback.on_training_end()
-            for writer in writers:
-                writer.__exit__()
+            # for writer in writers:
+            #     writer.__exit__()
             return self
 
-    def save(self, save_path, cloudpickle=False):
+
+
+# dual
+
+    def save(self, parent_path, cloudpickle=False):
         data = {
             "gamma": self.gamma,
             "n_steps": self.n_steps,
@@ -309,13 +309,21 @@ class Dual(ActorCriticRLModel):
             "_vectorize_action": self._vectorize_action,
             "policy_kwargs": self.policy_kwargs
         }
+        
+        parent_path = parent_path.split("/")
+        start = parent_path[:-1]
+        end = parent_path[-1]
+        start = "/".join(start)
 
-        params_to_save1 = self.models[0].get_parameters()
-        params_to_save2 = self.models[1].get_parameters()
+        for i in range(self.models_num):
+            submodel_path = start + "/submodel_" + str(i) + "/" + end
+            # submodel_path  = self.submodel_path(i)
+            params_to_save = self.models[i].get_parameters()
 
-        self._save_to_file(save_path, data=data, params=params_to_save1, cloudpickle=cloudpickle)
+            self._save_to_file(submodel_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
 
-# dual
+    def submodel_path(self, i):
+        return self.tensorboard_log + "/submodel_" + str(i)
 
     def load(cls, load_path, env=None, custom_objects=None, **kwargs):
         """
@@ -332,7 +340,10 @@ class Dual(ActorCriticRLModel):
             file that can not be deserialized.
         :param kwargs: extra arguments to change the model when loading
         """
-        data, params = cls._load_from_file(load_path, custom_objects=custom_objects)
+        models = 2
+        for i in range(models):
+            load_path = cls.submodel_path()
+            data, params = cls._load_from_file(load_path, custom_objects=custom_objects)
 
         if 'policy_kwargs' in kwargs and kwargs['policy_kwargs'] != data['policy_kwargs']:
             raise ValueError("The specified policy kwargs do not equal the stored policy kwargs. "
@@ -441,6 +452,8 @@ class Dual(ActorCriticRLModel):
 
 class SubModel(Dual):
     def __init__(self, parent, i):
+
+        os.makedirs(parent.tensorboard_log + "/submodel_" + str(i))
 
         self.env = parent.env
 
