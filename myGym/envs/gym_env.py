@@ -156,16 +156,15 @@ class GymEnv(CameraEnv):
             # self.reward = PokeVectorReward(env=self, task=self.task)
             # self.reward = PokeReward(env=self, task=self.task)
         elif reward == 'switch':
-            print("switch")
             self.reward = SwitchReward(env=self, task=self.task)
         elif reward == 'btn':
-            print("btn")
             self.reward = ButtonReward(env=self, task=self.task)
-        self.dataset = dataset
+            
+        self.dataset   = dataset
         self.obs_space = obs_space
         self.visualize = visualize
-        self.visgym = visgym
-        self.logdir = logdir
+        self.visgym    = visgym
+        self.logdir    = logdir
         self.workspace_dict =  {'baskets':  {'urdf': 'baskets.urdf', 'texture': 'baskets.jpg',
                                             'transform': {'position':[3.18, -3.49, -1.05], 'orientation':[0.0, 0.0, -0.4*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
