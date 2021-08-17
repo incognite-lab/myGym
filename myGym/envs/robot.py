@@ -203,6 +203,18 @@ class Robot:
         else:
             return 3
 
+    def observe_all_links(self):
+        """
+        Get position of all robot's links
+        """
+        observation = []
+        for link in range(self.end_effector_index+1):
+            state = self.p.getLinkState(self.robot_uid, link)
+            pos = state[0]
+            observation.extend(list(pos))
+
+        return observation
+
     def get_observation_dimension(self):
         """
         Get dimension of robot part of observation data, based on robot task and rewatd type
