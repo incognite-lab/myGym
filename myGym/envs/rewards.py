@@ -7,6 +7,7 @@ import math
 from math import sqrt
 from myGym.vector import Vector
 
+
 class Reward:
     """
     Reward base class for reward signal calculation and visualization
@@ -53,7 +54,8 @@ class Reward:
             plt.gcf().set_size_inches(8, 6)
             plt.savefig(save_dir + "/reward_over_episodes_episode{}.png".format(self.env.episode_number))
             plt.close()
-        
+
+
 class DistanceReward(Reward):
     """
     Reward class for reward signal calculation based on distance differences between 2 objects
@@ -173,7 +175,7 @@ class ComplexDistanceReward(DistanceReward):
 
         prev_diff_23 = self.task.calc_distance(self.prev_obj2_position, self.prev_obj3_position)
         current_diff_23 = self.task.calc_distance(obj2_position, obj3_position)
-        
+
         norm_diff = (prev_diff_13 - current_diff_13) / prev_diff_13 + (prev_diff_23 - current_diff_23) / prev_diff_23 + 10*(prev_diff_12 - current_diff_12) / prev_diff_12
 
         self.prev_obj1_position = obj1_position
@@ -228,7 +230,7 @@ class PokeReachReward(Reward):
         self.last_distance         = None
         self.last_gripper_distance = None
         self.moved                 = False
-        
+
         self.prev_poker_position   = [None]*3
 
     def reset(self):
@@ -244,11 +246,11 @@ class PokeReachReward(Reward):
 
     def compute(self, observation=None):
         poker_position, distance, gripper_distance = self.init(observation)
-        
+
         reward = self.count_reward(poker_position, distance, gripper_distance)
-        
+
         self.finish(observation, poker_position, distance, gripper_distance, reward)
-        
+
         return reward
 
     def init(self, observation):
@@ -399,7 +401,7 @@ class PokeReward(Reward):
 
         # reward
         # if is poker in motion
-        if self.is_poker_moving(poker_position): 
+        if self.is_poker_moving(poker_position):
 
             self.prev_poker_position = poker_position
             self.task.check_poke_threshold(observation)
@@ -443,8 +445,8 @@ class PokeReward(Reward):
     def move_to_origin(self, vector):
         a = vector[1][0] - vector[0][0]
         b = vector[1][1] - vector[0][1]
-        c = vector[1][2] - vector[0][2]       
-        
+        c = vector[1][2] - vector[0][2]
+
         return [a, b, c]
 
     def set_vector_len(self, vector, len):
@@ -604,7 +606,7 @@ class PokeVectorReward(Reward):
 
         reward = align_factor + poke_factor
 
-        if self.is_poker_moving(poker_position): 
+        if self.is_poker_moving(poker_position):
             reward = 0
 
         self.prev_poker_position   = poker_position
@@ -693,7 +695,7 @@ class VectorReward(Reward):
                 self.rewards_history.append(reward)
                 if self.touches > 20:
                     if self.env.episode_reward > 0:
-                        self.env.episode_reward = -1 
+                        self.env.episode_reward = -1
 
                     self.episode_number     = 1024
                     self.env.episode_info   = "Arm crushed the distractor"
@@ -735,7 +737,7 @@ class VectorReward(Reward):
         # ideal_vector.visualize(origin=self.prev_gipper_position, time = 0.3, color = (0, 255, 0))
         # push_vector.visualize(origin=closest_distractor_point, time = 0.3, color = (255, 0, 0))
         # pull_vector.visualize(origin=self.prev_gipper_position, time = 0.3, color = (0, 0, 255))
-        
+
         push_vector.add(pull_vector)
         force_vector = push_vector
 
@@ -771,14 +773,14 @@ class VectorReward(Reward):
         self.task.check_distractor_distance_threshold(goal_position, gripper)
 
         self.rewards_history.append(reward)
-        
+
         if self.task.calc_distance(goal_position, gripper) <= 0.11:
             self.env.episode_over = True
             if self.env.episode_steps == 1:
                 self.env.episode_info = "Task completed in initial configuration"
             else:
                 self.env.episode_info = "Task completed successfully"
-                
+
         return reward
 
     def visualize_vectors(self, gripper, goal_position, force_vector, optimal_vector):
@@ -846,8 +848,8 @@ class VectorReward(Reward):
     def move_to_origin(self, vector):
         a = vector[1][0] - vector[0][0]
         b = vector[1][1] - vector[0][1]
-        c = vector[1][2] - vector[0][2]       
-        
+        c = vector[1][2] - vector[0][2]
+
         return [a, b, c]
 
     def multiply_vector(self, vector, multiplier):
@@ -861,6 +863,7 @@ class VectorReward(Reward):
 
     def get_angle_between_vectors(self, v1, v2):
         return math.acos(np.dot(v1, v2)/(self.count_vector_norm(v1)*self.count_vector_norm(v2)))
+
 
 class SwitchReward(DistanceReward):
     """
@@ -911,7 +914,6 @@ class SwitchReward(DistanceReward):
         gripper_position = self.get_accurate_gripper_position(observation[3:6])
         self.set_variables(o1, gripper_position)    # save local positions of task_object and gripper to global positions
         self.set_offset(x=-0.1, z=0.25)
-        # print(self.env.robot.observe_all_links())
         if self.x_obj > 0:
             if self.debug:
                 self.env.p.addUserDebugLine([self.x_obj, self.y_obj, self.z_obj], [-0.7, self.y_obj, self.z_obj],
@@ -1196,8 +1198,8 @@ class ButtonReward(DistanceReward):
         self.offset = None
         self.prev_press = None
 
-        self.k_w = 1
-        self.k_d = 0.5
+        self.k_w = 0.4
+        self.k_d = 0.3
         self.k_a = 0.5
 
     def compute(self, observation):
@@ -1219,9 +1221,9 @@ class ButtonReward(DistanceReward):
         v1 = Vector([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1], self.env)
         v2 = Vector([self.x_obj, self.y_obj, self.z_obj], gripper_position, self.env)
 
-        w = np.dot(self.set_vector_len(v1.vector, 1), self.set_vector_len(v2.vector, 1))
-        # w = self.calc_direction_3d(self.x_obj, self.y_obj, 1, self.x_obj, self.y_obj, self.z_obj,
-        # self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
+        # w = np.dot(self.set_vector_len(v1.vector, 1), self.set_vector_len(v2.vector, 1))
+        w = self.calc_direction_3d(self.x_obj, self.y_obj, 1, self.x_obj, self.y_obj, self.z_obj,
+                                   self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
         d = self.abs_diff()
         a = self.calc_press_reward(self.is_pressed())
 
