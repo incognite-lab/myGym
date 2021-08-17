@@ -10,3 +10,6 @@ build/
 **/dtdseamless/
 **/.directory
 /vae_datasets/
+myGym/my_config.json
+myGym/config_test.json
+.idea
