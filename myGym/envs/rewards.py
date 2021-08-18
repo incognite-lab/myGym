@@ -1210,9 +1210,9 @@ class ButtonReward(DistanceReward):
         self.offset = None
         self.prev_press = None
 
-        self.k_w = 0.4
-        self.k_d = 0.3
-        self.k_a = 0.5
+        self.k_w = self.env.coefficient_kw
+        self.k_d = self.env.coefficient_kd
+        self.k_a = self.env.coefficient_ka
 
     def compute(self, observation):
         """
@@ -1229,7 +1229,6 @@ class ButtonReward(DistanceReward):
         gripper_position = self.get_accurate_gripper_position(observation[3:6])
         self.set_variables(o1, gripper_position)
         self.set_offset(z=0.16)
-
         v1 = Vector([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1], self.env)
         v2 = Vector([self.x_obj, self.y_obj, self.z_obj], gripper_position, self.env)
 
@@ -1239,7 +1238,7 @@ class ButtonReward(DistanceReward):
         d = self.abs_diff()
         a = self.calc_press_reward(self.is_pressed())
 
-        reward = self.k_w * w + self.k_d * d + self.k_a * a
+        reward = - self.k_w * w - self.k_d * d + self.k_a * a
         if self.debug:
             self.env.p.addUserDebugLine([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1],
                                         lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=1)
@@ -1368,7 +1367,15 @@ class ButtonReward(DistanceReward):
                 z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
 
         d = sqrt((x - x3) ** 2 + (y - y3) ** 2 + (z - z3) ** 2)
-
+        # print(np.sign(z-z1), np.sign(z2))
+        # print(np.sign(z-z2), np.sign(z1))
+        # print(z, z1, z2)
+        # dot_product = (x-x1)*(x-x2)+(y-y1)*(y-y2)+(z-z1)*(z-z2)
+        # d1 = (x1-x)**2+(y1-y)**2+(z1-z)**2
+        # d2 = (x2-x)**2+(y2-y)**2+(z2-z)**2
+        # if dot_product > 0: # out
+        #     d = sqrt(min(d1, d2))
+        # print(d)
         return d
 
     def abs_diff(self):
@@ -1378,7 +1385,7 @@ class ButtonReward(DistanceReward):
         x_diff = self.x_obj_curr_pos - self.x_bot_curr_pos
         y_diff = self.y_obj_curr_pos - self.y_bot_curr_pos
         z_diff = self.z_obj_curr_pos - self.z_bot_curr_pos
-        abs_diff = 1/sqrt(x_diff ** 2 + y_diff ** 2 + z_diff ** 2)
+        abs_diff = sqrt(x_diff ** 2 + y_diff ** 2 + z_diff ** 2)
         return abs_diff
 
     def is_pressed(self):
