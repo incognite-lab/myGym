@@ -221,21 +221,21 @@ class Dual(ActorCriticRLModel):
                 for rollout in rollouts:
                     obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward = rollout
                     model = self.models[i]
-                    calc = len(true_reward)
-                    model.n_batch = calc
+                    # calc = len(true_reward)
+                    # model.n_batch = calc
 
-                    if calc == 0:
-                        pass
+                    if model.n_batch == 0:
+                        b = 0
                     else:
                         self.ep_info_buf.extend(ep_infos)   
                         mb_loss_vals = []
                         if states is None:  # nonrecurrent version
-                            update_fac = max(calc // self.nminibatches // self.noptepochs, 1)
-                            inds = np.arange(calc)
+                            update_fac = max(model.n_batch // self.nminibatches // self.noptepochs, 1)
+                            inds = np.arange(model.n_batch)
                             for epoch_num in range(self.noptepochs):
                                 np.random.shuffle(inds)
-                                for start in range(0, calc, batch_size):
-                                    timestep = self.num_timesteps // update_fac + ((epoch_num * calc + start) // batch_size)
+                                for start in range(0, model.n_batch, batch_size):
+                                    timestep = self.num_timesteps // update_fac + ((epoch_num * model.n_batch + start) // batch_size)
                                     end      = start + batch_size
                                     mbinds   = inds[start:end]
                                     slices   = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
@@ -303,7 +303,6 @@ class Dual(ActorCriticRLModel):
 
         for i in range(self.models_num):
             submodel_path = start + "/submodel_" + str(i) + "/" + end
-            # submodel_path  = self.submodel_path(i)
             params_to_save = self.models[i].get_parameters()
             self._save_to_file(submodel_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
 
@@ -388,10 +387,15 @@ class Dual(ActorCriticRLModel):
 
     def approved(self, observation):
         # based on obs, decide which model should be used
-        try:
-            return self.env.envs[0].env.env.reward.decide(observation)
+        try: # in training
+            submodel_id = self.env.envs[0].env.env.reward.decide(observation)
+            # if self.models[submodel_id].n_batch > ((self.n_steps/2)-1):
+            #     submodel_id = (submodel_id+1)%self.models_num
         except:
-            return self.env.reward.decide(observation) # with unitialized env
+            submodel_id = self.env.reward.decide(observation) # with unitialized env
+        
+
+        return submodel_id
 
 class SubModel(Dual):
     def __init__(self, parent, i):
@@ -588,7 +592,9 @@ class Runner(AbstractEnvRunner):
             minibatches.append(minibatch)
 
         mb_states = self.states
-        ep_infos = []
+        ep_infos = []        
+        for model in self.models:
+            model.n_batch = 0
         for _ in range(self.n_steps):
 
             owner = self.model.approved(self.obs)
@@ -627,6 +633,7 @@ class Runner(AbstractEnvRunner):
                 if maybe_ep_info is not None:
                     ep_infos.append(maybe_ep_info)
             mb_rewards.append(rewards)
+            model.n_batch += 1
         # batch of steps to batch of rollouts
         last_values          = model.value(self.obs, self.states, self.dones) # last observation, last state, last done
         finished_minibatches = []

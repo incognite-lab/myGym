@@ -887,7 +887,7 @@ class VectorReward(Reward):
 
 # dual rewards
 
-class DualPoke(Reward):
+class DualCPoke(Reward):
     """
     Reward class for reward signal calculation based on distance differences between 2 objects
 
@@ -896,7 +896,7 @@ class DualPoke(Reward):
         :param task: (object) Task that is being trained, instance of a class TaskModule
     """
     def __init__(self, env, task):
-        super(DualPoke, self).__init__(env, task)
+        super(DualCPoke, self).__init__(env, task)
 
         # self.prev_goal_position    = [None]*3
         self.prev_poker_position   = [None]*3
@@ -1065,3 +1065,242 @@ class DualPoke(Reward):
     
     def count_vector_norm(self, vector):
         return math.sqrt(np.dot(vector, vector))
+
+class DualPoke(Reward):
+    """
+    Reward class for reward signal calculation based on distance differences between 2 objects
+
+    Parameters:
+        :param env: (object) Environment, where the training takes place
+        :param task: (object) Task that is being trained, instance of a class TaskModule
+    """
+    def __init__(self, env, task):
+        super(DualPoke, self).__init__(env, task)
+
+        # self.prev_goal_position    = [None]*3
+        self.prev_poker_position   = [None]*3
+        self.prev_gripper_position = [None]*3
+
+        self.last_align            = 0
+        self.last_len              = 0
+
+        self.owner_id              = -1
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+        # self.prev_goal_position    = [None]*3
+        self.prev_poker_position   = [None]*3
+        self.prev_gripper_position = [None]*3
+
+        self.last_align            = 0
+        self.last_len              = 0
+
+    def compute(self, observation=None):
+        """
+        Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
+
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        observation = observation["observation"] if isinstance(observation, dict) else observation
+        poker_position, gripper_position = self.init(observation)
+
+
+        gripper_in_XY = [0.0, 0.3, poker_position[2]] # gripper initial position with z == 0
+        self.env.p.addUserDebugLine(gripper_in_XY, poker_position, lifeTime=0.1)
+        len = self.distance_of_point_from_abscissa(gripper_in_XY, poker_position, gripper_position)
+
+        if self.last_len is None:
+            self.last_len = len
+
+        if len < 0.1:  
+            poke_vector = v.Vector(self.prev_poker_position, observation[0:3], self.env)    
+            real_vector = v.Vector(self.prev_gripper_position, gripper_position, self.env)
+            align = np.dot(self.set_vector_len(poke_vector.vector, 1), self.set_vector_len(real_vector.vector, 1))
+            reward = align
+        else:
+            reward = self.last_len - len
+
+        if self.env.episode_steps > 25:
+            if self.is_poker_moving(poker_position):
+                reward = 0
+        elif self.env.episode_steps < 2:
+            reward = 0
+
+        self.finish(observation, poker_position, gripper_position, len, reward)
+        return reward
+
+    def init(self, observation):
+        # load positions
+        goal_position    = observation[0:3]
+        poker_position   = observation[3:6]
+        gripper_position = self.get_accurate_gripper_position(observation[6:9])
+
+        self.initialize_positions(poker_position, gripper_position)
+
+        return poker_position,gripper_position
+
+    def finish(self, observation, poker_position, gripper_position, len, reward):
+        self.prev_poker_position   = poker_position
+        self.prev_gripper_position = gripper_position
+        self.last_len              = len
+
+        if self.task.check_object_moved(self.env.task_objects[1], 2):
+            self.env.episode_over   = True
+            self.env.episode_failed = True
+            self.env.episode_info   = "too strong poke"
+        self.task.check_poke_threshold(observation)
+
+        self.rewards_history.append(reward)
+
+    def initialize_positions(self, poker_position, gripper_position):
+        # make sure none is None
+        if self.prev_poker_position[0] is None:
+            self.prev_poker_position   = poker_position
+
+        if self.prev_gripper_position[0] is None:
+            self.prev_gripper_position = gripper_position
+
+    def get_accurate_gripper_position(self, gripper_position):
+        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
+        gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
+        direction_vector    = v.Vector([0,0,0], [0, 0, 0.1], self.env)
+        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
+        direction_vector.rotate_with_matrix(m)
+        gripper = v.Vector([0,0,0], gripper_position, self.env)
+        return direction_vector.add_vector(gripper)
+
+    def is_poker_moving(self, poker):
+        if round(self.prev_poker_position[0], 4) == round(poker[0], 4) and round(self.prev_poker_position[1], 4) == round(poker[1], 4) and round(self.prev_poker_position[1], 4) == round(poker[1], 4):
+            return False
+        return True
+
+    def decide(self, observation=None):
+
+        observation = observation["observation"] if isinstance(observation, dict) else observation
+        observation = observation[0]
+
+        poker_position   = observation[3:6]
+        gripper_position = self.get_accurate_gripper_position(observation[6:9])
+
+
+        gripper_in_XY = [0.0, 0.3, poker_position[2]] # gripper initial position with z == 0
+        self.env.p.addUserDebugLine(gripper_in_XY, poker_position, lifeTime=0.1)
+        len = self.distance_of_point_from_abscissa(gripper_in_XY, poker_position, gripper_position)
+
+        if len < 0.1:
+            owner = 1
+        else:
+            owner = 0
+
+        return owner
+
+    def set_vector_len(self, vector, len):
+        norm    = self.count_vector_norm(vector)
+        vector  = self.multiply_vector(vector, 1/norm)
+
+        return self.multiply_vector(vector, len)
+
+    def multiply_vector(self, vector, multiplier):
+        return np.array(vector) * multiplier
+    
+    def calc_direction_3d(self, x1, y1, z1, x2, y2, z2, x3, y3, z3):
+        """
+        Calculate difference between point - (actual position of robot's gripper P - [x3, y3, z3])
+        and line - (perpendicular position from middle of switch: A - [x1, y1, z1]; final position of robot: B - [x2, y2, z2]) in 3D
+        Params:
+            :param x1: (float) Coordinate x of initial position of robot
+            :param y1: (float) Coordinate y of initial position of robot
+            :param z1: (float) Coordinate z of initial position of robot
+            :param x2: (float) Coordinate x of final position of robot
+            :param y2: (float) Coordinate y of final position of robot
+            :param z2: (float) Coordinate z of final position of robot
+            :param x3: (float) Coordinate x of robot's gripper
+            :param y3: (float) Coordinate y of robot's gripper
+            :param z3: (float) Coordinate z of robot's gripper
+        Returns:
+            :return d: (float) Distance between line and robot's gripper
+        """
+        x = x1 - ((x1 - x2) * (
+                x1 * (x1 - x2) - x3 * (x1 - x2) + y1 * (y1 - y2) - y3 * (y1 - y2) + z1 * (z1 - z2) - z3 * (
+                z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
+
+        y = y1 - ((y1 - y2) * (
+                x1 * (x1 - x2) - x3 * (x1 - x2) + y1 * (y1 - y2) - y3 * (y1 - y2) + z1 * (z1 - z2) - z3 * (
+                z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
+
+        z = z1 - ((z1 - z2) * (
+                x1 * (x1 - x2) - x3 * (x1 - x2) + y1 * (y1 - y2) - y3 * (y1 - y2) + z1 * (z1 - z2) - z3 * (
+                z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
+
+        d = math.sqrt((x - x3) ** 2 + (y - y3) ** 2 + (z - z3) ** 2)
+        dot_product = (x-x1)*(x-x2)+(y-y1)*(y-y2)+(z-z1)*(z-z2)
+        d1 = (x1-x)**2+(y1-y)**2+(z1-z)**2
+        d2 = (x2-x)**2+(y2-y)**2+(z2-z)**2
+        if dot_product > 0: # out
+            d = min(d1, d2)
+        return d
+
+    def count_vector_norm(self, vector):
+        return math.sqrt(np.dot(vector, vector))
+
+    def get_distance_from_poke_line(self, poke_vector, poker_position, goal_position):
+        z = self.prev_gripper_position[2]
+
+        a = self.count_vector_norm(poke_vector.vector)
+        b = math.sqrt((self.prev_gripper_position[0]-poker_position[0])**2 + (self.prev_gripper_position[1]-poker_position[1])**2)
+        c = math.sqrt((self.prev_gripper_position[0]-goal_position[0])**2 + (self.prev_gripper_position[1]-goal_position[1])**2)
+
+        if a < 0.1:
+            print("_____")
+            self.env.episode_info = "Successfull poke"
+            self.env.episode_over = True
+
+        a = round(a, 5)
+        b = round(b, 5)
+        c = round(c, 5)
+
+        while b+c <= a:
+            c += 0.00001
+
+        while a+c <= b:
+            c += 0.00001
+
+        while a+b <= c:
+            b += 0.00001
+
+        distanceXY = math.sqrt(self.triangle_height(a, b, c))
+        distanceZ  = z-0.0 # moving the line into height of center of the cubes
+        distance   = math.sqrt(distanceZ**2+distanceXY**2)
+
+        return distance
+
+    def triangle_height(self, a, b, c):
+        p = a+b+c
+        p = p/2
+        one = 2/a
+        two = p*(p-a)
+        three = (p-b)
+        four = (p-c)
+        five = two*three*four
+        six = math.sqrt(five)
+        return one*six
+
+    def distance_of_point_from_abscissa(self, A, B, point):
+        a = self.task.calc_distance(A, B)
+        b = self.task.calc_distance(A, point)
+        c = self.task.calc_distance(point, B)
+
+        height_a = self.triangle_height(a, b, c)
+        distance = height_a
+
+        if b > a:
+            distance = c
+        if c > a:
+            distance = c
+
+        return distance
