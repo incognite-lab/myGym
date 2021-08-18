@@ -1367,20 +1367,26 @@ class ButtonReward(DistanceReward):
                 z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
 
         d = sqrt((x - x3) ** 2 + (y - y3) ** 2 + (z - z3) ** 2)
-        # print(np.sign(z-z1), np.sign(z2))
-        # print(np.sign(z-z2), np.sign(z1))
-        # print(z, z1, z2)
-        # dot_product = (x-x1)*(x-x2)+(y-y1)*(y-y2)+(z-z1)*(z-z2)
-        # d1 = (x1-x)**2+(y1-y)**2+(z1-z)**2
-        # d2 = (x2-x)**2+(y2-y)**2+(z2-z)**2
-        # if dot_product > 0: # out
-        #     d = sqrt(min(d1, d2))
-        # print(d)
+
+        print(np.sign(z-z1), np.sign(z2))
+        print(np.sign(z-z2), np.sign(z1))
+        print(z, z1, z2)
+        dot_product = (x-x1)*(x-x2)+(y-y1)*(y-y2)+(z-z1)*(z-z2)
+        d1 = (x1-x3)**2+(y1-y3)**2+(z1-z3)**2
+        d2 = (x2-x3)**2+(y2-y3)**2+(z2-z3)**2
+        if dot_product > 0: # out
+            #print("out")
+            d = sqrt(min(d1, d2))
+            #print("d1:", d1, "d2:", d2)
+        else:
+            pass
+            #print("in")
+        print(d)
         return d
 
     def abs_diff(self):
         """
-        This function calculates absolute differance between task_object and gripper
+        This function calculates absolute difference between task_object and gripper
         """
         x_diff = self.x_obj_curr_pos - self.x_bot_curr_pos
         y_diff = self.y_obj_curr_pos - self.y_bot_curr_pos
