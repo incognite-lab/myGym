@@ -70,6 +70,9 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                          "distractor_constant_speed":arg_dict["distractor_constant_speed"],
                          "distractor_movement_dimensions":arg_dict["distractor_movement_dimensions"],
                          "distractor_movement_endpoints":arg_dict["distractor_movement_endpoints"],
+                         "coefficient_kd":arg_dict["coefficient_kd"],
+                         "coefficient_kw":arg_dict["coefficient_kw"],
+                         "coefficient_ka":arg_dict["coefficient_ka"],
                          "observed_links_num":arg_dict["observed_links_num"],
                          "reward_type": arg_dict["reward_type"],
                          "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
@@ -100,7 +103,6 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
 
     if arg_dict["algo"] == "her":
         env = HERGoalEnvWrapper(env)
-
     return env
 
 
