@@ -46,6 +46,9 @@ class TaskModule():
         self.angle = None
         self.prev_angle = None
         self.pressed = None
+        self.coefficient_kd = 0
+        self.coefficient_kw = 0
+        self.coefficient_ka = 0
         if self.task_type == '2stepreach':
             self.obsdim = 6
         if self.reward_type == 'gt':
