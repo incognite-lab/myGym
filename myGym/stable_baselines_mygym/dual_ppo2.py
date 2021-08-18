@@ -305,7 +305,6 @@ class Dual(ActorCriticRLModel):
             submodel_path = start + "/submodel_" + str(i) + "/" + end
             # submodel_path  = self.submodel_path(i)
             params_to_save = self.models[i].get_parameters()
-
             self._save_to_file(submodel_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
 
     def submodel_path(self, i):
@@ -327,12 +326,16 @@ class Dual(ActorCriticRLModel):
             file that can not be deserialized.
         :param kwargs: extra arguments to change the model when loading
         """
-        load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
+        # print(load_path)
+        # load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
+        load_path = load_path.split("/")
+        load_path = load_path[:-1]
+        path = "/".join(load_path)
         models = 2
         load = [] # data, params
         for i in range(models):
-            load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
-            load_path = load_path + "/submodel_" + str(i) + "/best_model.zip"
+            # load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
+            load_path = path + "/submodel_" + str(i) + "/best_model.zip"
             load.append(cls._load_from_file(load_path, custom_objects=custom_objects))
 
         data = load[0][0]
@@ -349,6 +352,7 @@ class Dual(ActorCriticRLModel):
             model.env = env
         # model.set_env(env)
         model.tensorboard_log = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
+
         model.setup_model()
 
         i = 0
@@ -387,7 +391,7 @@ class Dual(ActorCriticRLModel):
         try:
             return self.env.envs[0].env.env.reward.decide(observation)
         except:
-            return self.env.reward.decide(observation) #with unitialized env
+            return self.env.reward.decide(observation) # with unitialized env
 
 class SubModel(Dual):
     def __init__(self, parent, i):
