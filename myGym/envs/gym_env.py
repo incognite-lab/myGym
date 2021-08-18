@@ -147,17 +147,18 @@ class GymEnv(CameraEnv):
                                        distractor_constant_speed,
                                        distractor_movement_dimensions,
                                        env=self)
-        coefficients = [coefficient_kd, coefficient_kw, coefficient_ka]
-        errors = []
-        error = False
-        names = ["coefficient_kd", "coefficient_kw", "coefficient_ka"]
-        for i in range(len(coefficients)):
-            if coefficients[i] is None:
-                error = True
-                errors.append(names[i])
-        if error:
-            raise Exception(f"Please specify valid number for: {', '.join(errors)}")
-
+        tasks = ["press", "switch"]
+        if self.task_type in tasks:
+            coefficients = [coefficient_kd, coefficient_kw, coefficient_ka]
+            errors = []
+            error = False
+            names = ["coefficient_kd", "coefficient_kw", "coefficient_ka"]
+            for i in range(len(coefficients)):
+                if coefficients[i] is None:
+                    error = True
+                    errors.append(names[i])
+            if error:
+                raise Exception(f"Please specify valid number for: {', '.join(errors)}")
 
         if reward == 'distance':
             self.reward = DistanceReward(env=self, task=self.task)
