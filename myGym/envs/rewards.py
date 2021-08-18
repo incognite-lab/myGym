@@ -125,6 +125,10 @@ class DistanceReward(Reward):
         gripper = v.Vector([0,0,0], gripper_position, self.env)
         return direction_vector.add_vector(gripper)
 
+    def decide(self, observation=None):
+        import random
+        return random.randint(0, 1)
+
 
 class ComplexDistanceReward(DistanceReward):
     """

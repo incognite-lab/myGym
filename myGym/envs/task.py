@@ -211,7 +211,7 @@ class TaskModule():
         """
         observation = observation["observation"] if isinstance(observation, dict) else observation
         goal    = observation[0:3]
-        gripper = self.env.reward.get_accurate_gripper_position(observation[3:6])
+        gripper = self.env.reward.get_accurate_gripper_position(observation[-3:])
         self.current_norm_distance = self.calc_distance(goal, gripper)
         return self.current_norm_distance < self.threshold
 
@@ -225,7 +225,7 @@ class TaskModule():
         observation = observation["observation"] if isinstance(observation, dict) else observation
         # goal is first in obs and griper is last (always)
         goal    = observation[0:3]
-        gripper = self.env.reward.get_accurate_gripper_position(observation[-4:-1])
+        gripper = self.env.reward.get_accurate_gripper_position(observation[-3:])
         self.current_norm_distance = self.calc_distance(goal, gripper)
         return self.current_norm_distance < self.threshold
 
