@@ -46,6 +46,7 @@ class TaskModule():
         self.angle = None
         self.prev_angle = None
         self.pressed = None
+        self.turned = None
         self.coefficient_kd = 0
         self.coefficient_kw = 0
         self.coefficient_ka = 0
@@ -75,6 +76,7 @@ class TaskModule():
         self.current_norm_distance = None
         self.angle = None
         self.pressed = None
+        self.turned = None
         self.vision_module.mask = {}
         self.vision_module.centroid = {}
         self.vision_module.centroid_transformed = {}
@@ -199,18 +201,25 @@ class TaskModule():
         else:
             return False
 
-    # def check_distance_threshold(self, observation):
-    #     """
-    #     Check if the distance between relevant task objects is under threshold for successful task completion
-    #
-    #     Returns:
-    #         :return: (bool)
-    #     """
-    #     observation = observation["observation"] if isinstance(observation, dict) else observation
-    #     o1 = observation[0:int(len(observation[:-3])/2)] if self.reward_type == "2dvu" else observation[0:3]
-    #     o2 = observation[int(len(observation[:-3])/2):-3]if self.reward_type == "2dvu" else observation[3:6]
-    #     self.current_norm_distance = self.calc_distance(o1, o2)
-    #     return self.current_norm_distance < self.threshold
+    def check_turn_threshold(self):
+        self.turned = self.env.reward.is_turned()
+        if self.pressed >= 57:
+            return True
+        else:
+            return False
+
+    def check_distance_threshold(self, observation):
+        """
+        Check if the distance between relevant task objects is under threshold for successful task completion
+
+        Returns:
+            :return: (bool)
+        """
+        observation = observation["observation"] if isinstance(observation, dict) else observation
+        o1 = observation[0:int(len(observation[:-3])/2)] if self.reward_type == "2dvu" else observation[0:3]
+        o2 = observation[int(len(observation[:-3])/2):-3]if self.reward_type == "2dvu" else observation[3:6]
+        self.current_norm_distance = self.calc_distance(o1, o2)
+        return self.current_norm_distance < self.threshold
 
 
     def check_poke_threshold(self, observation):
@@ -239,19 +248,19 @@ class TaskModule():
         self.current_norm_distance = self.calc_distance(goal, gripper)
         return self.current_norm_distance < self.threshold
 
-    def check_distance_threshold(self, observation):
-        """
-        Check if the distance between relevant task objects is under threshold for successful task completion
-            Jonášova verze
-        Returns:
-            :return: (bool)
-        """
-        observation = observation["observation"] if isinstance(observation, dict) else observation
-        # goal is first in obs and griper is last (always)
-        goal = observation[0:3]
-        gripper = self.env.reward.get_accurate_gripper_position(observation[-3:])
-        self.current_norm_distance = self.calc_distance(goal, gripper)
-        return self.current_norm_distance < self.threshold
+    # def check_distance_threshold(self, observation):
+    #     """
+    #     Check if the distance between relevant task objects is under threshold for successful task completion
+    #         Jonášova verze
+    #     Returns:
+    #         :return: (bool)
+    #     """
+    #     observation = observation["observation"] if isinstance(observation, dict) else observation
+    #     # goal is first in obs and griper is last (always)
+    #     goal = observation[0:3]
+    #     gripper = self.env.reward.get_accurate_gripper_position(observation[-3:])
+    #     self.current_norm_distance = self.calc_distance(goal, gripper)
+    #     return self.current_norm_distance < self.threshold
 
     def check_distractor_distance_threshold(self, goal, gripper):
         """
@@ -301,6 +310,8 @@ class TaskModule():
             finished = self.check_switch_threshold()
         if self.task_type == "press":
             finished = self.check_press_threshold()
+        if self.task_type == "turn":
+            pass
         if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
             if len(self.env.robot.magnetized_objects) == 0:
                 self.env.episode_over = False
