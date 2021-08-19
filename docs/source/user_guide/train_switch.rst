@@ -2,7 +2,7 @@
 
 Train a robot - switch
 =============
-Train robot able to
+Train robot to switch a lever
 
 
 Setup
