@@ -14,9 +14,9 @@ Values have to be between 0 - 1.
 ::
 
    #Coefficients
-   "coefficient_kw"        : 0.6,
-   "coefficient_kd"        : 0.5,
-   "coefficient_ka"        : 0.5,
+   "coefficient_kw"        : 0.1,
+   "coefficient_kd"        : 0.1,
+   "coefficient_ka"        : 1,
 
 Reward is splitted into 3 parts, each part is multiplied by specific coefficient and at the end of episode summed up.
 
