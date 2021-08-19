@@ -1083,6 +1083,13 @@ class DualPoke(Reward):
         self.last_dist             = 0
         self.last_len              = 0
 
+        self.a = 0
+        self.b = 0
+
+        self.measured = False
+
+        self.owner = None
+
     def reset(self):
         """
         Reset stored value of distance between 2 objects. Call this after the end of an episode.
@@ -1092,6 +1099,13 @@ class DualPoke(Reward):
 
         self.last_dist             = 0
         self.last_len              = 0
+
+        self.a = 0
+        self.b = 0
+
+        self.measured = False
+
+        self.owner = None
 
     def compute(self, observation=None):
         """
@@ -1118,32 +1132,55 @@ class DualPoke(Reward):
         gripper_in_XY = [0.0, 0.3, poker_position[2]] # gripper initial position with z == 0
         poker_in_XY = [poker_position[0], poker_position[1]-0.05, poker_position[2]] # gripper initial position with z == 0
         self.env.p.addUserDebugLine(gripper_in_XY, poker_in_XY, lifeTime=0.1)
-        len = self.distance_of_point_from_abscissa(gripper_in_XY, poker_position, gripper_position)
+        abs = self.distance_of_point_from_abscissa(gripper_in_XY, poker_position, gripper_position)
+
+        poker_in_XY = [poker_position[0], poker_position[1]-0.1, poker_position[2]]
+
+        len = self.task.calc_distance(gripper_position, poker_in_XY)
+        self.env.p.addUserDebugLine(gripper_position, poker_in_XY, lifeTime=0.1)
 
         if self.last_len is None:
             self.last_len = len
 
-        if len < 0.1:
-            dist = self.task.calc_distance(goal_position, poker_position)
-            reward = 10*round(self.last_dist - dist, 5)
-            self.last_dist = dist
+        if abs < 0.1:
+            if not self.measured:
+                reward = 0
+                self.measured = True
+                self.last_dist = self.task.calc_distance(goal_position, poker_position)
+            else:
+                dist = self.task.calc_distance(goal_position, poker_position)
+                reward = 1*round(self.last_dist - dist, 5)
+                self.last_dist = dist
+            self.a += reward
+            self.owner = 0
             # poke_vector = v.Vector(self.prev_poker_position, observation[0:3], self.env)    
             # real_vector = v.Vector(self.prev_gripper_position, gripper_position, self.env)
             # align  = np.dot(self.set_vector_len(poke_vector.vector, 1), self.set_vector_len(real_vector.vector, 1))
             # reward = align
         else:
-            reward = self.last_len - len
-
+            if self.owner == 0:
+              self.last_len = len
+            if not self.is_poker_moving(poker_position):
+                reward = self.last_len - len
+                self.b += reward
+            else:
+                reward = 0
+                self.b += reward
+            self.owner = 1
         # if self.env.episode_steps > 25:
         #     if self.is_poker_moving(poker_position):
         #         reward = 0
         # el
         if self.env.episode_steps < 2:
+            self.a = 0
+            self.b = 0
             reward = 0
 
         self.finish(observation, poker_position, gripper_position, len, reward)
 
-        self.env.p.addUserDebugText("Reward: " + str(round(self.env.episode_reward, 7)), [0.7,0.7,0.7], lifeTime=0.1)
+        # self.env.p.addUserDebugText("Reward: " + str(round(self.env.episode_reward, 7)), [0.7,0.7,0.7], lifeTime=0.1)
+        # self.env.p.addUserDebugText("poke reward: " + str(round(self.a, 7)), [-0.5,0.5,0.5], lifeTime=0.1)
+        # self.env.p.addUserDebugText("align reward: " + str(round(self.b, 7)), [-0.7,0.7,0.7], lifeTime=0.1)
         return reward
 
     def init(self, observation):

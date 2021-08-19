@@ -234,7 +234,9 @@ class BaseEnv(gym.Env):
         print("Episode's number of steps: " + str(self.episode_steps))
         print("Episode status: " + episode_status)
         print("Episode info: " + self.episode_info)
-        print("Episode reward: " + str(self.episode_reward))
+        print("Episode reward:  " + str(self.episode_reward))
+        print("Module 0 reward: " + str(self.reward.b))
+        print("Module 1 reward: " + str(self.reward.a))
         print("Last step reward: " + str(self.reward.rewards_history[-1]))
         print("#---------------------------------#")
 
