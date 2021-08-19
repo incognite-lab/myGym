@@ -203,7 +203,7 @@ class TaskModule():
 
     def check_turn_threshold(self):
         self.turned = self.env.reward.is_turned()
-        if self.pressed >= 57:
+        if self.turned >= 57:
             return True
         else:
             return False
@@ -311,7 +311,7 @@ class TaskModule():
         if self.task_type == "press":
             finished = self.check_press_threshold()
         if self.task_type == "turn":
-            pass
+            finished = self.check_turn_threshold()
         if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
             if len(self.env.robot.magnetized_objects) == 0:
                 self.env.episode_over = False
