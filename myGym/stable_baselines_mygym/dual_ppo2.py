@@ -209,8 +209,7 @@ class Dual(ActorCriticRLModel):
                 rollouts = self.runner.run(callback) #execute episode
 
                 callback.on_rollout_end()
-                
-                # params = self.get_parameters()
+
                 # Early stopping due to the callback
                 if not self.runner.continue_training:
                     break
