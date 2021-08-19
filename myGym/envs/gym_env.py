@@ -147,7 +147,7 @@ class GymEnv(CameraEnv):
                                        distractor_constant_speed,
                                        distractor_movement_dimensions,
                                        env=self)
-        tasks = ["press", "switch"]
+        tasks = ["press", "switch", "turn"]
         if self.task_type in tasks:
             coefficients = [coefficient_kd, coefficient_kw, coefficient_ka]
             errors = []
