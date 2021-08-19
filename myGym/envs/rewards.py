@@ -1128,13 +1128,24 @@ class DualPoke(Reward):
         if self.prev_gripper_position[0] is None:
             self.prev_gripper_position = gripper_position
 
+        poke_vector = v.Vector(poker_position, goal_position, self.env.p)
+        poke_vector.set_len(-0.2)
 
-        gripper_in_XY = [0.0, 0.3, poker_position[2]] # gripper initial position with z == 0
-        poker_in_XY = [poker_position[0], poker_position[1]-0.05, poker_position[2]] # gripper initial position with z == 0
-        self.env.p.addUserDebugLine(gripper_in_XY, poker_in_XY, lifeTime=0.1)
+        poker_in_XY = poker_position + poke_vector.vector
+
+        # gripper_in_XY = [0.0, 0.3, poker_position[2]] # gripper initial position with z == 0
+        poker_in_XY = [poker_in_XY[0], poker_in_XY[1], poker_position[2]] # gripper initial position with z == 0
+        gripper_in_XY = poker_position + 3*poke_vector.vector
         abs = self.distance_of_point_from_abscissa(gripper_in_XY, poker_position, gripper_position)
+        self.env.p.addUserDebugLine(gripper_in_XY, poker_position, lifeTime=0.1)
 
-        poker_in_XY = [poker_position[0], poker_position[1]-0.1, poker_position[2]]
+
+
+
+
+
+
+        # poker_in_XY = [poker_position[0], poker_position[1]-0.2, poker_position[2]]
 
         len = self.task.calc_distance(gripper_position, poker_in_XY)
         self.env.p.addUserDebugLine(gripper_position, poker_in_XY, lifeTime=0.1)
@@ -1143,14 +1154,28 @@ class DualPoke(Reward):
             self.last_len = len
 
         if abs < 0.1:
-            if not self.measured:
+            self.env.p.addUserDebugText("XXX", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,125,0])
+
+            aim_vector  = v.Vector(poker_position, goal_position, self.env)
+            real_vector = v.Vector(self.prev_poker_position, poker_position, self.env)
+
+            if real_vector.norm == 0:
                 reward = 0
-                self.measured = True
-                self.last_dist = self.task.calc_distance(goal_position, poker_position)
+            elif aim_vector.norm == 0:
+                reward = 0
             else:
-                dist = self.task.calc_distance(goal_position, poker_position)
-                reward = 1*round(self.last_dist - dist, 5)
-                self.last_dist = dist
+                reward = round(np.dot(real_vector.vector, aim_vector.vector), 5)
+
+
+
+            # if not self.measured:
+            #     reward = 0
+            #     self.measured = True
+            #     self.last_dist = self.task.calc_distance(goal_position, poker_position)
+            # else:
+            #     dist = self.task.calc_distance(goal_position, poker_position)
+            #     reward = 1*round(self.last_dist - dist, 5)
+            #     self.last_dist = dist
             self.a += reward
             self.owner = 0
             # poke_vector = v.Vector(self.prev_poker_position, observation[0:3], self.env)    
@@ -1158,6 +1183,7 @@ class DualPoke(Reward):
             # align  = np.dot(self.set_vector_len(poke_vector.vector, 1), self.set_vector_len(real_vector.vector, 1))
             # reward = align
         else:
+            self.env.p.addUserDebugText("XXX", [-0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
             if self.owner == 0:
               self.last_len = len
             if not self.is_poker_moving(poker_position):
@@ -1233,12 +1259,19 @@ class DualPoke(Reward):
         observation = observation["observation"] if isinstance(observation, dict) else observation
         observation = observation[0]
 
+        goal_position    = observation[0:3]
         poker_position   = observation[3:6]
         gripper_position = self.get_accurate_gripper_position(observation[6:9])
 
 
-        gripper_in_XY = [0.0, 0.3, poker_position[2]] # gripper initial position with z == 0
-        self.env.p.addUserDebugLine(gripper_in_XY, poker_position, lifeTime=0.1)
+        poke_vector = v.Vector(poker_position, goal_position, self.env.p)
+        poke_vector.set_len(-0.2)
+
+        poker_in_XY = poker_position + poke_vector.vector
+
+        # gripper_in_XY = [0.0, 0.3, poker_position[2]] # gripper initial position with z == 0
+        poker_in_XY = [poker_in_XY[0], poker_in_XY[1], poker_position[2]] # gripper initial position with z == 0
+        gripper_in_XY = poker_position + 3*poke_vector.vector
         len = self.distance_of_point_from_abscissa(gripper_in_XY, poker_position, gripper_position)
 
         if len < 0.1:

@@ -37,7 +37,7 @@
 "algo"              :"dual",
 "max_episode_steps" :1024,
 "algo_steps"        :1024,
-"steps"             :100000,
+"steps"             :500000,
 "pretrained_model"  :null,
 "multiprocessing"   :false,
 #Evaluation
