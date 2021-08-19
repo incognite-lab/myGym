@@ -1206,7 +1206,7 @@ class ButtonReward(DistanceReward):
         self.y_bot_curr_pos = None
         self.z_bot_curr_pos = None
 
-        self.debug = True
+        self.debug = False
         self.offset = None
         self.prev_press = None
 
@@ -1503,13 +1503,13 @@ class TurnReward(DistanceReward):
         x, y, z, d = self.calc_circle_distance(self.x_obj, self.y_obj, self.z_obj,
                                    self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
 
-        # print(self.calc_turn_reward(self.is_turned()))
-        reward = - self.k_d * d
+        a = self.calc_turn_reward(self.is_turned())
+        reward = - self.k_d * d + a * self.k_a
         if self.debug:
             self.env.p.addUserDebugLine([x, y, z], [self.x_obj, self.y_obj, self.z_obj],
                                         lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=0.2)
 
-            self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f},",
+            self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
                                         [1, 1, 1], textSize=2.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
 
         self.task.check_distance_threshold(observation=observation)
