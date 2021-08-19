@@ -1503,7 +1503,7 @@ class TurnReward(DistanceReward):
         x, y, z, d = self.calc_circle_distance(self.x_obj, self.y_obj, self.z_obj,
                                    self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
 
-        print(self.calc_turn_reward(self.is_turned()))
+        # print(self.calc_turn_reward(self.is_turned()))
         reward = - self.k_d * d
         if self.debug:
             self.env.p.addUserDebugLine([x, y, z], [self.x_obj, self.y_obj, self.z_obj],
@@ -1632,7 +1632,7 @@ class TurnReward(DistanceReward):
             p = self.env.p
             pos = p.getJointState(switch.get_uid(), 0)
             angle = pos[0] * 180 / math.pi  # in degrees
-            return angle
+            return -angle
         else:
             raise "expected task_type - turn"
 
