@@ -2,7 +2,7 @@ from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward, SwitchReward, ButtonReward
+from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward, SwitchReward, ButtonReward, TurnReward
 import pybullet
 import time
 import numpy as np
@@ -179,6 +179,8 @@ class GymEnv(CameraEnv):
             self.reward = SwitchReward(env=self, task=self.task)
         elif reward == 'btn':
             self.reward = ButtonReward(env=self, task=self.task)
+        elif reward == 'turn':
+            self.reward = TurnReward(env=self, task=self.task)
 
         self.dataset   = dataset
         self.obs_space = obs_space
