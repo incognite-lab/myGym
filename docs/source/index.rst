@@ -44,7 +44,7 @@ Overview
 +-----------------------------------+------------------------------------+
 | Objects                           | 54 objects in 5 categories         |
 +-----------------------------------+------------------------------------+
-| Tasks                             | Reach, Push, Pick, Place,          |
+| Tasks                             | Reach, Switch, Press, Push, Pick, Place,          |
 |                                   | PicknPlace, Throw, Hit, Catch,     |
 |                                   | Navigate                           |
 +-----------------------------------+------------------------------------+
