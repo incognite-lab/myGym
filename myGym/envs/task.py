@@ -208,18 +208,18 @@ class TaskModule():
         else:
             return False
 
-    def check_distance_threshold(self, observation):
-        """
-        Check if the distance between relevant task objects is under threshold for successful task completion
-
-        Returns:
-            :return: (bool)
-        """
-        observation = observation["observation"] if isinstance(observation, dict) else observation
-        o1 = observation[0:int(len(observation[:-3])/2)] if self.reward_type == "2dvu" else observation[0:3]
-        o2 = observation[int(len(observation[:-3])/2):-3]if self.reward_type == "2dvu" else observation[3:6]
-        self.current_norm_distance = self.calc_distance(o1, o2)
-        return self.current_norm_distance < self.threshold
+    # def check_distance_threshold(self, observation):
+    #     """
+    #     Check if the distance between relevant task objects is under threshold for successful task completion
+    #
+    #     Returns:
+    #         :return: (bool)
+    #     """
+    #     observation = observation["observation"] if isinstance(observation, dict) else observation
+    #     o1 = observation[0:int(len(observation[:-3])/2)] if self.reward_type == "2dvu" else observation[0:3]
+    #     o2 = observation[int(len(observation[:-3])/2):-3]if self.reward_type == "2dvu" else observation[3:6]
+    #     self.current_norm_distance = self.calc_distance(o1, o2)
+    #     return self.current_norm_distance < self.threshold
 
 
     def check_poke_threshold(self, observation):
@@ -248,19 +248,19 @@ class TaskModule():
         self.current_norm_distance = self.calc_distance(goal, gripper)
         return self.current_norm_distance < self.threshold
 
-    # def check_distance_threshold(self, observation):
-    #     """
-    #     Check if the distance between relevant task objects is under threshold for successful task completion
-    #         Jonášova verze
-    #     Returns:
-    #         :return: (bool)
-    #     """
-    #     observation = observation["observation"] if isinstance(observation, dict) else observation
-    #     # goal is first in obs and griper is last (always)
-    #     goal = observation[0:3]
-    #     gripper = self.env.reward.get_accurate_gripper_position(observation[-3:])
-    #     self.current_norm_distance = self.calc_distance(goal, gripper)
-    #     return self.current_norm_distance < self.threshold
+    def check_distance_threshold(self, observation):
+        """
+        Check if the distance between relevant task objects is under threshold for successful task completion
+            Jonášova verze
+        Returns:
+            :return: (bool)
+        """
+        observation = observation["observation"] if isinstance(observation, dict) else observation
+        # goal is first in obs and griper is last (always)
+        goal = observation[0:3]
+        gripper = self.env.reward.get_accurate_gripper_position(observation[-3:])
+        self.current_norm_distance = self.calc_distance(goal, gripper)
+        return self.current_norm_distance < self.threshold
 
     def check_distractor_distance_threshold(self, goal, gripper):
         """
@@ -298,7 +298,6 @@ class TaskModule():
         self.last_distance = self.current_norm_distance
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
-        contacts = self.check_points_distance_threshold()
         finished = None
         if self.task_type == 'reach':
             finished = self.check_distance_threshold(self._observation)
