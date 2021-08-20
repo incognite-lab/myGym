@@ -1588,7 +1588,7 @@ class TurnReward(DistanceReward):
         and line - (initial position of robot: [x1, y1, z1], final position of robot: [x2, y2, z2]) in 3D
         """
         r = 0.4
-        alfa = -0.01/3.2
+        alfa = -0.01/6.4
         x = r * math.cos(alfa*self.env.episode_steps) + x1
 
         y = r * math.sin(alfa*self.env.episode_steps) + y1
