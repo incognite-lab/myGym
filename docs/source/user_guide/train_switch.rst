@@ -20,19 +20,20 @@ Values have to be between 0 - 1.
 
 Reward is splitted into 3 parts, each part is multiplied by specific coefficient and at the end of episode summed up.
 
-Coefficient_kw - multiplies distance between position of robot's gripper and line - (initial position of robot, final position of robot)
+Coefficient_kw - is multiplied by distance between position of robot's gripper and line - (initial position of robot, final position of robot)
 
-Coefficient_kd - multiplies distance between task_object and robot's gripper
+Coefficient_kd - is multiplied by distance between task_object and robot's gripper
 
-Coefficient_ka - multiplies angle of switch
+Coefficient_ka - is multiplied by angle of switch
 
 
 Training
 -----------
 
-Run training using following command
+* To train model with default settings run following command
+``python train.py --config ./configs/train_switch.json``
 
-``python train.py --robot kuka --reward switch --task_objects switch --task_type switch --gui 1``
+
 
 The training will start with gui window and standstill visualization. New directory 
 is created in the logdir, where tranining checkpoints, final model and other relevant 
