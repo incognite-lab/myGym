@@ -44,5 +44,5 @@ After 100000 steps check the progress:
 
 After 250000 steps the arm is able to switch the lever with 80% accuracy:
 
-.. figure:: ../../../myGym/images/workspaces/switch/kuka500000.gif
+.. figure:: ../../../myGym/images/workspaces/press/kuka500000.gif
    :alt: training
