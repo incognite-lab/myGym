@@ -116,6 +116,7 @@ After 100000 steps, the arm is able to reach the goal object with 80% accuracy:
 
 There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/basic_training.html)
 
+
 ## Training Examples
 
 ### Task - Press
@@ -125,13 +126,11 @@ Run training using following command
 
 Wait until the first evaluation after 100000 steps to check the progress:
 
-:alt: training
 ![alt text](myGym/images/workspaces/press/kuka100000.gif "training")
 
 After 250000 steps the arm is able to press the button with 90% accuracy:
 
 ![alt text](myGym/images/workspaces/press/kuka500000.gif "training")
-
 
 There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_press.html)
 
@@ -143,19 +142,13 @@ Run training using following command
 
 Wait until the first evaluation after 50000 steps to check the progress:
 
-
-
-:alt: training
 ![alt text](myGym/images/workspaces/switch/kuka50000.gif "training")
 
 After 250000 steps the arm is able to switch the lever with 80% accuracy:
 
 ![alt text](myGym/images/workspaces/switch/kuka250000.gif "training")
 
-
 There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_switch.html)
-
-
 
 
 ##  Parametric Training
