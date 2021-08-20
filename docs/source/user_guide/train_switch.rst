@@ -30,10 +30,8 @@ Coefficient_ka - is multiplied by angle of switch
 Training
 -----------
 
-* To train model with default settings run following command
+* To train model with default coefficients settings run following command
 ``python train.py --config ./configs/train_switch.json``
-
-
 
 The training will start with gui window and standstill visualization. New directory 
 is created in the logdir, where tranining checkpoints, final model and other relevant 
