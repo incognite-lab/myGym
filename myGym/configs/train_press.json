@@ -13,9 +13,9 @@
 "robot_action"  :"joints",
 "robot_init"    :[0.0, 0.3, 0.9],
 #Task
-"task_type"             :"turn",
+"task_type"             :"press",
 "num_subgoals"          :0,
-"task_objects"          :["steering_wheel"],
+"task_objects"          :["btn"],
 "used_objects"          :null,
 "object_sampling_area"  :[0, 0, 0.7, 0.7, 0.1, 0.1],
 #Distractor
@@ -31,7 +31,7 @@
 "coefficient_ka": 1,
 #Reward
 "reward_type"   :"gt",
-"reward"        :"turn",
+"reward"        :"btn",
 "distance_type" :"euclidean",
 "vae_path"      :null,
 "yolact_path"   :null,
