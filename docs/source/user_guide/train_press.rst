@@ -30,7 +30,7 @@ Coefficient_ka - multiplies position of button
 Training
 -----------
 
-* To train model with default settings run following command
+* To train model with default coefficients settings run following command
 ``python train.py --config ./configs/train_press.json``
 
 The training will start with gui window and standstill visualization. New directory 
