@@ -1497,9 +1497,6 @@ class TurnReward(DistanceReward):
         gripper_position = self.get_accurate_gripper_position(observation[3:6])
         self.set_variables(o1, gripper_position)
         self.set_offset(z=0.16)
-        v1 = Vector([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1], self.env)
-        v2 = Vector([self.x_obj, self.y_obj, self.z_obj], gripper_position, self.env)
-        # w = np.dot(self.set_vector_len(v1.vector, 1), self.set_vector_len(v2.vector, 1))
         x, y, z, d = self.calc_circle_distance(self.x_obj, self.y_obj, self.z_obj,
                                    self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
 
@@ -1631,36 +1628,27 @@ class TurnReward(DistanceReward):
 
             p = self.env.p
             pos = p.getJointState(switch.get_uid(), 0)
-            angle = pos[0] * 180 / math.pi  # in degrees
-            return -angle
+            angle = (-1) * pos[0] * 180 / math.pi  # in degrees
+            return angle
         else:
             raise "expected task_type - turn"
 
     def calc_turn_reward(self, turn):
         if self.task.task_type == "turn":
-            turn *= 100
             turn = int(turn)
+            reward = turn / 10
             if self.prev_turn is None:
                 self.prev_turn = turn
 
-            if turn < 0:
-                k = turn // 2
-
-            else:
-                k = turn // 2
-
-            reward = k * turn
-            reward /= 1000
-
-            if reward >= 14:
-                reward += 2
-            reward /= 10
             if self.prev_turn == turn:
                 reward = 0
-            if self.prev_turn < turn:
-                reward = 0
-            self.prev_turn = turn
 
+            if self.prev_turn > turn:
+                reward = 0
+            if reward < 0 and self.prev_turn < turn:
+                reward = 0
+
+            self.prev_turn = turn
             return reward
         else:
             raise "not expected to use this function"
