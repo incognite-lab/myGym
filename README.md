@@ -119,11 +119,27 @@ There are more training tutorials in the [documentation](https://incognite-lab.g
 ## Training Examples
 
 ### Task - Press
+Run training using following command
+
+``python train.py --config--config ./configs/train_press.json``
+
+Wait until the first evaluation after 100000 steps to check the progress:
+
+:alt: training
+![alt text](myGym/images/workspaces/press/kuka100000.gif "training")
+
+After 250000 steps the arm is able to press the button with 90% accuracy:
+
+![alt text](myGym/images/workspaces/press/kuka500000.gif "training")
+
+
+There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_press.html)
+
 
 ### Task - Switch
 Run training using following command
 
-``python train.py --robot kuka --reward switch --task_objects switch --task_type switch --gui 1``
+``python train.py --config--config ./configs/train_switch.json``
 
 Wait until the first evaluation after 50000 steps to check the progress:
 
