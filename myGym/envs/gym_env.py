@@ -509,7 +509,7 @@ class GymEnv(CameraEnv):
                     if "poke" in object_filename:
                         borders = [0, 0, 0.7, 0.7, 0.1, 0.1]
                     if "cube" in object_filename:
-                        borders = [0, 0, 1, 1, 0.075, 0.075]
+                        borders = [0, 0, 1, 1, 0.025, 0.025]
                         fixed = True
 
                 pos = env_object.EnvObject.get_random_object_position(borders)

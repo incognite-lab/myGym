@@ -200,6 +200,7 @@ class TaskModule():
         goal  = observation[0:3]
         poker = observation[3:6]
         self.current_norm_distance = self.calc_distance(goal, poker)
+        return False
         return self.current_norm_distance < 0.1
 
     def check_reach_distance_threshold(self, observation):

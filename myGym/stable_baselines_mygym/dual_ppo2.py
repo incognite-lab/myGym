@@ -4,6 +4,7 @@ import os
 import gym
 import numpy as np
 from numpy.lib.function_base import append
+from myGym.utils.callbacks import SaveOnTopRewardCallback
 import tensorflow as tf
 
 from collections import OrderedDict, deque
@@ -57,7 +58,7 @@ class Dual(ActorCriticRLModel):
     def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
-                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
+                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None, models_num=2):
 
         self.learning_rate          = learning_rate
         self.cliprange              = cliprange
@@ -72,6 +73,7 @@ class Dual(ActorCriticRLModel):
         self.noptepochs             = noptepochs
         self.tensorboard_log        = tensorboard_log
         self.full_tensorboard_log   = full_tensorboard_log
+        self.models_num             = models_num
 
         self.action_ph          = None
         self.advs_ph            = None
@@ -110,7 +112,6 @@ class Dual(ActorCriticRLModel):
         return policy.obs_ph, self.action_ph, policy.deterministic_action
 
     def setup_model(self):
-        self.models_num = 2
         self.models = []
         for i in range(self.models_num):
             self.models.append(SubModel(self, i))
@@ -181,8 +182,10 @@ class Dual(ActorCriticRLModel):
         self.cliprange      = get_schedule_fn(self.cliprange)
         cliprange_vf        = get_schedule_fn(self.cliprange_vf)
 
-        new_tb_log  = self._init_num_timesteps(reset_num_timesteps)
-        callback    = self._init_callback(callback)
+        new_tb_log   = self._init_num_timesteps(reset_num_timesteps)
+        top_callback = SaveOnTopRewardCallback(check_freq=self.n_steps, logdir=self.tensorboard_log, models_num=self.models_num)
+        callback.append(top_callback)
+        callback     = self._init_callback(callback)
 
         with SetVerbosity(self.verbose), TensorboardWriter(self.models[0].graph, self.tensorboard_log, tb_log_name, new_tb_log) as writer:
 
@@ -385,6 +388,7 @@ class Dual(ActorCriticRLModel):
         return clipped_actions, states
 
     def approved(self, observation):
+        observation = observation[0]
         # based on obs, decide which model should be used
         try: # in training
             submodel_id = self.env.envs[0].env.env.reward.decide(observation)
@@ -398,6 +402,7 @@ class Dual(ActorCriticRLModel):
 
 class SubModel(Dual):
     def __init__(self, parent, i):
+        self.episode_reward  = 0
         self._param_load_ops = None
         self.path = parent.tensorboard_log + "/submodel_" + str(i)
         try:
@@ -552,6 +557,41 @@ class SubModel(Dual):
         if parent.ep_info_buf is None:
             parent.ep_info_buf = deque(maxlen=100)
 
+    def save(self, parent_path, i, cloudpickle=False):
+        # save only one model
+        data = {
+            "gamma": self.parent.gamma,
+            "n_steps": self.parent.n_steps,
+            "vf_coef": self.parent.vf_coef,
+            "ent_coef": self.parent.ent_coef,
+            "max_grad_norm": self.parent.max_grad_norm,
+            "learning_rate": self.parent.learning_rate,
+            "lam": self.parent.lam,
+            "nminibatches": self.parent.nminibatches,
+            "noptepochs": self.parent.noptepochs,
+            "cliprange": self.parent.cliprange,
+            "cliprange_vf": self.parent.cliprange_vf,
+            "verbose": self.parent.verbose,
+            "policy": self.parent.policy,
+            "observation_space": self.parent.observation_space,
+            "action_space": self.parent.action_space,
+            "n_envs": self.parent.n_envs,
+            "n_cpu_tf_sess": self.parent.n_cpu_tf_sess,
+            "seed": self.parent.seed,
+            "_vectorize_action": self.parent._vectorize_action,
+            "policy_kwargs": self.parent.policy_kwargs
+        }
+        
+        parent_path = parent_path.split("/")
+        start       = parent_path[:-1]
+        end         = parent_path[-1]
+        start       = "/".join(start)
+
+        submodel_path = start + "/submodel_" + str(i) + "/" + end
+        params_to_save = self.get_parameters()
+        self._save_to_file(submodel_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
+
+
 class Runner(AbstractEnvRunner):
     def __init__(self, *, env, model, models, n_steps, gamma, lam):
         """
@@ -637,6 +677,7 @@ class Runner(AbstractEnvRunner):
         last_values          = model.value(self.obs, self.states, self.dones) # last observation, last state, last done
         finished_minibatches = []
         # discount/bootstrap off value fn
+        i = 0
         for minibatch in minibatches:
             mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = minibatch
             
@@ -652,6 +693,7 @@ class Runner(AbstractEnvRunner):
             last_gae_lam = 0
             # count = self.n_steps
             count = len(mb_rewards) # number of steps in this minibatch
+            self.models[i].episode_reward = sum(true_reward)
             print()
             print(count)
             for step in reversed(range(count)):
@@ -672,6 +714,7 @@ class Runner(AbstractEnvRunner):
 
             finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward
             finished_minibatches.append(finished_minibatch)
+            i+=1
         return finished_minibatches
 
         return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward

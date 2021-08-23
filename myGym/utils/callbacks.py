@@ -409,3 +409,39 @@ def generate_and_save_mean_graph_from_1_or_2arrays(data_array_1=[], data_array_2
 
         plt.close()
     return
+
+class SaveOnTopRewardCallback(BaseCallback):
+    """
+    Callback for saving a model (the check is done every ``check_freq`` steps)
+    based on the training reward (in practice, we recommend using ``EvalCallback``).
+
+    :param check_freq: (int)
+    :param args.logdir: (str) Path to the folder where the model will be saved.
+      It must contains the file created by the ``Monitor`` wrapper.
+    :param verbose: (int)
+    """
+
+    def __init__(self, check_freq: int, logdir: str, verbose=1, models_num=2):
+        super(SaveOnTopRewardCallback, self).__init__(verbose)
+        self.check_freq = check_freq
+        self.logdir = logdir
+        self.save_path = os.path.join(logdir, 'highest_reward')
+        self.top_rewards = [-np.inf]*models_num
+
+    def _on_rollout_end(self) -> bool:
+        if self.n_calls % self.check_freq == 0:
+            x, y = ts2xy(load_results(self.logdir), 'timesteps')
+
+            episode = len(y)  # Current episode
+            if episode:
+                i = 0
+                for submodel in self.model.models:
+                    actual_reward = submodel.episode_reward
+                    if actual_reward > self.top_rewards[i]:
+                        self.top_rewards[i] = actual_reward
+                        if self.verbose > 0:
+                            print("Saving new most rewarded model to {}".format(self.save_path))
+                        submodel.save(self.save_path, i)
+
+                    i += 1
+        return True
