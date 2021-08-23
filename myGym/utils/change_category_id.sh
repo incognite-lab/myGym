@@ -14,5 +14,5 @@ help()
 }
 
 help
-sed -i  's|"category_id": '"$1"'|"category_id": '"$2"'|g' "$3"
+sed -i  's|"category_id": '"$1"',|"category_id": '"$2"',|g' "$3"
 sed -i  's|"id": '"$1"', "name"|"id": '"$2"', "name"|g' "$3"
