@@ -122,7 +122,7 @@ There are more training tutorials in the [documentation](https://incognite-lab.g
 ### Task - Press
 Run training using following command
 
-``python train.py --config--config ./configs/train_press.json``
+``python train.py --config ./configs/train_press.json``
 
 Wait until the first evaluation after 100000 steps to check the progress:
 
@@ -138,7 +138,7 @@ There are more training tutorials in the [documentation](https://incognite-lab.g
 ### Task - Switch
 Run training using following command
 
-``python train.py --config--config ./configs/train_switch.json``
+``python train.py --config ./configs/train_switch.json``
 
 Wait until the first evaluation after 50000 steps to check the progress:
 
