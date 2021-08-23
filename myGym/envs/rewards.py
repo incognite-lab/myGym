@@ -1239,7 +1239,6 @@ class ButtonReward(DistanceReward):
         if gripper_position[2] < 0.15:
             d *= 5
         a = self.calc_press_reward(self.is_pressed())
-        print(self.env.episode_steps)
         reward = - self.k_w * w - self.k_d * d + self.k_a * a
         if self.debug:
             self.env.p.addUserDebugLine([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1],
