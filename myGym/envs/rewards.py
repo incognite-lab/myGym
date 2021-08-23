@@ -874,7 +874,7 @@ class VectorReward(Reward):
 
     def get_angle_between_vectors(self, v1, v2):
         return math.acos(np.dot(v1, v2)/(self.count_vector_norm(v1)*self.count_vector_norm(v2)))
-      
+
 
 
 class SwitchReward(DistanceReward):
@@ -1206,13 +1206,13 @@ class ButtonReward(DistanceReward):
         self.y_bot_curr_pos = None
         self.z_bot_curr_pos = None
 
-        self.debug = True
+        self.debug = False
         self.offset = None
         self.prev_press = None
 
-        self.k_w = 0.4
-        self.k_d = 0.3
-        self.k_a = 0.5
+        self.k_w = self.env.coefficient_kw
+        self.k_d = self.env.coefficient_kd
+        self.k_a = self.env.coefficient_ka
 
     def compute(self, observation):
         """
@@ -1229,7 +1229,6 @@ class ButtonReward(DistanceReward):
         gripper_position = self.get_accurate_gripper_position(observation[3:6])
         self.set_variables(o1, gripper_position)
         self.set_offset(z=0.16)
-
         v1 = Vector([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1], self.env)
         v2 = Vector([self.x_obj, self.y_obj, self.z_obj], gripper_position, self.env)
 
@@ -1237,9 +1236,11 @@ class ButtonReward(DistanceReward):
         w = self.calc_direction_3d(self.x_obj, self.y_obj, 1, self.x_obj, self.y_obj, self.z_obj,
                                    self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
         d = self.abs_diff()
+        if gripper_position[2] < 0.15:
+            d *= 5
         a = self.calc_press_reward(self.is_pressed())
-
-        reward = self.k_w * w + self.k_d * d + self.k_a * a
+        print(self.env.episode_steps)
+        reward = - self.k_w * w - self.k_d * d + self.k_a * a
         if self.debug:
             self.env.p.addUserDebugLine([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1],
                                         lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=1)
@@ -1368,17 +1369,16 @@ class ButtonReward(DistanceReward):
                 z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
 
         d = sqrt((x - x3) ** 2 + (y - y3) ** 2 + (z - z3) ** 2)
-
         return d
 
     def abs_diff(self):
         """
-        This function calculates absolute differance between task_object and gripper
+        This function calculates absolute difference between task_object and gripper
         """
         x_diff = self.x_obj_curr_pos - self.x_bot_curr_pos
         y_diff = self.y_obj_curr_pos - self.y_bot_curr_pos
         z_diff = self.z_obj_curr_pos - self.z_bot_curr_pos
-        abs_diff = 1/sqrt(x_diff ** 2 + y_diff ** 2 + z_diff ** 2)
+        abs_diff = sqrt(x_diff ** 2 + y_diff ** 2 + z_diff ** 2)
         return abs_diff
 
     def is_pressed(self):

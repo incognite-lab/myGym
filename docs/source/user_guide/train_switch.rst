@@ -1,19 +1,41 @@
-.. _basic_training:
+.. _train_switch.rst:
 
 Train a robot - switch
 =============
+Train robot to switch a lever
 
-Run training using following command
 
-``python train.py --robot kuka --reward switch --task_objects switch --task_type switch --gui 1``
+Setup
+-----------
+
+To train robot with a different behaviour, change values of following coefficients in config file.
+Values have to be between 0 - 1.
+
+::
+
+   #Coefficients
+   "coefficient_kw"        : 0.1,
+   "coefficient_kd"        : 0.1,
+   "coefficient_ka"        : 1,
+
+Reward is splitted into 3 parts, each part is multiplied by specific coefficient and at the end of episode summed up.
+
+Coefficient_kw - is multiplied by distance between position of robot's gripper and line - (initial position of robot, final position of robot)
+
+Coefficient_kd - is multiplied by distance between task_object and robot's gripper
+
+Coefficient_ka - is multiplied by angle of switch
+
+
+Training
+-----------
+
+* To train model with default coefficients settings run following command
+``python train.py --config ./configs/train_switch.json``
 
 The training will start with gui window and standstill visualization. New directory 
 is created in the logdir, where tranining checkpoints, final model and other relevant 
-data are stored. 
-
-If you want to train robot with the same goal, but with different behaviour, change values of coefficients
-in reward.py under class SwitchReward: k_w, k_d, k_a, values have to be <0; 1>.
-
+data are stored.
 
 Wait until the first evaluation after 50000 steps to check the progress:
 

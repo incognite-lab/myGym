@@ -25,6 +25,10 @@
 "distractor_movement_dimensions": 3,
 "distractor_movement_endpoints" : [-0.3, 0.3, 0.4, 0.7, 0.1, 0.3],
 "observed_links_num"            : 5,
+#Coefficients
+"coefficient_kw": 0,
+"coefficient_kd": 0,
+"coefficient_ka": 0,
 #Reward
 "reward_type":"gt",
 "reward":"distance",

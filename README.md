@@ -15,7 +15,7 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 | Robots  | 8 robotic arms, 2 dualarms, humanoid |
 | Robot actions  | Absolute, Relative, Joints |
 | Objects  | 54 objects in 5 categories |
-| Tasks  | Reach, Push, Pick, Place, PicknPlace, Throw, Hit, Catch, Navigate|
+| Tasks  | Reach, Press, Switch, Push, Pick, Place, PicknPlace, Throw, Hit, Catch, Navigate|
 | Randomizers  | Light, Texture, Size, Camera position |
 | Baselines  | Tensorflow, Pytorch |
 
@@ -108,10 +108,6 @@ Run the default training without specifying the parameters:
 
 The training will start with the GUI window and a standstill visualization. Wait until the first evaluation after 10000 steps to check the progress: 
 
-![alt text](myGym/images/workspaces/kuka10000.gif "training")
-
-After 50000 steps, the arm starts to move towards the goal object:
-
 ![alt text](myGym/images/workspaces/kuka50000.gif "training")
 
 After 100000 steps, the arm is able to reach the goal object with 80% accuracy:
@@ -119,6 +115,41 @@ After 100000 steps, the arm is able to reach the goal object with 80% accuracy:
 ![alt text](myGym/images/workspaces/kuka100000.gif "training")
 
 There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/basic_training.html)
+
+
+## Training Examples
+
+### Task - Press
+Run training using following command
+
+``python train.py --config--config ./configs/train_press.json``
+
+Wait until the first evaluation after 100000 steps to check the progress:
+
+![alt text](myGym/images/workspaces/press/kuka100000.gif "training")
+
+After 250000 steps the arm is able to press the button with 90% accuracy:
+
+![alt text](myGym/images/workspaces/press/kuka500000.gif "training")
+
+There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_press.html)
+
+
+### Task - Switch
+Run training using following command
+
+``python train.py --config--config ./configs/train_switch.json``
+
+Wait until the first evaluation after 50000 steps to check the progress:
+
+![alt text](myGym/images/workspaces/switch/kuka50000.gif "training")
+
+After 250000 steps the arm is able to switch the lever with 80% accuracy:
+
+![alt text](myGym/images/workspaces/switch/kuka250000.gif "training")
+
+There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_switch.html)
+
 
 ##  Parametric Training
 

@@ -46,6 +46,10 @@ class TaskModule():
         self.angle = None
         self.prev_angle = None
         self.pressed = None
+        self.turned = None
+        self.coefficient_kd = 0
+        self.coefficient_kw = 0
+        self.coefficient_ka = 0
         if self.task_type == '2stepreach':
             self.obsdim = 6
         if self.reward_type == 'gt':
@@ -72,6 +76,7 @@ class TaskModule():
         self.current_norm_distance = None
         self.angle = None
         self.pressed = None
+        self.turned = None
         self.vision_module.mask = {}
         self.vision_module.centroid = {}
         self.vision_module.centroid_transformed = {}
@@ -196,6 +201,13 @@ class TaskModule():
         else:
             return False
 
+    def check_turn_threshold(self):
+        self.turned = self.env.reward.is_turned()
+        if self.turned >= 57:
+            return True
+        else:
+            return False
+
     # def check_distance_threshold(self, observation):
     #     """
     #     Check if the distance between relevant task objects is under threshold for successful task completion
@@ -286,7 +298,6 @@ class TaskModule():
         self.last_distance = self.current_norm_distance
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
-        contacts = self.check_points_distance_threshold()
         finished = None
         if self.task_type == 'reach':
             finished = self.check_distance_threshold(self._observation)
@@ -298,6 +309,8 @@ class TaskModule():
             finished = self.check_switch_threshold()
         if self.task_type == "press":
             finished = self.check_press_threshold()
+        if self.task_type == "turn":
+            finished = self.check_turn_threshold()
         if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
             if len(self.env.robot.magnetized_objects) == 0:
                 self.env.episode_over = False
