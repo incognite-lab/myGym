@@ -1479,7 +1479,6 @@ class TurnReward(DistanceReward):
         self.offset = None
         self.prev_turn = None
         self.r = 0.45
-        self.change_reward = None
 
         self.k_w = self.env.coefficient_kw
         self.k_d = self.env.coefficient_kd
@@ -1501,7 +1500,7 @@ class TurnReward(DistanceReward):
         self.set_variables(o1, gripper_position)
         self.set_offset(z=0.16)
 
-        d = self.angle_adaptive_reward(self.x_obj, self.y_obj, self.z_obj,
+        d = self.threshold_reached(self.x_obj, self.y_obj, self.z_obj,
                                       self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
         a = self.calc_turn_reward()
 
@@ -1535,7 +1534,6 @@ class TurnReward(DistanceReward):
 
         self.offset = None
         self.prev_turn = None
-        self.change_reward = None
 
     def get_accurate_gripper_position(self, gripper_position):
         """
@@ -1588,16 +1586,15 @@ class TurnReward(DistanceReward):
         self.y_obj_curr_pos += y
         self.z_obj_curr_pos += z
 
-    def angle_adaptive_reward(self, x1, y1, z1, x2, y2, z2):
+    def angle_adaptive_reward(self, x1, y1, z1, x2, y2, z2, change_reward=False, visualize=False):
         """
         This function calculates difference between point - (actual position of robot's gripper [x3, y3, z3])
         and line - (initial position of robot: [x1, y1, z1], final position of robot: [x2, y2, z2]) in 3D
         """
         alfa = np.deg2rad(-self.get_angle())  # in radians
         sec = [0, math.pi/4, math.pi/2, 3*math.pi/4, math.pi, 5*math.pi/4, 3*math.pi/2, 7*math.pi/4]
-        threshold = 0.1
 
-        if self.change_reward:
+        if change_reward:
             l = 3 * math.pi / 2 - 0.2
         else:
             l = 3 * math.pi / 2 + 0.3
@@ -1607,14 +1604,10 @@ class TurnReward(DistanceReward):
         y = self.r * math.sin(alfa+l) + y1
         z = z1
 
-        self.env.p.addUserDebugLine([x, y, z], [self.x_obj, self.y_obj, self.z_obj],
-                                    lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=0.03)
         x_diff = x - x2
         y_diff = y - y2
         z_diff = z - z2
 
-        self.env.p.addUserDebugLine([x_diff, y_diff, z_diff], [self.x_obj, self.y_obj, self.z_obj],
-                                    lineColorRGB=(0, 1, 1), lineWidth=3, lifeTime=0.03)
         k = 0.2
         x_vec1 = self.x_obj
         y_vec1 = self.y_obj
@@ -1628,13 +1621,22 @@ class TurnReward(DistanceReward):
         y_vec3 = y_vec1 - (k/self.r) * (y_vec1 - y_vec2)
         z_vec3 = z_vec1 - (k/self.r) * (z_vec1 - z_vec2)
 
-        self.env.p.addUserDebugLine([x_vec3, y_vec3, z_vec3], [x, y, z],
-                                    lineColorRGB=(1, 0, 1), lineWidth=3, lifeTime=0.03)
+        if visualize:
+            self.env.p.addUserDebugLine([x_diff, y_diff, z_diff], [self.x_obj, self.y_obj, self.z_obj],
+                                        lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=0.03)
+
+            self.env.p.addUserDebugLine([x_vec3, y_vec3, z_vec3], [x, y, z],
+                                        lineColorRGB=(1, 0, 1), lineWidth=3, lifeTime=0.03)
 
         d = self.calc_direction_3d(x, y, z, x_vec3, y_vec3, z_vec3, x2, y2, z2)
-        if d < threshold:
-            self.change_reward = True
         return d
+
+    def threshold_reached(self, x1, y1, z1, x2, y2, z2):
+        threshold = 0.1
+        d = self.angle_adaptive_reward(x1, y1, z1, x2, y2, z2)
+        if d < threshold:
+            return self.angle_adaptive_reward(x1, y1, z1, x2, y2, z2, change_reward=True, visualize=True)
+        return self.angle_adaptive_reward(x1, y1, z1, x2, y2, z2, visualize=True)
 
     def abs_diff(self):
         """
