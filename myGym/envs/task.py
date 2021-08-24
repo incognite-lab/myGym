@@ -195,14 +195,14 @@ class TaskModule():
             return False
 
     def check_press_threshold(self):
-        self.pressed = self.env.reward.is_pressed()
+        self.pressed = self.env.reward.get_position()
         if self.pressed >= 1.71:
             return True
         else:
             return False
 
     def check_turn_threshold(self):
-        self.turned = self.env.reward.is_turned()
+        self.turned = self.env.reward.get_angle()
         if self.turned >= 57:
             return True
         else:
