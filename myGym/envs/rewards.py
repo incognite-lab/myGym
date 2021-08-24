@@ -1505,8 +1505,6 @@ class TurnReward(DistanceReward):
                                       self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
         a = self.calc_turn_reward()
 
-        if self.z_bot_curr_pos < 0.15:
-            d *= 5
         reward = - self.k_d * d + a * self.k_a
         if self.debug:
             self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
@@ -1616,9 +1614,24 @@ class TurnReward(DistanceReward):
         z_diff = z - z2
 
         self.env.p.addUserDebugLine([x_diff, y_diff, z_diff], [self.x_obj, self.y_obj, self.z_obj],
+                                    lineColorRGB=(0, 1, 1), lineWidth=3, lifeTime=0.03)
+        k = 0.2
+        x_vec1 = self.x_obj
+        y_vec1 = self.y_obj
+        z_vec1 = self.z_obj
+
+        x_vec2 = x
+        y_vec2 = y
+        z_vec2 = z
+
+        x_vec3 = x_vec1 - (k/self.r) * (x_vec1 - x_vec2)
+        y_vec3 = y_vec1 - (k/self.r) * (y_vec1 - y_vec2)
+        z_vec3 = z_vec1 - (k/self.r) * (z_vec1 - z_vec2)
+
+        self.env.p.addUserDebugLine([x_vec3, y_vec3, z_vec3], [x, y, z],
                                     lineColorRGB=(1, 0, 1), lineWidth=3, lifeTime=0.03)
 
-        d = self.calc_direction_3d(x, y, z, self.x_obj, self.y_obj, self.z_obj, x2, y2, z2)
+        d = self.calc_direction_3d(x, y, z, x_vec3, y_vec3, z_vec3, x2, y2, z2)
         if d < threshold:
             self.change_reward = True
         return d
