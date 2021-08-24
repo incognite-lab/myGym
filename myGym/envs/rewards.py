@@ -1484,6 +1484,8 @@ class TurnReward(DistanceReward):
         self.k_d = self.env.coefficient_kd
         self.k_a = self.env.coefficient_ka
 
+        self.touches = 0
+
     def compute(self, observation):
         """
         Compute reward signal based on distance between 2 objects, position of button and difference between point and line
@@ -1503,7 +1505,6 @@ class TurnReward(DistanceReward):
         d = self.threshold_reached(self.x_obj, self.y_obj, self.z_obj,
                                       self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
         a = self.calc_turn_reward()
-
         reward = - self.k_d * d + a * self.k_a
         if self.debug:
             self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
@@ -1534,6 +1535,8 @@ class TurnReward(DistanceReward):
 
         self.offset = None
         self.prev_turn = None
+
+        self.touches = 0
 
     def get_accurate_gripper_position(self, gripper_position):
         """
@@ -1592,7 +1595,6 @@ class TurnReward(DistanceReward):
         and line - (initial position of robot: [x1, y1, z1], final position of robot: [x2, y2, z2]) in 3D
         """
         alfa = np.deg2rad(-self.get_angle())  # in radians
-        sec = [0, math.pi/4, math.pi/2, 3*math.pi/4, math.pi, 5*math.pi/4, 3*math.pi/2, 7*math.pi/4]
 
         if change_reward:
             l = 3 * math.pi / 2 - 0.2
@@ -1633,37 +1635,15 @@ class TurnReward(DistanceReward):
 
     def threshold_reached(self, x1, y1, z1, x2, y2, z2):
         threshold = 0.1
+        touched = False
         d = self.angle_adaptive_reward(x1, y1, z1, x2, y2, z2)
-        if d < threshold:
+        contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.env_objects[0].uid, x, 0) for x in range(0,self.env.robot.end_effector_index+1)]
+
+        for _ in contact_points:
+            touched = True
+        if d < threshold and touched:
             return self.angle_adaptive_reward(x1, y1, z1, x2, y2, z2, change_reward=True, visualize=True)
         return self.angle_adaptive_reward(x1, y1, z1, x2, y2, z2, visualize=True)
-
-    def abs_diff(self):
-        """
-        This function calculates absolute difference between task_object and gripper
-        """
-        angle = -self.get_angle()
-        x = self.x_obj + self.r * math.cos(angle)
-        y = self.y_obj + self.r * math.sin(angle)
-        z = self.z_obj
-
-        x_diff = (self.x_bot_curr_pos - x) ** 2
-        y_diff = (self.x_bot_curr_pos - y) ** 2
-        #z_diff = (self.x_bot_curr_pos - z) ** 2
-
-
-        # d = sqrt((self.x_obj - self.r - self.x_bot_curr_pos)**2 + (self.y_obj - self.y_bot_curr_pos)**2 + (self.z_obj - self.z_bot_curr_pos)**2)
-        x = math.sin(angle) * self.r
-        x_pos = self.x_obj + self.r + x * math.cos(angle)
-        y_pos = self.y_obj * self.r * math.sin(angle)
-        z_pos = self.z_obj
-
-        # self.env.p.addUserDebugLine([x_pos, y_pos, z_pos], [self.x_obj, self.y_obj, self.z_obj],
-        #                             lineColorRGB=(1, 0, 1), lineWidth=3, lifeTime=0.02)
-        d = sqrt(x_diff + y_diff) - self.r
-        # print(f"[{self.x_obj_curr_pos}; {self.y_obj_curr_pos}; {self.z_obj_curr_pos}]")
-
-        return d
 
     @staticmethod
     def calc_direction_3d(x1, y1, z1, x2, y2, z2, x3, y3, z3):
