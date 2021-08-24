@@ -1479,6 +1479,7 @@ class TurnReward(DistanceReward):
         self.offset = None
         self.prev_turn = None
         self.r = 0.45
+        self.change_reward = None
 
         self.k_w = self.env.coefficient_kw
         self.k_d = self.env.coefficient_kd
@@ -1499,16 +1500,16 @@ class TurnReward(DistanceReward):
         gripper_position = self.get_accurate_gripper_position(observation[3:6])
         self.set_variables(o1, gripper_position)
         self.set_offset(z=0.16)
-        w = self.abs_diff()
-        d = self.calc_circle_distance(self.x_obj, self.y_obj, self.z_obj,
-                                      self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
 
+        d = self.angle_adaptive_reward(self.x_obj, self.y_obj, self.z_obj,
+                                      self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
         a = self.calc_turn_reward()
+
         if self.z_bot_curr_pos < 0.15:
             d *= 5
-        reward = - self.k_w * w - self.k_d * d + a * self.k_a
+        reward = - self.k_d * d + a * self.k_a
         if self.debug:
-            self.env.p.addUserDebugText(f"reward:{reward:.3f}, w:{w * self.k_w:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
+            self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
                                         [1, 1, 1], textSize=2.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
 
         self.task.check_distance_threshold(observation=observation)
@@ -1536,6 +1537,7 @@ class TurnReward(DistanceReward):
 
         self.offset = None
         self.prev_turn = None
+        self.change_reward = None
 
     def get_accurate_gripper_position(self, gripper_position):
         """
@@ -1588,30 +1590,37 @@ class TurnReward(DistanceReward):
         self.y_obj_curr_pos += y
         self.z_obj_curr_pos += z
 
-    def calc_circle_distance(self, x1, y1, z1, x2, y2, z2):
+    def angle_adaptive_reward(self, x1, y1, z1, x2, y2, z2):
         """
         This function calculates difference between point - (actual position of robot's gripper [x3, y3, z3])
         and line - (initial position of robot: [x1, y1, z1], final position of robot: [x2, y2, z2]) in 3D
         """
         alfa = np.deg2rad(-self.get_angle())  # in radians
-        from math import pi
-        radians = [0, pi/4, pi/2, 3*pi/4, pi, 5*pi/4, 3*pi/2, 7*pi/4]
-        for l in radians:
-            #l = math.pi / 2
-            l += 0.1
-            x = self.r * math.cos(alfa+l) + x1
+        sec = [0, math.pi/4, math.pi/2, 3*math.pi/4, math.pi, 5*math.pi/4, 3*math.pi/2, 7*math.pi/4]
+        threshold = 0.1
 
-            y = self.r * math.sin(alfa+l) + y1
+        if self.change_reward:
+            l = 3 * math.pi / 2 - 0.2
+        else:
+            l = 3 * math.pi / 2 + 0.3
+        l += 0.1
 
-            z = z1
+        x = self.r * math.cos(alfa+l) + x1
+        y = self.r * math.sin(alfa+l) + y1
+        z = z1
 
-            self.env.p.addUserDebugLine([x, y, z], [self.x_obj, self.y_obj, self.z_obj],
-                                        lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=0.03)
-        x = abs(x1 - x2)
-        y = abs(y1 - y2)
-        z = abs(z1 - z2)
+        self.env.p.addUserDebugLine([x, y, z], [self.x_obj, self.y_obj, self.z_obj],
+                                    lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=0.03)
+        x_diff = x - x2
+        y_diff = y - y2
+        z_diff = z - z2
 
-        d = sqrt(z**2 + (sqrt(x**2 + y**2) - self.r)**2)
+        self.env.p.addUserDebugLine([x_diff, y_diff, z_diff], [self.x_obj, self.y_obj, self.z_obj],
+                                    lineColorRGB=(1, 0, 1), lineWidth=3, lifeTime=0.03)
+
+        d = self.calc_direction_3d(x, y, z, self.x_obj, self.y_obj, self.z_obj, x2, y2, z2)
+        if d < threshold:
+            self.change_reward = True
         return d
 
     def abs_diff(self):
@@ -1639,7 +1648,28 @@ class TurnReward(DistanceReward):
         d = sqrt(x_diff + y_diff) - self.r
         # print(f"[{self.x_obj_curr_pos}; {self.y_obj_curr_pos}; {self.z_obj_curr_pos}]")
 
-        print(d)
+        return d
+
+    @staticmethod
+    def calc_direction_3d(x1, y1, z1, x2, y2, z2, x3, y3, z3):
+        """
+        This function calculates difference between point - (actual position of robot's gripper [x3, y3, z3])
+        and line - (initial position of robot: [x1, y1, z1], final position of robot: [x2, y2, z2]) in 3D
+        """
+        x = x1 - ((x1 - x2) * (
+                x1 * (x1 - x2) - x3 * (x1 - x2) + y1 * (y1 - y2) - y3 * (y1 - y2) + z1 * (z1 - z2) - z3 * (
+                z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
+
+        y = y1 - ((y1 - y2) * (
+                x1 * (x1 - x2) - x3 * (x1 - x2) + y1 * (y1 - y2) - y3 * (y1 - y2) + z1 * (z1 - z2) - z3 * (
+                z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
+
+        z = z1 - ((z1 - z2) * (
+                x1 * (x1 - x2) - x3 * (x1 - x2) + y1 * (y1 - y2) - y3 * (y1 - y2) + z1 * (z1 - z2) - z3 * (
+                z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
+
+        d = sqrt((x - x3) ** 2 + (y - y3) ** 2 + (z - z3) ** 2)
+
         return d
 
     def get_angle(self):
