@@ -943,7 +943,7 @@ class SwitchReward(DistanceReward):
                                        self.y_bot_curr_pos, self.z_bot_curr_pos)
 
         d = self.abs_diff()
-        a = self.calc_angle_reward(self.get_angle())
+        a = self.calc_angle_reward()
 
         reward = - self.k_w * w - self.k_d * d + self.k_a * a
         self.task.check_distance_threshold(observation=observation)
@@ -1151,12 +1151,13 @@ class SwitchReward(DistanceReward):
         else:
             raise "expected task_type - switch"
 
-    def calc_angle_reward(self, angle):
+    def calc_angle_reward(self):
         """
         Calculate additional reward for switch task
         Returns:
             :return reward: (int) Additional reward value
         """
+        angle = self.get_angle()
         if self.task.task_type == "switch":
             if self.prev_angle is None:
                 self.prev_angle = angle
@@ -1238,7 +1239,7 @@ class ButtonReward(DistanceReward):
         d = self.abs_diff()
         if gripper_position[2] < 0.15:
             d *= 5
-        a = self.calc_press_reward(self.is_pressed())
+        a = self.calc_press_reward()
         reward = - self.k_w * w - self.k_d * d + self.k_a * a
         if self.debug:
             self.env.p.addUserDebugLine([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1],
@@ -1395,7 +1396,7 @@ class ButtonReward(DistanceReward):
         abs_diff = sqrt(x_diff ** 2 + y_diff ** 2 + z_diff ** 2)
         return abs_diff
 
-    def is_pressed(self):
+    def get_position(self):
         """
         This function calculates angle of switch
         """
@@ -1420,7 +1421,8 @@ class ButtonReward(DistanceReward):
         else:
             raise "expected task_type - press"
 
-    def calc_press_reward(self, press):
+    def calc_press_reward(self):
+        press = self.get_position()
         if self.task.task_type == "press":
             press *= 100
             press = int(press)
@@ -1476,6 +1478,7 @@ class TurnReward(DistanceReward):
         self.debug = True
         self.offset = None
         self.prev_turn = None
+        self.r = 0.45
 
         self.k_w = self.env.coefficient_kw
         self.k_d = self.env.coefficient_kd
@@ -1496,16 +1499,16 @@ class TurnReward(DistanceReward):
         gripper_position = self.get_accurate_gripper_position(observation[3:6])
         self.set_variables(o1, gripper_position)
         self.set_offset(z=0.16)
-        x, y, z, d = self.calc_circle_distance(self.x_obj, self.y_obj, self.z_obj,
-                                   self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
+        w = self.abs_diff()
+        d = self.calc_circle_distance(self.x_obj, self.y_obj, self.z_obj,
+                                      self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
 
-        a = self.calc_turn_reward(self.is_turned())
-        reward = - self.k_d * d + a * self.k_a
+        a = self.calc_turn_reward()
+        if self.z_bot_curr_pos < 0.15:
+            d *= 5
+        reward = - self.k_w * w - self.k_d * d + a * self.k_a
         if self.debug:
-            self.env.p.addUserDebugLine([x, y, z], [self.x_obj, self.y_obj, self.z_obj],
-                                        lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=0.2)
-
-            self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
+            self.env.p.addUserDebugText(f"reward:{reward:.3f}, w:{w * self.k_w:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
                                         [1, 1, 1], textSize=2.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
 
         self.task.check_distance_threshold(observation=observation)
@@ -1581,33 +1584,65 @@ class TurnReward(DistanceReward):
             self.y_obj += y
             self.z_obj += z
 
+        self.x_obj_curr_pos += x
+        self.y_obj_curr_pos += y
+        self.z_obj_curr_pos += z
+
     def calc_circle_distance(self, x1, y1, z1, x2, y2, z2):
         """
         This function calculates difference between point - (actual position of robot's gripper [x3, y3, z3])
         and line - (initial position of robot: [x1, y1, z1], final position of robot: [x2, y2, z2]) in 3D
         """
-        r = 0.4
-        alfa = -0.01/6.4
-        x = r * math.cos(alfa*self.env.episode_steps) + x1
+        alfa = np.deg2rad(-self.get_angle())  # in radians
+        from math import pi
+        radians = [0, pi/4, pi/2, 3*pi/4, pi, 5*pi/4, 3*pi/2, 7*pi/4]
+        for l in radians:
+            #l = math.pi / 2
+            l += 0.1
+            x = self.r * math.cos(alfa+l) + x1
 
-        y = r * math.sin(alfa*self.env.episode_steps) + y1
+            y = self.r * math.sin(alfa+l) + y1
 
-        z = z1
+            z = z1
 
-        d = sqrt((x - x2) ** 2 + (y - y2) ** 2 + (z - z2) ** 2)
-        return [x, y, z, d]
+            self.env.p.addUserDebugLine([x, y, z], [self.x_obj, self.y_obj, self.z_obj],
+                                        lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=0.03)
+        x = abs(x1 - x2)
+        y = abs(y1 - y2)
+        z = abs(z1 - z2)
+
+        d = sqrt(z**2 + (sqrt(x**2 + y**2) - self.r)**2)
+        return d
 
     def abs_diff(self):
         """
         This function calculates absolute difference between task_object and gripper
         """
-        x_diff = self.x_obj_curr_pos - self.x_bot_curr_pos
-        y_diff = self.y_obj_curr_pos - self.y_bot_curr_pos
-        z_diff = self.z_obj_curr_pos - self.z_bot_curr_pos
-        abs_diff = sqrt(x_diff ** 2 + y_diff ** 2 + z_diff ** 2)
-        return abs_diff
+        angle = -self.get_angle()
+        x = self.x_obj + self.r * math.cos(angle)
+        y = self.y_obj + self.r * math.sin(angle)
+        z = self.z_obj
 
-    def is_turned(self):
+        x_diff = (self.x_bot_curr_pos - x) ** 2
+        y_diff = (self.x_bot_curr_pos - y) ** 2
+        #z_diff = (self.x_bot_curr_pos - z) ** 2
+
+
+        # d = sqrt((self.x_obj - self.r - self.x_bot_curr_pos)**2 + (self.y_obj - self.y_bot_curr_pos)**2 + (self.z_obj - self.z_bot_curr_pos)**2)
+        x = math.sin(angle) * self.r
+        x_pos = self.x_obj + self.r + x * math.cos(angle)
+        y_pos = self.y_obj * self.r * math.sin(angle)
+        z_pos = self.z_obj
+
+        # self.env.p.addUserDebugLine([x_pos, y_pos, z_pos], [self.x_obj, self.y_obj, self.z_obj],
+        #                             lineColorRGB=(1, 0, 1), lineWidth=3, lifeTime=0.02)
+        d = sqrt(x_diff + y_diff) - self.r
+        # print(f"[{self.x_obj_curr_pos}; {self.y_obj_curr_pos}; {self.z_obj_curr_pos}]")
+
+        print(d)
+        return d
+
+    def get_angle(self):
         """
         This function calculates angle of switch
         """
@@ -1617,7 +1652,7 @@ class TurnReward(DistanceReward):
 
             o1 = self.task.current_task_objects[0]
             o2 = self.task.current_task_objects[1]
-
+            # print(o1,o2)
             if o1 == self.env.robot:
                 # robot = o1
                 switch = o2
@@ -1627,14 +1662,14 @@ class TurnReward(DistanceReward):
 
             p = self.env.p
             pos = p.getJointState(switch.get_uid(), 0)
-            angle = (-1) * pos[0] * 180 / math.pi  # in degrees
+            angle = -pos[0] * 180 / math.pi  # in degrees
             return angle
         else:
             raise "expected task_type - turn"
 
-    def calc_turn_reward(self, turn):
+    def calc_turn_reward(self):
+        turn = int(self.get_angle())
         if self.task.task_type == "turn":
-            turn = int(turn)
             reward = turn / 10
             if self.prev_turn is None:
                 self.prev_turn = turn
@@ -1643,9 +1678,9 @@ class TurnReward(DistanceReward):
                 reward = 0
 
             if self.prev_turn > turn:
-                reward = 0
+                reward *= 5
             if reward < 0 and self.prev_turn < turn:
-                reward = 0
+                reward *= 5
 
             self.prev_turn = turn
             return reward
