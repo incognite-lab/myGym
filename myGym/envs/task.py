@@ -47,6 +47,7 @@ class TaskModule():
         self.prev_angle = None
         self.pressed = None
         self.turned = None
+        self.desired_angle = 57
         self.coefficient_kd = 0
         self.coefficient_kw = 0
         self.coefficient_ka = 0
@@ -203,7 +204,7 @@ class TaskModule():
 
     def check_turn_threshold(self):
         self.turned = self.env.reward.get_angle()
-        if self.turned >= 57:
+        if self.turned >= self.desired_angle:
             return True
         else:
             return False
@@ -341,7 +342,10 @@ class TaskModule():
             if self.task_type == "turn":
                 self.env.episode_over = True
                 self.env.episode_failed = True
-                self.env.episode_info = f"remaining angle: {int(57-self.env.reward.get_angle())}"
+                if self.desired_angle == self.env.reward.get_angle():
+                    self.env.episode_info = "Angle without change"
+                else:
+                    self.env.episode_info = f"Remaining angle: {int(self.desired_angle-self.env.reward.get_angle())}"
             else:
                 self.env.episode_over = True
                 self.env.episode_failed = True
