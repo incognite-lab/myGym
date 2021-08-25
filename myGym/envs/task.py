@@ -342,7 +342,7 @@ class TaskModule():
             if self.task_type == "turn":
                 self.env.episode_over = True
                 self.env.episode_failed = True
-                if self.desired_angle == self.desired_angle-self.env.reward.get_angle():
+                if self.desired_angle == self.desired_angle-int(self.env.reward.get_angle()):
                     self.env.episode_info = "Angle without change"
                 else:
                     self.env.episode_info = f"Remaining angle: {int(self.desired_angle-self.env.reward.get_angle())}"
