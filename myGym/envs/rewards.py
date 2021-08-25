@@ -1484,8 +1484,6 @@ class TurnReward(DistanceReward):
         self.k_d = self.env.coefficient_kd
         self.k_a = self.env.coefficient_ka
 
-        self.touches = 0
-
     def compute(self, observation):
         """
         Compute reward signal based on distance between 2 objects, position of button and difference between point and line
@@ -1505,7 +1503,6 @@ class TurnReward(DistanceReward):
         d = self.threshold_reached(self.x_obj, self.y_obj, self.z_obj,
                                       self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
         a = self.calc_turn_reward() - 57
-        print(a)
         reward = - self.k_d * d + a * self.k_a
         if self.debug:
             self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
@@ -1536,8 +1533,6 @@ class TurnReward(DistanceReward):
 
         self.offset = None
         self.prev_turn = None
-
-        self.touches = 0
 
     def get_accurate_gripper_position(self, gripper_position):
         """
@@ -1634,15 +1629,17 @@ class TurnReward(DistanceReward):
         d = self.calc_direction_3d(x, y, z, x_vec3, y_vec3, z_vec3, x2, y2, z2)
         return d
 
+    def is_touch(self):
+        contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.env_objects[0].uid, x, 0)
+                          for x in range(0, self.env.robot.end_effector_index+1)]
+        for _ in contact_points:
+            return True
+
     def threshold_reached(self, x1, y1, z1, x2, y2, z2):
         threshold = 0.1
-        touched = False
         d = self.angle_adaptive_reward(x1, y1, z1, x2, y2, z2)
-        contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.env_objects[0].uid, x, 0) for x in range(0,self.env.robot.end_effector_index+1)]
 
-        for _ in contact_points:
-            touched = True
-        if d < threshold and touched:
+        if d < threshold and self.is_touch():
             return self.angle_adaptive_reward(x1, y1, z1, x2, y2, z2, change_reward=True, visualize=True)
         return self.angle_adaptive_reward(x1, y1, z1, x2, y2, z2, visualize=True)
 
@@ -1700,8 +1697,11 @@ class TurnReward(DistanceReward):
             if self.prev_turn is None:
                 self.prev_turn = turn
 
-            # if self.prev_turn == turn:
-            #     reward = 0
+            if reward < 0 and self.prev_turn == turn:
+                pass
+            elif self.prev_turn == turn:
+                reward = 0
+
             # if self.prev_turn > turn:
             #     reward *= 10
             # if reward < 0 and self.prev_turn < turn:
