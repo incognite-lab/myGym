@@ -338,9 +338,14 @@ class TaskModule():
             self.env.episode_over = True
             self.env.episode_failed = True
         if self.env.episode_steps == self.env.max_steps:
-            self.env.episode_over = True
-            self.env.episode_failed = True
-            self.env.episode_info = "Max amount of steps reached"
+            if self.task_type == "turn":
+                self.env.episode_over = True
+                self.env.episode_failed = True
+                self.env.episode_info = f"remaining angle: {int(57-self.env.reward.get_angle())}"
+            else:
+                self.env.episode_over = True
+                self.env.episode_failed = True
+                self.env.episode_info = "Max amount of steps reached"
         if self.reward_type != 'gt' and (self.check_vision_failure()):
             self.stored_observation = []
             self.env.episode_over = True
