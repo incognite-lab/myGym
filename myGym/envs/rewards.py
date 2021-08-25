@@ -1498,11 +1498,11 @@ class TurnReward(DistanceReward):
         o1 = observation[0:3] if self.env.reward_type != "2dvu" else observation[0:int(len(observation[:-3])/2)]
         gripper_position = self.get_accurate_gripper_position(observation[3:6])
         self.set_variables(o1, gripper_position)
-        self.set_offset(z=0.16)
+        self.set_offset(z=0.1)
 
         d = self.threshold_reached(self.x_obj, self.y_obj, self.z_obj,
                                       self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
-        a = self.calc_turn_reward() - 57
+        a = self.calc_turn_reward()
         reward = - self.k_d * d + a * self.k_a
         if self.debug:
             self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
@@ -1633,12 +1633,14 @@ class TurnReward(DistanceReward):
         contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.env_objects[0].uid, x, 0)
                           for x in range(0, self.env.robot.end_effector_index+1)]
         for _ in contact_points:
-            return True
+            if _:
+                return True
+        else:
+            return False
 
     def threshold_reached(self, x1, y1, z1, x2, y2, z2):
         threshold = 0.1
         d = self.angle_adaptive_reward(x1, y1, z1, x2, y2, z2)
-
         if d < threshold and self.is_touch():
             return self.angle_adaptive_reward(x1, y1, z1, x2, y2, z2, change_reward=True, visualize=True)
         return self.angle_adaptive_reward(x1, y1, z1, x2, y2, z2, visualize=True)
@@ -1693,20 +1695,9 @@ class TurnReward(DistanceReward):
     def calc_turn_reward(self):
         turn = int(self.get_angle())
         if self.task.task_type == "turn":
-            reward = turn
             if self.prev_turn is None:
                 self.prev_turn = turn
-
-            if reward < 0 and self.prev_turn == turn:
-                pass
-            elif self.prev_turn == turn:
-                reward = 0
-
-            # if self.prev_turn > turn:
-            #     reward *= 10
-            # if reward < 0 and self.prev_turn < turn:
-            #     reward *= 10
-
+            reward = turn - self.prev_turn
             self.prev_turn = turn
             return reward
         else:
