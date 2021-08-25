@@ -1502,7 +1502,7 @@ class TurnReward(DistanceReward):
 
         d = self.threshold_reached(self.x_obj, self.y_obj, self.z_obj,
                                       self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
-        a = self.calc_turn_reward()
+        a = self.calc_turn_reward() - self.task.desired_angle
         reward = - self.k_d * d + a * self.k_a
         if self.debug:
             self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
@@ -1695,9 +1695,12 @@ class TurnReward(DistanceReward):
     def calc_turn_reward(self):
         turn = int(self.get_angle())
         if self.task.task_type == "turn":
+            reward = turn
             if self.prev_turn is None:
                 self.prev_turn = turn
-            reward = turn - self.prev_turn
+            if turn == self.prev_turn:
+                reward = 57
+
             self.prev_turn = turn
             return reward
         else:
