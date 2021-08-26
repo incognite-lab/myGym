@@ -1614,9 +1614,13 @@ class TurnReward(DistanceReward):
         By = k * math.sin(alfa + l) + Sy
         Bz = Sz
 
-        AB_mid_x = ((k + (self.r - k)/2) * math.cos(alfa + l) + Sx) - Px
-        AB_mid_y = ((k + (self.r - k)/2) * math.sin(alfa + l) + Sy) - Py
-        AB_mid_z = Sz - Pz
+        AB_mid_x = (k + (self.r - k)/2) * math.cos(alfa + l) + Sx
+        AB_mid_y = (k + (self.r - k)/2) * math.sin(alfa + l) + Sy
+        AB_mid_z = Sz
+
+        P_MID_diff_x = AB_mid_x - Px
+        P_MID_diff_y = AB_mid_y - Py
+        P_MID_diff_z = AB_mid_z - Pz
 
         if visualize:
             self.env.p.addUserDebugLine([Ax, Ay, Az], [Bx, By, Bz],
@@ -1625,7 +1629,7 @@ class TurnReward(DistanceReward):
             self.env.p.addUserDebugLine([AB_mid_x, AB_mid_y, AB_mid_z], [Ax, Ay, Az],
                                         lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=0.03)
 
-        d = sqrt(AB_mid_x ** 2 + AB_mid_y ** 2 + AB_mid_z ** 2)
+        d = sqrt(P_MID_diff_x ** 2 + P_MID_diff_y ** 2 + P_MID_diff_z ** 2)
         return d
 
     def is_touch(self):
