@@ -23,7 +23,7 @@ except:
 
 from myGym.stable_baselines_mygym.algo import MyAlgo
 from myGym.stable_baselines_mygym.reference import REFER
-from myGym.stable_baselines_mygym.dual_ppo2 import Dual
+from myGym.stable_baselines_mygym.multi_ppo2 import Multi
 from myGym.stable_baselines_mygym.policies import MyMlpPolicy
 
 from stable_baselines.gail import ExpertDataset, generate_expert_traj
@@ -119,7 +119,7 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                           "a2c":   {"tensorflow": [A2C_T,  (MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}],},
                           "myalgo":{"tensorflow": [MyAlgo, (MyMlpPolicy, env),  {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "ref":   {"tensorflow": [REFER,  (MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
-                          "dual":  {"tensorflow": [Dual,   (MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]}}
+                          "multi": {"tensorflow": [Multi,  (MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir, "diagram": arg_dict["diagram"]}]}}
 
     if "PPO_P" in sys.modules:
         implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env), {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir}]
@@ -227,7 +227,7 @@ def get_parser():
     #Train
     parser.add_argument("-w",  "--train_framework", type=str,  help="Name of the training framework you want to use: {tensorflow, pytorch}")
     parser.add_argument("-a",  "--algo", type=str,  help="The learning algorithm to be used (ppo2 or her)")
-    parser.add_argument("-dg", "--diagram", nargs="*" type=int,  help="Observation space of models (0 for == env.observation_space)")
+    parser.add_argument("-dg", "--diagram", nargs="*", type=int,  help="Observation space of models (0 for == env.observation_space)")
     parser.add_argument("-s",  "--steps", type=int, help="The number of steps to train")
     parser.add_argument("-ms", "--max_episode_steps", type=int,  help="The maximum number of steps per episode")
     parser.add_argument("-ma", "--algo_steps", type=int,  help="The number of steps per for algo training (PPO2,A2C)")

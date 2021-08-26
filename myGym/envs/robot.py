@@ -417,9 +417,10 @@ class Robot:
             for joint_index in range(self.gripper_index, self.end_effector_index + 1):
                 self.p.resetJointState(self.robot_uid, joint_index, self.p.getJointInfo(self.robot_uid, joint_index)[9])
 
-    def magnetize_object(self, object, contacts):
-        if any(isinstance(i, tuple) for i in contacts):
-            contacts = contacts[0]
+    # def magnetize_object(self, object, contacts):
+    def magnetize_object(self, object):
+        # if any(isinstance(i, tuple) for i in contacts):
+        #     contacts = contacts[0]
         self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
 
         self.end_effector_prev_pos = self.end_effector_pos

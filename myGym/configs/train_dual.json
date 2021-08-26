@@ -34,7 +34,7 @@
 "yolact_config" :null,
 #Train
 "train_framework"   :"tensorflow",
-"algo"              :"dual",
+"algo"              :"multi",
 "diagram"           :[0, 0],
 "max_episode_steps" :1024,
 "algo_steps"        :1024,

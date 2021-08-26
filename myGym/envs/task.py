@@ -260,6 +260,20 @@ class TaskModule():
         else:
             return False
 
+    def check_pnp_threshold(self, observation=None):
+        """
+        Check if the distance between relevant task objects is under threshold for successful task completion
+
+        Returns:
+            :return: (bool)
+        """
+        object = observation[0:3]
+        goal   = observation[3:6]
+        self.current_norm_distance = self.calc_distance(goal, object)
+        threshold = 0.05
+        return False
+        return self.current_norm_distance < threshold
+
     def check_goal(self):
         """
         Check if goal of the task was completed successfully
@@ -274,18 +288,21 @@ class TaskModule():
             finished = self.check_points_distance_threshold()
         if self.task_type == 'poke':
             finished = self.check_poke_threshold(self._observation)
+        if self.task_type == 'pnp':
+            finished = self.check_pnp_threshold(self._observation)
+
+        #if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
+        #    if len(self.env.robot.magnetized_objects) == 0:
+        #        self.env.episode_over = False
+        #        self.env.robot.magnetize_object(self.current_task_objects[0], finished)
+        #    else:
+        #        self.env.episode_over = True
+        #        if self.env.episode_steps == 1:
+        #            self.env.episode_info = "Task completed in initial configuration"
+        #        else:
+        #            self.env.episode_info = "Task completed successfully"
         
-        if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
-            if len(self.env.robot.magnetized_objects) == 0:
-                self.env.episode_over = False
-                self.env.robot.magnetize_object(self.current_task_objects[0], finished)
-            else:
-                self.env.episode_over = True
-                if self.env.episode_steps == 1:
-                    self.env.episode_info = "Task completed in initial configuration"
-                else:
-                    self.env.episode_info = "Task completed successfully"
-        elif (self.task_type == '2stepreach') and (False in self.subgoals) and finished:
+        if (self.task_type == '2stepreach') and (False in self.subgoals) and finished:
                 self.env.episode_info = "Subgoal {}/{} completed successfully".format(self.sub_idx+1, self.num_subgoals)
                 self.subgoals[self.sub_idx] = True #current subgoal done
                 self.env.episode_over = False #don't reset episode

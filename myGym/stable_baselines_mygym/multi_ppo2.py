@@ -18,7 +18,7 @@ from stable_baselines.common.tf_util import total_episode_reward_logger
 from stable_baselines.common.math_util import safe_mean
 
 
-class Dual(ActorCriticRLModel):
+class Multi(ActorCriticRLModel):
     """
     Proximal Policy Optimization algorithm (GPU version).
     Paper: https://arxiv.org/abs/1707.06347
@@ -408,7 +408,7 @@ class Dual(ActorCriticRLModel):
 
         return submodel_id
 
-class SubModel(Dual):
+class SubModel(Multi):
     def __init__(self, parent, i):
         self.episode_reward  = 0
         self._param_load_ops = None
@@ -423,6 +423,12 @@ class SubModel(Dual):
             self.observation_space = parent.observation_space
         else:
             self.observation_space = parent.diagram[i]
+
+        #print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        #print(self.observation_space)
+        #print(parent.action_space)
+        #print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        #exit()
 
         with SetVerbosity(parent.verbose):
 
@@ -722,7 +728,8 @@ class Runner(AbstractEnvRunner):
             try:            
                 mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward = map(swap_and_flatten, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward))
             except:
-              print("one model got 0 steps")
+                #print("one model got 0 steps")
+                pass
 
             finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward
             finished_minibatches.append(finished_minibatch)

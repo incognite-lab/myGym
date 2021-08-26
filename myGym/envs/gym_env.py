@@ -2,7 +2,7 @@ from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward, DualPoke
+from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward, DualPoke, PickAndPlace
 import pybullet
 import time
 import numpy as np
@@ -160,6 +160,8 @@ class GymEnv(CameraEnv):
             self.reward = DualPoke(env=self, task=self.task)
             # self.reward = PokeVectorReward(env=self, task=self.task)
             # self.reward = PokeReward(env=self, task=self.task)
+        elif reward == 'pnp':
+            self.reward = PickAndPlace(env=self, task=self.task)
 
         self.dataset = dataset
         self.obs_space = obs_space
@@ -511,7 +513,12 @@ class GymEnv(CameraEnv):
                     if "cube" in object_filename:
                         borders = [-0.15, 0.15, 1, 1, 0.025, 0.025]
                         fixed = True
-
+                if self.task_type == 'pnp':
+                    if "poke" in object_filename:
+                        borders = [borders[0], borders[1], borders[2], borders[3], 0.1, 0.1]
+                    if "cube" in object_filename:
+                        borders = [borders[0], borders[1], borders[2], borders[3], 0.025, 0.025]
+                        fixed = True
                 pos = env_object.EnvObject.get_random_object_position(borders)
                 #orn = env_object.EnvObject.get_random_object_orientation()
                 orn = [0, 0, 0, 1]
