@@ -1655,28 +1655,6 @@ class TurnReward(DistanceReward):
             return self.angle_adaptive_reward(change_reward=True, visualize=True) - 1
         return self.angle_adaptive_reward(visualize=True)
 
-    @staticmethod
-    def calc_direction_3d(x1, y1, z1, x2, y2, z2, x3, y3, z3):
-        """
-        This function calculates difference between point - (actual position of robot's gripper [x3, y3, z3])
-        and line - (initial position of robot: [x1, y1, z1], final position of robot: [x2, y2, z2]) in 3D
-        """
-        x = x1 - ((x1 - x2) * (
-                x1 * (x1 - x2) - x3 * (x1 - x2) + y1 * (y1 - y2) - y3 * (y1 - y2) + z1 * (z1 - z2) - z3 * (
-                z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
-
-        y = y1 - ((y1 - y2) * (
-                x1 * (x1 - x2) - x3 * (x1 - x2) + y1 * (y1 - y2) - y3 * (y1 - y2) + z1 * (z1 - z2) - z3 * (
-                z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
-
-        z = z1 - ((z1 - z2) * (
-                x1 * (x1 - x2) - x3 * (x1 - x2) + y1 * (y1 - y2) - y3 * (y1 - y2) + z1 * (z1 - z2) - z3 * (
-                z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
-
-        d = sqrt((x - x3) ** 2 + (y - y3) ** 2 + (z - z3) ** 2)
-
-        return d
-
     def get_angle(self):
         """
         This function calculates angle of switch
@@ -1706,8 +1684,19 @@ class TurnReward(DistanceReward):
         turn = int(self.get_angle())
         if self.task.task_type == "turn":
             reward = turn
-            if self.prev_turn is None:
-                self.prev_turn = turn
+            if turn == self.prev_turn:
+                reward += -10
+
+            elif turn > 0:
+                if turn > self.prev_turn:
+                    reward *= 10
+                else:
+                    reward *= (self.task.desired_angle - turn) * (-1)/10
+            elif turn < 0:
+                if turn > self.prev_turn:
+                    reward *= 10
+                else:
+                    reward *= (self.task.desired_angle - turn)/10
             self.prev_turn = turn
             return reward
         else:
