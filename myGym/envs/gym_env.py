@@ -507,9 +507,9 @@ class GymEnv(CameraEnv):
                 borders = self.objects_area_boarders
                 if self.task_type == 'poke':
                     if "poke" in object_filename:
-                        borders = [0, 0, 0.7, 0.7, 0.1, 0.1]
+                        borders = [-0.15, 0.15, 0.7, 0.7, 0.1, 0.1]
                     if "cube" in object_filename:
-                        borders = [0, 0, 1, 1, 0.025, 0.025]
+                        borders = [-0.15, 0.15, 1, 1, 0.025, 0.025]
                         fixed = True
 
                 pos = env_object.EnvObject.get_random_object_position(borders)

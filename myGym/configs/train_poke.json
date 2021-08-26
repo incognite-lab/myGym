@@ -36,6 +36,7 @@
 #Train
 "train_framework"  :"tensorflow",
 "algo"             :"ppo2",
+"diagram"           :[0, 0],
 "max_episode_steps":1024,
 "algo_steps"       :2048,
 "steps"            :500000,

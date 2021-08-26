@@ -58,7 +58,7 @@ class Dual(ActorCriticRLModel):
     def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
-                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None, models_num=2):
+                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None, diagram=[0, 0]):
 
         self.learning_rate          = learning_rate
         self.cliprange              = cliprange
@@ -73,7 +73,8 @@ class Dual(ActorCriticRLModel):
         self.noptepochs             = noptepochs
         self.tensorboard_log        = tensorboard_log
         self.full_tensorboard_log   = full_tensorboard_log
-        self.models_num             = models_num
+        self.diagram                = diagram
+        self.models_num             = len(diagram)
 
         self.action_ph          = None
         self.advs_ph            = None
@@ -332,7 +333,14 @@ class Dual(ActorCriticRLModel):
         load_path = load_path.split("/")
         load_path = load_path[:-1]
         path = "/".join(load_path)
-        models = 2
+
+
+        import commentjson
+
+        with open(path + "/train.json", "r") as f:
+            json = commentjson.load(f)
+
+        models = len(json["diagram"])
         load = [] # data, params
         for i in range(models):
             # load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
@@ -411,6 +419,10 @@ class SubModel(Dual):
             pass
 
         self.env = parent.env
+        if parent.diagram[i] == 0:
+            self.observation_space = parent.observation_space
+        else:
+            self.observation_space = parent.diagram[i]
 
         with SetVerbosity(parent.verbose):
 
@@ -432,10 +444,10 @@ class SubModel(Dual):
                     n_batch_step  = parent.n_envs
                     n_batch_train = parent.n_batch // parent.nminibatches
 
-                act_model = parent.policy(self.sess, parent.observation_space, parent.action_space, parent.n_envs, 1, n_batch_step, reuse=False, **parent.policy_kwargs)
+                act_model = parent.policy(self.sess, self.observation_space, parent.action_space, parent.n_envs, 1, n_batch_step, reuse=False, **parent.policy_kwargs)
 
                 with tf.variable_scope("train_model", reuse=True, custom_getter=tf_util.outer_scope_getter("train_model")):
-                    train_model = parent.policy(self.sess, parent.observation_space, parent.action_space, parent.n_envs // parent.nminibatches, parent.n_steps, n_batch_train, reuse=True, **parent.policy_kwargs)
+                    train_model = parent.policy(self.sess, self.observation_space, parent.action_space, parent.n_envs // parent.nminibatches, parent.n_steps, n_batch_train, reuse=True, **parent.policy_kwargs)
 
                 with tf.variable_scope("loss", reuse=False):
                     self.action_ph          = train_model.pdtype.sample_placeholder([None], name="action_ph")
@@ -528,7 +540,7 @@ class SubModel(Dual):
                         tf.summary.histogram('old_neglog_action_probability', self.old_neglog_pac_ph)
                         tf.summary.histogram('old_value_pred'               , self.old_vpred_ph)
 
-                        if tf_util.is_image(parent.observation_space):
+                        if tf_util.is_image(self.observation_space):
                             tf.summary.image('observation'      , train_model.obs_ph)
                         else:
                             tf.summary.histogram('observation'  , train_model.obs_ph)
@@ -573,7 +585,7 @@ class SubModel(Dual):
             "cliprange_vf": self.parent.cliprange_vf,
             "verbose": self.parent.verbose,
             "policy": self.parent.policy,
-            "observation_space": self.parent.observation_space,
+            "observation_space": self.observation_space,
             "action_space": self.parent.action_space,
             "n_envs": self.parent.n_envs,
             "n_cpu_tf_sess": self.parent.n_cpu_tf_sess,
