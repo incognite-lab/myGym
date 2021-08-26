@@ -1630,9 +1630,11 @@ class TurnReward(DistanceReward):
         if visualize:
             self.env.p.addUserDebugLine([Ax, Ay, Az], [Bx, By, Bz],
                                         lineColorRGB=(1, 0, 1), lineWidth=3, lifeTime=0.03)
-
             self.env.p.addUserDebugLine([P_MID_diff_x, P_MID_diff_y, P_MID_diff_z], [Ax, Ay, Az],
                                         lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=0.03)
+            self.env.p.addUserDebugLine([Px, Py, Pz], [AB_mid_x, AB_mid_y, AB_mid_z],
+                                        lineColorRGB=(0, 1, 1), lineWidth=3, lifeTime=0.03)
+
 
         d = sqrt(P_MID_diff_x ** 2 + P_MID_diff_y ** 2 + P_MID_diff_z ** 2)
         return d
