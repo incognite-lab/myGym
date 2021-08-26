@@ -1706,20 +1706,6 @@ class TurnReward(DistanceReward):
             reward = turn
             if self.prev_turn is None:
                 self.prev_turn = turn
-            if turn == self.prev_turn:
-                reward += -100
-
-            elif turn > 0:
-                if turn > self.prev_turn:
-                    reward *= 10
-                else:
-                    reward *= (self.task.desired_angle - turn) * (-1)
-            elif turn < 0:
-                if turn > self.prev_turn:
-                    reward *= 10
-                else:
-                    reward *= (self.task.desired_angle - turn)
-
             self.prev_turn = turn
             return reward
         else:
