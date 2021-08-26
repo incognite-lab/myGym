@@ -1689,11 +1689,10 @@ class TurnReward(DistanceReward):
 
             if self.prev_turn == turn:
                 reward = 0
-
             if self.prev_turn > turn:
-                reward *= 10
+                reward = 0
             if reward < 0 and self.prev_turn < turn:
-                reward *= 10
+                reward = 0
 
             self.prev_turn = turn
             return reward
