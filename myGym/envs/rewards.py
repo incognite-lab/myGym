@@ -1684,19 +1684,17 @@ class TurnReward(DistanceReward):
         turn = int(self.get_angle())
         if self.task.task_type == "turn":
             reward = turn
-            if turn == self.prev_turn:
-                reward += -10
+            if self.prev_turn is None:
+                self.prev_turn = turn
 
-            elif turn > 0:
-                if turn > self.prev_turn:
-                    reward *= 10
-                else:
-                    reward *= (self.task.desired_angle - turn) * (-1)/10
-            elif turn < 0:
-                if turn > self.prev_turn:
-                    reward *= 10
-                else:
-                    reward *= (self.task.desired_angle - turn)/10
+            if self.prev_turn == turn:
+                reward = 0
+
+            if self.prev_turn > turn:
+                reward *= 10
+            if reward < 0 and self.prev_turn < turn:
+                reward *= 10
+
             self.prev_turn = turn
             return reward
         else:
