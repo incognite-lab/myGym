@@ -1707,7 +1707,7 @@ class TurnReward(DistanceReward):
             if self.prev_turn is None:
                 self.prev_turn = turn
             if turn == self.prev_turn:
-                reward += -100
+                reward = 0
 
             elif turn > 0:
                 if turn > self.prev_turn:
