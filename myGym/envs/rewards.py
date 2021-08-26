@@ -1652,7 +1652,7 @@ class TurnReward(DistanceReward):
         threshold = 0.1
         d = self.angle_adaptive_reward()
         if d < threshold and self.is_touch():
-            return self.angle_adaptive_reward(change_reward=True, visualize=True) + 0.5
+            return self.angle_adaptive_reward(change_reward=True, visualize=True) - 1
         return self.angle_adaptive_reward(visualize=True)
 
     @staticmethod
