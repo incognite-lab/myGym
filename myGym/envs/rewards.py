@@ -1501,7 +1501,7 @@ class TurnReward(DistanceReward):
         self.set_offset(z=0.1)
 
         d = self.threshold_reached()
-        a = self.calc_turn_reward() - self.task.desired_angle
+        a = self.calc_turn_reward()
         reward = - self.k_d * d + a * self.k_a
         if self.debug:
             self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
@@ -1591,6 +1591,11 @@ class TurnReward(DistanceReward):
         """
         alfa = np.deg2rad(-self.get_angle())  # in radians
         k = 0.2
+        offset = 0.2
+        normalize = 0.1
+        r = self.r
+        coef = 3 * math.pi / 2
+
         Sx = self.x_obj
         Sy = self.y_obj
         Sz = self.z_obj
@@ -1600,22 +1605,22 @@ class TurnReward(DistanceReward):
         Pz = self.z_bot_curr_pos
 
         if change_reward:
-            l = 3 * math.pi / 2 - 0.2
+            l = coef - offset
         else:
-            l = 3 * math.pi / 2 + 0.2
-        l += 0.1
+            l = coef + offset
+        l += normalize
 
 
-        Ax = self.r * math.cos(alfa + l) + Sx
-        Ay = self.r * math.sin(alfa + l) + Sy
+        Ax = r * math.cos(alfa + l) + Sx
+        Ay = r * math.sin(alfa + l) + Sy
         Az = Sz
 
         Bx = k * math.cos(alfa + l) + Sx
         By = k * math.sin(alfa + l) + Sy
         Bz = Sz
 
-        AB_mid_x = (k + (self.r - k)/2) * math.cos(alfa + l) + Sx
-        AB_mid_y = (k + (self.r - k)/2) * math.sin(alfa + l) + Sy
+        AB_mid_x = (k + (r - k)/2) * math.cos(alfa + l) + Sx
+        AB_mid_y = (k + (r - k)/2) * math.sin(alfa + l) + Sy
         AB_mid_z = Sz
 
         P_MID_diff_x = AB_mid_x - Px
@@ -1626,7 +1631,7 @@ class TurnReward(DistanceReward):
             self.env.p.addUserDebugLine([Ax, Ay, Az], [Bx, By, Bz],
                                         lineColorRGB=(1, 0, 1), lineWidth=3, lifeTime=0.03)
 
-            self.env.p.addUserDebugLine([AB_mid_x, AB_mid_y, AB_mid_z], [Ax, Ay, Az],
+            self.env.p.addUserDebugLine([P_MID_diff_x, P_MID_diff_y, P_MID_diff_z], [Ax, Ay, Az],
                                         lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=0.03)
 
         d = sqrt(P_MID_diff_x ** 2 + P_MID_diff_y ** 2 + P_MID_diff_z ** 2)
@@ -1645,7 +1650,7 @@ class TurnReward(DistanceReward):
         threshold = 0.1
         d = self.angle_adaptive_reward()
         if d < threshold and self.is_touch():
-            return self.angle_adaptive_reward(change_reward=True, visualize=True)
+            return self.angle_adaptive_reward(change_reward=True, visualize=True) + 0.5
         return self.angle_adaptive_reward(visualize=True)
 
     @staticmethod
@@ -1702,7 +1707,18 @@ class TurnReward(DistanceReward):
             if self.prev_turn is None:
                 self.prev_turn = turn
             if turn == self.prev_turn:
-                reward = 57
+                reward += -100
+
+            elif turn > 0:
+                if turn > self.prev_turn:
+                    reward *= 10
+                else:
+                    reward *= (self.task.desired_angle - turn) * (-1)
+            elif turn < 0:
+                if turn > self.prev_turn:
+                    reward *= 10
+                else:
+                    reward *= (self.task.desired_angle - turn)
 
             self.prev_turn = turn
             return reward
