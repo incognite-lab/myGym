@@ -876,7 +876,6 @@ class VectorReward(Reward):
         return math.acos(np.dot(v1, v2)/(self.count_vector_norm(v1)*self.count_vector_norm(v2)))
 
 
-
 class SwitchReward(DistanceReward):
     """
     Reward class for reward signal calculation based on distance differences between 2 objects,
@@ -914,7 +913,7 @@ class SwitchReward(DistanceReward):
     def compute(self, observation):
         """
         Compute reward signal based on distance between 2 objects, angle of switch and difference between point and line
-         (function used for that: calc_direction_3d()).
+        (function used for that: calc_direction_3d()).
         The position of the objects must be present in observation.
         Params:
             :param observation: (list) Observation of the environment
@@ -943,7 +942,7 @@ class SwitchReward(DistanceReward):
                                        self.y_bot_curr_pos, self.z_bot_curr_pos)
 
         d = self.abs_diff()
-        a = self.calc_angle_reward(self.get_angle())
+        a = self.calc_angle_reward()
 
         reward = - self.k_w * w - self.k_d * d + self.k_a * a
         self.task.check_distance_threshold(observation=observation)
@@ -1151,12 +1150,13 @@ class SwitchReward(DistanceReward):
         else:
             raise "expected task_type - switch"
 
-    def calc_angle_reward(self, angle):
+    def calc_angle_reward(self):
         """
         Calculate additional reward for switch task
         Returns:
             :return reward: (int) Additional reward value
         """
+        angle = self.get_angle()
         if self.task.task_type == "switch":
             if self.prev_angle is None:
                 self.prev_angle = angle
@@ -1217,7 +1217,7 @@ class ButtonReward(DistanceReward):
     def compute(self, observation):
         """
         Compute reward signal based on distance between 2 objects, position of button and difference between point and line
-         (function used for that: calc_direction_3d()).
+        (function used for that: calc_direction_3d()).
         The position of the objects must be present in observation.
         Params:
             :param observation: (list) Observation of the environment
@@ -1229,16 +1229,16 @@ class ButtonReward(DistanceReward):
         gripper_position = self.get_accurate_gripper_position(observation[3:6])
         self.set_variables(o1, gripper_position)
         self.set_offset(z=0.16)
-        v1 = Vector([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1], self.env)
-        v2 = Vector([self.x_obj, self.y_obj, self.z_obj], gripper_position, self.env)
-
+        # v1 = Vector([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1], self.env)
+        # v2 = Vector([self.x_obj, self.y_obj, self.z_obj], gripper_position, self.env)
         # w = np.dot(self.set_vector_len(v1.vector, 1), self.set_vector_len(v2.vector, 1))
+
         w = self.calc_direction_3d(self.x_obj, self.y_obj, 1, self.x_obj, self.y_obj, self.z_obj,
                                    self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
         d = self.abs_diff()
         if gripper_position[2] < 0.15:
             d *= 5
-        a = self.calc_press_reward(self.is_pressed())
+        a = self.calc_press_reward()
         reward = - self.k_w * w - self.k_d * d + self.k_a * a
         if self.debug:
             self.env.p.addUserDebugLine([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1],
@@ -1257,7 +1257,7 @@ class ButtonReward(DistanceReward):
 
     def reset(self):
         """
-        Reset current positions of switch and robot, initial position of switch and robot and previous angle of switch.
+        Reset current positions of button and robot, initial position of switch and robot and previous position of button.
         Call this after the end of an episode.
         """
         self.x_obj = None
@@ -1368,11 +1368,12 @@ class ButtonReward(DistanceReward):
                 z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
 
         d = sqrt((x - x3) ** 2 + (y - y3) ** 2 + (z - z3) ** 2)
+
         return d
 
     def abs_diff(self):
         """
-        This function calculates absolute difference between task_object and gripper
+        Calculate absolute difference between task_object and gripper
         """
         x_diff = self.x_obj_curr_pos - self.x_bot_curr_pos
         y_diff = self.y_obj_curr_pos - self.y_bot_curr_pos
@@ -1380,9 +1381,9 @@ class ButtonReward(DistanceReward):
         abs_diff = sqrt(x_diff ** 2 + y_diff ** 2 + z_diff ** 2)
         return abs_diff
 
-    def is_pressed(self):
+    def get_position(self):
         """
-        This function calculates angle of switch
+        Calculate position of button
         """
         if self.task.task_type == "press":
             if len(self.task.current_task_objects) != 2:
@@ -1405,7 +1406,8 @@ class ButtonReward(DistanceReward):
         else:
             raise "expected task_type - press"
 
-    def calc_press_reward(self, press):
+    def calc_press_reward(self):
+        press = self.get_position()
         if self.task.task_type == "press":
             press *= 100
             press = int(press)
@@ -1429,6 +1431,258 @@ class ButtonReward(DistanceReward):
 
             self.prev_press = press
 
+            return reward
+        else:
+            raise "not expected to use this function"
+
+
+class TurnReward(DistanceReward):
+    """
+    Reward class for reward signal calculation based on distance between 2 points (robot gripper and middle point of predefined line) and angle of handle
+    Parameters:
+        :param env: (object) Environment, where the training takes place
+        :param task: (object) Task that is being trained, instance of a class TaskModule
+    """
+    def __init__(self, env, task):
+        super(TurnReward, self).__init__(env, task)
+        self.x_obj = None
+        self.y_obj = None
+        self.z_obj = None
+        self.x_bot = None
+        self.y_bot = None
+        self.z_bot = None
+
+        self.x_obj_curr_pos = None
+        self.y_obj_curr_pos = None
+        self.z_obj_curr_pos = None
+        self.x_bot_curr_pos = None
+        self.y_bot_curr_pos = None
+        self.z_bot_curr_pos = None
+
+        self.debug = False
+        self.offset = None
+        self.prev_turn = None
+        self.r = 0.45
+
+        self.k_w = self.env.coefficient_kw
+        self.k_d = self.env.coefficient_kd
+        self.k_a = self.env.coefficient_ka
+
+    def compute(self, observation):
+        """
+        Compute reward signal based on distance between 2 points (robot gripper and middle point of predefined line)
+        and angle of handle
+        The position of the objects must be present in observation.
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        observation = observation["observation"] if isinstance(observation, dict) else observation
+        o1 = observation[0:3] if self.env.reward_type != "2dvu" else observation[0:int(len(observation[:-3])/2)]
+        gripper_position = self.get_accurate_gripper_position(observation[3:6])
+        self.set_variables(o1, gripper_position)
+        self.set_offset(z=0.1)
+
+        d = self.threshold_reached()
+        a = self.calc_turn_reward()
+        reward = - self.k_d * d + a * self.k_a
+        if self.debug:
+            self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
+                                        [1, 1, 1], textSize=2.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
+
+        self.task.check_distance_threshold(observation=observation)
+        self.rewards_history.append(reward)
+        return reward
+
+    def reset(self):
+        """
+        Reset current positions of handle and robot, initial position of handle and robot and previous angle of handle.
+        Call this after the end of an episode.
+        """
+        self.x_obj = None
+        self.y_obj = None
+        self.z_obj = None
+        self.x_bot = None
+        self.y_bot = None
+        self.z_bot = None
+
+        self.x_obj_curr_pos = None
+        self.y_obj_curr_pos = None
+        self.z_obj_curr_pos = None
+        self.x_bot_curr_pos = None
+        self.y_bot_curr_pos = None
+        self.z_bot_curr_pos = None
+
+        self.offset = None
+        self.prev_turn = None
+
+    def get_accurate_gripper_position(self, gripper_position):
+        """
+        Calculate more accurate position of gripper
+        """
+        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
+        gripper_matrix = self.env.p.getMatrixFromQuaternion(gripper_orientation)
+        direction = [0, 0, 0.1]  # length is 0.1
+        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]],
+                      [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]],
+                      [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
+        orientation_vector = m.dot(direction)  # length is 0.1
+        gripper_position = np.add(gripper_position, orientation_vector)
+        return gripper_position
+
+    def set_variables(self, o1, o2):
+        if self.x_obj is None:
+            self.x_obj = o1[0]
+
+        if self.y_obj is None:
+            self.y_obj = o1[1]
+
+        if self.z_obj is None:
+            self.z_obj = o1[2]
+
+        if self.x_bot is None:
+            self.x_bot = o2[0]
+
+        if self.y_bot is None:
+            self.y_bot = o2[1]
+
+        if self.z_bot is None:
+            self.z_bot = o2[2]
+
+        self.x_obj_curr_pos = o1[0]
+        self.y_obj_curr_pos = o1[1]
+        self.z_obj_curr_pos = o1[2]
+        self.x_bot_curr_pos = o2[0]
+        self.y_bot_curr_pos = o2[1]
+        self.z_bot_curr_pos = o2[2]
+
+    def set_offset(self, x=0.0, y=0.0, z=0.0):
+        if self.offset is None:
+            self.offset = True
+            self.x_obj += x
+            self.y_obj += y
+            self.z_obj += z
+
+        self.x_obj_curr_pos += x
+        self.y_obj_curr_pos += y
+        self.z_obj_curr_pos += z
+
+    def angle_adaptive_reward(self, change_reward=False, visualize=False):
+        """
+        Calculate difference distance between 2 points (robot gripper and middle point of predefined line)
+        """
+        alfa = np.deg2rad(-self.get_angle())  # in radians
+        k = 0.2
+        offset = 0.2
+        normalize = 0.1
+        r = self.r
+        coef = 3 * math.pi / 2
+
+        Sx = self.x_obj
+        Sy = self.y_obj
+        Sz = self.z_obj
+
+        Px = self.x_bot_curr_pos
+        Py = self.y_bot_curr_pos
+        Pz = self.z_bot_curr_pos
+
+        if change_reward:
+            l = coef - offset
+        else:
+            l = coef + offset
+        l += normalize
+
+
+        Ax = r * math.cos(alfa + l) + Sx
+        Ay = r * math.sin(alfa + l) + Sy
+        Az = Sz
+
+        Bx = k * math.cos(alfa + l) + Sx
+        By = k * math.sin(alfa + l) + Sy
+        Bz = Sz
+
+        AB_mid_x = (k + (r - k)/2) * math.cos(alfa + l) + Sx
+        AB_mid_y = (k + (r - k)/2) * math.sin(alfa + l) + Sy
+        AB_mid_z = Sz
+
+        P_MID_diff_x = AB_mid_x - Px
+        P_MID_diff_y = AB_mid_y - Py
+        P_MID_diff_z = AB_mid_z - Pz
+
+        if visualize:
+            self.env.p.addUserDebugLine([Ax, Ay, Az], [Bx, By, Bz],
+                                        lineColorRGB=(1, 0, 1), lineWidth=3, lifeTime=0.03)
+            self.env.p.addUserDebugLine([P_MID_diff_x, P_MID_diff_y, P_MID_diff_z], [Ax, Ay, Az],
+                                        lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=0.03)
+            self.env.p.addUserDebugLine([Px, Py, Pz], [AB_mid_x, AB_mid_y, AB_mid_z],
+                                        lineColorRGB=(0, 1, 1), lineWidth=3, lifeTime=0.03)
+
+        d = sqrt(P_MID_diff_x ** 2 + P_MID_diff_y ** 2 + P_MID_diff_z ** 2)
+        return d
+
+    def is_touch(self):
+        """
+        Checking if gripper is touching handle
+        """
+        contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.env_objects[0].uid, x, 0)
+                          for x in range(0, self.env.robot.end_effector_index+1)]
+        for _ in contact_points:
+            if _:
+                return True
+        else:
+            return False
+
+    def threshold_reached(self):
+        """
+        Switching output reward according to distance
+        """
+        threshold = 0.1
+        d = self.angle_adaptive_reward()
+        if d < threshold and self.is_touch():
+            return self.angle_adaptive_reward(change_reward=True, visualize=self.debug) - 1
+        return self.angle_adaptive_reward(visualize=self.debug)
+
+    def get_angle(self):
+        """
+        Calculate angle of handle
+        """
+        if self.task.task_type == "turn":
+            if len(self.task.current_task_objects) != 2:
+                raise "not expected number of objects"
+
+            o1 = self.task.current_task_objects[0]
+            o2 = self.task.current_task_objects[1]
+            # print(o1,o2)
+            if o1 == self.env.robot:
+                # robot = o1
+                switch = o2
+            else:
+                # robot = o2
+                switch = o1
+
+            p = self.env.p
+            pos = p.getJointState(switch.get_uid(), 0)
+            angle = -pos[0] * 180 / math.pi  # in degrees
+            return angle
+        else:
+            raise "expected task_type - turn"
+
+    def calc_turn_reward(self):
+        turn = int(self.get_angle())
+        if self.task.task_type == "turn":
+            reward = turn
+            if self.prev_turn is None:
+                self.prev_turn = turn
+
+            if self.prev_turn == turn:
+                reward = 0
+            if self.prev_turn > turn:
+                reward = 0
+            if reward < 0 and self.prev_turn < turn:
+                reward = 0
+
+            self.prev_turn = turn
             return reward
         else:
             raise "not expected to use this function"

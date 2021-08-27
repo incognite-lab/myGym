@@ -47,6 +47,7 @@ class TaskModule():
         self.prev_angle = None
         self.pressed = None
         self.turned = None
+        self.desired_angle = 57
         self.coefficient_kd = 0
         self.coefficient_kw = 0
         self.coefficient_ka = 0
@@ -195,16 +196,18 @@ class TaskModule():
             return False
 
     def check_press_threshold(self):
-        self.pressed = self.env.reward.is_pressed()
+        self.pressed = self.env.reward.get_position()
         if self.pressed >= 1.71:
             return True
         else:
             return False
 
     def check_turn_threshold(self):
-        self.turned = self.env.reward.is_turned()
-        if self.turned >= 57:
+        self.turned = self.env.reward.get_angle()
+        if self.turned >= self.desired_angle:
             return True
+        elif self.turned <= -self.desired_angle:
+            return -1
         else:
             return False
 
@@ -338,9 +341,21 @@ class TaskModule():
             self.env.episode_over = True
             self.env.episode_failed = True
         if self.env.episode_steps == self.env.max_steps:
+            if self.task_type == "turn":
+                self.env.episode_over = True
+                self.env.episode_failed = True
+                if self.desired_angle == self.desired_angle-int(self.env.reward.get_angle()):
+                    self.env.episode_info = "Angle without change"
+                else:
+                    self.env.episode_info = f"Remaining angle: {int(self.desired_angle-self.env.reward.get_angle())}"
+            else:
+                self.env.episode_over = True
+                self.env.episode_failed = True
+                self.env.episode_info = "Max amount of steps reached"
+        if self.check_turn_threshold() == -1:
             self.env.episode_over = True
             self.env.episode_failed = True
-            self.env.episode_info = "Max amount of steps reached"
+            self.env.episode_info = "Bad direction"
         if self.reward_type != 'gt' and (self.check_vision_failure()):
             self.stored_observation = []
             self.env.episode_over = True

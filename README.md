@@ -15,7 +15,7 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 | Robots  | 8 robotic arms, 2 dualarms, humanoid |
 | Robot actions  | Absolute, Relative, Joints |
 | Objects  | 54 objects in 5 categories |
-| Tasks  | Reach, Press, Switch, Push, Pick, Place, PicknPlace, Throw, Hit, Catch, Navigate|
+| Tasks  | Reach, Press, Switch, Turn, Push, Pick, Place, PicknPlace, Throw, Hit, Catch, Navigate|
 | Randomizers  | Light, Texture, Size, Camera position |
 | Baselines  | Tensorflow, Pytorch |
 
@@ -150,6 +150,20 @@ After 250000 steps the arm is able to switch the lever with 80% accuracy:
 
 There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_switch.html)
 
+### Task - Turn
+Run training using following command
+
+``python train.py --config ./configs/train_turn.json``
+
+Wait until the first evaluation after 250000 steps to check the progress:
+
+![alt text](myGym/images/workspaces/turn/kuka250000.gif "training")
+
+After 500000 steps the arm is able to switch the lever with 90% accuracy:
+
+![alt text](myGym/images/workspaces/turn/kuka500000.gif "training")
+
+There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_turn.html)
 
 ##  Parametric Training
 
