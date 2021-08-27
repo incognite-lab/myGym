@@ -1135,6 +1135,8 @@ class PickAndPlace(Reward):
 
         self.lifted         = False
 
+        self.grip           = None
+
         self.last_height    = None
 
         self.last_find_dist = None
@@ -1157,6 +1159,8 @@ class PickAndPlace(Reward):
         self.object_before_lift = [None]*3
 
         self.lifted         = False
+
+        self.grip           = None
 
         self.last_height    = None
 
@@ -1198,6 +1202,7 @@ class PickAndPlace(Reward):
 
     def find_compute(self, gripper, object):
         # initial reach
+        self.env.p.addUserDebugText("find", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
         dist = self.task.calc_distance(gripper, object)
         
         if self.last_find_dist is None:
@@ -1213,7 +1218,7 @@ class PickAndPlace(Reward):
 
     def lift_compute(self, object):
         # lifting task object
-
+        self.env.p.addUserDebugText("lift", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,125,0])
         if self.object_before_lift[0] is None:
             self.object_before_lift = object
         if self.last_owner != 1:
@@ -1234,12 +1239,13 @@ class PickAndPlace(Reward):
 
     def move_compute(self, object, goal):
         # moving object above goal position (forced 2D reach)
-        object_XY = [object[0], objest[1], 0]
+        self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
+        object_XY = [object[0], object[1], 0]
         goal_XY   = [goal[0],   goal[1],   0]
 
         height = object[2]
         dist = self.task.calc_distance(object_XY, goal_XY)
-        
+        print(dist)
         if self.last_move_dist is None:
             self.last_move_dist = dist
             self.last_height    = height
@@ -1256,6 +1262,7 @@ class PickAndPlace(Reward):
 
     def place_compute(self, object, goal):
         # reach of goal position + task object height in Z axis and release
+        self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
         dist = self.task.calc_distance(object, goal)
         
         if self.last_place_dist is None:
@@ -1278,9 +1285,9 @@ class PickAndPlace(Reward):
 
         owner = 0
 
-        if   self.gripper_reached_object(gripper_position, object_position):  owner = 1
+        if self.object_above_goal(object_position, goal_position):          owner = 3
+        elif   self.gripper_reached_object(gripper_position, object_position):  owner = 2
         elif self.object_lifted(object_position, self.object_before_lift):    owner = 2
-        elif self.object_above_goal(object_position, goal_position):          owner = 3
 
         return owner
 
@@ -1296,18 +1303,13 @@ class PickAndPlace(Reward):
         return goal_position,object_position,gripper_position
 
     def gripper_reached_object(self, gripper, object):
+        self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
         distance = self.task.calc_distance(gripper, object)
 
-        #object = self.env.env_objects[0]
-        #contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, object.uid, x) for x in range(self.env.robot.end_effector_index)]
-        #for p in contact_points:
-        #    if p:
-        #        print("helou")
-        #        self.env.robot.magnetize_object(object, contact_points)
-        #        return True
-        if distance < 0.05:
-            print("touch")
-            self.env.robot.magnetize_object(self.env.env_objects[0])
+        if self.grip is not None:
+            return True
+        if distance < 0.1:
+            self.grip_object()
             return True
         return False
 
@@ -1317,24 +1319,262 @@ class PickAndPlace(Reward):
         if object[2] < 0.079:
             self.lifted = False # object has fallen
             self.object_before_lift = object
-        if distance < 0.05:
+        # if distance < 0.05:
+        #    self.lifted = True
+        #    return True
+        # elif self.lifted:
+        #    return True
+        else:
             self.lifted = True
             return True
-        elif self.lifted:
-            return True
-        return False        
+        return False
 
     def object_above_goal(self, object, goal):
         goal_XY   = [goal[0],   goal[1],   0]
         object_XY = [object[0], object[1], 0]
         distance  = self.task.calc_distance(goal_XY, object_XY)
-        if distance < 0.05:
+        print(distance)
+        if distance < 0.1:
+            self.release_object()
             return True
-        return False 
+        return False
 
-    def grip_object(self, griper):
-        object = self.env.env_objects[0]
-        self.grip = self.p.createConstraint(self.env.robot.uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,0])
+    def grip_object(self):
+        object = self.env.env_objects[1]
+        self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
+        self.grip = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.13])
 
     def release_object(self):
-        self.env.p.removeConstraint(self.grip)
+        if self.grip is not None:
+            self.env.p.removeConstraint(self.grip)
+        self.grip = None
+
+class ConsequentialPickAndPlace(Reward):
+    """
+    Reward class for reward signal calculation based on distance differences between 2 objects
+
+    Parameters:
+        :param env: (object) Environment, where the training takes place
+        :param task: (object) Task that is being trained, instance of a class TaskModule
+    """
+    def __init__(self, env, task):
+        super(ConsequentialPickAndPlace, self).__init__(env, task)
+
+        self.last_owner = None
+
+        self.object_before_lift = [None]*3
+
+        self.lifted         = False
+
+        self.grip           = None
+
+        self.last_height    = None
+
+        self.last_find_dist = None
+        self.last_lift_dist = None
+        self.last_move_dist = None
+        self.last_place_dist = None
+        self.owner = 0
+        self.finder_reward  = 0
+        self.lifter_reward  = 0
+        self.mover_reward   = 0
+        self.placer_reward  = 0
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+        
+        self.last_owner = None
+
+        self.object_before_lift = [None]*3
+
+        self.lifted         = False
+
+        self.grip           = None
+
+        self.last_height    = None
+
+        self.last_find_dist = None
+        self.last_lift_dist = None
+        self.last_move_dist = None
+        self.last_place_dist = None
+        self.owner = 0
+        self.finder_reward  = 0
+        self.lifter_reward  = 0
+        self.mover_reward   = 0
+        self.placer_reward  = 0
+
+    def compute(self, observation=None):
+        """
+        Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
+
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        owner = self.decide(observation)
+
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+
+        if owner   == 0: reward = self.find_compute(gripper_position, object_position)
+        elif owner == 1: reward = self.move_compute(object_position, goal_position)
+        elif owner == 2: reward = self.place_compute(object_position, goal_position)
+        else:            exit("decision error")
+
+
+        self.last_owner = owner
+        self.task.check_pnp_threshold(observation)
+        self.rewards_history.append(reward)
+
+        return reward
+
+    def find_compute(self, gripper, object):
+        # initial reach
+        self.env.p.addUserDebugText("find", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
+        dist = self.task.calc_distance(gripper, object)
+        
+        if self.last_find_dist is None:
+            self.last_find_dist = dist
+        if self.last_owner != 0:
+            self.last_find_dist = dist
+
+        reward = self.last_find_dist - dist
+        self.last_find_dist = dist
+
+        self.finder_reward += reward
+        return reward
+
+    def lift_compute(self, object):
+        # lifting task object
+        self.env.p.addUserDebugText("lift", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,125,0])
+        if self.object_before_lift[0] is None:
+            self.object_before_lift = object
+        if self.last_owner != 1:
+            self.object_before_lift = object
+
+        dist = self.task.calc_distance(object, self.object_before_lift)
+        
+        if self.last_lift_dist is None:
+            self.last_lift_dist     = dist
+        if self.last_owner != 1:
+            self.last_lift_dist     = dist
+
+        reward = self.last_lift_dist - dist
+        self.last_lift_dist = dist
+
+        self.lifter_reward += reward
+        return reward
+
+    def move_compute(self, object, goal):
+        # moving object above goal position (forced 2D reach)
+        self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
+        object_XY = [object[0], object[1], 0]
+        goal_XY   = [goal[0],   goal[1],   0]
+
+        height = object[2]
+        dist = self.task.calc_distance(object_XY, goal_XY)
+        if self.last_move_dist is None:
+            self.last_move_dist = dist
+            self.last_height    = height
+        if self.last_owner != 2:
+            self.last_move_dist = dist
+            self.last_height    = height
+
+        reward = (self.last_move_dist - dist) + abs(self.last_height - height)
+        self.last_move_dist = dist
+        self.last_height    = height
+
+        self.mover_reward += reward
+        return reward
+
+    def place_compute(self, object, goal):
+        # reach of goal position + task object height in Z axis and release
+        self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        dist = self.task.calc_distance(object, goal)
+        
+        if self.last_place_dist is None:
+            self.last_place_dist = dist
+        if self.last_owner != 3:
+            self.last_place_dist = dist
+
+        reward = self.last_place_dist - dist
+        self.last_place_dist = dist
+
+        if self.last_owner == 3 and dist < 0.05:
+            self.release_object()
+            self.env.episode_over = True
+            self.env.episode_info = "Object was placed to desired position"            
+
+        self.placer_reward += reward
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+
+        self.owner = 0
+
+        if self.owner == 0 and self.gripper_reached_object(gripper_position, object_position):
+            self.owner += 1
+        if self.owner == 1 and self.object_above_goal(object_position, goal_position):
+            self.owner += 1
+
+        return self.owner
+
+    def get_positions(self, observation):        
+        observation      = observation["observation"] if isinstance(observation, dict) else observation
+        goal_position    = observation[0:3]
+        object_position  = observation[3:6]
+        gripper_position = self.get_accurate_gripper_position(observation[-3:])
+
+        if self.object_before_lift[0] is None:
+            self.object_before_lift = object_position
+
+        return goal_position,object_position,gripper_position
+
+    def gripper_reached_object(self, gripper, object):
+        self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
+        distance = self.task.calc_distance(gripper, object)
+
+        if self.grip is not None:
+            return True
+        if distance < 0.1:
+            self.grip_object()
+            return True
+        return False
+
+    def object_lifted(self, object, object_before_lift):
+        lifted_position = [object_before_lift[0], object_before_lift[1], object_before_lift[2]+0.1] # position of object before lifting but hightened with its height
+        distance = self.task.calc_distance(object, lifted_position)
+        if object[2] < 0.079:
+            self.lifted = False # object has fallen
+            self.object_before_lift = object
+        # if distance < 0.05:
+        #    self.lifted = True
+        #    return True
+        # elif self.lifted:
+        #    return True
+        else:
+            self.lifted = True
+            return True
+        return False
+
+    def object_above_goal(self, object, goal):
+        goal_XY   = [goal[0],   goal[1],   0]
+        object_XY = [object[0], object[1], 0]
+        distance  = self.task.calc_distance(goal_XY, object_XY)
+        # print(distance)
+        if distance < 0.1:
+            return True
+        return False
+
+    def grip_object(self):
+        object = self.env.env_objects[1]
+        self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
+        self.grip = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.13])
+
+    def release_object(self):
+        if self.grip is not None:
+            self.env.p.removeConstraint(self.grip)
+        self.grip = None
