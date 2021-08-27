@@ -876,7 +876,6 @@ class VectorReward(Reward):
         return math.acos(np.dot(v1, v2)/(self.count_vector_norm(v1)*self.count_vector_norm(v2)))
 
 
-
 class SwitchReward(DistanceReward):
     """
     Reward class for reward signal calculation based on distance differences between 2 objects,
@@ -914,7 +913,7 @@ class SwitchReward(DistanceReward):
     def compute(self, observation):
         """
         Compute reward signal based on distance between 2 objects, angle of switch and difference between point and line
-         (function used for that: calc_direction_3d()).
+        (function used for that: calc_direction_3d()).
         The position of the objects must be present in observation.
         Params:
             :param observation: (list) Observation of the environment
@@ -1218,7 +1217,7 @@ class ButtonReward(DistanceReward):
     def compute(self, observation):
         """
         Compute reward signal based on distance between 2 objects, position of button and difference between point and line
-         (function used for that: calc_direction_3d()).
+        (function used for that: calc_direction_3d()).
         The position of the objects must be present in observation.
         Params:
             :param observation: (list) Observation of the environment
@@ -1258,7 +1257,7 @@ class ButtonReward(DistanceReward):
 
     def reset(self):
         """
-        Reset current positions of switch and robot, initial position of switch and robot and previous angle of switch.
+        Reset current positions of button and robot, initial position of switch and robot and previous position of button.
         Call this after the end of an episode.
         """
         self.x_obj = None
@@ -1370,25 +1369,11 @@ class ButtonReward(DistanceReward):
 
         d = sqrt((x - x3) ** 2 + (y - y3) ** 2 + (z - z3) ** 2)
 
-        # print(np.sign(z-z1), np.sign(z2))
-        # print(np.sign(z-z2), np.sign(z1))
-        # print(z, z1, z2)
-        # dot_product = (x-x1)*(x-x2)+(y-y1)*(y-y2)+(z-z1)*(z-z2)
-        # d1 = (x1-x3)**2+(y1-y3)**2+(z1-z3)**2
-        # d2 = (x2-x3)**2+(y2-y3)**2+(z2-z3)**2
-        # if dot_product > 0: # out
-        #     #print("out")
-        #     d = sqrt(min(d1, d2))
-        #     #print("d1:", d1, "d2:", d2)
-        # else:
-        #     pass
-        #     #print("in")
-        # print(d)
         return d
 
     def abs_diff(self):
         """
-        This function calculates absolute difference between task_object and gripper
+        Calculate absolute difference between task_object and gripper
         """
         x_diff = self.x_obj_curr_pos - self.x_bot_curr_pos
         y_diff = self.y_obj_curr_pos - self.y_bot_curr_pos
@@ -1398,7 +1383,7 @@ class ButtonReward(DistanceReward):
 
     def get_position(self):
         """
-        This function calculates angle of switch
+        Calculate position of button
         """
         if self.task.task_type == "press":
             if len(self.task.current_task_objects) != 2:
@@ -1453,8 +1438,7 @@ class ButtonReward(DistanceReward):
 
 class TurnReward(DistanceReward):
     """
-    Reward class for reward signal calculation based on distance differences between 2 objects,
-    button's position and difference between point and line (function used for that: calc_direction_3d()).
+    Reward class for reward signal calculation based on distance between 2 points (robot gripper and middle point of predefined line) and angle of handle
     Parameters:
         :param env: (object) Environment, where the training takes place
         :param task: (object) Task that is being trained, instance of a class TaskModule
@@ -1486,8 +1470,8 @@ class TurnReward(DistanceReward):
 
     def compute(self, observation):
         """
-        Compute reward signal based on distance between 2 objects, position of button and difference between point and line
-         (function used for that: calc_direction_3d()).
+        Compute reward signal based on distance between 2 points (robot gripper and middle point of predefined line)
+        and angle of handle
         The position of the objects must be present in observation.
         Params:
             :param observation: (list) Observation of the environment
@@ -1513,7 +1497,7 @@ class TurnReward(DistanceReward):
 
     def reset(self):
         """
-        Reset current positions of switch and robot, initial position of switch and robot and previous angle of switch.
+        Reset current positions of handle and robot, initial position of handle and robot and previous angle of handle.
         Call this after the end of an episode.
         """
         self.x_obj = None
@@ -1586,8 +1570,7 @@ class TurnReward(DistanceReward):
 
     def angle_adaptive_reward(self, change_reward=False, visualize=False):
         """
-        This function calculates difference between point - (actual position of robot's gripper [x3, y3, z3])
-        and line - (initial position of robot: [x1, y1, z1], final position of robot: [x2, y2, z2]) in 3D
+        Calculate difference distance between 2 points (robot gripper and middle point of predefined line)
         """
         alfa = np.deg2rad(-self.get_angle())  # in radians
         k = 0.2
@@ -1635,11 +1618,13 @@ class TurnReward(DistanceReward):
             self.env.p.addUserDebugLine([Px, Py, Pz], [AB_mid_x, AB_mid_y, AB_mid_z],
                                         lineColorRGB=(0, 1, 1), lineWidth=3, lifeTime=0.03)
 
-
         d = sqrt(P_MID_diff_x ** 2 + P_MID_diff_y ** 2 + P_MID_diff_z ** 2)
         return d
 
     def is_touch(self):
+        """
+        Checking if gripper is touching handle
+        """
         contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.env_objects[0].uid, x, 0)
                           for x in range(0, self.env.robot.end_effector_index+1)]
         for _ in contact_points:
@@ -1649,6 +1634,9 @@ class TurnReward(DistanceReward):
             return False
 
     def threshold_reached(self):
+        """
+        Switching output reward according to distance
+        """
         threshold = 0.1
         d = self.angle_adaptive_reward()
         if d < threshold and self.is_touch():
@@ -1657,7 +1645,7 @@ class TurnReward(DistanceReward):
 
     def get_angle(self):
         """
-        This function calculates angle of switch
+        Calculate angle of handle
         """
         if self.task.task_type == "turn":
             if len(self.task.current_task_objects) != 2:
