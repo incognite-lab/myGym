@@ -150,6 +150,20 @@ After 250000 steps the arm is able to switch the lever with 80% accuracy:
 
 There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_switch.html)
 
+### Task - Turn
+Run training using following command
+
+``python train.py --config ./configs/train_turn.json``
+
+Wait until the first evaluation after 250000 steps to check the progress:
+
+![alt text](myGym/images/workspaces/turn/kuka50000.gif "training")
+
+After 500000 steps the arm is able to switch the lever with 80% accuracy:
+
+![alt text](myGym/images/workspaces/turn/kuka250000.gif "training")
+
+There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_switch.html)
 
 ##  Parametric Training
 
