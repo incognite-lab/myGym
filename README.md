@@ -163,7 +163,7 @@ After 500000 steps the arm is able to switch the lever with 90% accuracy:
 
 ![alt text](myGym/images/workspaces/turn/kuka500000.gif "training")
 
-There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_switch.html)
+There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_turn.html)
 
 ##  Parametric Training
 
