@@ -79,6 +79,7 @@ custom modules.
    user_guide/train_with_distractors
    user_guide/train_press
    user_guide/train_switch
+   user_guide/train_turn
    user_guide/parallel_training
    user_guide/tensorboard
    user_guide/test_model

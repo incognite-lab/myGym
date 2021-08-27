@@ -1,8 +1,8 @@
-.. _train_switch.rst:
+.. _train_turn.rst:
 
-Train a robot - switch
+Train a robot - turn
 =============
-Train robot to switch a lever
+Train robot to turn a handle
 
 
 Setup
@@ -37,12 +37,12 @@ The training will start with gui window and standstill visualization. New direct
 is created in the logdir, where tranining checkpoints, final model and other relevant 
 data are stored.
 
-Wait until the first evaluation after 50000 steps to check the progress:
+Wait until the first evaluation after 250000 steps to check the progress:
 
-.. figure:: ../../../myGym/images/workspaces/switch/kuka50000.gif
+.. figure:: ../../../myGym/images/workspaces/turn/kuka250000.gif
    :alt: training
 
-After 250000 steps the arm is able to switch the lever with 80% accuracy:
+After 500000 steps the arm is able to switch the lever with 80% accuracy:
 
-.. figure:: ../../../myGym/images/workspaces/switch/kuka250000.gif
+.. figure:: ../../../myGym/images/workspaces/turn/kuka500000.gif
    :alt: training
