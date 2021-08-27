@@ -157,11 +157,11 @@ Run training using following command
 
 Wait until the first evaluation after 250000 steps to check the progress:
 
-![alt text](myGym/images/workspaces/turn/kuka500000.gif "training")
+![alt text](myGym/images/workspaces/turn/kuka250000.gif "training")
 
 After 500000 steps the arm is able to switch the lever with 80% accuracy:
 
-![alt text](myGym/images/workspaces/turn/kuka250000.gif "training")
+![alt text](myGym/images/workspaces/turn/kuka500000.gif "training")
 
 There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_switch.html)
 
