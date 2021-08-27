@@ -1459,7 +1459,7 @@ class TurnReward(DistanceReward):
         self.y_bot_curr_pos = None
         self.z_bot_curr_pos = None
 
-        self.debug = True
+        self.debug = False
         self.offset = None
         self.prev_turn = None
         self.r = 0.45
@@ -1640,8 +1640,8 @@ class TurnReward(DistanceReward):
         threshold = 0.1
         d = self.angle_adaptive_reward()
         if d < threshold and self.is_touch():
-            return self.angle_adaptive_reward(change_reward=True, visualize=True) - 1
-        return self.angle_adaptive_reward(visualize=True)
+            return self.angle_adaptive_reward(change_reward=True, visualize=self.debug) - 1
+        return self.angle_adaptive_reward(visualize=self.debug)
 
     def get_angle(self):
         """
