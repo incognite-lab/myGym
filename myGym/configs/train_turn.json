@@ -13,9 +13,9 @@
 "robot_action"  :"joints",
 "robot_init"    :[0.0, 0.3, 0.9],
 #Task
-"task_type"             :"press",
+"task_type"             :"turn",
 "num_subgoals"          :0,
-"task_objects"          :["btn"],
+"task_objects"          :["steering_wheel"],
 "used_objects"          :null,
 "object_sampling_area"  :[0, 0, 0.7, 0.7, 0.1, 0.1],
 #Distractor
@@ -31,7 +31,7 @@
 "coefficient_ka": 0,
 #Reward
 "reward_type"   :"gt",
-"reward"        :"btn",
+"reward"        :"turn",
 "distance_type" :"euclidean",
 "vae_path"      :null,
 "yolact_path"   :null,
@@ -48,6 +48,6 @@
 "eval_freq"     :50000,
 "eval_episodes" :10,
 #Saving and logging
-"logdir"    :"trained_models/",
+"logdir"    :"trained_models/turn",
 "record"    :0
 }
