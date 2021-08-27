@@ -15,7 +15,7 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 | Robots  | 8 robotic arms, 2 dualarms, humanoid |
 | Robot actions  | Absolute, Relative, Joints |
 | Objects  | 54 objects in 5 categories |
-| Tasks  | Reach, Press, Switch, Push, Pick, Place, PicknPlace, Throw, Hit, Catch, Navigate|
+| Tasks  | Reach, Press, Switch, Turn, Push, Pick, Place, PicknPlace, Throw, Hit, Catch, Navigate|
 | Randomizers  | Light, Texture, Size, Camera position |
 | Baselines  | Tensorflow, Pytorch |
 
