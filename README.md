@@ -159,7 +159,7 @@ Wait until the first evaluation after 250000 steps to check the progress:
 
 ![alt text](myGym/images/workspaces/turn/kuka250000.gif "training")
 
-After 500000 steps the arm is able to switch the lever with 80% accuracy:
+After 500000 steps the arm is able to switch the lever with 90% accuracy:
 
 ![alt text](myGym/images/workspaces/turn/kuka500000.gif "training")
 
