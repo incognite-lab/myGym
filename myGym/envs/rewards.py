@@ -1229,10 +1229,10 @@ class ButtonReward(DistanceReward):
         gripper_position = self.get_accurate_gripper_position(observation[3:6])
         self.set_variables(o1, gripper_position)
         self.set_offset(z=0.16)
-        v1 = Vector([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1], self.env)
-        v2 = Vector([self.x_obj, self.y_obj, self.z_obj], gripper_position, self.env)
-
+        # v1 = Vector([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1], self.env)
+        # v2 = Vector([self.x_obj, self.y_obj, self.z_obj], gripper_position, self.env)
         # w = np.dot(self.set_vector_len(v1.vector, 1), self.set_vector_len(v2.vector, 1))
+
         w = self.calc_direction_3d(self.x_obj, self.y_obj, 1, self.x_obj, self.y_obj, self.z_obj,
                                    self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
         d = self.abs_diff()
