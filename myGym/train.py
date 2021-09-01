@@ -165,10 +165,16 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             dataset = ExpertDataset(expert_path=model_name+'.npz', traj_limitation=10, verbose=1)
             model = GAIL_T('MlpPolicy', model_name, dataset, verbose=1)
             # Note: in practice, you need to train for 1M steps to have a working policy
-
+    
     start_time = time.time()
     callbacks_list = []
-    auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env, engine=arg_dict["engine"], multiprocessing=arg_dict["multiprocessing"])
+    if pretrained_model:
+        model_logdir = pretrained_model.split('/')
+        model_logdir = model_logdir[:-1]
+        model_logdir = "/".join(model_logdir)     
+        auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env, engine=arg_dict["engine"], multiprocessing=arg_dict["multiprocessing"])
+    else:
+        auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env, engine=arg_dict["engine"], multiprocessing=arg_dict["multiprocessing"])
     callbacks_list.append(auto_save_callback)
     if arg_dict["eval_freq"]:
         eval_env = configure_env(arg_dict, model_logdir, for_train=False)

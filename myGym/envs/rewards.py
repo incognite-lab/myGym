@@ -1360,6 +1360,8 @@ class ConsequentialPickAndPlace(Reward):
     def __init__(self, env, task):
         super(ConsequentialPickAndPlace, self).__init__(env, task)
 
+        self.countdown = None
+
         self.last_owner = None
 
         self.object_before_lift = [None]*3
@@ -1384,7 +1386,8 @@ class ConsequentialPickAndPlace(Reward):
         """
         Reset stored value of distance between 2 objects. Call this after the end of an episode.
         """
-        
+        self.countdown = None
+
         self.last_owner = None
 
         self.object_before_lift = [None]*3
@@ -1443,49 +1446,32 @@ class ConsequentialPickAndPlace(Reward):
         reward = self.last_find_dist - dist
         self.last_find_dist = dist
 
+        if self.task.check_object_moved(self.env.task_objects[1]):
+            self.env.episode_over   = True
+            self.env.episode_failed = True
+
         self.finder_reward += reward
-        return reward
-
-    def lift_compute(self, object):
-        # lifting task object
-        self.env.p.addUserDebugText("lift", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,125,0])
-        if self.object_before_lift[0] is None:
-            self.object_before_lift = object
-        if self.last_owner != 1:
-            self.object_before_lift = object
-
-        dist = self.task.calc_distance(object, self.object_before_lift)
-        
-        if self.last_lift_dist is None:
-            self.last_lift_dist     = dist
-        if self.last_owner != 1:
-            self.last_lift_dist     = dist
-
-        reward = self.last_lift_dist - dist
-        self.last_lift_dist = dist
-
-        self.lifter_reward += reward
         return reward
 
     def move_compute(self, object, goal):
         # moving object above goal position (forced 2D reach)
         self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
-        object_XY = [object[0], object[1], 0]
-        goal_XY   = [goal[0],   goal[1],   0]
 
-        height = object[2]
+        object_XY = object
+        goal_XY   = [goal[0], goal[1], goal[2]+0.1] 
+
+        self.env.p.addUserDebugLine(object_XY, goal_XY, lifeTime=0.1)
+
         dist = self.task.calc_distance(object_XY, goal_XY)
         if self.last_move_dist is None:
-            self.last_move_dist = dist
-            self.last_height    = height
-        if self.last_owner != 2:
-            self.last_move_dist = dist
-            self.last_height    = height
+           self.last_move_dist = dist
+          #self.last_height    = height
+        if self.last_owner != 1:
+           self.last_move_dist = dist
+          #self.last_height    = height
 
-        reward = (self.last_move_dist - dist) + abs(self.last_height - height)
+        reward = self.last_move_dist - dist
         self.last_move_dist = dist
-        self.last_height    = height
-
         self.mover_reward += reward
         return reward
 
@@ -1493,19 +1479,29 @@ class ConsequentialPickAndPlace(Reward):
         # reach of goal position + task object height in Z axis and release
         self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
         dist = self.task.calc_distance(object, goal)
-        
+       
         if self.last_place_dist is None:
             self.last_place_dist = dist
-        if self.last_owner != 3:
+        if self.last_owner != 2:
             self.last_place_dist = dist
 
         reward = self.last_place_dist - dist
+        reward = reward * 10
         self.last_place_dist = dist
 
-        if self.last_owner == 3 and dist < 0.05:
+        if self.last_owner == 2 and dist < 0.1:
             self.release_object()
-            self.env.episode_over = True
-            self.env.episode_info = "Object was placed to desired position"            
+            self.env.episode_info = "Object was placed to desired position" 
+            self.countdown = 0
+        if self.env.episode_steps <= 5:
+            self.env.episode_info = "Task finished in initial configuration"
+            self.env.episode_over = True    
+
+        if self.countdown is not None:
+            if self.countdown < 10:
+                self.env.episode_over = True
+            else:
+                self.countdown += 1
 
         self.placer_reward += reward
         return reward
@@ -1513,12 +1509,15 @@ class ConsequentialPickAndPlace(Reward):
     def decide(self, observation=None):
         goal_position, object_position, gripper_position = self.get_positions(observation)
 
-        self.owner = 0
+        self.owner = 1
+        
+       #if self.grip is None:
+       #    self.grip_object()
 
-        if self.owner == 0 and self.gripper_reached_object(gripper_position, object_position):
-            self.owner += 1
-        if self.owner == 1 and self.object_above_goal(object_position, goal_position):
-            self.owner += 1
+        if not self.gripper_reached_object(gripper_position, object_position):
+            self.owner = 0
+        if self.object_above_goal(object_position, goal_position):
+            self.owner = 2
 
         return self.owner
 
@@ -1570,11 +1569,14 @@ class ConsequentialPickAndPlace(Reward):
         return False
 
     def grip_object(self):
-        object = self.env.env_objects[1]
-        self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
-        self.grip = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.13])
+        if self.countdown is None:
+            object = self.env.env_objects[1]
+            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
+            self.grip = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.15])
 
     def release_object(self):
         if self.grip is not None:
+            object = self.env.env_objects[1]
+            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0,0,0,1])
             self.env.p.removeConstraint(self.grip)
         self.grip = None

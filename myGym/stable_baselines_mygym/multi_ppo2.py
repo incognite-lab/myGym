@@ -164,12 +164,12 @@ class Multi(ActorCriticRLModel):
                 summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = model.sess.run([self.summary, self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train], td_map, options=run_options, run_metadata=run_metadata)
                 writer.add_run_metadata(run_metadata, 'step%d' % (update * update_fac))
             else:
-                # params = model.get_parameters()
-                # print("in ", params["model/vf/b:0"])
+               #params = model.get_parameters()
+               #print("in ", params["model/vf/b:0"])
                 summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = model.sess.run([model.summary, model.pg_loss, model.vf_loss, model.entropy, model.approxkl, model.clipfrac, model._train],td_map)
 
-                # params = model.get_parameters()
-                # print("out ", params["model/vf/b:0"])
+               #params = model.get_parameters()
+               #print("out ", params["model/vf/b:0"])
             writer.add_summary(summary, (update * update_fac))
         else:
             policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = model.sess.run([self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train], td_map)
@@ -187,7 +187,6 @@ class Multi(ActorCriticRLModel):
         top_callback = SaveOnTopRewardCallback(check_freq=self.n_steps, logdir=self.tensorboard_log, models_num=self.models_num)
         callback.append(top_callback)
         callback     = self._init_callback(callback)
-
         with SetVerbosity(self.verbose), TensorboardWriter(self.models[0].graph, self.tensorboard_log, tb_log_name, new_tb_log) as writer:
 
             for model in self.models:
@@ -243,7 +242,7 @@ class Multi(ActorCriticRLModel):
                                     mbinds   = inds[start:end]
                                     slices   = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
                                     mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, model=self.models[i], writer=writer, update=timestep, cliprange_vf=cliprange_vf_now))
-                            i+=1
+                   #        i+=1
                         else:
                             exit("does not support recurrent version")
 
@@ -269,7 +268,7 @@ class Multi(ActorCriticRLModel):
                             for (loss_val, loss_name) in zip(loss_vals, model.loss_names):
                                 logger.logkv(loss_name, loss_val)
                             logger.dumpkvs()
-
+                    i+=1
             callback.on_training_end()
             return self
 
@@ -334,13 +333,14 @@ class Multi(ActorCriticRLModel):
         load_path = load_path[:-1]
         path = "/".join(load_path)
 
-
+        print(path)
         import commentjson
 
         with open(path + "/train.json", "r") as f:
             json = commentjson.load(f)
 
         models = len(json["diagram"])
+        print(models)
         load = [] # data, params
         for i in range(models):
             # load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
@@ -360,15 +360,18 @@ class Multi(ActorCriticRLModel):
         if env:
             model.env = env
         # model.set_env(env)
-        model.tensorboard_log = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
-
+        print(path)
+        model.tensorboard_log = path
+        model.diagram = json["diagram"]
+        model.models_num = models
         model.setup_model()
-
         i = 0
         for submodel in model.models:
             submodel.load_parameters(load[i][1])
             i += 1
 
+        print(model.models)
+        print(model.models_num)
         return model
 
     def predict(self, observation, state=None, mask=None, deterministic=False):
@@ -423,12 +426,6 @@ class SubModel(Multi):
             self.observation_space = parent.observation_space
         else:
             self.observation_space = parent.diagram[i]
-
-        #print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-        #print(self.observation_space)
-        #print(parent.action_space)
-        #print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-        #exit()
 
         with SetVerbosity(parent.verbose):
 
