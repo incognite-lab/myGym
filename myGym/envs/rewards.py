@@ -1401,6 +1401,7 @@ class DualPickAndPlace(Reward):
         if self.countdown is not None:
             reward = 0
             if self.countdown == 20:
+                #new
                 self.env.episode_over = True
             else:
                 self.countdown += 1
