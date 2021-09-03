@@ -236,7 +236,7 @@ class BaseEnv(gym.Env):
         print("Episode info: " + self.episode_info)
         print("Episode reward: " + str(self.episode_reward))
         print("Finder reward:   " + str(self.reward.finder_reward))
-       #print("Lifter reward:   " + str(self.reward.lifter_reward))
+        print("Lifter reward:   " + str(self.reward.lifter_reward))
         print("Moveer reward:   " + str(self.reward.mover_reward))
         print("Putter reward:   " + str(self.reward.placer_reward))
         print("Last step reward: " + str(self.reward.rewards_history[-1]))

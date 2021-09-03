@@ -242,7 +242,6 @@ class Multi(ActorCriticRLModel):
                                     mbinds   = inds[start:end]
                                     slices   = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
                                     mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, model=self.models[i], writer=writer, update=timestep, cliprange_vf=cliprange_vf_now))
-                   #        i+=1
                         else:
                             exit("does not support recurrent version")
 
