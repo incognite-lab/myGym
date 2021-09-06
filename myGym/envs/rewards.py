@@ -1744,7 +1744,7 @@ class TurnReward(DistanceReward):
         """
         if self.task.task_type == "turn":
             if len(self.task.current_task_objects) != 2:
-                raise "not expected number of objects"
+                raise "unexpected number of objects"
 
             o1 = self.task.current_task_objects[0]
             o2 = self.task.current_task_objects[1]

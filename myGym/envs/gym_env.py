@@ -2,7 +2,7 @@ from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, PnPDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward, SwitchReward, ButtonReward, TurnReward
+import myGym.envs.rewards as rwd
 import pybullet
 import time
 import numpy as np
@@ -161,28 +161,28 @@ class GymEnv(CameraEnv):
                 raise Exception(f"Please specify valid number for: {', '.join(errors)}")
 
         if reward == 'distance':
-            self.reward = DistanceReward(env=self, task=self.task)
+            self.reward = rwd.DistanceReward(env=self, task=self.task)
         elif reward == "complex_distance":
-            self.reward = ComplexDistanceReward(env=self, task=self.task)
+            self.reward = rwd.ComplexDistanceReward(env=self, task=self.task)
         elif reward == "pnp_distance":
-            self.reward = PnPDistanceReward(env=self, task=self.task)
+            self.reward = rwd.PnPDistanceReward(env=self, task=self.task)
         elif reward == 'sparse':
-            self.reward = SparseReward(env=self, task=self.task)
+            self.reward = rwd.SparseReward(env=self, task=self.task)
         elif reward == 'distractor':
             self.has_distractor = True
             if self.distractors == None:
                 self.distractor = ['bus']
-            self.reward = VectorReward(env=self, task=self.task)
+            self.reward = rwd.VectorReward(env=self, task=self.task)
         elif reward == 'poke':
-            self.reward = PokeReachReward(env=self, task=self.task)
+            self.reward = rwd.PokeReachReward(env=self, task=self.task)
             # self.reward = PokeVectorReward(env=self, task=self.task)
             # self.reward = PokeReward(env=self, task=self.task)
         elif reward == 'switch':
-            self.reward = SwitchReward(env=self, task=self.task)
+            self.reward = rwd.SwitchReward(env=self, task=self.task)
         elif reward == 'btn':
-            self.reward = ButtonReward(env=self, task=self.task)
+            self.reward = rwd.ButtonReward(env=self, task=self.task)
         elif reward == 'turn':
-            self.reward = TurnReward(env=self, task=self.task)
+            self.reward = rwd.TurnReward(env=self, task=self.task)
 
         self.dataset   = dataset
         self.obs_space = obs_space
@@ -248,7 +248,7 @@ class GymEnv(CameraEnv):
                                 'compactmaze': {'urdf': 'compactmaze.urdf', 'texture': None,
                                             'transform': {'position':[-7.5, 5, 0.0], 'orientation':[0.0, 0.0, 0.0]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.05, 2.5]], 
+                                            'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.05, 2.5]]}},
                                 'table':    {'urdf': 'table.urdf', 'texture': 'table.jpg',
                                             'transform': {'position':[-0.0, -0.0, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
@@ -268,7 +268,7 @@ class GymEnv(CameraEnv):
                                             'robot': {'position': [0.0, -0.5, 0.05], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
                                             'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.7, 2.1], [-0.0, -0.3, 0.2]], 
                                                         'target': [[-0.0, -1.05, 0.9], [0.0, 0.55, 1.3], [1.4, -0.75, 0.9], [-1.3, -0.75, 0.9], [0.0, 0.71, 1.8], [-0.0, -0.25, 0.199]]},
-                                            'boarders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]}  }
+                                            'boarders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]}}
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 
     def _setup_scene(self):

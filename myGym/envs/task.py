@@ -440,10 +440,11 @@ class TaskModule():
                 self.env.episode_over = True
                 self.env.episode_failed = True
                 self.env.episode_info = "Max amount of steps reached"
-        if self.check_turn_threshold() == -1:
-            self.env.episode_over = True
-            self.env.episode_failed = True
-            self.env.episode_info = "Bad direction"
+        if self.task_type == "turn":
+            if self.check_turn_threshold() == -1:
+                self.env.episode_over = True
+                self.env.episode_failed = True
+                self.env.episode_info = "Bad direction"
         if self.reward_type != 'gt' and (self.check_vision_failure()):
             self.stored_observation = []
             self.env.episode_over = True
