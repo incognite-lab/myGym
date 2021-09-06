@@ -15,16 +15,16 @@
     <visual>
       <origin rpy="0 0 0" xyz="-0.0011 0.0 0.0341"/>
       <geometry>
-        <mesh filename="./stl/bus.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="./stl/bus_vhacd.obj" scale="0.001 0.001 0.001"/>
       </geometry>
        <material name="black">
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="-0.0011 0.0 0.0341"/>
       <geometry>
-	 	<mesh filename="./stl/bus.stl" scale="0.001 0.001 0.001"/>
+	 	<mesh filename="./stl/bus_vhacd.obj" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>

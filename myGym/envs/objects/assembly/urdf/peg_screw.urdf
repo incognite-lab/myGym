@@ -15,16 +15,16 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0 -0.000044 -0.000014"/>
       <geometry>
-        <mesh filename="../obj/peg_screw.obj" scale=".001 .001 .001"/>
+        <mesh filename="../obj/peg_screw_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
-       <material name="black">
-        <color rgba="0 0 0 1"/>
+       <material name="grey">
+        <color rgba="0.5 0.5 0.5 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="0.0 -0.000044 -0.000014"/>
       <geometry>
-	 	<mesh filename="../obj/peg_screw.obj" scale=".001 .001 .001"/>
+	 	<mesh filename="../obj/peg_screw_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
     </collision>
   </link>

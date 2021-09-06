@@ -1,0 +1,204 @@
+
+<?xml version="1.0" ?>
+<robot name="compactmaze">
+  <link name="compactmaze">
+    <contact>
+      <lateral_friction value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0.0001 0 0" xyz="0.0001 0 0"/>
+       <mass value="0.000"/>
+       <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+
+<!--visual-->
+<!--floor-->
+    <visual>
+      <origin rpy="0 0 0*np.pi" xyz="7.5 -4. 0.1"/>
+      <geometry>
+				<box size="1.5 0.4 0.07"/>
+      </geometry>
+       <material name="framemat0">
+     <color rgba="1 0 1 1"/>
+      </material>
+     </visual>
+     <visual>
+      <origin rpy="0 0 0*np.pi" xyz="7.5 -4.7 0.1"/>
+      <geometry>
+				<box size="1.5 0.2 0.07"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="1 0 1 1"/>
+      </material>
+    </visual>
+    <visual>
+      <origin rpy="0 0 0*np.pi" xyz="7.5 -4.4 0.1"/>
+      <geometry>
+				<box size="1.5 0.2 0.07"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="1 0 1 1"/>
+      </material>
+    </visual>
+    <visual>
+      <origin rpy="0 0 0*np.pi" xyz="7.65 -4.55 0.1"/>
+      <geometry>
+				<box size="1.2 0.1 0.07"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="1 0 1 1"/>
+      </material>
+    </visual>
+    <visual>
+      <origin rpy="0 0 0*np.pi" xyz="6.9 -4.55 0.1"/>
+      <geometry>
+				<box size="0.14 0.1 0.07"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="1 0 1 1"/>
+      </material>
+    </visual>
+   <visual>
+      <origin rpy="0 0 0*np.pi" xyz="6.9 -4.55 0.1"/>
+      <geometry>
+				<box size="0.34 0.1 0.001"/>
+      </geometry>
+      <material name="white">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+<!--central wall partition-->
+        <visual>
+      <origin rpy="0 0 0*np.pi" xyz="7.5 -4.25 0.17"/>
+      <geometry>
+				<box size="1.5 .11 0.1"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="1 0 1 1"/>
+      </material>
+    </visual>
+<!--rear border (robot perspective)-->
+      <visual>
+      <origin rpy="0 0 0*np.pi" xyz="7.5 -3.82 0.17"/>
+      <geometry>
+				<box size="1.5 .05 0.12"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="1 0 1 1"/>
+      </material>
+    </visual>
+<!--front border-->
+      <visual>
+      <origin rpy="0 0 0*np.pi" xyz="7.5 -4.78 0.17"/>
+      <geometry>
+				<box size="1.5 .05 0.12"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="1 0 1 1"/>
+      </material>
+    </visual>
+<!--right border-->
+    <visual>
+      <origin rpy="0 0 0*np.pi" xyz="8.25 -4.3 0.17"/>
+      <geometry>
+				<box size=".05 1. 0.12"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="1 0 1 1"/>
+      </material>
+    </visual>
+<!--left border-->
+    <visual>
+      <origin rpy="0 0 0*np.pi" xyz="6.75 -4.3 0.17"/>
+      <geometry>
+				<box size=".05 1. 0.12"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="1 0 1 1"/>
+      </material>
+    </visual>
+<!--wall partition front half-->
+    <visual>
+      <origin rpy="0 0 0*np.pi" xyz="7.15 -4.43 0.17"/>
+      <geometry>
+				<box size=".02 .25 0.1"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="1 0 1 1"/>
+      </material>
+    </visual>
+        <visual>
+      <origin rpy="0 0 0*np.pi" xyz="7.341 -4.56 0.17"/>
+      <geometry>
+				<box size="0.4 .02 0.1"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="1 0 1 1"/>
+      </material>
+    </visual>
+<!--cylinder bridge front half-->
+    <visual>
+      <origin rpy="1.55 0 0*np.pi" xyz="7.45 -4.67 0.12"/>
+      <geometry>
+				<cylinder length="0.2" radius="0.06"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="1 0 1 1"/>
+      </material>
+    </visual>
+<!--ramp front half-->
+    <visual>
+      <origin rpy="0.4 0 0*np.pi" xyz="7.35 -4.43 .11"/>
+      <geometry>
+				<box size="0.15 .32 0.1"/>
+      </geometry>
+        <color rgba="1 0 1 1"/>
+    </visual>
+<!--ramp rear half-->
+    <visual>
+      <origin rpy="0.4 0 3.15" xyz="7.85 -4.07 .11"/>
+      <geometry>
+				<box size="0.15 .32 0.1"/>
+      </geometry>
+        <color rgba="1 0 1 1"/>
+    </visual>
+<!--bridge partition rear half-->
+    <visual>
+      <origin rpy="0 0 0" xyz="7.45 -4.13 0.17"/>
+      <geometry>
+				<box size=".05 .15 0.1"/>
+      </geometry>
+        <color rgba="1 0 1 1"/>
+    </visual>
+    <visual>
+      <origin rpy="0 0 0" xyz="7.45 -3.88 0.17"/>
+      <geometry>
+				<box size=".05 .15 0.1"/>
+      </geometry>
+        <color rgba="1 0 1 1"/>
+    </visual>
+    <visual>
+      <origin rpy="0 0 0" xyz="7.45 -4. 0.22"/>
+      <geometry>
+				<box size=".05 .38 0.01"/>
+      </geometry>
+        <color rgba="1 0 1 1"/>
+    </visual>
+<!--wall half-partitions rear half-->
+    <visual>
+      <origin rpy="0 0 0" xyz="7.15 -4.1 0.17"/>
+      <geometry>
+				<box size=".02 .2 0.1"/>
+      </geometry>
+        <color rgba="1 0 1 1"/>
+    </visual>
+        <visual>
+      <origin rpy="0 0 0" xyz="7.0 -3.92 0.17"/>
+      <geometry>
+				<box size=".02 .21 0.1"/>
+      </geometry>
+        <color rgba="1 0 1 1"/>
+    </visual>
+  </link>
+
+</robot>

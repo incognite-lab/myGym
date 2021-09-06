@@ -2,7 +2,7 @@ from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward, SwitchReward, ButtonReward, TurnReward
+from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, PnPDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward, SwitchReward, ButtonReward, TurnReward
 import pybullet
 import time
 import numpy as np
@@ -60,7 +60,7 @@ class GymEnv(CameraEnv):
     def __init__(self,
                  workspace="table",
                  object_sampling_area=None,
-                 dimension_velocity=0.05,
+                 dimension_velocity=0.1,
                  used_objects=None,
                  num_objects_range=None,
                  action_repeat=1,
@@ -164,6 +164,8 @@ class GymEnv(CameraEnv):
             self.reward = DistanceReward(env=self, task=self.task)
         elif reward == "complex_distance":
             self.reward = ComplexDistanceReward(env=self, task=self.task)
+        elif reward == "pnp_distance":
+            self.reward = PnPDistanceReward(env=self, task=self.task)
         elif reward == 'sparse':
             self.reward = SparseReward(env=self, task=self.task)
         elif reward == 'distractor':
@@ -204,14 +206,14 @@ class GymEnv(CameraEnv):
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[-0.0, 2.1, 1.0], [0.0, -1.5, 1.2], [2.3, 0.5, 1.0], [-2.6, 0.5, 1.0], [-0.0, 1.1, 4.9]],
                                                         'target': [[0.0, 0.0, 0.7], [-0.0, 1.3, 0.6], [1.0, 0.9, 0.9], [-1.6, 0.9, 0.9], [-0.0, 1.2, 3.1]]},
-                                            'boarders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]},
-                                'drawer':   {'urdf': 'drawer.urdf', 'texture': 'drawer.jpg',
-                                            'transform': {'position':[-4.81, 1.75, -1.05], 'orientation':[0.0, 0.0, 0.0*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0, 0, 0.5*np.pi]},
-                                            'camera': {'position': [[-0.14, -1.63, 1.0], [-0.14, 3.04, 1.0], [-1.56, -0.92, 1.0], [1.2, -1.41, 1.0], [-0.18, 0.88, 2.5]],
+                                            'boarders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]}, 
+                                'drawer':   {'urdf': 'drawer.urdf', 'texture': 'drawer.jpg', 
+                                            'transform': {'position':[-4.81, 1.5, -1.05], 'orientation':[0.0, 0.0, 0.0*np.pi]},
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0, 0, 0.5*np.pi]}, 
+                                            'camera': {'position': [[-0.14, -1.63, 1.0], [-0.14, 3.04, 1.0], [-1.56, -0.92, 1.0], [1.2, -1.41, 1.0], [-0.18, 0.88, 2.5]], 
                                                         'target': [[-0.14, -0.92, 0.8], [-0.14, 2.33, 0.8], [-0.71, -0.35, 0.7], [0.28, -0.07, 0.6], [-0.18, 0.84, 2.1]]},
-                                            'boarders':[-0.7, 0.7, 0.4, 1.3, 0.8, 0.1]},
-                                'football': {'urdf': 'football.urdf', 'texture': 'football.jpg',
+                                            'boarders':[[-0.65, 0.65, 0.2, 0.8, 0.15, 0.15],[-0.65, -0.2, 0.7, 0.8, 0.4, 0.4],[0.05, 0.7, 0.7, 0.8, 0.4, 0.4],[-0.7, -0.2, 0.7, 0.8, 0.7, 0.7]]}, 
+                                'football': {'urdf': 'football.urdf', 'texture': 'football.jpg', 
                                             'transform': {'position':[4.2, -5.4, -1.05], 'orientation':[0.0, 0.0, -1.0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[-0.0, 2.1, 1.0], [0.0, -1.7, 1.2], [3.5, -0.6, 1.0], [-3.5, -0.7, 1.0], [-0.0, 2.0, 4.9]],
@@ -235,6 +237,18 @@ class GymEnv(CameraEnv):
                                             'camera': {'position': [[0.04, -1.64, 1.0], [0.81, 3.49, 1.0], [-2.93, 1.76, 1.0], [4.14, 0.33, 1.0], [2.2, 1.24, 3.2]],
                                                         'target': [[0.18, -1.12, 0.85], [0.81, 2.99, 0.8], [-1.82, 1.57, 0.7], [3.15, 0.43, 0.55], [2.17, 1.25, 3.1]]},
                                             'boarders':[-0.5, 2.5, 0.8, 1.6, 0.1, 0.1]},
+                                'test_ws':  {'urdf': 'test_ws.urdf', 'texture': None, 
+                                            'transform': {'position':[0.0, 0.0, 0.0], 'orientation':[0.0, 0.0, 0*np.pi]},
+                                            'robot': {'position': [0.0, 0.0, 0.07], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
+                                            'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.3, 1.0], [1.8, 0.7, 1.0], [-1.8, 0.7, 1.0], [0.0, 0.7, 1.3],
+                                                                    [0.0, 1.6, 0.8], [-0.0, -0.3, 0.8], [0.8, 0.7, 0.6], [-0.8, 0.7, 0.8], [0.0, 0.7, 1.]], 
+                                                        'target': [[0.0, 2.1, 0.9], [-0.0, -1.0, 0.9], [1.4, 0.7, 0.88], [-1.4, 0.7, 0.88], [0.0, 0.698, 1.28],
+                                                                   [0.0, 1.3, 0.5], [-0.0, -0.2, 0.6], [0.6, 0.7, 0.4], [-0.6, 0.7, 0.5], [0.0, 0.698, 0.8]]},
+                                            'boarders':[-0.7, 0.7, 0.5, 1.3, 0.15, 0.15]},  
+                                'compactmaze': {'urdf': 'compactmaze.urdf', 'texture': None,
+                                            'transform': {'position':[-7.5, 5, 0.0], 'orientation':[0.0, 0.0, 0.0]},
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
+                                            'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.05, 2.5]], 
                                 'table':    {'urdf': 'table.urdf', 'texture': 'table.jpg',
                                             'transform': {'position':[-0.0, -0.0, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
@@ -248,6 +262,12 @@ class GymEnv(CameraEnv):
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.05, 2.5]],
                                                         'target': [[-0.0, -1.05, 1.0], [0.0, 0.55, 1.3], [1.4, -0.75, 0.9], [-1.3, -0.75, 0.9], [0.0, 0.15, 2.1]]},
+                                            'boarders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]},
+                                'modularmaze': {'urdf': 'modularmaze.urdf', 'texture': None,
+                                            'transform': {'position':[-7, 8, 0.0], 'orientation':[0.0, 0.0, 0.0]},
+                                            'robot': {'position': [0.0, -0.5, 0.05], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
+                                            'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.7, 2.1], [-0.0, -0.3, 0.2]], 
+                                                        'target': [[-0.0, -1.05, 0.9], [0.0, 0.55, 1.3], [1.4, -0.75, 0.9], [-1.3, -0.75, 0.9], [0.0, 0.71, 1.8], [-0.0, -0.25, 0.199]]},
                                             'boarders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]}  }
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 
@@ -270,25 +290,32 @@ class GymEnv(CameraEnv):
                         pkg_resources.resource_filename("myGym", "/envs/rooms/visual/"+self.workspace_dict[workspace]['urdf']),
                                                     transform['position'],self.p.getQuaternionFromEuler(transform['orientation']),useFixedBase=True, useMaximalCoordinates=True), workspace)
         # Load selected workspace
-        self._add_scene_object_uid(self.p.loadURDF(
-            pkg_resources.resource_filename("myGym", "/envs/rooms/collision/"+self.workspace_dict[self.workspace]['urdf']),
-                                            transform['position'],self.p.getQuaternionFromEuler(transform['orientation']),useFixedBase=True, useMaximalCoordinates=True), self.workspace)
-        # Add textures
-        if self.task.reward_type != "2dvu":
-             if self.workspace_dict[self.workspace]['texture'] is not None:
-                 workspace_texture_id = self.p.loadTexture(
-                     pkg_resources.resource_filename("myGym", "/envs/textures/"+self.workspace_dict[self.workspace]['texture']))
-                 self.p.changeVisualShape(self.get_scene_object_uid_by_name(self.workspace), -1,
-                                             rgbaColor=[1, 1, 1, 1], textureUniqueId=workspace_texture_id)
-        else:
-             workspace_texture_id = self.p.loadTexture(pkg_resources.resource_filename("myGym",
-                                                "/envs/textures/grey.png"))
-        self.p.changeVisualShape(self.get_scene_object_uid_by_name(self.workspace), -1,
-                                     rgbaColor=[1, 1, 1, 1], textureUniqueId=workspace_texture_id)
-        floor_texture_id = self.p.loadTexture(
-            pkg_resources.resource_filename("myGym", "/envs/textures/parquet1.jpg"))
-        self.p.changeVisualShape(self.get_scene_object_uid_by_name("floor"), -1,
-                                         rgbaColor=[1, 1, 1, 1], textureUniqueId=floor_texture_id)
+        if self.workspace != 'test_ws':
+            ws_pth = pkg_resources.resource_filename("myGym", "/envs/rooms/collision/"+self.workspace_dict[self.workspace]['urdf'])
+            if ".bullet" in self.workspace_dict[self.workspace]['urdf']:
+                fctn = self.p.loadBullet(ws_pth, physicsClientId=0)
+            else:
+                fctn = self.p.loadURDF(ws_pth, transform['position'],self.p.getQuaternionFromEuler(transform['orientation']),useFixedBase=True, useMaximalCoordinates=True)
+            self._add_scene_object_uid(fctn, self.workspace)
+
+            # Add textures
+            if self.task.reward_type != "2dvu":
+                if self.workspace_dict[self.workspace]['texture'] is not None:
+                    workspace_texture_id = self.p.loadTexture(
+                        pkg_resources.resource_filename("myGym", "/envs/textures/"+self.workspace_dict[self.workspace]['texture']))
+                else:
+                    workspace_texture_id = None
+            else:
+                workspace_texture_id = self.p.loadTexture(pkg_resources.resource_filename("myGym",
+                                                    "/envs/textures/grey.png"))
+            if workspace_texture_id is not None:                                        
+                self.p.changeVisualShape(self.get_scene_object_uid_by_name(self.workspace), -1,
+                                        rgbaColor=[1, 1, 1, 1], textureUniqueId=workspace_texture_id)
+            floor_texture_id = self.p.loadTexture(
+                pkg_resources.resource_filename("myGym", "/envs/textures/parquet1.jpg"))
+            self.p.changeVisualShape(self.get_scene_object_uid_by_name("floor"), -1,
+                                            rgbaColor=[1, 1, 1, 1], textureUniqueId=floor_texture_id)
+
         # Define boarders
         if self.objects_area_boarders is None:
             self.objects_area_boarders = self.workspace_dict[self.workspace]['boarders']
@@ -299,6 +326,7 @@ class GymEnv(CameraEnv):
                                  init_joint_poses=self.robot_init_joint_poses,
                                  robot_action=self.robot_action,
                                  dimension_velocity=self.dimension_velocity,
+                                 timestep=self.time_step,
                                  pybullet_client=self.p)
         # Add human
         if self.workspace == 'collabtable':
@@ -316,15 +344,15 @@ class GymEnv(CameraEnv):
         """
         if self.obs_space == "dict":
             goaldim = int(self.task.obsdim/2) if self.task.obsdim % 2 == 0 else int(self.task.obsdim / 3)
-            self.observation_space = spaces.Dict({"observation": spaces.Box(low=-10, high=10, shape=(self.task.obsdim,)),
+            self.observation_space = spaces.Dict({"observation": spaces.Box(low=-10, high=10, shape=(self.task.obsdim + self.robot.obsdim,)),
                                                   "achieved_goal": spaces.Box(low=-10, high=10, shape=(goaldim,)),
                                                   "desired_goal": spaces.Box(low=-10, high=10, shape=(goaldim,))})
         else:
-            observationDim = self.task.obsdim
+            observationDim = self.task.obsdim + self.robot.obsdim
+            #observationDim = self.task.obsdim
 
             if self.has_distractor:
                 observationDim = (len(self.task_objects_names) + self.observed_links_num + len(self.distractors) + 1) * 3
-
             observation_high = np.array([100] * observationDim)
             self.observation_space = spaces.Box(-observation_high,
                                                 observation_high)
@@ -334,10 +362,10 @@ class GymEnv(CameraEnv):
         Set action space dimensions and range
         """
         action_dim = self.robot.get_action_dimension()
-        if self.robot_action in ["step", "joints_step"]:
+        if self.robot_action in ["step", "joints_step", "velo_step", "torque_step"]:
             self.action_low = np.array([-1] * action_dim)
             self.action_high = np.array([1] * action_dim)
-        elif self.robot_action == "absolute":
+        elif self.robot_action in ["absolute", "torque_control"]:
             if any(isinstance(i, list) for i in self.objects_area_boarders):
                 boarders_max = np.max(self.objects_area_boarders,0)
                 boarders_min = np.min(self.objects_area_boarders,0)
@@ -346,7 +374,7 @@ class GymEnv(CameraEnv):
             else:
                 self.action_low = np.array(self.objects_area_boarders[0:7:2])
                 self.action_high = np.array(self.objects_area_boarders[1:7:2])
-        elif self.robot_action in ["joints", "joints_gripper"]:
+        elif self.robot_action in ["joints", "joints_gripper", "pybulletx"]:
             self.action_low = np.array(self.robot.joints_limits[0])
             self.action_high = np.array(self.robot.joints_limits[1])
         self.action_space = spaces.Box(np.array([-1]*action_dim), np.array([1]*action_dim))
@@ -373,6 +401,9 @@ class GymEnv(CameraEnv):
         Returns:
             :return self._observation: (list) Observation data of the environment
         """
+        if self.episode_number % 2 == 2 and self.gui_on: #set the frequence of interactive episode here
+            self.interactive()
+
         super().reset(hard=hard)
 
         self.env_objects = []
@@ -383,14 +414,21 @@ class GymEnv(CameraEnv):
             else:
                 num_objects = int(np.random.uniform(0, len(self.used_objects)))
             self.env_objects = self._randomly_place_objects(num_objects, self.used_objects, random_pos)
-        if self.task_type == 'push':
-            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=False, pos=[0.0, 0.5, 0.05])[0])
-            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=True, pos=[-0.0, 0.9, 0.05])[0])
+        if self.task_type == 'Mpush':
+            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=False, pos=[0.35, 0.5, 0.1])[0])
+            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=True, pos=[-0.0, 0.9, 0.1])[0])
             direction = np.array(self.task_objects[0].get_position()) - np.array(self.task_objects[1].get_position())
             direction = direction/(10*np.linalg.norm(direction))
+            #init_joint_poses = np.array(self.task_objects[0].get_position()) + direction
+            #init_joint_poses = [0.3, 0.5, 0.3]           
+            #self.robot.init_joint_poses = list(self.robot._calculate_accurate_IK(init_joint_poses))
+            #self.robot.init_joint_poses = [0, -0,551, 0, 2.072, -1.437, 0]
             init_joint_poses = np.array(self.task_objects[0].get_position()) + direction
             init_joint_poses = [0, 0.42, 0.15]
             self.robot.init_joint_poses = list(self.robot._calculate_accurate_IK(init_joint_poses))
+        elif self.task_type == '2stepreach':
+            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[0]], random_pos=True, pos=[0.0, 0.5, 0.05])[0])
+            self.task_objects.append(self._randomly_place_objects(1, [self.task_objects_names[1]], random_pos=True, pos=[-0.6, 0.5, 0.05])[0])
         else:
             for obj_name in self.task_objects_names:
                 self.task_objects.append(self._randomly_place_objects(1, [obj_name], random_pos)[0])
@@ -407,6 +445,28 @@ class GymEnv(CameraEnv):
         self._observation = self.get_observation()
         self.prev_gripper_position = self.robot.get_observation()[:3]
         return self._observation
+
+    def interactive(self):
+        #self.reset()
+        self.p.configureDebugVisualizer(self.p.COV_ENABLE_GUI, 1)
+        if self.episode_number == 0:
+            self.slider = []
+            for i in range(len(self.robot.joints_limits[0])):
+                self.slider.append(self.p.addUserDebugParameter("Joint {}".format(self.robot.motor_indices[i]), self.robot.joints_limits[0][i], self.robot.joints_limits[1][i], 0))
+            self.button = self.p.addUserDebugParameter("exit",0,1,0)
+            self.p.stepSimulation()
+        while True:
+            if self.p.readUserDebugParameter(self.button) == 1:
+                time.sleep(3)
+                self.p.configureDebugVisualizer(self.p.COV_ENABLE_GUI, 0)
+                #self.p.removeUserDebugItem(button) #not working
+                break
+            slider_state = []
+            for slider_id in self.slider:
+                slider_state.append(self.p.readUserDebugParameter(slider_id))
+            self.robot._run_motors(slider_state)
+            self.p.stepSimulation()
+        #self.p.removeAllUserParameters() #not working         
 
     def _set_cameras(self):
         """
@@ -473,13 +533,19 @@ class GymEnv(CameraEnv):
             self.task.check_goal()
             done = self.episode_over
             info = {'d': self.task.last_distance / self.task.init_distance,
-                    'f': int(self.episode_failed)}
+                    'f': int(self.episode_failed),
+                    's': sum(self.task.subgoals)}
 
         if done:
+            # if info['f'] == 0:
+            #     reward += 10
+            #     self.episode_reward += 10
             self.episode_final_reward.append(self.episode_reward)
             self.episode_final_distance.append(self.task.last_distance / self.task.init_distance)
             self.episode_number += 1
             self._print_episode_summary(info)
+            if self.visualize:
+                self.robot.visualize_actions_over_steps(self.logdir, self.episode_steps, self.episode_number, self.time_step)
 
         return self._observation, reward, done, info
 

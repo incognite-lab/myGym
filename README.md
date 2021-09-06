@@ -37,7 +37,6 @@ Learnability is represented as a single value metric that evaluates algorithms u
 |5.| myAlgo | 15.00  |
 
 
-
 ## Modular Structure
 
 We have developed a fully modular toolbox where the user can easily combine the predefined elements into a custom environment. There are specific modules for each component of the simulation, as depicted in the following scheme. 
@@ -116,7 +115,6 @@ After 100000 steps, the arm is able to reach the goal object with 80% accuracy:
 
 There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/basic_training.html)
 
-
 ## Training Examples
 
 ### Task - Press
@@ -185,7 +183,9 @@ You can fully control the environment, robot, object, task, reward, learning par
 
 ![alt text](myGym/images/results/kuka_reach_yolact_fast.gif "yolact")
 
+
 Learn more about the simulation parameters in the [documentation](https://incognite-lab.github.io/mygym/user_guide/tutorial_parametric.html)
+
 
 
 ## Config Training

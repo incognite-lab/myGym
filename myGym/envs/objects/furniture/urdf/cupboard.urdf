@@ -15,16 +15,16 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.00 0.0028 0.9194"/>
       <geometry>
-        <mesh filename="../obj/cupboard.obj" scale="0.02 0.02 0.02"/>
+        <mesh filename="../obj/cupboard_vhacd.obj" scale="0.02 0.02 0.02"/>
       </geometry>
        <material name="black">
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="0.00 0.0028 0.9194"/>
       <geometry>
-	 	<mesh filename="../obj/cupboard.obj" scale="0.02 0.02 0.02"/>
+	 	<mesh filename="../obj/cupboard_vhacd.obj" scale="0.02 0.02 0.02"/>
       </geometry>
     </collision>
   </link>

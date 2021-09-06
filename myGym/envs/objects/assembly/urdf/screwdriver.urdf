@@ -15,16 +15,16 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.06734 0.0 0.0"/>
       <geometry>
-        <mesh filename="../obj/screwdriver.obj" scale=".001 .001 .001"/>
+        <mesh filename="../obj/screwdriver_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
-       <material name="black">
-        <color rgba="0 0 0 1"/>
+       <material name="pink">
+        <color rgba="1 0.5 114/255 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="0.06734 0.0 0.0"/>
       <geometry>
-	 	<mesh filename="../obj/screwdriver.obj" scale=".001 .001 .001"/>
+	 	<mesh filename="../obj/screwdriver_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
     </collision>
   </link>

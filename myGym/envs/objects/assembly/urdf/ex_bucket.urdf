@@ -15,16 +15,16 @@
     <visual>
       <origin rpy="0 0 0" xyz="-0.014933 0.000041 -0.016845"/>
       <geometry>
-        <mesh filename="../obj/ex_bucket.obj" scale=".001 .001 .001"/>
+        <mesh filename="../obj/ex_bucket_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
-       <material name="black">
-        <color rgba="0 0 0 1"/>
+       <material name="orange">
+        <color rgba="1 0.5 0.1 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="-0.014933 0.000041 -0.016845"/>
       <geometry>
-	 	<mesh filename="../obj/ex_bucket.obj" scale=".001 .001 .001"/>
+	 	<mesh filename="../obj/ex_bucket_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
     </collision>
   </link>

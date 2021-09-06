@@ -3,6 +3,8 @@ import pkg_resources
 import pybullet
 import numpy as np
 import math
+import matplotlib.pyplot as plt
+from stable_baselines import results_plotter
 
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 repodir = pkg_resources.resource_filename("myGym", "")
@@ -16,7 +18,7 @@ class Robot:
         :param robot: (string) Type of robot to train in the environment (kuka, panda, ur3, ...)
         :param position: (list) Position of the robot's base link in the coordinate frame of the environment ([x,y,z])
         :param orientation: (list) Orientation of the robot's base link in the coordinate frame of the environment (Euler angles [x,y,z])
-        :param end_effector_index: (int) Index of the robot's end-effector link. For myGym prepared robots this is assigned automatically.  
+        :param end_effector_index: (int) Index of the robot's end-effector link. For myGym prepared robots this is assigned automatically.
         :param gripper_index: (int) Index of the robot's gripper link. For myGym prepared robots this is assigned automatically.
         :param init_joint_poses: (list) Configuration in which robot will be initialized in the environment. Specified either in joint space as list of joint poses or in the end-effector space as [x,y,z] coordinates.
         :param robot_action: (string) Mechanism of robot control (absolute, step, joints)
@@ -30,21 +32,22 @@ class Robot:
     def __init__(self,
                  robot='kuka',
                  position=[-0.1, 0, 0.07], orientation=[0, 0, 0],
-                 end_effector_index=None, gripper_index=6, 
+                 end_effector_index=None, gripper_index=6,
                  init_joint_poses=None,
                  robot_action="step",
                  use_fixed_gripper_orn=False,
                  gripper_orn=[0, -math.pi, 0],
                  dimension_velocity = 0.5,
-                 max_velocity = None, #1.,
-                 max_force = None, #50.,
+                 max_velocity = None, #1
+                 max_force = None, #300
+                 timestep = 1/240.,
                  pybullet_client=None):
 
         self.p = pybullet_client
-        self.robot_dict =   {'kuka': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_magnetic_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
-                             'kuka_push': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_push_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
-                             'kuka_realrobot': {'path': '/envs/robots/kuka_gripper/kuka_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
-                             'panda': {'path': '/envs/robots/franka_emika/panda_moveit/urdf/panda.urdf', 'position': np.array([0.0, -0.05, -0.04])},
+        self.robot_dict =   {'kuka': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_magnetic_gripper.sdf', 'position': np.array([0.0, -0.05, -0.041]), 'orientation': [0.0, 0.0, 1*np.pi]},
+                             'kuka_push': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_push_gripper.sdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 1*np.pi]},
+                             #'panda': {'path': '/envs/robots/franka_emika/panda_moveit/urdf/panda.urdf', 'position': np.array([0.0, 0.0, -0.04])},
+                             'panda': {'path': '/envs/robots/franka_emika/panda_gazebo/robots/panda_arm_hand.urdf', 'position': np.array([0.0, 0.0, -0.04])},
                              'jaco': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq.urdf', 'position': np.array([0.0, 0.0, -0.041])},
                              'jaco_fixed': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq_fixed.urdf', 'position': np.array([0.0, 0.0, -0.041])},
                              'reachy': {'path': '/envs/robots/pollen/reachy/urdf/reachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
@@ -64,9 +67,14 @@ class Robot:
         self.orientation = np.array(orientation) + self.robot_dict[robot].get('orientation',np.zeros(len(orientation)))
         self.orientation = self.p.getQuaternionFromEuler(self.orientation)
         self.name = robot + '_gripper'
+        self.actions_history = []
+        self.joints_state_history = []
+        self.joints_velocity_history = []
+        self.joints_torque_history = []
 
         self.max_velocity = max_velocity
         self.max_force = max_force
+        self.timestep = timestep
 
         self.end_effector_index = end_effector_index
         self.gripper_index = gripper_index
@@ -81,13 +89,63 @@ class Robot:
         self._load_robot()
         self.num_joints = self.p.getNumJoints(self.robot_uid)
         self._set_motors()
+        self.obsdim = 0 #len(self.motor_indices)*2
+        self.action_dim = self.get_action_dimension()
         self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits()
+        self.last_action = self.joints_max_force
         if len(init_joint_poses) == 3:
             joint_poses = list(self._calculate_accurate_IK(init_joint_poses))
             self.init_joint_poses = joint_poses
         else:
             self.init_joint_poses = np.zeros((len(self.motor_names)))
         self.reset()
+
+    def visualize_actions_over_steps(self, logdir, episode_steps, episode_number, timestep):
+        """
+        Plot and save a graph of action values assigned to individual steps during an episode. Call this method after the end of the episode.
+        """
+        save_dir = os.path.join(logdir, "actions")
+        os.makedirs(save_dir, exist_ok=True)
+        if episode_steps > 0:
+            for joint in range(len(self.motor_indices)):
+                results_plotter.EPISODES_WINDOW=50
+                results_plotter.plot_curves([(np.arange(episode_steps),np.asarray(self.actions_history[-episode_steps:]).transpose()[joint])],'step','Step actions')
+                plt.ylabel("action")
+                plt.gcf().set_size_inches(8, 6)
+                plt.savefig(save_dir + "/actions_over_steps_episode{}_{}.png".format(episode_number, joint))
+                plt.close()
+
+                if 'velo' in self.robot_action:
+                    action_achieved = self.joints_velocity_history
+                elif 'torque' in self.robot_action:
+                    action_achieved = self.joints_torque_history
+                else:    
+                    action_achieved = self.joints_state_history
+
+                joints_state_diff = np.abs(np.asarray(action_achieved) - np.asarray(self.actions_history))
+                results_plotter.EPISODES_WINDOW=50
+                results_plotter.plot_curves([(np.arange(episode_steps),joints_state_diff[-episode_steps:].transpose()[joint])],'step','Step actions diffs')
+                plt.ylabel("action diff")
+                plt.gcf().set_size_inches(8, 6)
+                plt.savefig(save_dir + "/actions_diff_over_steps_episode{}_{}.png".format(episode_number, joint))
+                plt.close()
+
+            for joint in range(len(self.motor_indices)):
+                results_plotter.EPISODES_WINDOW=50
+                results_plotter.plot_curves([(np.arange(episode_steps),np.asarray(self.joints_velocity_history[-episode_steps:]).transpose()[joint])],'step','Step velocities achieved')
+                plt.ylabel("velocities achieved")
+                plt.gcf().set_size_inches(8, 6)
+                plt.savefig(save_dir + "/velocities_achieved_over_steps_episode{}_{}.png".format(episode_number, joint))
+                plt.close()
+
+            joints_acc_history = (np.asarray(self.joints_velocity_history[1:]) - np.asarray(self.joints_velocity_history[:-1]))/timestep
+            for joint in range(len(self.motor_indices)):
+                results_plotter.EPISODES_WINDOW=50
+                results_plotter.plot_curves([(np.arange(episode_steps-1),np.asarray(joints_acc_history[-episode_steps+1:]).transpose()[joint])],'step','Step acc achieved')
+                plt.ylabel("acc achieved")
+                plt.gcf().set_size_inches(8, 6)
+                plt.savefig(save_dir + "/acc_achieved_over_steps_episode{}_{}.png".format(episode_number, joint))
+                plt.close()
 
     def _load_robot(self):
         """
@@ -106,7 +164,8 @@ class Robot:
                                                 self.robot_path),
                 self.position, self.orientation, useFixedBase=True, flags=(self.p.URDF_USE_SELF_COLLISION))
         for jid in range(self.p.getNumJoints(self.robot_uid)):
-                self.p.changeDynamics(self.robot_uid, jid,  collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
+            self.p.changeDynamics(self.robot_uid, jid,  collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
+
         # if 'jaco' in self.name: #@TODO jaco gripper has closed loop between finger and finger_tip that is not respected by the simulator
         #     self.p.createConstraint(self.robot_uid, 11, self.robot_uid, 15, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0], [0, 0, 0])
         #     self.p.createConstraint(self.robot_uid, 13, self.robot_uid, 17, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0], [0, 0, 0])
@@ -127,7 +186,7 @@ class Robot:
                 self.motor_indices.append(i)
         if self.end_effector_index == None:
             self.end_effector_index = self.gripper_index
-        if 'gripper' not in self.robot_action:
+        if 'gripper' not in self.robot_action and 'torque_control' not in self.robot_action:
             self.motor_indices = [x for x in self.motor_indices if x < self.gripper_index]
         print("Gripper index is: " + str(self.gripper_index))
         print("End effector index is: " + str(self.end_effector_index))
@@ -139,6 +198,7 @@ class Robot:
         Parameters:
             :param random_robot: (bool) Whether the joint positions after reset should be randomized or equal to initial values.
         """
+        self.magnetized_objects = {}
         if random_robot:
             self.reset_random()
         else:
@@ -198,7 +258,7 @@ class Robot:
         Returns:
             :return dimension: (int) The dimension of action data
         """
-        if self.robot_action in ["joints", "joints_step", "joints_gripper"]:
+        if self.robot_action in ["joints", "joints_step", "joints_gripper", "velo_step", "torque_step", "pybulletx"]:
             return len(self.motor_indices)
         else:
             return 3
@@ -228,7 +288,7 @@ class Robot:
         """
         Get robot part of observation data
 
-        Returns: 
+        Returns:
             :return observation: (list) Position of end-effector link (center of mass)
         """
         observation = []
@@ -263,10 +323,52 @@ class Robot:
         """
         Get position of robot's end-effector link
 
-        Returns: 
+        Returns:
             :return position: (list) Position of end-effector link (center of mass)
         """
         return self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
+
+    def get_orientation(self):
+        """
+        Get orientation of robot's end-effector link
+
+        Returns:
+            :return oriention: (list) Orientation of end-effector link (center of mass)
+        """
+        return self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
+
+    def get_lin_velocity(self):
+        """
+        Get linear velocity of robot's end-effector link
+
+        Returns:
+            :return linear velocity: (list) Linear velocity of end-effector link (center of mass)
+        """
+        return self.p.getLinkState(self.robot_uid, self.end_effector_index, 1)[6]
+
+    def get_ang_velocity(self):
+        """
+        Get angulat velocity of robot's end-effector link
+
+        Returns:
+            :return angular velocity: (list) Linear velocity of end-effector link (center of mass)
+        """
+        return self.p.getLinkState(self.robot_uid, self.end_effector_index, 1)[7]
+
+    def get_joints_state(self):
+        """
+        Get position of robot's end-effector link
+
+        Returns:
+            :return position: (list) Position of end-effector link (center of mass)
+        """
+        state_pos = []
+        state_velo = []
+        for motor in self.motor_indices:
+            joint_info = (self.p.getJointState(self.robot_uid, motor))
+            state_pos.append(joint_info[0])
+            state_velo.append(joint_info[1])
+        return state_pos, state_velo
 
     def _run_motors(self, joint_poses):
         """
@@ -276,21 +378,92 @@ class Robot:
             :param joint_poses: (list) Desired poses of individual joints
         """
         joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
+        self.actions_history.append(joint_poses)
         self.joints_state = []
+        self.joints_velo = []
+        self.joints_torque = []
         for i in range(len(self.motor_indices)):
             self.p.setJointMotorControl2(bodyUniqueId=self.robot_uid,
                                     jointIndex=self.motor_indices[i],
                                     controlMode=self.p.POSITION_CONTROL,
                                     targetPosition=joint_poses[i],
+                                    targetVelocity=0,
                                     force=self.joints_max_force[i],
                                     maxVelocity=self.joints_max_velo[i],
-                                    positionGain=0.7,
-                                    velocityGain=0.3)
-            #self.joints_state.append(self.p.getJointState(self.robot_uid, self.motor_indices[i])[0])
-        #print('poses',joint_poses)
-        #print('state',self.joints_state)
+                                    positionGain=0.1,
+                                    velocityGain=1)
+            joint_info = self.p.getJointState(self.robot_uid, self.motor_indices[i])
+            self.joints_state.append(joint_info[0])
+            self.joints_velo.append(joint_info[1])
+            self.joints_torque.append(joint_info[3])
+        self.joints_state_history.append(self.joints_state)
+        self.joints_velocity_history.append(self.joints_velo)
+        self.joints_torque_history.append(self.joints_torque)
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
-        
+
+    def _run_motors_velo(self, joint_velos):
+        """
+        Move joint motors towards desired joint velocities respecting robot's dynamics
+
+        Parameters:
+            :param joint_velos: (list) Desired velocities of individual joints
+        """
+        joint_velos = np.clip(joint_velos, -1*np.asarray(self.joints_max_velo), self.joints_max_velo)
+        self.actions_history.append(joint_velos)
+        self.joints_state = []
+        self.joints_velo = []
+        self.joints_torque = []
+        for i in range(len(self.motor_indices)):
+            self.p.setJointMotorControl2(bodyUniqueId=self.robot_uid,
+                                    jointIndex=self.motor_indices[i],
+                                    controlMode=self.p.VELOCITY_CONTROL,
+                                    targetVelocity=joint_velos[i],
+                                    force=self.joints_max_force[i],
+                                    maxVelocity=self.joints_max_velo[i])
+            joint_info = self.p.getJointState(self.robot_uid, self.motor_indices[i])
+            self.joints_state.append(joint_info[0])
+            self.joints_velo.append(joint_info[1])
+            self.joints_torque.append(joint_info[3])
+        self.joints_state_history.append(self.joints_state)
+        self.joints_velocity_history.append(self.joints_velo)
+        self.joints_torque_history.append(self.joints_torque)
+        self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
+
+    def _run_motors_torque(self, joint_torques):
+        """
+        Move joint motors by desired torques respecting robot's dynamics
+
+        Parameters:
+            :param joint_torques: (list) Desired torques of individual joints
+        """
+        joint_torques = np.clip(joint_torques.reshape(len(self.motor_indices),), -1*np.asarray(self.joints_max_force), self.joints_max_force)
+        self.actions_history.append(joint_torques)
+        self.joints_state = []
+        self.joints_velo = []
+        self.joints_torque = []
+
+        # The magic that enables torque control
+        self.p.setJointMotorControlArray(
+            bodyIndex=self.robot_uid,
+            jointIndices=self.motor_indices,
+            controlMode=self.p.VELOCITY_CONTROL,
+            forces=np.zeros(len(self.motor_indices)),
+        )
+
+        for i in range(len(self.motor_indices)):
+            self.p.setJointMotorControl2(bodyUniqueId=self.robot_uid,
+                                    jointIndex=self.motor_indices[i],
+                                    controlMode=self.p.TORQUE_CONTROL,
+                                    force=joint_torques[i])
+            joint_info = self.p.getJointState(self.robot_uid, self.motor_indices[i])
+            self.joints_state.append(joint_info[0])
+            self.joints_velo.append(joint_info[1])
+            self.joints_torque.append(joint_info[3])
+        self.joints_state_history.append(self.joints_state)
+        self.joints_velocity_history.append(self.joints_velo)
+        self.joints_torque_history.append(self.joints_torque)
+        self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
+
     def _calculate_joint_poses(self, end_effector_pos):
         """
         Calculate joint poses corresponding to desired position of end-effector. Uses inverse kinematics.
@@ -312,7 +485,12 @@ class Robot:
         else:
             joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                        self.gripper_index,
-                                                       end_effector_pos)
+                                                       end_effector_pos,
+                                                       self.gripper_orn,
+                                                       lowerLimits=self.joints_limits[0],
+                                                       upperLimits=self.joints_limits[1],
+                                                       jointRanges=self.joints_ranges,
+                                                       restPoses=self.joints_rest_poses)
         joint_poses = joint_poses[:len(self.motor_indices)]
         joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
         return joint_poses
@@ -330,8 +508,8 @@ class Robot:
         thresholdOrn = 0.01
         maxIter = 100
         closeEnough = False
-        iter = 0
-        while (not closeEnough and iter < maxIter):
+        itera = 0
+        while (not closeEnough and itera < maxIter):
             if (self.use_fixed_gripper_orn):
                 joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                             self.gripper_index,
@@ -360,7 +538,7 @@ class Robot:
             else:
                 diffOrn = 0
             closeEnough = ((diffPos < thresholdPos) and (diffOrn < thresholdOrn))
-            iter = iter + 1
+            itera = itera + 1
         return joint_poses
 
     def apply_action_step(self, action):
@@ -394,16 +572,117 @@ class Robot:
             :param action: (list) Desired action data
         """
         self._run_motors(action)
-        
+
     def apply_action_joints_step(self, action):
         """
         Apply action command to robot using joint-step control mechanism
+
         Parameters:
             :param action: (list) Desired action data
         """
         action = [i * self.dimension_velocity for i in action]
         joint_poses = np.add(self.joints_state, action)
         self._run_motors(joint_poses)
+
+    def apply_action_velo_step(self, action):
+        """
+        Apply action command to robot using velocity-step control mechanism
+
+        Parameters:
+            :param action: (list) Desired action data
+        """
+        action = [i * self.dimension_velocity for i in action]
+        _, joint_velos = self.get_joints_state()
+        new_velo = np.add(joint_velos, action)
+        new_velo = np.clip(new_velo, np.asarray(self.joints_max_velo)*-1, self.joints_max_velo)
+        #joint_poses = np.add(joint_states, new_velo*self.timestep)
+        #self._run_motors(joint_poses)
+        self._run_motors_velo(new_velo)
+
+    def apply_action_torque_step(self, action):
+        """
+        Apply action command to robot using torque-step control mechanism
+
+        Parameters:
+            :param action: (list) Desired action data
+        """
+        # action = [i * self.dimension_velocity * 50 for i in action]
+        # new_action = np.add(self.last_action, action)
+        # self.last_action = action
+        # self._run_motors_torque(new_action)
+        actions = []
+        for i, ac in enumerate(action):
+            actions.append(self.joints_max_force[i] * ac * 0.05)
+        new_action = np.add(self.last_action, actions)
+        self.last_action = actions
+        self._run_motors_torque(new_action)
+
+    def apply_action_pybulletx(self, action):
+        """
+        Apply action command to robot using pybulletx control mechanism
+
+        Parameters:
+            :param action: (list) Desired joint positions data
+        """
+        P_GAIN = 10
+        joint_states, _ = self.get_joints_state()
+        error = np.asarray(action) - np.asarray(joint_states)
+        torque = error * P_GAIN
+        self._run_motors_torque(torque)
+
+    def apply_action_torque_control(self, action):
+        """
+        Apply action command to robot using torque control mechanism
+
+        Parameters:
+            :param action: (list) Desired end_effector positions data
+        """
+        joint_states, joint_velocities = self.get_joints_state()
+
+        # Task-space controller parameters
+        # stiffness gains
+        P_pos = 10.
+        P_ori = 1.
+        # damping gains
+        D_pos = 2.
+        D_ori = 1.
+
+        curr_pos = np.asarray(self.get_position())
+        curr_ori = np.asarray(self.get_orientation())
+        curr_vel = np.asarray(self.get_lin_velocity()).reshape([3, 1])
+        curr_omg = np.asarray(self.get_ang_velocity()).reshape([3, 1])
+        goal_pos = np.asarray(action)
+        goal_ori = curr_ori #@TODO: change if control is made wrt orientation as well (not only e-e position)
+        delta_pos = (goal_pos - curr_pos).reshape([3, 1]) # +  0.01 * pdot.reshape((-1, 1))
+        #delta_ori = quatdiff_in_euler(curr_ori, goal_ori).reshape([3, 1])
+        delta_ori = np.zeros((3,1))
+        # TODO: limit speed when delta pos or ori are too big. we can scale the damping exponentially to catch to high deltas
+        # Desired task-space force using PD law
+        F = np.vstack([P_pos * (delta_pos), P_ori * (delta_ori)]) - \
+            np.vstack([D_pos * (curr_vel), D_ori * (curr_omg)])
+        # F = np.vstack([P_pos * (delta_pos), P_ori * (delta_ori)]) - \
+        #     np.vstack([D_pos * (curr_vel-pdot.reshape((3,-1))), D_ori * (curr_omg- qdot.reshape(3,-1))])
+        error = np.linalg.norm(delta_pos) # + np.linalg.norm(delta_ori)
+        # print(error)
+        # panda_robot equivalent: panda.jacobian(angles[optional]) or panda.zero_jacobian()
+        Jt, Jr = self.p.calculateJacobian(self.robot_uid, self.end_effector_index, [0,0,0], joint_states, joint_velocities, [10]*(len(joint_states)))
+        J = np.array([Jt,Jr]).reshape(-1, len(joint_states))
+        # A = robot.joint_inertia_matrix()
+        # A_inv = np.linalg.pinv(A)
+        # LAMBDA = np.linalg.pinv(np.dot(np.dot(J,A_inv), J.T))
+        # J_hash_T = np.dot(np.dot(LAMBDA, J), A_inv)
+        # q_d = np.array(robot.q_d)
+        # k_v = 5.0
+        # k_vq = 1.0
+        # D = (k_v - k_vq) * np.dot(J.T, np.dot(LAMBDA, J)) + k_vq * A
+        # # Haken_0 = - np.dot(A, q_d)
+        # Haken_0 = - np.dot(D, q_d)
+        # tau_0 = np.dot(np.eye(7) - np.dot(J.T, J_hash_T), Haken_0)
+        # joint torques to be commanded
+        # tau = np.dot(J.T, F) + tau_0.reshape((-1,1)) +  robot.coriolis_comp().reshape(7,1)
+        tau = np.dot(J.T, F) # + robot.coriolis_comp().reshape(7,1)
+
+        self._run_motors_torque(tau)
 
     def apply_action(self, action):
         """
@@ -420,16 +699,27 @@ class Robot:
             self.apply_action_absolute(action)
         elif self.robot_action in ["joints", "joints_gripper"]:
             self.apply_action_joints(action)
+        elif self.robot_action == "velo_step":
+            self.apply_action_velo_step(action)
+        elif self.robot_action == "torque_step":
+            self.apply_action_torque_step(action)
+        elif self.robot_action == "pybulletx":
+            self.apply_action_pybulletx(action)
+        elif self.robot_action == "torque_control":
+            self.apply_action_torque_control(action)
         if len(self.magnetized_objects):
             pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
             for key,val in self.magnetized_objects.items():
+                #key.set_position(val+pos_diff)
                 self.p.changeConstraint(val, key.get_position()+pos_diff)
+                #self.magnetized_objects[key] = key.get_position()
             self.end_effector_prev_pos = self.end_effector_pos
+        
         if 'gripper' not in self.robot_action:
             for joint_index in range(self.gripper_index, self.end_effector_index + 1):
                 self.p.resetJointState(self.robot_uid, joint_index, self.p.getJointInfo(self.robot_uid, joint_index)[9])
-
     def magnetize_object(self, object, contacts):
+        # Creates fixed joint between kuka gripper and object
         if any(isinstance(i, tuple) for i in contacts):
             contacts = contacts[0]
         self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
@@ -442,6 +732,19 @@ class Robot:
     def release_object(self, object):
         self.p.removeConstraint(self.magnetized_objects[object])
         self.magnetized_objects.pop(object)
+        
+    def grasp_panda(self):
+        for i in range(2):
+            self.p.setJointMotorControl2(bodyUniqueId=self.robot_uid,
+                                jointIndex=self.motor_indices[-1-i],
+                                controlMode=self.p.POSITION_CONTROL,
+                                targetPosition=self.joints_limits[0][-1-i],
+                                targetVelocity=0,
+                                force=self.joints_max_force[-1-i],
+                                maxVelocity=self.joints_max_velo[-1-i],
+                                positionGain=0.7,
+                                velocityGain=0.3)
+        self.p.stepSimulation()
 
     def get_name(self):
         """
@@ -455,6 +758,7 @@ class Robot:
     def get_uid(self):
         """
         Get robot's unique ID
+
         Returns:
             :return self.uid: Robot's unique ID
         """

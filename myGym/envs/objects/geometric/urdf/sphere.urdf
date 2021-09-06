@@ -19,10 +19,10 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
       <geometry>
-        <mesh filename="./obj/sphere.obj" scale="0.001 0.001 0.001"/>
+        <mesh filename="./obj/sphere_vhacd.obj" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="black">
-        <color rgba="0 0 0 1"/>
+        <color rgba="1 1 0 1"/>
       </material>
     </visual>
 
@@ -30,7 +30,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
       <geometry>
-         <mesh filename="./obj/sphere.obj" scale="0.001 0.001 0.001"/>
+         <mesh filename="./obj/sphere_vhacd.obj" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>

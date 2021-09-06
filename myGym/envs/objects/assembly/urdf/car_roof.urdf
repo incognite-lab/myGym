@@ -15,16 +15,16 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0 0.0 -0.006380"/>
       <geometry>
-        <mesh filename="../obj/car_roof.obj" scale=".001 .001 .001"/>
+        <mesh filename="../obj/car_roof_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
-       <material name="black">
-        <color rgba="0 0 0 1"/>
+       <material name="dark_purple">
+        <color rgba="0.25 0.1 0.5 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="0.0 0.0 -0.006380"/>
       <geometry>
-	 	<mesh filename="../obj/car_roof.obj" scale=".001 .001 .001"/>
+	 	<mesh filename="../obj/car_roof_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
     </collision>
   </link>

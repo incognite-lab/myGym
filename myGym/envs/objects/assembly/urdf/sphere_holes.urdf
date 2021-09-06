@@ -15,16 +15,16 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0001 0.0 0.0"/>
       <geometry>
-        <mesh filename="../obj/sphere_holes.obj" scale=".001 .001 .001"/>
+        <mesh filename="../obj/sphere_holes_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
-       <material name="black">
-        <color rgba="0 0 0 1"/>
+       <material name="gold">
+        <color rgba="204/255 153/255 0 1"/>
       </material>
     </visual>
-    <collision concave="yes">
+    <collision>
       <origin rpy="0 0 0" xyz="0.0001 0.0 0.0"/>
       <geometry>
-	 	<mesh filename="../obj/sphere_holes.obj" scale=".001 .001 .001"/>
+	 	<mesh filename="../obj/sphere_holes_vhacd.obj" scale=".001 .001 .001"/>
       </geometry>
     </collision>
   </link>

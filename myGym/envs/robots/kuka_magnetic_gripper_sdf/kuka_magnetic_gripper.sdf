@@ -102,7 +102,7 @@
           <lower>-2.96706</lower>
           <upper>2.96706</upper>
           <effort>300</effort>
-          <velocity>10</velocity>
+          <velocity>1</velocity>
         </limit>
         <dynamics>
           <damping>0.5</damping>
@@ -160,7 +160,7 @@
           <lower>-2.0944</lower>
           <upper>2.0944</upper>
           <effort>300</effort>
-          <velocity>10</velocity>
+          <velocity>1</velocity>
         </limit>
         <dynamics>
           <damping>0.5</damping>
@@ -218,7 +218,7 @@
           <lower>-2.96706</lower>
           <upper>2.96706</upper>
           <effort>300</effort>
-          <velocity>10</velocity>
+          <velocity>1</velocity>
         </limit>
         <dynamics>
           <damping>0.5</damping>
@@ -276,7 +276,7 @@
           <lower>-2.0944</lower>
           <upper>2.0944</upper>
           <effort>300</effort>
-          <velocity>10</velocity>
+          <velocity>1</velocity>
         </limit>
         <dynamics>
           <damping>0.5</damping>
@@ -334,7 +334,7 @@
           <lower>-2.96706</lower>
           <upper>2.96706</upper>
           <effort>300</effort>
-          <velocity>10</velocity>
+          <velocity>1</velocity>
         </limit>
         <dynamics>
           <damping>0.5</damping>
@@ -392,7 +392,7 @@
           <lower>-2.0944</lower>
           <upper>2.0944</upper>
           <effort>300</effort>
-          <velocity>10</velocity>
+          <velocity>1</velocity>
         </limit>
         <dynamics>
           <damping>0.5</damping>
@@ -450,7 +450,7 @@
           <lower>-3.05433</lower>
           <upper>3.05433</upper>
           <effort>300</effort>
-          <velocity>10</velocity>
+          <velocity>1</velocity>
         </limit>
         <dynamics>
           <damping>0.5</damping>
@@ -552,7 +552,7 @@
       </collision>
     </link>
 
-    <joint name='slider_joint' type='prismatic'>
+    <joint name='slider_joint' type='fixed'> <!--prismatic-->
       <parent>collet</parent>
       <child>end_effector</child>
       <axis>

@@ -23,10 +23,11 @@ class TaskModule():
         :param distance_type: (string) Way of calculating distances (euclidean, manhattan)
         :param logdir: (string) Directory for logging
         :param env: (object) Environment, where the training takes place
+        :param pybullet_client: Which pybullet client the environment should refere to in case of parallel existence of multiple instances of this environment
     """
     def __init__(self, task_type='reach', task_objects='cube_holes', num_subgoals=0,
                  reward_type='gt', vae_path=None, yolact_path=None, yolact_config=None, distance_type='euclidean',
-                 logdir=currentdir, env=None):
+                 logdir=currentdir, env=None, pybullet_client=None):
         self.task_type = task_type
         self.reward_type = reward_type
         self.distance_type = distance_type
@@ -41,8 +42,12 @@ class TaskModule():
         self.current_norm_distance = None
         self.stored_observation = []
         self.fig = None
-        self.threshold = 0.1 # distance threshold for successful task completion
         self.obsdim = (len(env.task_objects_names) + 1) * 3
+        if self.task_type in ['2stepreach','4stepreach','2steppush']:
+            self.obsdim = 6
+        if self.task_type == 'Mpnp':
+            self.obsdim += 10 #finger1_pos + finger2_pos + gripper_orn
+        self.threshold = 0.04 # distance threshold for successful task completion
         self.angle = None
         self.prev_angle = None
         self.pressed = None
@@ -85,8 +90,11 @@ class TaskModule():
         if self.reward_type == '2dvu':
             self.generate_new_goal(self.env.objects_area_boarders, self.env.active_cameras)
         self.subgoals = [False]*self.num_subgoals #subgoal completed?
-        if self.task_type == '2stepreach':
-            self.obs_sub = [[0,2],[0,1]] #objects to have in observation for given subgoal
+        if self.task_type in ['2stepreach','2steppush']:
+            self.obs_sub = [[0,2],[1,0]] #objects to have in observation for given subgoal
+            self.sub_idx = 0
+        elif self.task_type == '4stepreach':
+            self.obs_sub = [[0,3],[1,3],[2,3],[1,3]] #objects to have in observation for given subgoal
             self.sub_idx = 0
 
     def render_images(self):
@@ -116,7 +124,7 @@ class TaskModule():
         Get task relevant observation data based on reward signal source
 
         Returns:
-            :return self._observation: (array) Task relevant observation data, positions of task objects 
+            :return self._observation: (array) Task relevant observation data, positions of task objects
         """
         obj_positions, obj_orientations = [], []
         self.render_images() if self.reward_type != "gt" else None
@@ -125,7 +133,7 @@ class TaskModule():
             obj_positions.append(list(self.env.robot.get_position()))
             self.visualize_2dvu(recons) if self.env.visualize == 1 else None
         else:
-            if self.task_type == '2stepreach':
+            if self.task_type in ['2stepreach','4stepreach','2steppush']:
                 self.current_task_objects = [self.env.task_objects[x] for x in self.obs_sub[self.sub_idx]] #change objects in observation based on subgoal
             else:
                 self.current_task_objects = self.env.task_objects #all objects in observation
@@ -133,12 +141,19 @@ class TaskModule():
                 obj_positions.append(self.vision_module.get_obj_position(env_object,self.image,self.depth))
                 if self.reward_type == '6dvs' and self.task_type != 'reach' and env_object != self.env.task_objects[-1]:
                     obj_orientations.append(self.vision_module.get_obj_orientation(env_object,self.image))
+            if self.task_type == 'Mpnp':
+                obj_positions.append(list(self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index-1)[0]))
+                obj_positions.append(list(self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index-2)[0]))
+                obj_positions.append(list(self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index-2)[1]))
         
         if self.env.has_distractor:
             obj_positions.append(self.env.robot.get_links_observation(self.env.observed_links_num))
-        
+
         obj_positions[len(obj_orientations):len(obj_orientations)] = obj_orientations
         self._observation = np.array(sum(obj_positions, []))
+        robot_joint_pos, robot_joint_velo = self.env.robot.get_joints_state()
+        if self.env.robot.obsdim > 0:
+            self._observation = np.hstack((self._observation, np.asarray(robot_joint_pos), np.asarray(robot_joint_velo)))
         return self._observation
 
     def check_vision_failure(self):
@@ -149,10 +164,10 @@ class TaskModule():
             :return: (bool)
         """
         self.stored_observation.append(self._observation)
-        if len(self.stored_observation) > 9:
+        if len(self.stored_observation) > 19:
             self.stored_observation.pop(0)
             if self.reward_type == '3dvs': # Yolact assigns 10 to not detected objects
-                if all(10 in obs for obs in self.stored_observation):
+                if all(20 in obs for obs in self.stored_observation):
                     return True
         return False
 
@@ -251,6 +266,59 @@ class TaskModule():
         self.current_norm_distance = self.calc_distance(goal, gripper)
         return self.current_norm_distance < self.threshold
 
+    def check_points_distance_threshold(self): #@TODO: better than check_distance_threshold
+        if self.task_type == 'Mpnp':
+            o1 = self.current_task_objects[0]
+            o2 = self.current_task_objects[1]
+            closest_points = []
+            closest_points.append(self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), self.threshold, o2.end_effector_index, -1))
+            closest_points.append(self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), self.threshold, o2.end_effector_index-1, -1))
+            #closest_points.append(self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), self.threshold, o2.end_effector_index-2, -1))
+            if all(closest_points) and self.calc_rotation_diff(self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index-2)[1], None) < self.threshold:
+                return list(filter(None, closest_points))[0]
+            else:
+                return False
+        else:
+            o1 = self.current_task_objects[0]
+            o2 = self.current_task_objects[1]
+            if o1 == self.env.robot:
+                closest_points = self.env.p.getClosestPoints(o1.robot_uid, o2.get_uid(), self.threshold, o1.end_effector_index, -1)
+            elif o2 == self.env.robot:
+                closest_points = self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), self.threshold, o2.end_effector_index, -1)
+            else:
+                closest_points = self.env.p.getClosestPoints(o1.get_uid(), o2.get_uid(), self.threshold, -1, -1)
+            if len(closest_points) > 0:
+                return closest_points
+            else:
+                return False
+
+    def check_points_contact(self): #@TODO: better than check_distance_threshold
+        if self.task_type == 'Mpnp':
+            o1 = self.current_task_objects[0]
+            o2 = self.current_task_objects[1]
+            closest_points = []
+            closest_points.append(self.env.p.getContactPoints(o2.get_uid(), o1.get_uid(), o2.end_effector_index, -1))
+            closest_points.append(self.env.p.getContactPoints(o2.get_uid(), o1.get_uid(), o2.end_effector_index-1, -1))
+            #closest_points.append(self.env.p.getContactPoints(o2.get_uid(), o1.get_uid(), o2.end_effector_index-2, -1))
+            if all(closest_points):
+                return list(filter(None, closest_points))[0]
+            else:
+                return False
+        else:
+            o1 = self.current_task_objects[0]
+            o2 = self.current_task_objects[1]
+            if o1 == self.env.robot:
+                closest_points = [self.env.p.getContactPoints(o1.robot_uid, o2.get_uid(), x, -1) for x in range(o1.gripper_index,o1.end_effector_index+1)]
+            elif o2 == self.env.robot:
+                closest_points = [self.env.p.getContactPoints(o2.get_uid(), o1.get_uid(), x, -1) for x in range(o2.gripper_index,o2.end_effector_index+1)]
+            else:
+                closest_points = self.env.p.getContactPoints(o1.get_uid(), o2.get_uid(), -1, -1)
+            if self.task_type == 'Mpnp' and all(closest_points):
+                return list(filter(None, closest_points))[0]
+            elif any(closest_points):
+                return list(filter(None, closest_points))[0]
+            else:
+                return False
     def check_distance_threshold(self, observation):
         """
         Check if the distance between relevant task objects is under threshold for successful task completion
@@ -276,24 +344,6 @@ class TaskModule():
         threshold = 0.1
         return self.current_norm_distance < threshold
 
-    def check_points_distance_threshold(self): 
-        if (self.task_type == 'pnp') and (self.env.robot_action != 'joints_gripper') and (len(self.env.robot.magnetized_objects) == 0):
-            o1 = self.current_task_objects[0]
-            o2 = self.current_task_objects[2]
-        else:
-            o1 = self.current_task_objects[0]
-            o2 = self.current_task_objects[1]
-        if o1 == self.env.robot:
-            closest_points = self.env.p.getClosestPoints(o1.get_uid, o2.get_uid(), self.threshold, o1.end_effector_index, -1)
-        elif o2 == self.env.robot:
-            closest_points = self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), self.threshold, o2.end_effector_index, -1)
-        else:
-            closest_points = self.env.p.getClosestPoints(o1.get_uid(), o2.get_uid(), self.threshold, -1, -1)
-        if len(closest_points) > 0:
-            return closest_points
-        else:
-            return False
-
     def check_goal(self):
         """
         Check if goal of the task was completed successfully
@@ -301,6 +351,11 @@ class TaskModule():
         self.last_distance = self.current_norm_distance
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
+        #if self.check_distance_threshold(self._observation): #threshold for successful push/throw/pick'n'place
+        #if self.check_points_distance_threshold(): #threshold for successful push/throw/pick'n'place
+        #if self.check_points_contact():
+        #contacts = self.check_points_distance_threshold()
+        #if contacts: #check for successful push/throw/pick'n'place
         finished = None
         if self.task_type == 'reach':
             finished = self.check_distance_threshold(self._observation)
@@ -335,8 +390,41 @@ class TaskModule():
             self.env.episode_over = True
             if self.env.episode_steps == 1:
                 self.env.episode_info = "Task completed in initial configuration"
+                self.env.episode_over = True
+            elif (self.task_type in ['2stepreach','4stepreach']) and (False in self.subgoals):
+                self.env.episode_info = "Subgoal {}/{} completed successfully".format(self.sub_idx+1, self.num_subgoals)
+                self.subgoals[self.sub_idx] = True #current subgoal done
+                self.env.episode_over = False #don't reset episode
+                self.env.robot.magnetize_object(self.env.task_objects[self.obs_sub[self.sub_idx][0]], contacts) #magnetize first object
+                self.sub_idx += 1 #continue with next subgoal
+                self.env.reward.reset() #reward reset
+            elif (self.task_type in ['2steppush']) and (False in self.subgoals):
+                self.env.episode_info = "Subgoal {}/{} completed successfully".format(self.sub_idx+1, self.num_subgoals)
+                self.subgoals[self.sub_idx] = True #current subgoal done
+                self.env.episode_over = False #don't reset episode
+                self.sub_idx += 1 #continue with next subgoal
+                self.env.reward.reset() #reward reset
+            elif self.task_type == 'Mpnp':
+                for _ in range(100):
+                    self.env.robot.grasp_panda()
+                    contacts = self.check_points_contact()
+                    if contacts:
+                        self.env.episode_info = "Task completed successfully"
+                        self.env.episode_failed = False
+                        #break
+                    elif len(self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.robot.robot_uid, self.env.robot.end_effector_index, self.env.robot.end_effector_index-1)) > 0:
+                        self.env.episode_info = "Grasp not successful"
+                        self.env.episode_failed = True
+                        break
+                    else:
+                        self.env.episode_info = "Grasp not successful"
+                        self.env.episode_failed = True
+                self.env.episode_over = True
             else:
                 self.env.episode_info = "Task completed successfully"
+                self.env.episode_failed = False
+                self.env.episode_over = True
+        #elif self.check_time_exceeded(): #or (self.task_type == 'reach' and self.check_object_moved(self.env.task_objects[0])):
         if self.check_time_exceeded():
             self.env.episode_over = True
             self.env.episode_failed = True
@@ -369,7 +457,7 @@ class TaskModule():
         Parameters:
             :param obj1: (float array) First object position representation
             :param obj2: (float array) Second object position representation
-        Returns: 
+        Returns:
             :return dist: (float) Distance between 2 float arrays
         """
         if self.distance_type == "euclidean":
@@ -383,21 +471,24 @@ class TaskModule():
         Calculate diffrence between orientation of two objects
 
         Parameters:
-            :param obj1: (float array) First object orientation (Euler angles)
-            :param obj2: (float array) Second object orientation (Euler angles)
-        Returns: 
+            :param obj1: (float array) First object orientation (Quaternion xyzw)
+            :param obj2: (float array) Second object orientation (Quaterion xyzw)
+        Returns:
             :return diff: (float) Distance between 2 float arrays
         """
-        if self.distance_type == "euclidean":
-            diff = np.linalg.norm(np.asarray(obj1) - np.asarray(obj2))
-        elif self.distance_type == "manhattan":
-            diff = cityblock(obj1, obj2)
+        if obj2 is None:
+            obj2 = self.env.robot.gripper_orn
+        diff = 1 - np.absolute(np.dot(obj1, obj2))
+        # if self.distance_type == "euclidean":
+        #     diff = np.linalg.norm(np.asarray(obj1) - np.asarray(obj2))
+        # elif self.distance_type == "manhattan":
+        #     diff = cityblock(obj1, obj2)
         return diff
 
     def generate_new_goal(self, object_area_borders, camera_id):
         """
         Generate an image of new goal for VEA vision model. This function is supposed to be called from env workspace.
-        
+
         Parameters:
             :param object_area_borders: (list) Volume in space where task objects can be located
             :param camera_id: (int) ID of environment camera active for image rendering
@@ -423,4 +514,3 @@ class TaskModule():
             self.goal_image  = self.env.render(mode="rgb_array", camera_id=self.env.active_cameras)[self.env.active_cameras]['image']
             self.env.robot.reset_up()
             #self.goal_image = self.vision_module.vae_generate_sample()
-
