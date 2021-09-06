@@ -3,7 +3,7 @@
 
 
 
-We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so you can train your network with different robots  in several envinronments and various tasks. You can also create curicullum of tasks and test your network set of tasks with inreasing complexity. There is automatic evaluation and benchmark tool for your network. We pretrained the neural networks for visual recognition of all objects in the simulator so you can reward your networks based on visual sensors. We constantly train networks to provide baselines for the tasks in the toolbox. There is also leaderboard for most general network, capable to learn tasks in basic curricullum.
+We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks  with increasing complexity and test your network on them. We also included an automatic evaluation and benchmark tool for your developed model. We have pretained the Yolact network for visual recognition of all objects in the simulator, so that you can reward your networks based on visual sensors only. We keep training the current state-of-the-art algorithms to provide baselines for the tasks in the toolbox. There is also a leaderboard showing algorithms with the best generalization capability, tested on the tasks in our basic curriculum.
 
 ## Overview
 
@@ -11,21 +11,35 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 | Environment  | Gym-v0 is suitable for manipulation, navigation and planning tasks|
 |---|---|
 | Workspaces | Table, Collaborative table, Maze, Vertical maze, Drawer, Darts, Football, Fridge, Stairs, Baskets |
-| Vision  | Cartesians, RGB, Depth, Class, Centroid, Bounding Box, Semantic Mask, Latent vector |
+| Vision  | Cartesians, RGB, Depth, Class, Centroid, Bounding Box, Semantic Mask, Latent Vector |
 | Robots  | 8 robotic arms, 2 dualarms, humanoid |
 | Robot actions  | Absolute, Relative, Joints |
 | Objects  | 54 objects in 5 categories |
-| Tasks  | Reach, Push, Pick, Place, PicknPlace, Throw, Hit, Catch, Navigate|
+| Tasks  | Reach, Press, Switch, Turn, Push, Pick, Place, PicknPlace, Throw, Hit, Catch, Navigate|
 | Randomizers  | Light, Texture, Size, Camera position |
 | Baselines  | Tensorflow, Pytorch |
 
 
 
-Learn more about the toolbox in [documentation](https://incognite-lab.github.io/mygym/index.html)
+Learn more about the toolbox in our [documentation](https://incognite-lab.github.io/mygym/)
+
+## Leaderboard
+
+Learnability is represented as a single value metric that evaluates algorithms under various conditions, allowing us to compare different RL algorithms. The number of conditions is limited for practical reasons, as the number of training configurations grows exponentially with each new condition, and each configuration requires standalone training and evaluation. Therefore, we limited the total number of combinations to $3^3$ = 27, which can be evaluated in few hours with a standard computer infrastructure.
+
+| Pos. | Algorhitm | Score |
+|---|---|---|
+|1.| PPO2 | 30.11  |
+|2.| TRPO | 28.75  |
+|3.| ACKTR | 27.5  |
+|4.| SAC | 27.43 |
+|5.| PPO | 27.21 |
+|5.| myAlgo | 15.00  |
+
 
 ## Modular Structure
 
-We developed fully modular toolbox where user can easily combine the predefined elements into custom envinronment. There are specific modules for each component of the simulation. User can easily modify and add custom modules. 
+We have developed a fully modular toolbox where the user can easily combine the predefined elements into a custom environment. There are specific modules for each component of the simulation, as depicted in the following scheme. 
 
 
 ![alt text](myGym/images/schemas/mygym_scheme.png "myGymscheme")
@@ -34,8 +48,10 @@ We developed fully modular toolbox where user can easily combine the predefined 
 ## Supported systems
 
 Ubuntu 18.04, 20.04
+
 Python 3
-GPU acceleration strongly reccomended
+
+GPU acceleration strongly recommended
 
 
 
@@ -47,33 +63,33 @@ Clone the repository:
 
 `cd mygym`
 
-We recommend to create conda environment:
+We recommend to create a conda environment:
 
 `conda env create -f environment.yml`
 
 `conda activate mygym`
 
-Install mygym:
+Install myGym:
 
 `python setup.py develop`
 
-If you want to use pretrained visual modules, please download them first:
+If you want to use the pretrained visual modules, please download them first:
 
 `cd myGym`
 `sh download_vision.sh`
 
-If you want to use pretrained baselines models, download them here:
+If you want to use the pretrained baseline models, download them here:
 
 `cd myGym`
 `sh download_baselines.sh`
 
 ## Visualization
 
-You can visualize the virtual gym prior to the training.
+You can visualize the virtual gym env prior to the training.
 
 `python test.py`
 
-There will be the default worskpace activated. The commands to the robot joints are random. 
+There will be the default workspace activated. The commands to the robot joints are random. 
 
 ![alt text](myGym/images/workspaces/gym_table_test2.png "test_work")
 
@@ -85,33 +101,77 @@ Find more details about this function in the [documentation](https://incognite-l
 
 ## Basic Training
 
-Run the default training without specifying parameters:
+Run the default training without specifying the parameters:
 
 `python train.py`
 
-The training will start with gui window and standstill visualization. Wait until the first evaluation after 10000 steps to check the progress: 
-
-![alt text](myGym/images/workspaces/kuka10000.gif "training")
-
-After 50000 steps the arm starts to move towards the goal object:
+The training will start with the GUI window and a standstill visualization. Wait until the first evaluation after 10000 steps to check the progress: 
 
 ![alt text](myGym/images/workspaces/kuka50000.gif "training")
 
-After 100000 steps the arm is able to reach the goal object with 80% accuracy:
+After 100000 steps, the arm is able to reach the goal object with 80% accuracy:
 
 ![alt text](myGym/images/workspaces/kuka100000.gif "training")
 
 There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/basic_training.html)
 
+## Training Examples
+
+### Task - Press
+Run training using following command
+
+``python train.py --config ./configs/train_press.json``
+
+Wait until the first evaluation after 100000 steps to check the progress:
+
+![alt text](myGym/images/workspaces/press/kuka100000.gif "training")
+
+After 250000 steps the arm is able to press the button with 90% accuracy:
+
+![alt text](myGym/images/workspaces/press/kuka500000.gif "training")
+
+There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_press.html)
+
+
+### Task - Switch
+Run training using following command
+
+``python train.py --config ./configs/train_switch.json``
+
+Wait until the first evaluation after 50000 steps to check the progress:
+
+![alt text](myGym/images/workspaces/switch/kuka50000.gif "training")
+
+After 250000 steps the arm is able to switch the lever with 80% accuracy:
+
+![alt text](myGym/images/workspaces/switch/kuka250000.gif "training")
+
+There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_switch.html)
+
+### Task - Turn
+Run training using following command
+
+``python train.py --config ./configs/train_turn.json``
+
+Wait until the first evaluation after 250000 steps to check the progress:
+
+![alt text](myGym/images/workspaces/turn/kuka250000.gif "training")
+
+After 500000 steps the arm is able to turn the handle with 90% accuracy:
+
+![alt text](myGym/images/workspaces/turn/kuka500000.gif "training")
+
+There are more training tutorials in the [documentation](https://incognite-lab.github.io/mygym/user_guide/train_turn.html)
+
 ##  Parametric Training
 
-As the myGym is modular toolbox you can easily train different robots:
+As myGym is modular, you can easily train with different robots:
 
 `python train.py --robot jaco`
 
 ![alt text](myGym/images/workspaces/jacoabsolute90000.gif "training")
 
-You can also change the workspace within the gym, task or a goal object. If you want to store ouput video just add record parameter:
+You can also change the workspace within the gym, the task or the goal object. If you want to store an ouput video, just add the record parameter:
 
 `python train.py  --workspace collabtable --robot panda --task push --task_objects wrench --record 1`
 
@@ -123,12 +183,14 @@ You can fully control the environment, robot, object, task, reward, learning par
 
 ![alt text](myGym/images/results/kuka_reach_yolact_fast.gif "yolact")
 
-Learn more about simulation parameters in the [documentation](https://incognite-lab.github.io/mygym/user_guide/tutorial_parametric.html)
+
+Learn more about the simulation parameters in the [documentation](https://incognite-lab.github.io/mygym/user_guide/tutorial_parametric.html)
+
 
 
 ## Config Training
 
-As the parametric definition is problematic in more complex projects, we present config files that will help with the reproducibility of the results. The example of basic config file is [here(myGym/configs/train_example.conf)]. Yo can edit and clone this file according to your needs and run the training just by typing:
+As the parametric definition is problematic in more complex projects, we present config files that will help with the reproducibility of results. The example of basic config file is [here(myGym/configs/train_example.conf)]. You can edit and clone this file according to your needs and run the training just by typing:
 
 `python train.py --config ./configs/train_example.json`
 
@@ -136,11 +198,11 @@ As the parametric definition is problematic in more complex projects, we present
 
 ## Parallel Training
 
-We developed scripts for parallel training to speed up this process. You can edit the desired parameter in train_parallel.py and run it:
+We have developed scripts for parallel training to speed up this process. You can edit the desired parameter in train_parallel.py and run it:
 
 `python train_parallel.py`
 
-The default config will train 4 parallel simulation with different RL algorhitms in the same conditions. After several training steps you can see the difference in performace among algorhitms. For better performance the backround visualization is turned off:
+The default config will train 4 parallel simulations with different RL algorithms under the same conditions. After several training steps, you can see the difference in performace among algorithms. For better performance, the background visualization is turned off:
 
 ![alt text](myGym/images/workspaces/4kuka_trained.gif "training")
 
@@ -150,24 +212,24 @@ You can use the test script for the visualization of pretrained models:
 
 `python test.py --config ./trained_models/yourmodel/train.json`
 
-It will load pretrained model and test it in the task and workspace defined in config file:
+It will load the pretrained model and test it in the task and workspace defined in the config file.
 
 
 ## Evaluation
 
-There is automatic evaluation and logging in the train script. It is controlled by parameters --eval_freq and --eval_episodes. The log files are stored in the folder with trained model and you can easily visualize learning progress after the training and compare training parameters. There are also gifs for each eval period stored to compare robot performance during training. We also implemented evaluation in tensorboard:
+There is automatic evaluation and logging included in the train script. It is controlled by parameters --eval_freq and --eval_episodes. The log files are stored in the folder with the trained model and you can easily visualize the learning progress after the training. There are also gifs for each eval period stored to compare the robot performance during training. We have also implemented evaluation in tensorboard:
 
 `tensorboard --logdir ./trained_models/yourmodel`
 
 ![alt text](myGym/images/results/tensorboard_eval.png "training")
 
-If you want to interactively compare different parameters, just run the tensorboard without model dir specification:
+If you want to interactively compare different parameters, just run tensorboard without model dir specification:
 
 ![alt text](myGym/images/results/tensorboard_compare.png "training")
 
 ## Environment
 
-As myGym allows curicullum learning the worspaces and tasks are concentrated in one gym, so you can easily transfer robot. The basic envinronment is called Gym-v0. There are more gyms for navigation and multiagent collaboration in preparation. 
+As myGym allows curriculum learning, the workspaces and tasks are concentrated in single gym, so that you can easily transfer the robot. The basic environment is called Gym-v0. There are more gyms for navigation and multi-agent collaboration in preparation. 
 
 ## Robots
 
@@ -184,9 +246,9 @@ As myGym allows curicullum learning the worspaces and tasks are concentrated in 
 | Gummiarm  | arm  | passive palm  |  13 | gummi  |
 | ABB Yumi  | dualarm  | two finger  |  12 | yummi  |
 | ReachyLeachy  | dualarm  | passive palms  |  14 | reachy_and_leachy |
-| Pepper  | humanoid | --  |  20 | --  |
-| Thiago | humanoid  | --  |  19 | --  |
-| Atlas  | humanoid  | --  |  28 | --  |
+| Pepper  | humanoid | --  |  20 | WIP  |
+| Thiago | humanoid  | --  |  19 | WIP  |
+| Atlas  | humanoid  | --  |  28 | WIP  |
 
 ## Workspaces
 
@@ -216,16 +278,11 @@ As myGym allows curicullum learning the worspaces and tasks are concentrated in 
 | Collaborative table | :heavy_check_mark: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: |
 
 
-## Leaderboard
+## Learnability 
 
-Compared to baselines the leaderboard compares overall quality of the proposed algorhitm within the gym tasks. The leaderboard score is calculated as a mean success rate of the algorhitm in series of tasks with increasing complexity of robot (3DOF,7DOF,13DOF), environment (no obstacle, static obstacles, barriers) and tasks (reach, push, pinknplace). The algorhitm will pass 27 train&test steps to obtain the leaderboard score. Be first who will reach 100 points.
+The new global evaluation metric, which we call \textit{learnability}, allows the user to evaluate and compare algorithms in a more systematic fashion. Learnability is defined as a general ability to learn irrespective of environmental conditions. The goal is to test an algorithm with respect to the complexity of environment. We have decomposed the environment complexity into independent scales. The first scale is dedicated to the complexity of the task. Second scale exploits the complexity of the robotic body that is controlled by the neural network. The third scale stands for the temporal complexity of the environment. 
 
-| Pos. | Algorhitm  | Author | Score | Data |
-|---|---|---|---|---|
-|1.| PPO2 | --  | -- | link |
-|2.| PPO | --  | -- | link |
-|3.| SAC | --  | -- | link |
-|4.| DQN | --  | -- | link |
+![alt text](myGym/images/schemas/multieval_visualization.png "learnability")
 
 
 ## Authors
@@ -234,17 +291,17 @@ Compared to baselines the leaderboard compares overall quality of the proposed a
 ![alt text](myGym/images/incognitelogo.png "test_work")
 
 
-[Incognite lab - CIIRC CTU](https://incognite.ciirc.cvut.cz) 
+[Incognite lab - CIIRC CTU](https://incognite-lab.github.io) 
 
 Core team:
 
 [Michal Vavrecka](https://kognice.wixsite.com/vavrecka)
 
-[Gabriela Sejnova](https://kognice.wixsite.com/vavrecka)
+[Gabriela Sejnova](https://www.linkedin.com/in/gabriela-sejnova/)
 
 [Megi Mejdrechova](https://www.linkedin.com/in/megi-mejdrechova)
 
-[Nikita Sokovnin](https://kognice.wixsite.com/vavrecka)
+[Nikita Sokovnin](https://www.linkedin.com/in/nikita-sokovnin-250939198/)
 
 Contributors:
 

@@ -44,3 +44,4 @@ if __name__ == '__main__':
     print(last_eval_results)
     with open("trained_models/multi_evaluation_results.json", 'w') as f:
         json.dump(last_eval_results, f, indent=4)
+

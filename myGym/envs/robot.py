@@ -165,6 +165,7 @@ class Robot:
                 self.position, self.orientation, useFixedBase=True, flags=(self.p.URDF_USE_SELF_COLLISION))
         for jid in range(self.p.getNumJoints(self.robot_uid)):
             self.p.changeDynamics(self.robot_uid, jid,  collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
+
         # if 'jaco' in self.name: #@TODO jaco gripper has closed loop between finger and finger_tip that is not respected by the simulator
         #     self.p.createConstraint(self.robot_uid, 11, self.robot_uid, 15, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0], [0, 0, 0])
         #     self.p.createConstraint(self.robot_uid, 13, self.robot_uid, 17, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0], [0, 0, 0])
@@ -262,6 +263,18 @@ class Robot:
         else:
             return 3
 
+    def observe_all_links(self):
+        """
+        Get position of all robot's links
+        """
+        observation = []
+        for link in range(self.end_effector_index+1):
+            state = self.p.getLinkState(self.robot_uid, link)
+            pos = state[0]
+            observation.extend(list(pos))
+
+        return observation
+
     def get_observation_dimension(self):
         """
         Get dimension of robot part of observation data, based on robot task and rewatd type
@@ -284,6 +297,26 @@ class Robot:
         orn = self.p.getEulerFromQuaternion(state[1])
 
         observation.extend(list(pos))
+        return observation
+
+    def get_links_observation(self, num):
+        """
+        Get robot part of observation data
+
+        Returns: 
+            :return observation: (list) Position of all links (center of mass)
+        """
+        observation = []
+        if "kuka" in self.name:
+            for link in range(self.gripper_index-num, self.gripper_index):  
+            # for link in range(4, self.gripper_index):  
+                state = self.p.getLinkState(self.robot_uid, link)
+                pos = state[0]
+                observation.extend(list(pos))
+        else:
+            exit("not implemented for other arms than kuka")
+
+        self.observed_links_num = num
         return observation
 
     def get_position(self):
@@ -651,7 +684,6 @@ class Robot:
 
         self._run_motors_torque(tau)
 
-
     def apply_action(self, action):
         """
         Apply action command to robot in simulated environment
@@ -682,7 +714,10 @@ class Robot:
                 self.p.changeConstraint(val, key.get_position()+pos_diff)
                 #self.magnetized_objects[key] = key.get_position()
             self.end_effector_prev_pos = self.end_effector_pos
-
+        
+        if 'gripper' not in self.robot_action:
+            for joint_index in range(self.gripper_index, self.end_effector_index + 1):
+                self.p.resetJointState(self.robot_uid, joint_index, self.p.getJointInfo(self.robot_uid, joint_index)[9])
     def magnetize_object(self, object, contacts):
         # Creates fixed joint between kuka gripper and object
         if any(isinstance(i, tuple) for i in contacts):
@@ -697,7 +732,7 @@ class Robot:
     def release_object(self, object):
         self.p.removeConstraint(self.magnetized_objects[object])
         self.magnetized_objects.pop(object)
-
+        
     def grasp_panda(self):
         for i in range(2):
             self.p.setJointMotorControl2(bodyUniqueId=self.robot_uid,

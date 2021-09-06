@@ -27,7 +27,3 @@ Choose a task :ref:`mygym_objects`:
 It is possible to pass following parameters to the *train.py* and *test.py* scripts 
 directly using command line arguments. Alternatively, you can use a *config file*, see :ref:`tutorial_config`.
 
-.. argparse::
-    :filename: ../myGym/train.py
-    :func: get_parser
-    :prog: train

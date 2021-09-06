@@ -1,0 +1,53 @@
+{
+#Environment
+"env_name":"Gym-v0",
+"workspace":"table",
+"engine":"pybullet",
+"render":"opengl",
+"camera":0,
+"gui":0,
+"visualize":1,
+"visgym":0,
+#Robot
+"robot":"panda",
+"robot_action":"joints",
+"robot_init":[0.0, 0.3, 0.9],
+#Task
+"task_type":"reach",
+"num_subgoals":0,
+"task_objects":["cube_holes"],
+"used_objects":null,
+"object_sampling_area":[-0.7, 0.7, 0.2, 0.8, 0.1, 0.1],
+#Distractor
+"distractors"                   : ["sphere"],
+"distractor_moveable"           : 1,
+"distractor_constant_speed"     : 0,
+"distractor_movement_dimensions": 3,
+"distractor_movement_endpoints" : [-0.3, 0.3, 0.4, 0.7, 0.1, 0.3],
+"observed_links_num"            : 5,
+#Coefficients
+"coefficient_kw": 0,
+"coefficient_kd": 0,
+"coefficient_ka": 0,
+#Reward
+"reward_type":"gt",
+"reward":"distance",
+"distance_type":"euclidean",
+"vae_path":null,
+"yolact_path":null,
+"yolact_config":null,
+#Train
+"train_framework":"tensorflow",
+"algo":"ppo2",
+"max_episode_steps":1024,
+"algo_steps":1024,
+"steps":500000,
+"pretrained_model":null,
+"multiprocessing":false,
+#Evaluation
+"eval_freq":100000,
+"eval_episodes":100,
+#Saving and logging
+"logdir":"trained_models/panda_new",
+"record":0
+}

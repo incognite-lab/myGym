@@ -1,0 +1,53 @@
+{
+#Environment
+"env_name"  :"Gym-v0",
+"workspace" :"table",
+"engine"    :"pybullet",
+"render"    :"opengl",
+"camera"    :1,
+"gui"       :1,
+"visualize" :1,
+"visgym"    :0,
+#Robot
+"robot"         :"kuka",
+"robot_action"  :"joints",
+"robot_init"    :[0.0, 0.3, 0.9],
+#Task
+"task_type"             :"switch",
+"num_subgoals"          :0,
+"task_objects"          :["switch"],
+"used_objects"          :null,
+"object_sampling_area"  :[0, 0, 0.7, 0.7, 0.1, 0.1],
+#Distractor
+"distractors"                   : null,
+"distractor_moveable"           : 1,
+"distractor_constant_speed"     : 0,
+"distractor_movement_dimensions": 3,
+"distractor_movement_endpoints" : [-0.3, 0.3, 0.4, 0.7, 0.1, 0.3],
+"observed_links_num"            : 5,
+#Coefficients
+"coefficient_kw": 1.1,
+"coefficient_kd": 0.65,
+"coefficient_ka": 0.5,
+#Reward
+"reward_type"   :"gt",
+"reward"        :"switch",
+"distance_type" :"euclidean",
+"vae_path"      :null,
+"yolact_path"   :null,
+"yolact_config" :null,
+#Train
+"train_framework"   :"tensorflow",
+"algo"              :"ppo2",
+"max_episode_steps" :1024,
+"algo_steps"        :1024,
+"steps"             :500000,
+"pretrained_model"  :null,
+"multiprocessing"   :false,
+#Evaluation
+"eval_freq"     :50000,
+"eval_episodes" :10,
+#Saving and logging
+"logdir"    :"trained_models/switch",
+"record"    :0
+}

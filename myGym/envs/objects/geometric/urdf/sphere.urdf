@@ -12,6 +12,7 @@
     <inertial>
       <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
        <mass value="0.101"/>
+       <!-- <mass value="0"/> -->
        <inertia ixx="0.00003611" ixy="0" ixz="0" iyy="0.00003611" iyz="0" izz="0.00003611"/>
     </inertial>
 
@@ -25,6 +26,7 @@
       </material>
     </visual>
 
+    <!-- <collision concave="yes"> -->
     <collision>
       <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
       <geometry>

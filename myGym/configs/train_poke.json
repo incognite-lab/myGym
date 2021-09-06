@@ -1,0 +1,54 @@
+{
+#Environment
+"env_name" :"Gym-v0",
+"workspace":"table",
+"engine"   :"pybullet",
+"render"   :"opengl",
+"camera"   :3,
+"gui"      :1,
+"visualize":1,
+"visgym"   :0,
+#Robot
+"robot"       :"kuka",
+"robot_action":"joints",
+"robot_init"  :[0.0, 0.5, 0.5],
+#Task
+"task_type"           :"poke",
+"num_subgoals"        : 0,
+"task_objects"        :["cube_holes", "poke_holes"],
+"used_objects"        :null,
+"color_dict"          :null,
+"object_sampling_area":[-0.58, 0.55, 0.4, 0.9, 0.1, 0.1],
+#Distractor
+"distractors"                   :null,
+"distractor_moveable"           :1,
+"distractor_constant_speed"     :1,
+"distractor_movement_dimensions":1,
+"distractor_movement_endpoints" :[-0.3, 0.3],
+"observed_links_num"            :1,
+#Coefficients
+"coefficient_kw": 0,
+"coefficient_kd": 0,
+"coefficient_ka": 0,
+#Reward
+"reward_type"  :"gt",
+"reward"       :"poke",
+"distance_type":"euclidean",
+"vae_path"     :null,
+"yolact_path"  :null,
+"yolact_config":null,
+#Train
+"train_framework"  :"tensorflow",
+"algo"             :"ppo2",
+"max_episode_steps":1024,
+"algo_steps"       :2048,
+"steps"            :500000,
+"pretrained_model" :null,
+"multiprocessing"  :false,
+#Evaluation
+"eval_freq"    :10000,
+"eval_episodes":5,
+#Saving and logging
+"logdir": "/home/jonas/myGym/myGym/trained_models/poke/", 
+"record":0
+}

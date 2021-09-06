@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<robot name="btn">
+    <link name="body">
+        <inertial>
+            <mass value="10000.0" />
+            <origin xyz="0 0 0.0" />
+            <inertia  ixx="0.0" ixy="0.0"  ixz="0.0"  iyy="0.0"  iyz="0.0"  izz="0.0" />
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0.0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="./stl/btn_filled_body.stl" scale="0.02 0.02 0.02"/>
+           </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0.0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="./stl/btn_filled_body.stl" scale="0.02 0.02 0.02"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="joint" type="prismatic">
+        <parent link="body"/>
+        <child link="stick"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+        <axis xyz="0 0 1"/>
+        <limit effort="0" lower="-0.03" upper="0" velocity="2.16"/>
+        <dynamics damping="0.0" friction="0.1"/>
+    </joint>
+    <link name="stick" type="prismatic">
+        <inertial>
+            <mass value="1" />
+            <origin xyz="0 0 0.0" />
+            <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0.01" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="./stl/btn_press.stl" scale="0.02 0.02 0.02"/>
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0.01" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="./stl/btn_press.stl" scale="0.02 0.02 0.02"/>
+            </geometry>
+        </collision>
+    </link>
+</robot>

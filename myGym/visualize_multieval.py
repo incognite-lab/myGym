@@ -56,7 +56,6 @@ def plot_algo_results(ax, list_results, label, c):
 if __name__ == '__main__':
     algo_1_list_results = load_algo_results(algo_1_results_path)
     algo_2_list_results = load_algo_results(algo_2_results_path)
-
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.set_ylabel("Robot action", labelpad=15)

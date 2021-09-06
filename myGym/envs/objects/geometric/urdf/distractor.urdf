@@ -1,0 +1,37 @@
+﻿<?xml version="0.0" ?>
+<robot name="sphere">
+  <link name="baseLink">
+    <contact>
+      <!-- <rolling_friction value="0.03"/> -->
+      <!-- <spinning_friction value="0.03"/> -->
+      <!-- <lateral_friction value="3.0"/> -->
+      <!-- <stiffness value="300"/> -->
+      <!-- <damping value="50"/> -->
+    </contact>
+
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
+       <!-- <mass value="0.101"/> -->
+       <mass value="0"/>
+       <inertia ixx="0.00003611" ixy="0" ixz="0" iyy="0.00003611" iyz="0" izz="0.00003611"/>
+    </inertial>
+
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
+      <geometry>
+        <mesh filename="./obj/sphere.obj" scale="0.003 0.002 0.002"/>
+      </geometry>
+      <material name="black">
+        <color rgba="255 0 0 1"/>
+      </material>
+    </visual>
+
+    <!-- <collision concave="yes"> -->
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
+      <geometry>
+         <mesh filename="./obj/sphere.obj" scale="0.001 0.002 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>
