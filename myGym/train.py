@@ -123,7 +123,7 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                           "a2c": {"tensorflow": [A2C_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}],},
                           "torchppo": {"tensorflow": [TorchPPO, (TorchMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           #"torchtd3sde": {"tensorflow": [TD3sde, (TD3Policy, env), {"buffer_size": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
-                          "dual":   {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]}},
+                          "dual":   {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir, "num_nets": arg_dict["num_subgoals"]}]}}
 
     if "PPO_P" in sys.modules:
