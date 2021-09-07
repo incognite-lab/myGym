@@ -1580,7 +1580,7 @@ class GripperPickAndPlace(Reward):
 
         if not self.env.robot.gripper_active:
             self.release()
-            reward += -100
+            # reward += -100
             self.picked = False
             self.env.episode_info = "dropped"
             self.env.episode_over = True
