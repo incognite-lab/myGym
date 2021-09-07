@@ -708,8 +708,8 @@ class Runner(AbstractEnvRunner):
             # count = self.n_steps
             count = len(mb_rewards) # number of steps in this minibatch
             self.models[i].episode_reward = sum(true_reward)
-            print()
-            print(count)
+            #print()
+            #print(count)
             for step in reversed(range(count)):
                 if step == count - 1:
                     nextnonterminal = 1.0 - self.dones

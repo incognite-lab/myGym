@@ -411,7 +411,7 @@ class Robot:
         elif self.robot_action in ["joints", "joints_gripper"]:
             if self.robot_action == "joints_gripper":
                 self.apply_action_joints(action[:-1])
-                if action[:-1][0] > 0.5:
+                if action[-1] > 0.5:
                     self.grip_object()
                 else:
                     self.release_object()

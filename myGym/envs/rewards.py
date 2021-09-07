@@ -1496,6 +1496,8 @@ class GripperPickAndPlace(Reward):
 
         self.prev_object_position = [None]*3
 
+        self.griped = None
+
     def reset(self):
  
         self.owner  = 0
@@ -1511,6 +1513,8 @@ class GripperPickAndPlace(Reward):
         self.place_reward = 0
 
         self.prev_object_position = [None]*3
+
+        self.griped = None
 
     def compute(self, observation=None):
         owner = self.decide(observation)
@@ -1529,6 +1533,7 @@ class GripperPickAndPlace(Reward):
     def decide(self, observation=None):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         self.owner = 0
+        self.gripper()
         if self.picked:
             self.owner = 1
         if self.moved:
@@ -1551,9 +1556,11 @@ class GripperPickAndPlace(Reward):
             self.env.episode_failed = True
 
         if dist < 0.1 and self.env.robot.gripper_active:
+            self.grip()
             self.picked = True
             reward += 1
-
+           # self.env.task_objects[1].init_position = self.env.task_objects[1].get_position() 
+            #print("picked")
         self.pick_reward += reward
         return reward
 
@@ -1562,6 +1569,8 @@ class GripperPickAndPlace(Reward):
         self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
         dist = self.task.calc_distance(object, goal)
  
+    #   self.env.task_objects[1].init_position = self.env.task_objects[1].get_position() 
+        
         if self.last_move_dist is None:
             self.last_move_dist = dist
 
@@ -1570,13 +1579,19 @@ class GripperPickAndPlace(Reward):
         self.last_move_dist = dist
 
         if not self.env.robot.gripper_active:
-            reward = -1
+            self.release()
+            reward += -1
             self.picked = False
+            self.env.episode_info = "dropped"
+            self.env.episode_over = True
+            self.env.episode_failed = True
+            #print("dropped")
         
         if dist < 0.3:
             reward += 1
             self.moved = True
-
+            print("moved")
+        print(reward)
         self.move_reward += reward
         return reward
 
@@ -1594,8 +1609,10 @@ class GripperPickAndPlace(Reward):
         success = "if object not moving && dist < 0.1 && grip released"
 
         if dist > 0.1 and not self.env.robot.gripper_active:
+            self.release()
             self.picked = False
             self.moved  = False
+            print("dropped close")
         else:
             reward += 1
             self.env.episode_info = "success"
@@ -1622,18 +1639,23 @@ class GripperPickAndPlace(Reward):
 
         return goal_position, object_position, gripper_position
 
-    def grip(self):
+    def gripper(self):
         if self.env.robot.gripper_active:
+            self.grip()
+        else:
+            self.release()
+
+    def grip(self):
             object_coords  = self.env._observation[3:6]
-            gripper_coords = self.env.reward.get_accurate_gripper_positon(self.env._observation[-3:])
+            gripper_coords = self.get_accurate_gripper_position(self.env._observation[-3:])
             if self.env.task.calc_distance(object_coords, gripper_coords) < 0.1:
                 object = self.env.env_objects[1]
                 self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
-                self.grip = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.15])
+                self.griped = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.15])
 
     def release(self):
-        if self.env.robot.gripper.active:
+        if self.griped is not None:
             object = self.env.env_objects[1]
             self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0,0,0,1])
-            self.env.p.removeConstraint(self.grip)
-
+            self.env.p.removeConstraint(self.griped)
+            self.griped = None
