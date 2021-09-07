@@ -1477,3 +1477,163 @@ class Halt(Reward):
 
     def decide(self, observation=None):
         return 0
+
+class GripperPickAndPlace(Reward):
+    def __init__(self, env, task):
+        super(GripperPickAndPlace, self).__init__(env, task)
+ 
+        self.owner  = 0
+        self.picked = False
+        self.moved  = False
+
+        self.last_pick_dist  = None
+        self.last_move_dist  = None
+        self.last_place_dist = None
+
+        self.pick_reward  = 0
+        self.move_reward  = 0
+        self.place_reward = 0
+
+        self.prev_object_position = [None]*3
+
+    def reset(self):
+ 
+        self.owner  = 0
+        self.picked = False
+        self.moved  = False
+
+        self.last_pick_dist  = None
+        self.last_move_dist  = None
+        self.last_place_dist = None
+
+        self.pick_reward  = 0
+        self.move_reward  = 0
+        self.place_reward = 0
+
+        self.prev_object_position = [None]*3
+
+    def compute(self, observation=None):
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+
+        if   owner == 0: reward = self.pick(gripper_position, object_position)
+        elif owner == 1: reward = self.move(goal_position, object_position)
+        elif owner == 2: reward = self.place(goal_position, object_position)
+        else:            exit("decision error")
+
+        self.task.check_pnp_threshold(observation)
+        self.rewards_history.append(reward)
+
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        self.owner = 0
+        if self.picked:
+            self.owner = 1
+        if self.moved:
+            self.owner = 2
+
+        return self.owner
+
+    def pick(self, gripper, object):
+        self.env.p.addUserDebugText("pick", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
+        dist = self.task.calc_distance(gripper, object)
+        
+        if self.last_pick_dist is None:
+            self.last_pick_dist = dist
+
+        reward = self.last_pick_dist - dist
+        self.last_pick_dist = dist
+
+        if self.task.check_object_moved(self.env.task_objects[1]):
+            self.env.episode_over   = True
+            self.env.episode_failed = True
+
+        if dist < 0.1 and self.env.robot.gripper_active:
+            self.picked = True
+            reward += 1
+
+        self.pick_reward += reward
+        return reward
+
+
+    def move(self, goal, object):
+        self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        dist = self.task.calc_distance(object, goal)
+ 
+        if self.last_move_dist is None:
+            self.last_move_dist = dist
+
+        reward = self.last_move_dist - dist
+        reward = reward * 1
+        self.last_move_dist = dist
+
+        if not self.env.robot.gripper_active:
+            reward = -1
+            self.picked = False
+        
+        if dist < 0.3:
+            reward += 1
+            self.moved = True
+
+        self.move_reward += reward
+        return reward
+
+    def place(self, goal, object):
+        self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        dist = self.task.calc_distance(object, goal)
+        
+        if self.last_place_dist is None:
+            self.last_place_dist = dist
+
+        reward = self.last_place_dist - dist
+        reward = reward
+        self.last_place_dist = dist
+
+        success = "if object not moving && dist < 0.1 && grip released"
+
+        if dist > 0.1 and not self.env.robot.gripper_active:
+            self.picked = False
+            self.moved  = False
+        else:
+            reward += 1
+            self.env.episode_info = "success"
+            self.env.episode_over = True
+
+        self.place_reward = reward
+        return reward
+
+    def is_object_moving(self, object):
+        if      round(self.prev_object_position[0], 4) == round(object[0], 4) \
+            and round(self.prev_object_position[1], 4) == round(object[1], 4) \
+            and round(self.prev_object_position[2], 4) == round(object[2], 4):
+            return False
+        return True
+
+    def get_positions(self, observation):        
+        observation      = observation["observation"] if isinstance(observation, dict) else observation
+        goal_position    = observation[0:3]
+        object_position  = observation[3:6]
+        gripper_position = self.get_accurate_gripper_position(observation[-3:])
+
+        if self.prev_object_position[0] is None:
+            self.prev_object_position = object_position
+
+        return goal_position, object_position, gripper_position
+
+    def grip(self):
+        if self.env.robot.gripper_active:
+            object_coords  = self.env._observation[3:6]
+            gripper_coords = self.env.reward.get_accurate_gripper_positon(self.env._observation[-3:])
+            if self.env.task.calc_distance(object_coords, gripper_coords) < 0.1:
+                object = self.env.env_objects[1]
+                self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
+                self.grip = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.15])
+
+    def release(self):
+        if self.env.robot.gripper.active:
+            object = self.env.env_objects[1]
+            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0,0,0,1])
+            self.env.p.removeConstraint(self.grip)
+

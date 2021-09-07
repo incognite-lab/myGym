@@ -2,7 +2,7 @@ from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReachReward, DualPoke, PickAndPlace, ConsequentialPickAndPlace, DualPickAndPlace, Halt
+from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReachReward, DualPoke, PickAndPlace, ConsequentialPickAndPlace, DualPickAndPlace, Halt, GripperPickAndPlace
 import pybullet
 import time
 import numpy as np
@@ -160,14 +160,16 @@ class GymEnv(CameraEnv):
             # self.reward = DualPoke(env=self, task=self.task)
             # self.reward = PokeVectorReward(env=self, task=self.task)
             # self.reward = PokeReward(env=self, task=self.task)
-        if task_type == 'pnp':
-            #if reward == 'pnp':
-                # self.reward = PickAndPlace(env=self, task=self.task)
+        elif reward == 'pnp':
+            self.reward = PickAndPlace(env=self, task=self.task)
+        elif reward == 'cpnp':
             self.reward = ConsequentialPickAndPlace(env=self, task=self.task)
-            if reward == '2pnp':
+        elif reward == '2pnp':
                 self.reward = DualPickAndPlace(env=self, task=self.task)
-            if reward == 'halt':
+        elif reward == 'halt':
                 self.reward = Halt(env=self, task=self.task)
+        elif reward == 'Gpnp':
+            self.reward = GripperPickAndPlace(env=self, task=self.task)
 
         self.dataset = dataset
         self.obs_space = obs_space
@@ -339,16 +341,15 @@ class GymEnv(CameraEnv):
 
         print(self.task_type)
 
-        #if self.task_type == 'pnp':
-        #    self.action_low = np.insert(self.action_low, action_dim, 0)
-        #    self.action_high = np.insert(self.action_high, action_dim, 1)
-        #    action_dim += 1
+        if type(self.reward) is GripperPickAndPlace:
+            self.action_low = np.insert(self.action_low, action_dim, 0)
+            self.action_high = np.insert(self.action_high, action_dim, 1)
+            action_dim += 1
 
         self.action_space = spaces.Box(np.array([-1]*action_dim), np.array([1]*action_dim))
-        #print(self.action_low)
-        #print(self.action_high)
-        #print(action_dim)
-        #exit(self.action_space)
+        print(self.action_low)
+        print(self.action_high)
+        print(action_dim)
 
     def _rescale_action(self, action):
         """

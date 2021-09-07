@@ -78,6 +78,8 @@ class Robot:
         self.robot_action = robot_action
         self.magnetized_objects = {}
 
+        self.gripper_active = False
+
         self._load_robot()
         self.num_joints = self.p.getNumJoints(self.robot_uid)
         self._set_motors()
@@ -407,13 +409,14 @@ class Robot:
         elif self.robot_action == "absolute":
             self.apply_action_absolute(action)
         elif self.robot_action in ["joints", "joints_gripper"]:
-            self.apply_action_joints(action)
-        #elif self.env.task_type == 'pnp':
-        #    self.apply_action_joints(action[:-1])
-        #    if action[:-1] > 0.5:
-        #        self.grip_object()
-        #    else:
-        #        self.release_object()
+            if self.robot_action == "joints_gripper":
+                self.apply_action_joints(action[:-1])
+                if action[:-1][0] > 0.5:
+                    self.grip_object()
+                else:
+                    self.release_object()
+            else:
+                self.apply_action_joints(action)
         if len(self.magnetized_objects):
             pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
             for key,val in self.magnetized_objects.items():
@@ -455,15 +458,18 @@ class Robot:
         return self.robot_uid
 
     def grip_object(self):
-        object_coords = self.env._observation[3:6]
-        gripper_coords = self.env.reward.get_accurate_gripper_positon(self.env._observation[-3:])
-        if self.env.task.calc_distance(object_coords, gripper_coords) < 0.1:
-            object = self.env.env_objects[1]
-            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
-            self.grip = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.15])
+       #object_coords  = self.env._observation[3:6]
+       #gripper_coords = self.env.reward.get_accurate_gripper_positon(self.env._observation[-3:])
+       #if self.env.task.calc_distance(object_coords, gripper_coords) < 0.1:
+       #    object = self.env.env_objects[1]
+       #    self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
+       #    self.grip = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.15])
+
+        self.gripper_active = True
 
     def release_object(self):
-        object = self.env.env_objects[1]
-        self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0,0,0,1])
-        self.env.p.removeConstraint(self.grip)
+       #object = self.env.env_objects[1]
+       #self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0,0,0,1])
+       #self.env.p.removeConstraint(self.grip)
+        self.gripper_active = False
 
