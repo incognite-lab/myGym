@@ -38,11 +38,11 @@
     "diagram"           :[0, 0, 0],
     "max_episode_steps" :1024,
     "algo_steps"        :1024,
-    "steps"             :100000,
+    "steps"             :300000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
-    "eval_freq"     :10000,
+    "eval_freq"     :30000,
     "eval_episodes" :1,
     #Saving and logging
     "logdir"    :"trained_models/shatered/PNP/gripper",

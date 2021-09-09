@@ -1526,12 +1526,12 @@ class GripperPickAndPlace(Reward):
 
         if   owner == 0: reward = self.pick(gripper_position, object_position)
         elif owner == 1: reward = self.move(goal_position, object_position)
+       #elif owner == 2: reward = self.place(gripper_position, goal_position)
         elif owner == 2: reward = self.place(goal_position, object_position)
         else:            exit("decision error")
 
         self.task.check_pnp_threshold(observation)
         self.rewards_history.append(reward)
-
         return reward
 
     def decide(self, observation=None):
@@ -1560,7 +1560,7 @@ class GripperPickAndPlace(Reward):
             self.env.episode_failed = True
 
         if dist < 0.1 and self.env.robot.gripper_active:
-            self.grip()
+            # self.grip()
             self.picked = True
             reward += 1
            # self.env.task_objects[1].init_position = self.env.task_objects[1].get_position() 
@@ -1583,15 +1583,15 @@ class GripperPickAndPlace(Reward):
         self.last_move_dist = dist
 
         if not self.env.robot.gripper_active:
-            self.release()
+      #     self.release()
             reward += -1
             self.picked = False
-            print("released")
+            # print("released")
 
-        if dist < 0.3:
+        if dist < 0.1:
             reward += 1
             self.moved = True
-            print("moved")
+            # print("moved")
 
         self.move_reward += reward
         return reward
@@ -1600,28 +1600,40 @@ class GripperPickAndPlace(Reward):
         self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,125,125])
         dist = self.task.calc_distance(object, goal)
         
+        self.env.p.addUserDebugText("distance " + str(dist), [0.5,0.5,0.5], lifeTime=0.1, textColorRGB=[0,125,125])
 #       self.env.task_objects[1].init_position = self.env.task_objects[1].get_position() 
         if self.last_place_dist is None:
             self.last_place_dist = dist
 
         reward = self.last_place_dist - dist
-        reward = reward
         self.last_place_dist = dist
 
-        success = "if object not moving && dist < 0.1 && grip released"
+#      #self.env.p.addUserDebugText("reward " + str(reward), [-0.5,0.5,0.5], lifeTime=0.1, textColorRGB=[0,125,125])
+       #self.env.p.addUserDebugText("reward " + str(self.place_reward), [-0.5,0.5,0.5], lifeTime=0.1, textColorRGB=[0,125,125])
+       #success = "if object not moving && dist < 0.1 && grip released"
+        print(dist)
+        if dist < 0.1:
+            print(self.env.robot.gripper_active)
+            if not self.env.robot.gripper_active:
+                reward += 1
+            else:
+                reward -= 1
 
-        if dist > 0.1 and not self.env.robot.gripper_active:
-         # self.picked = False
-         # self.moved  = False
-            print("dropped close")
-        elif dist < 0.1 and not self.env.robot.gripper_active:
+#       if dist > 0.1 and not self.env.robot.gripper_active:
+#           self.picked = False
+#           self.moved  = False
+#           reward -= 1
+#           # print("dropped close " + str(dist))
+        elif dist < 0.1 and not self.is_object_moving(object):
             reward += 1
-            self.env.episode_info = "success"
+            self.env.episode_info = "Object was placed to desired location"
             self.env.episode_over = True
-        elif dist > 1.3:
-            self.moved = False
-        print(reward)
-        self.place_reward = reward
+        elif dist > 0.1:
+            self.picked = False
+            self.moved  = False
+            reward -= 1
+        
+        self.place_reward += reward
         return reward
 
 

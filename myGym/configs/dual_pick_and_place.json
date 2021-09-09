@@ -27,7 +27,7 @@
     "observed_links_num"            : 5,
     #Reward
     "reward_type"   :"gt",
-    "reward"        :"cpnp",
+    "reward"        :"2pnp",
     "distance_type" :"euclidean",
     "vae_path"      :null,
     "yolact_path"   :null,
@@ -35,7 +35,7 @@
     #Train
     "train_framework"   :"tensorflow",
     "algo"              :"multi",
-    "diagram"           :[0, 0, 0],
+    "diagram"           :[0, 0],
     "max_episode_steps" :1024,
     "algo_steps"        :1024,
     "steps"             :100000,
@@ -45,6 +45,6 @@
     "eval_freq"     :10000,
     "eval_episodes" :1,
     #Saving and logging
-    "logdir"    :"trained_models/shatered/PNP",
+    "logdir"    :"trained_models/dual/PNP",
     "record"    :0
     }
