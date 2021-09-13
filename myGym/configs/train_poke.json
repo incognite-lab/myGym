@@ -10,8 +10,8 @@
 "visgym"   :0,
 #Robot
 "robot"       :"kuka",
-"robot_action":"joints",
-"robot_init"  :[0.0, 0.5, 0.5],
+"robot_action":"step",
+"robot_init"  :[0.0, 0.55, 0.2],
 #Task
 "task_type"           :"poke",
 "num_subgoals"        : 0,
@@ -37,15 +37,15 @@
 "train_framework"  :"tensorflow",
 "algo"             :"ppo2",
 "diagram"           :[0, 0],
-"max_episode_steps":1024,
-"algo_steps"       :2048,
+"max_episode_steps":512,
+"algo_steps"       :512,
 "steps"            :500000,
 "pretrained_model" :null,
 "multiprocessing"  :false,
 #Evaluation
-"eval_freq"    :10000,
-"eval_episodes":5,
+"eval_freq"    :50000,
+"eval_episodes":50,
 #Saving and logging
-"logdir": "/home/jonas/myGym/myGym/trained_models/poke/", 
+"logdir": "/home/michal/code/github/myGym/myGym/trained_models/poke/", 
 "record":0
 }

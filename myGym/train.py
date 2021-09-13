@@ -227,7 +227,7 @@ def get_parser():
     #Train
     parser.add_argument("-w",  "--train_framework", type=str,  help="Name of the training framework you want to use: {tensorflow, pytorch}")
     parser.add_argument("-a",  "--algo", type=str,  help="The learning algorithm to be used (ppo2 or her)")
-    parser.add_argument("-dg", "--diagram", nargs="*" type=int,  help="Observation space of models (0 for == env.observation_space)")
+    parser.add_argument("-dg", "--diagram", nargs="*", type=int,  help="Observation space of models (0 for == env.observation_space)")
     parser.add_argument("-s",  "--steps", type=int, help="The number of steps to train")
     parser.add_argument("-ms", "--max_episode_steps", type=int,  help="The maximum number of steps per episode")
     parser.add_argument("-ma", "--algo_steps", type=int,  help="The number of steps per for algo training (PPO2,A2C)")
