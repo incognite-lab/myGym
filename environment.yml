@@ -4,7 +4,7 @@ channels:
   - pytorch
 dependencies:
   - matplotlib
-  - cudatoolkit==10.1.243
+  #- cudatoolkit==10.1.243
   - pytorch::torchvision
   - pytorch::pytorch
   - numpy
@@ -18,8 +18,8 @@ dependencies:
   - dill
   - flake8
   - imageio=2.8
-  - tensorflow>=1.15.0
-  - tensorflow-gpu>=1.15.0
+  - tensorflow==1.14.0
+  #- tensorflow-gpu>=1.15.0
   - tqdm
   - imageio
   - notebook
@@ -30,23 +30,24 @@ dependencies:
     - pandas==1.0.1
     - future
     - gym==0.17.0
-    - opencv-python==4.2.0.34
-    - pybullet==2.6.6
-    - qibullet==1.4.0
-    - cvae
+    - opencv-python
+    - pybullet
+    #- qibullet==1.4.0
+    #- cvae
     - scipy
     - 'git+https://github.com/nightrome/cocostuffapi.git#subdirectory=PythonAPI'
     - pillow-SIMD
     - PyQt5
     - commentjson #for generate_dataset
     - bbox
-    - pyrr #dope
-    - pyyaml #dope
+    #- pyrr #dope
+    #- pyyaml #dope
     - jsonmerge
     - open3d-python
     - dill
-    - stable-baselines3[extra]
+    #- stable-baselines3[extra]
     - configargparse
     - stable-baselines
+    - jsonmerge
+    - object2urdf
 prefix: /home/megi/miniconda3/envs/mygym
-
