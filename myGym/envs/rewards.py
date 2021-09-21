@@ -903,7 +903,7 @@ class SwitchReward(DistanceReward):
         # auxiliary variables
         self.offset = None
         self.prev_angle = None
-        self.debug = False
+        self.debug = True
 
         # coefficients used to calculate reward
         self.k_w = 0.4    # coefficient for distance between actual position of robot's gripper and generated line
