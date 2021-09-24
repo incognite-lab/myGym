@@ -48,6 +48,6 @@
 "eval_freq"     :50000,
 "eval_episodes" :30,
 #Saving and logging
-"logdir"    :"trained_models/multi",
+"logdir"    :"trained_models/multi1",
 "record"    :0
 }
