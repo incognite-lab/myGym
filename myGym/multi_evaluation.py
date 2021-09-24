@@ -6,12 +6,12 @@ from sklearn.model_selection import ParameterGrid
 import json
 
 parameters = {
-    "robot_action": ["step", "joints", "joints_gripper"],
+    "robot_action": ["step", "joints", "absolute"],
     "task_type": ["reach", "push", "pnp"],
     "max_episode_steps": [256, 512, 1024]
 }
 parameter_grid = ParameterGrid(parameters)
-configfile = 'configs/train.json'
+configfile = 'configs/multi.json'
 evaluation_results_paths = [None] * len(parameter_grid)
 last_eval_results = {}
 
@@ -30,16 +30,16 @@ def train(params, i):
 if __name__ == '__main__':
     threads = []
     for i, params in enumerate(parameter_grid):
-        train(params.copy(), i)
-        with open(evaluation_results_paths[i]) as f:
-            data = json.load(f)
-        last_eval_results[str(list(params.values()))] = list(data.values())[-1]
-        # thread = threading.Thread(target=train, args=(params, i))
-        # thread.start()
-        # threads.append(thread)
+        #train(params.copy(), i)
+        #with open(evaluation_results_paths[i]) as f:
+        #    data = json.load(f)
+        #last_eval_results[str(list(params.values()))] = list(data.values())[-1]
+        thread = threading.Thread(target=train, args=(params, i))
+        thread.start()
+        threads.append(thread)
 
-    # for thread in threads:
-    #     thread.join()
+    for thread in threads:
+        thread.join()
 
     print(last_eval_results)
     with open("trained_models/multi_evaluation_results.json", 'w') as f:

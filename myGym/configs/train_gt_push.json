@@ -5,8 +5,8 @@
 "engine":"pybullet",
 "render":"opengl",
 "camera":0,
-"gui":1,
-"visualize":1,
+"gui":0,
+"visualize":0,
 "visgym":0,
 #Robot
 "robot":"kuka_push",
@@ -41,12 +41,12 @@
 "algo":"ppo2",
 "max_episode_steps":1024,
 "algo_steps":1024,
-"steps":500000,
+"steps":300000,
 "pretrained_model":null,
 "multiprocessing":false,
 #Evaluation
-"eval_freq":50000,
-"eval_episodes":10,
+"eval_freq":10000,
+"eval_episodes":20,
 #Saving and logging
 "logdir":"trained_models/push",
 "record":0

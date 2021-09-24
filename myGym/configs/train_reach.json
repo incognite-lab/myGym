@@ -41,13 +41,13 @@
 "algo"              :"ppo2",
 "max_episode_steps" :1024,
 "algo_steps"        :1024,
-"steps"             :500000,
+"steps"             :300000,
 "pretrained_model"  :null,
 "multiprocessing"   :false,
 #Evaluation
-"eval_freq"     :50000,
-"eval_episodes" :30,
+"eval_freq"     :10000,
+"eval_episodes" :20,
 #Saving and logging
-"logdir"    :"trained_models/multi",
+"logdir"    :"trained_models/kuka_new",
 "record"    :0
 }
