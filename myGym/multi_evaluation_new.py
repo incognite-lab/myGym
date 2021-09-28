@@ -15,7 +15,8 @@ parser.add_argument("-out", "--output", type=str, help="output file")
 args = parser.parse_args()
 
 parameters = {
-    "robot": ["kuka", "panda"],
+    "robot": ["kuka", "panda",'ur5'],
+    "robot_action": ["step", "joints","absolute"],
     "algo": ["ppo", "ppo2","sac"],
 }
 parameter_grid = ParameterGrid(parameters)
