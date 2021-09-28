@@ -6,10 +6,10 @@
 "render":"opengl",
 "camera":0,
 "gui":0,
-"visualize":1,
+"visualize":0,
 "visgym":0,
 #Robot
-"robot":"panda",
+"robot":"kuka",
 "robot_action":"joints",
 "robot_init":[0.0, 0.3, 0.9],
 #Task
@@ -39,8 +39,8 @@
 #Train
 "train_framework":"tensorflow",
 "algo":"ppo2",
-"max_episode_steps":1024,
-"algo_steps":1024,
+"max_episode_steps":512,
+"algo_steps":512,
 "steps":500000,
 "pretrained_model":null,
 "multiprocessing":false,
