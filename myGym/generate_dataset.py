@@ -497,7 +497,7 @@ if __name__ == "__main__":
         config_path = CONFIG_DEFAULT
         print('No config.json passed in argument. Loading default config: {}'.format(CONFIG_DEFAULT))
     else:
-        config_path = pkg_resources.resource_filename("myGym", sys.argv[1])
+        config_path = sys.argv[1]
     with open(config_path) as file:
         config = commentjson.load(file)
 
