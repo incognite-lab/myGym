@@ -15,9 +15,9 @@ from matplotlib.lines import Line2D
 import operator
 
 currentdir = pkg_resources.resource_filename("myGym", "trained_models")
-algo_1_results_path = os.path.join(currentdir, "multi_evaluation_results_ppo2.json")
-algo_2_results_path = os.path.join(currentdir, "multi_evaluation_results_ppo.json")
-algo_3_results_path = os.path.join(currentdir, "multi_evaluation_results_sac.json")
+algo_1_results_path = os.path.join(currentdir, "multi_reach.json")
+algo_2_results_path = os.path.join(currentdir, "multi_reach.json")
+algo_3_results_path = os.path.join(currentdir, "multi_evaluation_results_ppo.json")
 algo_4_results_path = os.path.join(currentdir, "multi_evaluation_results_td3.json")
 algo_5_results_path = os.path.join(currentdir, "multi_evaluation_results_trpo.json")
 algo_6_results_path = os.path.join(currentdir, "multi_evaluation_results_ddpg.json")
@@ -50,7 +50,7 @@ def plot_algo_results(ax, list_results, label, c):
     w = np.asarray([w_set.index(label) for label in w_labels])
 
     x_labels = [result[1] for result in list_results]
-    x_labels = [x.replace('joints_gripper', 'gripper') for x in x_labels]
+    #x_labels = [x.replace('joints_gripper', 'gripper') for x in x_labels]
     x_set = sorted(set(x_labels), key=x_labels.index)
     x = np.asarray([x_set.index(label) for label in x_labels])
 
@@ -135,34 +135,20 @@ def plot_algo_results(ax, list_results, label, c):
 
 if __name__ == '__main__':
     algo_1_list_results = load_algo_results(algo_1_results_path)
-    algo_2_list_results = load_algo_results(algo_2_results_path)
-    algo_3_list_results = load_algo_results(algo_3_results_path)
-    algo_4_list_results = load_algo_results(algo_4_results_path)
-    algo_5_list_results = load_algo_results(algo_5_results_path)
-    algo_6_list_results = load_algo_results(algo_6_results_path)
-    algo_7_list_results = load_algo_results(algo_7_results_path)
-    algo_8_list_results = load_algo_results(algo_8_results_path)
+    algo_2_list_results = load_algo_results(algo_1_results_path)
 
     fig = plt.figure()
     ax = fig.subplots()    
 
     learnability_ppo2 = plot_algo_results(ax, algo_1_list_results, "ppo2", "r")
-    learnability_ppo = plot_algo_results(ax, algo_2_list_results, "ppo", "g")
-    learnability_sac = plot_algo_results(ax, algo_3_list_results, "sac", "b")
-    #learnability_td3 = plot_algo_results(ax, algo_4_list_results, "td3", "c")
-    learnability_trpo = plot_algo_results(ax, algo_5_list_results, "trpo", "m")
-    #learnability_ddpg = plot_algo_results(ax, algo_6_list_results, "ddpg", "y")
-    learnability_acktr = plot_algo_results(ax, algo_7_list_results, "acktr", "c")
-    #learnability_a2c = plot_algo_results(ax, algo_8_list_results, "a2c", "r")
+    learnability_ppo = plot_algo_results(ax, algo_2_list_results, "ppo2", "g")
+
 
     txt = plt.title('Learnability', fontsize=18)
     txt._x=1.07
     txt._y=1.08
     legend_elements = [Line2D([0], [1], linewidth=2, color='r', label='PPO2, {:.2f} %'.format(learnability_ppo2)),
-                       Line2D([0], [1], linewidth=2, color='m', label='TRPO, {:.2f} %'.format(learnability_trpo)),
-                       Line2D([0], [1], linewidth=2, color='c', label='ACKTR, {:.2f} %'.format(learnability_acktr)),
-                       Line2D([0], [1], linewidth=2, color='b', label='SAC, {:.2f} %'.format(learnability_sac)),
-                       Line2D([0], [1], linewidth=2, color='g', label='PPO, {:.2f} %'.format(learnability_ppo))]
+                       Line2D([0], [1], linewidth=2, color='m', label='TRPO, {:.2f} %'.format(learnability_ppo))]
                        #Line2D([0], [1], linewidth=2, color='c', label='TD3, {:.2f} %'.format(learnability_td3)),
                        #Line2D([0], [1], linewidth=2, color='y', label='DDPG, {:.2f} %'.format(learnability_ddpg)),
                        #Line2D([0], [1], linewidth=2, color='r', label='A2C, {:.2f} %'.format(learnability_a2c))]
