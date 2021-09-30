@@ -25,9 +25,9 @@ def merge_jsons(dir, clean_files = True):
                 a = json.load(f)
                 annot = merger.merge(annot, a)
             if clean_files:
-                os.remove(os.path.join(args.d, i))
+                os.remove(os.path.join(dir, i))
 
-    with open(os.path.join(args.d, "annotations.json"), "w") as f:
+    with open(os.path.join(dir, "annotations.json"), "w") as f:
         json.dump(annot, f)
 
 if __name__ == "__main__":
