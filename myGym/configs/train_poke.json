@@ -5,13 +5,13 @@
 "engine"   :"pybullet",
 "render"   :"opengl",
 "camera"   :3,
-"gui"      :1,
-"visualize":1,
+"gui"      :0,
+"visualize":0,
 "visgym"   :0,
 #Robot
 "robot"       :"kuka",
 "robot_action":"step",
-"robot_init"  :[0.0, 0.55, 0.2],
+"robot_init"  :[0.0, 0.5, 0.2],
 #Task
 "task_type"           :"poke",
 "num_subgoals"        : 0,
@@ -39,13 +39,13 @@
 "diagram"           :[0, 0],
 "max_episode_steps":512,
 "algo_steps"       :512,
-"steps"            :500000,
+"steps"            :300000,
 "pretrained_model" :null,
 "multiprocessing"  :false,
 #Evaluation
-"eval_freq"    :50000,
-"eval_episodes":50,
+"eval_freq"    :10000,
+"eval_episodes":100,
 #Saving and logging
-"logdir": "/home/michal/code/github/myGym/myGym/trained_models/poke/", 
+"logdir": "/home/michal/code/myGym/myGym/trained_models/poke/", 
 "record":0
 }
