@@ -17,6 +17,8 @@ import pybullet as p
 from bbox import BBox3D
 from myGym.envs.wrappers import RandomizedEnvWrapper
 import pkg_resources
+from merge_coco_annotations import merge_jsons
+import shutil
 
 # config, specify here or pass as an input argument
 CONFIG_DEFAULT = pkg_resources.resource_filename("myGym", 'configs/dataset_coco.json')
@@ -112,24 +114,28 @@ class GeneratorCoco: #COCO
         Returns:
             :return env: (object) Environment for dataset generation
         """
-        env = RandomizedEnvWrapper(env=gym.make(config['env_name'],
-            robot = config['robot'],
-            render_on = True,
-            gui_on = config['gui_on'],
-            show_bounding_boxes_gui = config['show_bounding_boxes_gui'],
-            changing_light_gui = config['changing_light_gui'],
-            shadows_on = config['shadows_on'],
-            color_dict = config['color_dict'],
-            object_sampling_area = config['object_sampling_area'],
-            num_objects_range = config['num_objects_range'],
-            used_objects = used_objects,
-            active_cameras = config['active_cameras'],
-            camera_resolution = config['camera_resolution'],
-            renderer=p.ER_BULLET_HARDWARE_OPENGL,
-            workspace = config['workspace'],
-            visgym = config['visgym'],
-            dataset = True,
-            ),
+        arguments = {
+            'id': config['env_name'],
+            'robot': config['robot'],
+            'render_on': True,
+            'gui_on': config['gui_on'],
+            'show_bounding_boxes_gui': config['show_bounding_boxes_gui'],
+            'changing_light_gui': config['changing_light_gui'],
+            'shadows_on': config['shadows_on'],
+            'color_dict': config['color_dict'],
+            'object_sampling_area': config['object_sampling_area'],
+            'num_objects_range': config['num_objects_range'],
+            'used_objects': used_objects,
+            'active_cameras': config['active_cameras'],
+            'camera_resolution': config['camera_resolution'],
+            'renderer': p.ER_BULLET_HARDWARE_OPENGL,
+            'workspace': config['workspace'],
+            'visgym': config['visgym'],
+            'dataset': True,
+        }
+        if 'objects_dir_path' in config:
+            arguments['objects_dir_path'] = config['objects_dir_path']
+        env = RandomizedEnvWrapper(env=gym.make(**arguments),
             config_path = config['output_folder']+'/config_dataset.json')
         p.setGravity(0, 0, -9.81)
         return env
@@ -506,10 +512,12 @@ if __name__ == "__main__":
         raise Exception("dataset_type in config: use one of 'coco', 'dope', 'vae'!")
 
     #prepare directories
-    config['output_test_folder'] = config['output_folder'] + '/test'
-    config['output_train_folder'] = config['output_folder'] + '/train'
+    config['output_test_folder'] = config['output_folder'] + '/images/test'
+    config['output_train_folder'] = config['output_folder'] + '/images/train'
+    config['output_annotations_folder'] = config['output_folder'] + '/annotations'
     os.makedirs(config["output_test_folder"], exist_ok=True)
     os.makedirs(config["output_train_folder"], exist_ok=True)
+    os.makedirs(config['output_annotations_folder'], exist_ok=True)
 
     #define objects to appear in the env, add colors
     config['used_class_names'] = dict([x[1:3] for x in config['used_class_names_quantity']])
@@ -629,4 +637,9 @@ if __name__ == "__main__":
             data_train, data_test = generator.init_data()
 
     # end
+    print('Merging annotations...')
+    merge_jsons(config['output_train_folder'], True)
+    merge_jsons(config['output_test_folder'], True)
+    shutil.move(os.path.join(config['output_train_folder'], 'annotations.json'), os.path.join(config['output_annotations_folder'], 'train.json'))
+    shutil.move(os.path.join(config['output_test_folder'], 'annotations.json'), os.path.join(config['output_annotations_folder'], 'test.json'))
     print('DATASET FINISHED')
