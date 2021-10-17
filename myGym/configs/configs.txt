@@ -1,0 +1,6 @@
+dual_pick_and_place - pick and place se dvěma neuronkama, gripper není ovládaný neuronkou
+gripper - pick and place se třema neuronkama, gripper JE ovládaný neuronkou
+pick_and_place - consequential pick and place, vlastně stejný, jako gripper.json, ale gripper není ovládaný neuronkou
+pretrain* - pro trénování neuronek pro subtasky pick and place jednotlivě
+train_dual_reach - reach se dvěma neuronkama, v průběhu tasku jsou náhodně střídány
+train_dual - poke se dvěma neuronkama (funguje pořádně jenom pro statický cíl a puk, pokud se mění epizodu od epizody, max success rate 50%)
