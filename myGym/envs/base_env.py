@@ -224,6 +224,8 @@ class BaseEnv(gym.Env):
         Parameters:
             :param info_dict: (dict) Extra info
         """
+        from myGym.envs.rewards import DualPoke, ConsequentialPickAndPlace, DualPickAndPlace, GripperPickAndPlace
+
         if self.episode_failed:
             episode_status = "FAILURE"
         else:
@@ -235,10 +237,20 @@ class BaseEnv(gym.Env):
         print("Episode status: " + episode_status)
         print("Episode info: " + self.episode_info)
         print("Episode reward: " + str(self.episode_reward))
-        #print("Pick reward:    " + str(self.reward.pick_reward))
-        #print("Move reward:    " + str(self.reward.move_reward))
-        #print("place reward:   " + str(self.reward.place_reward))
-        # print("Putter reward:   " + str(self.reward.placer_reward))
+        if type(self.reward) is GripperPickAndPlace:
+            print("Pick reward:    " + str(self.reward.pick_reward))
+            print("Move reward:    " + str(self.reward.move_reward))
+            print("place reward:   " + str(self.reward.place_reward))
+        if type(self.reward) is ConsequentialPickAndPlace:
+            print("find reward:    " + str(self.reward.finder_reward))
+            print("move reward:    " + str(self.reward.mover_reward))
+            print("place reward:   " + str(self.reward.placer_reward))
+        if type(self.reward) is DualPickAndPlace:
+            print("find reward:     " + str(self.reward.finder_reward))
+            print("place reward:    " + str(self.reward.placer_reward))
+        if type(self.reward) is DualPoke:
+            print("aim reward:     " + str(self.reward.aim_reward))
+            print("poke reward:    " + str(self.reward.poke_reward))
         print("Last step reward: " + str(self.reward.rewards_history[-1]))
         print("#---------------------------------#")
 

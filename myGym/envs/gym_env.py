@@ -2,7 +2,7 @@ from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReachReward, DualPoke, PickAndPlace, ConsequentialPickAndPlace, DualPickAndPlace, Halt, GripperPickAndPlace
+from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReachReward, DualPoke, ConsequentialPickAndPlace, DualPickAndPlace, Halt, GripperPickAndPlace
 import pybullet
 import time
 import numpy as np
@@ -156,12 +156,8 @@ class GymEnv(CameraEnv):
                 self.reward = DualPoke(env=self, task=self.task)
             else:
                 self.reward = PokeReachReward(env=self, task=self.task)
-
-            # self.reward = DualPoke(env=self, task=self.task)
-            # self.reward = PokeVectorReward(env=self, task=self.task)
-            # self.reward = PokeReward(env=self, task=self.task)
         elif reward == 'pnp':
-            self.reward = PickAndPlace(env=self, task=self.task)
+            self.reward = ConsequentialPickAndPlace(env=self, task=self.task)
         elif reward == 'cpnp':
             self.reward = ConsequentialPickAndPlace(env=self, task=self.task)
         elif reward == '2pnp':

@@ -66,3 +66,11 @@ Training
  .. figure:: ../../../myGym/images/workspaces/pick_and_place.gif
    :width: 400
    :alt: trained_model
+
+* To train XXX% successfull pick and place we recommend 3000000 steps with 3 networks and 1000000 steps with 3 networks when gripper IS part of NN astions space.
+
+ *Result of one hundred thousand steps long training:*
+
+ .. figure:: ../../../myGym/images/workspaces/pick_and_place.gif
+   :width: 400
+   :alt: trained_model

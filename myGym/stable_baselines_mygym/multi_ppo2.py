@@ -176,8 +176,7 @@ class Multi(ActorCriticRLModel):
 
         return policy_loss, value_loss, policy_entropy, approxkl, clipfrac
 
-    def learn(self, total_timesteps, callback=None, log_interval=1, tb_log_name="Dual",
-              reset_num_timesteps=True):
+    def learn(self, total_timesteps, callback=None, log_interval=1, tb_log_name="Dual", reset_num_timesteps=True):
         # Transform to callable if needed
         self.learning_rate  = get_schedule_fn(self.learning_rate)
         self.cliprange      = get_schedule_fn(self.cliprange)
@@ -217,14 +216,11 @@ class Multi(ActorCriticRLModel):
                 if not self.runner.continue_training:
                     break
 
-
                 # Unpack
                 i = 0
                 for rollout in rollouts:
                     obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward = rollout
                     model = self.models[i]
-                    # calc = len(true_reward)
-                    # model.n_batch = calc
 
                     if model.n_batch == 0:
                         b = 0
@@ -327,15 +323,11 @@ class Multi(ActorCriticRLModel):
             file that can not be deserialized.
         :param kwargs: extra arguments to change the model when loading
         """
-        # print(load_path)
-        # load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
         load_path = load_path.split("/")
         load_path = load_path[:-1]
         path = "/".join(load_path)
 
-        print(path)
         import commentjson
-
         with open(path + "/train.json", "r") as f:
             json = commentjson.load(f)
 
@@ -343,35 +335,29 @@ class Multi(ActorCriticRLModel):
         print(models)
         load = [] # data, params
         for i in range(models):
-            # load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
             load_path = path + "/submodel_" + str(i) + "/best_model.zip"
             load.append(cls._load_from_file(load_path, custom_objects=custom_objects))
 
         data = load[0][0]
 
         if 'policy_kwargs' in kwargs and kwargs['policy_kwargs'] != data['policy_kwargs']:
-            raise ValueError("The specified policy kwargs do not equal the stored policy kwargs. "
-                             "Stored kwargs: {}, specified kwargs: {}".format(data['policy_kwargs'],
-                                                                              kwargs['policy_kwargs']))
+            raise ValueError("The specified policy kwargs do not equal the stored policy kwargs. Stored kwargs: {}, specified kwargs: {}".format(data['policy_kwargs'], kwargs['policy_kwargs']))
 
         model = cls(policy=data["policy"], env=None, _init_setup_model=False)  # pytype: disable=not-instantiable
         model.__dict__.update(data)
         model.__dict__.update(kwargs)
         if env:
             model.env = env
-        # model.set_env(env)
-        print(path)
         model.tensorboard_log = path
         model.diagram = json["diagram"]
         model.models_num = models
         model.setup_model()
+
         i = 0
         for submodel in model.models:
             submodel.load_parameters(load[i][1])
             i += 1
 
-        print(model.models)
-        print(model.models_num)
         return model
 
     def predict(self, observation, state=None, mask=None, deterministic=False):
@@ -403,11 +389,8 @@ class Multi(ActorCriticRLModel):
         # based on obs, decide which model should be used
         try: # in training
             submodel_id = self.env.envs[0].env.env.reward.decide(observation)
-            # if self.models[submodel_id].n_batch > ((self.n_steps/2)-1):
-            #     submodel_id = (submodel_id+1)%self.models_num
         except:
-            submodel_id = self.env.reward.decide(observation) # with unitialized env
-        
+            submodel_id = self.env.reward.decide(observation) # with unitialized env (for example when evaluating)
 
         return submodel_id
 
@@ -429,8 +412,7 @@ class SubModel(Multi):
 
         with SetVerbosity(parent.verbose):
 
-            assert issubclass(parent.policy, ActorCriticPolicy), "Error: the input policy for the PPO2 model must be " \
-                                                               "an instance of common.policies.ActorCriticPolicy."
+            assert issubclass(parent.policy, ActorCriticPolicy), "Error: the input policy for the PPO2 model must be an instance of common.policies.ActorCriticPolicy."
 
             self.n_batch = parent.n_envs * parent.n_steps
 
@@ -706,11 +688,9 @@ class Runner(AbstractEnvRunner):
             mb_advs      = np.zeros_like(mb_rewards) # 0s long as rewards
             true_reward  = np.copy(mb_rewards)   # true rewards list
             last_gae_lam = 0
-            # count = self.n_steps
             count = len(mb_rewards) # number of steps in this minibatch
             self.models[i].episode_reward = sum(true_reward)
-            #print()
-            #print(count)
+
             for step in reversed(range(count)):
                 if step == count - 1:
                     nextnonterminal = 1.0 - self.dones
@@ -725,12 +705,13 @@ class Runner(AbstractEnvRunner):
             try:            
                 mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward = map(swap_and_flatten, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward))
             except:
-                #print("one model got 0 steps")
+                # this model got 0 steps, dont train him
                 pass
 
             finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward
             finished_minibatches.append(finished_minibatch)
             i+=1
+
         return finished_minibatches
 
         return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward

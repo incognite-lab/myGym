@@ -6,7 +6,7 @@
     "render"    :"opengl",
     "camera"    :1,
     "gui"       :1,
-    "visualize" :0,
+    "visualize" :1,
     "visgym"    :1,
     #Robot
     "robot"         :"kuka",
@@ -42,8 +42,8 @@
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
-    "eval_freq"     :10000,
-    "eval_episodes" :20,
+    "eval_freq"     :30000,
+    "eval_episodes" :1,
     #Saving and logging
     "logdir"    :"trained_models/shatered/PNP/gripper",
     "record"    :0
