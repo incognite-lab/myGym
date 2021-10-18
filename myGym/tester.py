@@ -10,9 +10,11 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-cfg", "--config", type=str, default="./configs/tester.json", help="config file for evaluation")
-parser.add_argument("-rob", "--robot", type=str, default="kuka", help="what robots to test")
-parser.add_argument("-ra", "--robotaction", type=str, default="step", help="what robots to test")
-parser.add_argument("-algo", "--algorithms", type=str, default="ppo2", help="what robots to test")
+parser.add_argument("-rob", "--robot", type=str, default="kuka", nargs='*', help="what robots to test")
+parser.add_argument("-ra", "--robotaction", type=str, default="step", nargs='*', help="what actions to test")
+parser.add_argument("-frame", "--framework", default=["tensorflow"], nargs='*', help="what algos to test")
+parser.add_argument("-algo", "--algorithms", default=["ppo", "ppo2","sac", "acktr", "ddpg"], nargs='*', help="what algos to test")
+parser.add_argument("-thread", "--threaded", type=bool, default="True", help="what robots to test")
 parser.add_argument("-out", "--output", type=str, default="./trained_models/tester.json", help="output file")
 
 args = parser.parse_args()
@@ -20,12 +22,13 @@ args = parser.parse_args()
 parameters = {
     "robot": [args.robot],
     "robot_action": [args.robotaction],
-    "algo": [args.algorithms],
+    "algo": args.algorithms,
+    "train_framework": args.framework,
 }
 parameter_grid = ParameterGrid(parameters)
 configfile = args.config
 evaluation_results_paths = [None] * len(parameter_grid)
-threaded = True
+threaded = args.threaded
 last_eval_results = {}
 
 

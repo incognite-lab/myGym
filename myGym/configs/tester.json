@@ -41,12 +41,12 @@
 "algo":"ppo2",
 "max_episode_steps":512,
 "algo_steps":512,
-"steps":21000,
+"steps":200000,
 "pretrained_model":null,
 "multiprocessing":false,
 #Evaluation
-"eval_freq":10000,
-"eval_episodes":5,
+"eval_freq":50000,
+"eval_episodes":10,
 #Saving and logging
 "logdir":"trained_models/tester",
 "record":0
