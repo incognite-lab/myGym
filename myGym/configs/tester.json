@@ -19,7 +19,7 @@
 "used_objects":null,
 "object_sampling_area":[-0.7, 0.7, 0.2, 0.8, 0.1, 0.1],
 #Distractor
-"distractors"                   : ["sphere"],
+"distractors"                   : null,
 "distractor_moveable"           : 1,
 "distractor_constant_speed"     : 0,
 "distractor_movement_dimensions": 3,
@@ -39,13 +39,13 @@
 #Train
 "train_framework":"tensorflow",
 "algo":"ppo2",
-"max_episode_steps":512,
-"algo_steps":512,
-"steps":200000,
+"max_episode_steps":256,
+"algo_steps":256,
+"steps":20000,
 "pretrained_model":null,
 "multiprocessing":false,
 #Evaluation
-"eval_freq":50000,
+"eval_freq":21000,
 "eval_episodes":10,
 #Saving and logging
 "logdir":"trained_models/tester",
