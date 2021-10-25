@@ -13,8 +13,8 @@ parser.add_argument("-cfg", "--config", type=str, default="./configs/tester.json
 parser.add_argument("-rob", "--robot", type=str, default="kuka", nargs='*', help="what robots to test")
 parser.add_argument("-ra", "--robotaction", type=str, default="step", nargs='*', help="what actions to test")
 parser.add_argument("-frame", "--framework", default=["tensorflow"], nargs='*', help="what algos to test")
-parser.add_argument("-algo", "--algorithms", default=["ppo", "ppo2","sac", "acktr", "ddpg"], nargs='*', help="what algos to test")
-parser.add_argument("-thread", "--threaded", type=bool, default="True", help="what robots to test")
+parser.add_argument("-algo", "--algorithms", default=["ppo", "ppo2", "sac", "acktr", "ddpg", "td3", "trpo", "a2c", "myalgo"], nargs='*', help="what algos to test")
+parser.add_argument("-thread", "--threaded", type=bool, default="True", help="run in threads")
 parser.add_argument("-out", "--output", type=str, default="./trained_models/tester.json", help="output file")
 
 args = parser.parse_args()

@@ -39,15 +39,16 @@
 #Train
 "train_framework":"tensorflow",
 "algo":"ppo2",
+"diagram"           :[0, 0],
 "max_episode_steps":256,
 "algo_steps":256,
-"steps":200000,
+"steps":50000,
 "pretrained_model":null,
 "multiprocessing":false,
 #Evaluation
-"eval_freq":199000,
-"eval_episodes":20,
+"eval_freq":101000,
+"eval_episodes":10,
 #Saving and logging
-"logdir":"trained_models/tester",
+"logdir":"trained_models/check",
 "record":0
 }
