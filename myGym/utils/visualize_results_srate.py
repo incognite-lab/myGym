@@ -12,9 +12,9 @@ import re
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-pth", default='./trained_models/')
-    parser.add_argument("-task", default='press')
-    parser.add_argument("-common", default='table_kuka_joints_gt')
-    parser.add_argument("-algos", default=['ppo', 'ppo2', 'sac',], nargs='*')
+    parser.add_argument("-task", default='reach')
+    parser.add_argument("-common", default='table_kuka_step_gt')
+    parser.add_argument("-algos", default=["ppo", "ppo2", "sac", "acktr", "ddpg", "td3", "trpo", "a2c", "myalgo"], nargs='*')
     parser.add_argument("-xlabel", type=int, default=1)
     args = parser.parse_args()
 
@@ -196,7 +196,7 @@ def main():
     	plt.legend(leg,loc=8)
     plt.ylim(-3, 103)
     plt.tight_layout()
-    plt.savefig('{}_success_rates.png'.format(args.task))
+    plt.savefig('./trained_models/{}_success_rates.png'.format(args.task))
 
 if __name__ == "__main__":
     main()
