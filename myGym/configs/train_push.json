@@ -1,0 +1,54 @@
+{
+#Environment
+"env_name":"Gym-v0",
+"workspace":"table",
+"engine":"pybullet",
+"render":"opengl",
+"camera":0,
+"gui":0,
+"visualize":0,
+"visgym":0,
+#Robot
+"robot":"kuka_push",
+"robot_action":"step",
+"robot_init":[0.0, 0.5, 0.5],
+#Task
+"task_type":"push",
+"num_subgoals":0,
+"task_objects":["cube_holes", "pyramid"],
+"used_objects":null,
+"object_sampling_area":[-0.3, 0.3, 0.7, 1.0, 0.05, 0.05],
+#Distractor
+"distractors"                   : [null],
+"distractor_moveable"           : 1,
+"distractor_constant_speed"     : 0,
+"distractor_movement_dimensions": 3,
+"distractor_movement_endpoints" : [-0.3, 0.3, 0.4, 0.7, 0.1, 0.3],
+"observed_links_num"            : 5,
+#Coefficients
+"coefficient_kw": 0,
+"coefficient_kd": 0,
+"coefficient_ka": 0,
+#Reward
+"reward_type":"gt",
+"reward":"distance",
+"distance_type":"euclidean",
+"vae_path":null,
+"yolact_path":null,
+"yolact_config":null,
+#Train
+"train_framework":"tensorflow",
+"algo":"ppo2",
+"diagram"           :[0, 0],
+"max_episode_steps":1024,
+"algo_steps":1024,
+"steps":200000,
+"pretrained_model":null,
+"multiprocessing":false,
+#Evaluation
+"eval_freq":20000,
+"eval_episodes":20,
+#Saving and logging
+"logdir":"trained_models/push",
+"record":0
+}
