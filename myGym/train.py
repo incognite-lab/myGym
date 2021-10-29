@@ -51,7 +51,10 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
     plt.savefig(os.path.join(model_logdir, model_name) + '_distance_results.png')
     plt.close()
     plt.close()
-    results_plotter.plot_curves([(np.arange(len(env.unwrapped.episode_final_distance)),np.asarray(env.unwrapped.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
+    if isinstance(env, HERGoalEnvWrapper):
+        results_plotter.plot_curves([(np.arange(len(env.env.episode_final_distance)),np.asarray(env.env.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
+    else:
+        results_plotter.plot_curves([(np.arange(len(env.unwrapped.episode_final_distance)),np.asarray(env.unwrapped.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
     plt.gcf().set_size_inches(8, 6)
     plt.ylabel("Step Distances")
     plt.savefig(os.path.join(model_logdir, model_name) + "_final_distance_results.png")
@@ -65,7 +68,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
         env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                          "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
                          "robot_action": arg_dict["robot_action"], "task_type": arg_dict["task_type"], "num_subgoals": arg_dict["num_subgoals"],
-                         "task_objects":arg_dict["task_objects"], "distractors":arg_dict["distractors"], 
+                         "task_objects":arg_dict["task_objects"], "distractors":arg_dict["distractors"],
                          "distractor_moveable":arg_dict["distractor_moveable"],
                          "distractor_constant_speed":arg_dict["distractor_constant_speed"],
                          "distractor_movement_dimensions":arg_dict["distractor_movement_dimensions"],
@@ -115,7 +118,7 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                           "td3": {"tensorflow": [TD3_T, (MlpPolicyTD3, env), {"verbose": 1, "tensorboard_log": model_logdir}],},
                           "acktr": {"tensorflow": [ACKTR_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "trpo": {"tensorflow": [TRPO_T, (MlpPolicy, env), {"verbose": 1, "tensorboard_log": model_logdir}]},
-                          "gail": {"tensorflow": [SAC_T, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]},
+                          "gail": {"tensorflow": [GAIL_T, (MlpPolicy, env), {"verbose": 1, "tensorboard_log": model_logdir}]},
                           "a2c":    {"tensorflow": [A2C_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}],},
                           "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "dual":   {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]}}
