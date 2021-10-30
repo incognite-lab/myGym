@@ -196,7 +196,7 @@ def main():
     	plt.legend(leg,loc=8)
     plt.ylim(-3, 103)
     plt.tight_layout()
-    plt.savefig('./trained_models/{}_success_rates.png'.format(args.task))
+    plt.savefig('./trained_models/{}_{}_success_rates.png'.format(args.task, args.common))
 
 if __name__ == "__main__":
     main()
