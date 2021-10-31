@@ -12,9 +12,9 @@ watching the scene from the back, front, left, right and top.
 | Name           | Type          | Suitable tasks | Parameter      |
 |                |               |                | value          |
 +================+===============+================+================+
-| Tabledesk      | manipulation  | Reach, Push,   | table          |
-|                |               | Pick, Place,   |                |
-|                |               | PicknPlace     |                |
+| Tabledesk      | manipulation  | Reach,Press,   | table          |
+|                |               | Switch,Turn,   |                |
+|                |               | Push, PNP      |                |
 +----------------+---------------+----------------+----------------+
 | Drawer         | manipulation  | Reach, Pick,   | drawer         |
 |                |               | PicknPlace     |                |
