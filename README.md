@@ -254,9 +254,9 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 
 | Name  |Type| Suitable tasks | Parameter value |
 |---|---|---|---|
-| Tabledesk | manipulation  | Reach, Push, Pick, Place, PicknPlace | table |
-| Drawer | manipulation  | Reach, Pick, PicknPlace  | drawer |
-| Fridge | manipulation  | Reach, Push, Open, Close, Pick | fridge |
+| Tabledesk | manipulation  | Reach,Press, Switch, Turn, PicknPlace | table |
+| Drawer | manipulation  | Pick, Place, PicknPlace  | drawer |
+| Fridge | manipulation  | Push, Open, Close, Pick | fridge |
 | Baskets | manipulation  | Throw, Hit | baskets |
 | Darts | manipulation  | Throw, Hit | darts |
 | Football | manipulation  | Throw, Hit | football |
