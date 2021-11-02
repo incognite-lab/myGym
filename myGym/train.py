@@ -23,6 +23,9 @@ except:
 
 from myGym.stable_baselines_mygym.algo import MyAlgo
 from myGym.stable_baselines_mygym.policies import MyMlpPolicy
+from myGym.stable_baselines_mygym.TorchPPO import TorchPPO
+from myGym.stable_baselines_mygym.TorchPPOpolicies import TorchMlpPolicy
+
 
 from stable_baselines.gail import ExpertDataset, generate_expert_traj
 from stable_baselines.sac.policies import MlpPolicy as MlpPolicySAC
@@ -120,6 +123,7 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                           "trpo": {"tensorflow": [TRPO_T, (MlpPolicy, env), {"verbose": 1, "tensorboard_log": model_logdir}]},
                           "gail": {"tensorflow": [GAIL_T, (MlpPolicy, env), {"verbose": 1, "tensorboard_log": model_logdir}]},
                           "a2c":    {"tensorflow": [A2C_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}],},
+                          "torchppo": {"tensorflow": [TorchPPO, (TorchMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "dual":   {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]}}
 
