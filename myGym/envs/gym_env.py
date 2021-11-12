@@ -523,6 +523,7 @@ class GymEnv(CameraEnv):
         env_objects = []
         objects_filenames = self._get_random_urdf_filenames(n, object_names)
         for object_filename in objects_filenames:
+            fixed = True
             if random_pos:
                 fixed = False
                 borders = self.objects_area_boarders
