@@ -42,7 +42,7 @@ class TaskModule():
         self.stored_observation = []
         self.fig = None
         self.threshold = 0.1 # distance threshold for successful task completion
-        self.obsdim = (len(env.task_objects_names) + 1) * 3
+        self.obsdim = (len(env.task_objects_dict)*2 + 1) * 3
         self.angle = None
         self.prev_angle = None
         self.pressed = None

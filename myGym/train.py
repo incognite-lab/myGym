@@ -70,7 +70,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
     if arg_dict["engine"] == "pybullet":
         env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                          "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
-                         "robot_action": arg_dict["robot_action"], "task_type": arg_dict["task_type"], "num_subgoals": arg_dict["num_subgoals"],
+                         "robot_action": arg_dict["robot_action"], "task_type": arg_dict["task_type"], "num_subgoals": len(arg_dict["task_objects"]),
                          "task_objects":arg_dict["task_objects"], "distractors":arg_dict["distractors"],
                          "distractor_moveable":arg_dict["distractor_moveable"],
                          "distractor_constant_speed":arg_dict["distractor_constant_speed"],
@@ -82,7 +82,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                          "observed_links_num":arg_dict["observed_links_num"],
                          "reward_type": arg_dict["reward_type"],
                          "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
-                         "object_sampling_area": arg_dict["object_sampling_area"], "active_cameras": arg_dict["camera"],
+                         "active_cameras": arg_dict["camera"],
                          "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
                          "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                          "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"]}

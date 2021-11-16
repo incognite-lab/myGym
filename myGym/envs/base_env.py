@@ -241,6 +241,19 @@ class BaseEnv(gym.Env):
         for key, value in info_dict.items():
             print(key + ": " + str(value))
 
+    def _get_urdf_filename(self, obj_name):
+        """
+        Return a matching URDF from directory with objects URDFs
+        Parameters:
+            :param obj_name: (string) Name of the object
+        Returns:
+            :return urdf: (string)
+        """
+        for file in self.all_objects_filenames:
+            if '/' + obj_name + '.' in file:
+                return file
+        raise Exception('Could not match the object name {} with its urdf path'.format(obj_name))
+
     def _get_random_urdf_filenames(self, n, used_objects=None):
         """
         Sample random URDF files from directory with objects URDFs
@@ -251,29 +264,24 @@ class BaseEnv(gym.Env):
         Returns:
             :return selected_objects_filenames: (list)
         """
-        if used_objects or (self.all_objects_filenames is None):
+        all_objects_filenames = self.all_objects_filenames
+        if used_objects:
             all_objects_filenames = []
             for object_name in used_objects:
-                if "virtual" in object_name:
-                    all_objects_filenames.append(object_name)
-                for file in self.all_objects_filenames:
-                    if '/'+object_name+'.' in file:
-                        all_objects_filenames.append(file)
-        else:
-          # uses self.all_objects_filenames
-          pass
-        assert all_objects_filenames is not None
+                if "null" in object_name:
+                    all_objects_filenames.append("goal")
+                all_objects_filenames.append(self._get_urdf_filename(object_name))
+        assert all_objects_filenames is not [], "Could not find any urdf among the objects: {}".format(used_objects)
 
         selected_objects_filenames = []
-        total_num_objects = len(all_objects_filenames)
-        if (n <= total_num_objects):
+        if (n <= len(all_objects_filenames)):
             selected_objects = np.random.choice(
-                np.arange(total_num_objects), n, replace=True)
+                np.arange(len(all_objects_filenames)), n, replace=True)
         else:
-            selected_objects = list(np.arange(total_num_objects))
-            remain = n - total_num_objects
+            selected_objects = list(np.arange(len(all_objects_filenames)))
+            remain = n - len(all_objects_filenames)
             selected_objects += list(np.random.choice(
-                np.arange(total_num_objects), remain))
+                np.arange(len(all_objects_filenames)), remain))
         for object_id in selected_objects:
             selected_objects_filenames.append(all_objects_filenames[object_id])
         return selected_objects_filenames
