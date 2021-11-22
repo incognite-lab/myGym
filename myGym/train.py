@@ -71,7 +71,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
         env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                          "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
                          "robot_action": arg_dict["robot_action"], "task_type": arg_dict["task_type"], "num_subgoals": len(arg_dict["task_objects"]),
-                         "task_objects":arg_dict["task_objects"], "distractors":arg_dict["distractors"],
+                         "task_objects":arg_dict["task_objects"], "observation":arg_dict["observation"], "distractors":arg_dict["distractors"],
                          "distractor_moveable":arg_dict["distractor_moveable"],
                          "distractor_constant_speed":arg_dict["distractor_constant_speed"],
                          "distractor_movement_dimensions":arg_dict["distractor_movement_dimensions"],
@@ -80,7 +80,6 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                          "coefficient_kw":arg_dict["coefficient_kw"],
                          "coefficient_ka":arg_dict["coefficient_ka"],
                          "observed_links_num":arg_dict["observed_links_num"],
-                         "reward_type": arg_dict["reward_type"],
                          "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
                          "active_cameras": arg_dict["camera"],
                          "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
@@ -277,7 +276,7 @@ def main():
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = pkg_resources.resource_filename("myGym", arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
-    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["task_type"],arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["reward_type"],arg_dict["algo"])))
+    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["task_type"],arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["algo"])))
     model_logdir = model_logdir_ori
     add = 2
     while True:

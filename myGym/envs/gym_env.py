@@ -4,12 +4,9 @@ from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
 from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward, SwitchReward, ButtonReward, TurnReward
 import pybullet
-import time
+from collections import ChainMap
 import numpy as np
-import math
 from gym import spaces
-import os
-import inspect
 import random
 import pkg_resources
 currentdir = pkg_resources.resource_filename("myGym", "envs")
@@ -61,6 +58,7 @@ class GymEnv(CameraEnv):
                  object_sampling_area=None,
                  dimension_velocity=0.05,
                  used_objects=None,
+                 observation={},
                  action_repeat=1,
                  color_dict=None,
                  robot='kuka',
@@ -118,13 +116,11 @@ class GymEnv(CameraEnv):
         if dataset:
             task_objects = []
         self.task_objects_dict     = task_objects
-        self.current_task = 0
         self.task_objects = []
         self.env_objects = []
         self.has_distractor         = False if distractors == None else True
         self.distractors            = distractors
 
-        self.reward_type            = reward_type
         self.distance_type          = distance_type
 
         self.coefficient_kd = coefficient_kd
@@ -133,8 +129,8 @@ class GymEnv(CameraEnv):
 
         self.task = t.TaskModule(task_type=self.task_type,
                                  num_subgoals=num_subgoals,
+                                 observation=observation,
                                  task_objects=self.task_objects,
-                                 reward_type=self.reward_type,
                                  vae_path=vae_path,
                                  yolact_path=yolact_path,
                                  yolact_config=yolact_config,
@@ -273,7 +269,7 @@ class GymEnv(CameraEnv):
             pkg_resources.resource_filename("myGym", "/envs/rooms/collision/"+self.workspace_dict[self.workspace]['urdf']),
                                             transform['position'],self.p.getQuaternionFromEuler(transform['orientation']),useFixedBase=True, useMaximalCoordinates=True), self.workspace)
         # Add textures
-        if self.task.reward_type != "2dvu":
+        if self.task.vision_src != "vae":
              if self.workspace_dict[self.workspace]['texture'] is not None:
                  workspace_texture_id = self.p.loadTexture(
                      pkg_resources.resource_filename("myGym", "/envs/textures/"+self.workspace_dict[self.workspace]['texture']))
@@ -320,9 +316,6 @@ class GymEnv(CameraEnv):
                                                   "desired_goal": spaces.Box(low=-10, high=10, shape=(goaldim,))})
         else:
             observationDim = self.task.obsdim
-
-            if self.has_distractor:
-                observationDim = (len(self.task_objects_names) + self.observed_links_num + len(self.distractors) + 1) * 3
 
             observation_high = np.array([100] * observationDim)
             self.observation_space = spaces.Box(-observation_high,
@@ -373,21 +366,29 @@ class GymEnv(CameraEnv):
             :return self._observation: (list) Observation data of the environment
         """
         super().reset(hard=hard)
-        self.env_objects = self._randomly_place_objects(self.used_objects)
-        self.task_objects = self._randomly_place_objects(self.task_objects_dict[self.current_task])
+        self.env_objects = {"env_objects":self._randomly_place_objects(self.used_objects)}
+        self.task_objects = self._randomly_place_objects(self.task_objects_dict[self.task.current_task])
+        self.task_objects = dict(ChainMap(*self.task_objects))
 
         if self.has_distractor:
+            distrs = []
             for distractor in self.distractors:
-                self.task_objects.append(self.dist.place_distractor(distractor, self.p))
+                distrs.append(self.dist.place_distractor(distractor, self.p, self.task_objects["goal_state"].get_position()))
+            self.task_objects["distractor"] = distrs
 
-        self.env_objects += self.task_objects
+        self.env_objects = {**self.task_objects, **self.env_objects}
         self.robot.reset(random_robot=random_robot)
         self.task.reset_task()
         self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
         self.prev_gripper_position = self.robot.get_observation()[:3]
-        return self._observation
+        return self.flatten_obs(self._observation.copy())
+
+    def flatten_obs(self, obs):
+        if len(obs["additional_obs"].keys()) != 0:
+           obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
+        return [p for sublist in list(obs.values()) for p in sublist]
 
     def _set_cameras(self):
         """
@@ -445,16 +446,13 @@ class GymEnv(CameraEnv):
 
         self._observation = self.get_observation()
         if self.dataset:
-            reward = 0
-            done = False
-            info = {}
+            reward, done, info = 0, False, {}
         else:
             reward = self.reward.compute(observation=self._observation)
             self.episode_reward += reward
             self.task.check_goal()
             done = self.episode_over
-            info = {'d': self.task.last_distance / self.task.init_distance,
-                    'f': int(self.episode_failed)}
+            info = {'d': self.task.last_distance / self.task.init_distance, 'f': int(self.episode_failed)}
 
         if done:
             self.episode_final_reward.append(self.episode_reward)
@@ -462,7 +460,8 @@ class GymEnv(CameraEnv):
             self.episode_number += 1
             self._print_episode_summary(info)
 
-        return self._observation, reward, done, info
+
+        return self.flatten_obs(self._observation.copy()), reward, done, info
 
     def compute_reward(self, achieved_goal, desired_goal, info):
         #@TODO: Reward computation for HER, argument for .compute()
@@ -491,10 +490,10 @@ class GymEnv(CameraEnv):
             object.draw_bounding_box()
 
     def _place_object(self, obj_info):
-        fixed = True if obj_info[2] == "static" else False
-        pos = env_object.EnvObject.get_random_object_position(obj_info[3])
-        orn = env_object.EnvObject.get_random_object_orientation() if obj_info[-1] == "rotated" else [0, 0, 0, 1]
-        object = env_object.EnvObject(obj_info[1], pos, orn, pybullet_client=self.p, fixed=fixed)
+        fixed = True if obj_info["fixed"] == 1 else False
+        pos = env_object.EnvObject.get_random_object_position(obj_info["sampling_area"])
+        orn = env_object.EnvObject.get_random_object_orientation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
+        object = env_object.EnvObject(obj_info["urdf"], pos, orn, pybullet_client=self.p, fixed=fixed)
         if self.color_dict:
             object.set_color(self.color_of_object(object))
         return object
@@ -511,19 +510,18 @@ class GymEnv(CameraEnv):
             :return env_objects: (list of objects) Objects that are present in the current scene
         """
         env_objects = []
-        if "range" in object_dict.keys():  # solves used_objects
-            objects_info = []
-            object_names = [x for x in object_dict.keys() if x not in ["range", "null"]]
-            for o in object_names:
-                objects_info.append([o, self._get_urdf_filename(o), object_dict[o][0],object_dict[o][1:], "nonrotated"])
-            if objects_info:
-                for x in range(random.randint(object_dict["range"][0], object_dict["range"][1])):
-                    env_objects.append(self._place_object(random.choice(objects_info)))
+        if "num_range" in object_dict.keys():  # solves used_objects
+            for idx, o in enumerate(object_dict["obj_list"]):
+                  object_dict["obj_list"][idx]["urdf"] = self._get_urdf_filename(o["obj_name"])
+            for x in range(random.randint(object_dict["num_range"][0], object_dict["num_range"][1])):
+                    env_objects.append(self._place_object(random.choice(object_dict["obj_list"])))
         else:  # solves task_objects
-            for o in ["init","goal"]:
+            for o in ['init','goal']:
                 d = object_dict[o]
-                if (o == "init" and  d[0] != "null") or o == "goal":
-                    env_objects.append(self._place_object([d[0], self._get_urdf_filename(d[0]), d[1], d[3:], d[2]]))
+                if d["obj_name"] != "null":
+                    d["urdf"] = self._get_urdf_filename(d["obj_name"])
+                    n = "actual_state" if o == "init" else "goal_state"
+                    env_objects.append({n:self._place_object(d)})
         return env_objects
 
     def color_of_object(self, object):
@@ -538,7 +536,6 @@ class GymEnv(CameraEnv):
         if object.name not in self.color_dict:
             return env_object.EnvObject.get_random_color()
         else:
-            color = self.color_dict[object.name].copy()
             color = random.sample(self.color_dict[object.name], 1)
             color[:] = [x / 255 for x in color[0]]
             color.append(1)

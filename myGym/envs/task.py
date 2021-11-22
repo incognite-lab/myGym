@@ -1,6 +1,7 @@
 from myGym.envs.vision_module import VisionModule
 import matplotlib.pyplot as plt
 import pybullet as p
+import warnings
 import time
 import numpy as np
 import pkg_resources
@@ -19,16 +20,15 @@ class TaskModule():
         :param task_type: (string) Type of learned task (reach, push, ...)
         :param num_subgoals: (int) Number of subgoals in task
         :param task_objects: (list of strings) Objects that are relevant for performing the task
-        :param reward_type: (string) Type of reward signal source (gt, 3dvs, 2dvu)
         :param distance_type: (string) Way of calculating distances (euclidean, manhattan)
         :param logdir: (string) Directory for logging
         :param env: (object) Environment, where the training takes place
     """
-    def __init__(self, task_type='reach', task_objects='cube_holes', num_subgoals=0,
-                 reward_type='gt', vae_path=None, yolact_path=None, yolact_config=None, distance_type='euclidean',
+    def __init__(self, task_type='reach', task_objects='cube_holes', num_subgoals=0, observation={},
+                 vae_path=None, yolact_path=None, yolact_config=None, distance_type='euclidean',
                  logdir=currentdir, env=None):
         self.task_type = task_type
-        self.reward_type = reward_type
+        self.current_task = 0
         self.distance_type = distance_type
         self.logdir = logdir
         self.task_objects_names = task_objects
@@ -42,7 +42,6 @@ class TaskModule():
         self.stored_observation = []
         self.fig = None
         self.threshold = 0.1 # distance threshold for successful task completion
-        self.obsdim = (len(env.task_objects_dict)*2 + 1) * 3
         self.angle = None
         self.prev_angle = None
         self.pressed = None
@@ -51,22 +50,10 @@ class TaskModule():
         self.coefficient_kd = 0
         self.coefficient_kw = 0
         self.coefficient_ka = 0
-        if self.task_type == '2stepreach':
-            self.obsdim = 6
-        if self.reward_type == 'gt':
-            src = 'ground_truth'
-        elif self.reward_type == '3dvs':
-            src = 'yolact'
-        elif self.reward_type == '2dvu':
-            src = 'vae'
-        elif self.reward_type == '6dvs':
-            src = 'dope'
-            self.obsdim += 6
-        else:
-            raise Exception("You need to provide valid reward type.")
-        self.vision_module = VisionModule(vision_src=src, env=env, vae_path=vae_path, yolact_path=yolact_path, yolact_config=yolact_config)
-        if src == "vae":
-            self.obsdim = self.vision_module.obsdim
+        self.obs_template = observation
+        self.vision_module = VisionModule(observation=observation, env=env, vae_path=vae_path, yolact_path=yolact_path, yolact_config=yolact_config)
+        self.vision_src = self.vision_module.src
+        self.obsdim = self.check_obs_template()
 
     def reset_task(self):
         """
@@ -81,23 +68,64 @@ class TaskModule():
         self.vision_module.mask = {}
         self.vision_module.centroid = {}
         self.vision_module.centroid_transformed = {}
-        self.env.task_objects.append(self.env.robot)
-        if self.reward_type == '2dvu':
+        self.env.task_objects["robot"] = self.env.robot
+        if self.vision_src == "vae":
             self.generate_new_goal(self.env.objects_area_boarders, self.env.active_cameras)
         self.subgoals = [False]*self.num_subgoals #subgoal completed?
         if self.task_type == '2stepreach':
             self.obs_sub = [[0,2],[0,1]] #objects to have in observation for given subgoal
             self.sub_idx = 0
 
+    def check_obs_template(self):
+        """
+        Checks if observations are set according to rules and computes observation dim
+
+        Returns:
+            :return obsdim: (int) Dimensionality of observation
+        """
+        t = self.obs_template
+        assert "actual_state" and "goal_state" in t.keys(), \
+            "Observation setup in config must contain actual_state and goal_state"
+        if t["additional_obs"]:
+            assert [x in ["joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"] for x in
+                    t["additional_obs"]], "Failed to parse some of the additional_obs in config"
+        assert t["actual_state"] in ["endeff_xyz", "obj_xyz", "obj_6D", "vae", "yolact", "voxel", "dope"],\
+            "failed to parse actual_state in Observation config"
+        assert t["goal_state"] in ["obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"],\
+            "failed to parse goal_state in Observation config"
+        if "endeff" not in t["actual_state"]:
+            assert t["actual_state"] == t["goal_state"], \
+                "actual_state and goal_state in Observation must have the same format"
+        else:
+            if "endeff_xyz" or "endeff_6D" in t["additional_obs"]:
+                warnings.warn("Observation config: endeff_xyz already in actual_state, no need to have it in additional_obs. Removing it")
+                [self.obs_template["additional_obs"].remove(x) for x in t["additional_obs"] if "endeff" in x]
+        obsdim = 0
+        for x in [t["actual_state"], t["goal_state"]]:
+            if x in ["endeff_xyz", "obj_xyz", "yolact", "voxel"]:
+                obsdim += 3
+            elif x in ["dope", "obj_6D"]:
+                obsdim += 6
+            else:
+                obsdim += self.vision_module.obsdim
+        for x in t["additional_obs"]:
+            if x in ["joints_xyz", "joints_angles", "endeff_xyz", "distractor"]:
+                obsdim += 3
+            elif x == "endeff_6D":
+                obsdim += 6
+            else:
+                obsdim += 1
+        return obsdim
+
     def render_images(self):
         render_info = self.env.render(mode="rgb_array", camera_id=self.env.active_cameras)
         self.image = render_info[self.env.active_cameras]["image"]
         self.depth = render_info[self.env.active_cameras]["depth"]
-        if self.env.visualize == 1 and self.reward_type != '2dvu':
+        if self.env.visualize == 1 and self.vision_src != "vae":
             cv2.imshow("Vision input", cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR))
             cv2.waitKey(1)
 
-    def visualize_2dvu(self, recons):
+    def visualize_vae(self, recons):
         imsize = self.vision_module.vae_imsize
         actual_img, goal_img = [(lambda a: cv2.resize(a[60:390, 160:480], (imsize, imsize)))(a) for a in
                                 [self.image, self.goal_image]]
@@ -111,6 +139,27 @@ class TaskModule():
         cv2.imshow("Scene", fig)
         cv2.waitKey(1)
 
+    def get_additional_obs(self, d, robot):
+        info = d.copy()
+        info["additional_obs"] = {}
+        for key in d["additional_obs"]:
+            if key == "joints_xyz":
+                info["additional_obs"]["joints_xyz"] = self.env.robot.observe_all_links()
+            elif key == "joints_angles":
+                info["additional_obs"]["joints_angles"] = self.env.robot.get_joints_states()
+            elif key == "endeff_xyz":
+                info["additional_obs"]["endeff_xyz"] = self.vision_module.get_obj_position(robot, self.image, self.depth)[:3]
+            elif key == "endeff_6D":
+                info["additional_obs"]["endeff_6D"] = list(self.vision_module.get_obj_position(robot, self.image, self.depth)) \
+                                                      + list(self.vision_module.get_obj_orientation(robot))
+            elif key == "touch":
+                info["additional_obs"]["touch"] = 1 if self.env.robot.touch_sensors_active() else 0
+            elif key == "distractor":
+                poses = [self.vision_module.get_obj_position(self.env.task_objects["distractor"][x],\
+                                    self.image, self.depth) for x in range(len(self.env.task_objects["distractor"]))]
+                info["additional_obs"]["distractor"] = [p for sublist in poses for p in sublist]
+        return info
+
     def get_observation(self):
         """
         Get task relevant observation data based on reward signal source
@@ -118,27 +167,20 @@ class TaskModule():
         Returns:
             :return self._observation: (array) Task relevant observation data, positions of task objects 
         """
-        obj_positions, obj_orientations = [], []
-        self.render_images() if self.reward_type != "gt" else None
-        if self.reward_type == '2dvu':
-            obj_positions, recons = (self.vision_module.encode_with_vae(imgs=[self.image, self.goal_image], task=self.task_type, decode=self.env.visualize))
-            obj_positions.append(list(self.env.robot.get_position()))
-            self.visualize_2dvu(recons) if self.env.visualize == 1 else None
+        info_dict = self.obs_template.copy()
+        self.render_images() if "ground_truth" not in self.vision_src else None
+        if self.vision_src == "vae":
+            [info_dict["actual_state"], info_dict["goal_state"]], recons = (self.vision_module.encode_with_vae(
+                imgs=[self.image, self.goal_image], task=self.task_type, decode=self.env.visualize))
+            self.visualize_vae(recons) if self.env.visualize == 1 else None
         else:
-            if self.task_type == '2stepreach':
-                self.current_task_objects = [self.env.task_objects[x] for x in self.obs_sub[self.sub_idx]] #change objects in observation based on subgoal
-            else:
-                self.current_task_objects = self.env.task_objects #all objects in observation
-            for env_object in self.current_task_objects:
-                obj_positions.append(self.vision_module.get_obj_position(env_object,self.image,self.depth))
-                if self.reward_type == '6dvs' and self.task_type != 'reach' and env_object != self.env.task_objects[-1]:
-                    obj_orientations.append(self.vision_module.get_obj_orientation(env_object,self.image))
-        
-        if self.env.has_distractor:
-            obj_positions.append(self.env.robot.get_links_observation(self.env.observed_links_num))
-        
-        obj_positions[len(obj_orientations):len(obj_orientations)] = obj_orientations
-        self._observation = np.array(sum(obj_positions, []))
+            for key in ["actual_state", "goal_state"]:
+                    if "endeff" in info_dict[key]:
+                           xyz = self.vision_module.get_obj_position(self.env.task_objects["robot"], self.image, self.depth)
+                    else:
+                           xyz = self.vision_module.get_obj_position(self.env.task_objects[key],self.image,self.depth)
+                    info_dict[key] = xyz
+        self._observation = self.get_additional_obs(info_dict, self.env.task_objects["robot"])
         return self._observation
 
     def check_vision_failure(self):
@@ -151,7 +193,7 @@ class TaskModule():
         self.stored_observation.append(self._observation)
         if len(self.stored_observation) > 9:
             self.stored_observation.pop(0)
-            if self.reward_type == '3dvs': # Yolact assigns 10 to not detected objects
+            if self.vision_src == "yolact": # Yolact assigns 10 to not detected objects
                 if all(10 in obs for obs in self.stored_observation):
                     return True
         return False
@@ -178,7 +220,7 @@ class TaskModule():
         Returns:
             :return: (bool)
         """
-        if self.reward_type != "2dvu":
+        if self.vision_src != "vae":
             object_position = object.get_position()
             pos_diff = np.array(object_position[:2]) - np.array(object.init_position[:2])
             distance = np.linalg.norm(pos_diff)
@@ -358,7 +400,7 @@ class TaskModule():
                 self.env.episode_failed = True
                 self.env.episode_info = "Max amount of steps reached"
 
-        if self.reward_type != 'gt' and (self.check_vision_failure()):
+        if "ground_truth" not in self.vision_src and (self.check_vision_failure()):
             self.stored_observation = []
             self.env.episode_over = True
             self.env.episode_failed = True

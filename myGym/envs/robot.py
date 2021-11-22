@@ -132,6 +132,9 @@ class Robot:
         print("Gripper index is: " + str(self.gripper_index))
         print("End effector index is: " + str(self.end_effector_index))
 
+    def touch_sensors_active(self):
+        raise NotImplementedError("Touch is not currently implemented")
+
     def reset(self, random_robot=False):
         """
         Reset joint motors
@@ -205,7 +208,7 @@ class Robot:
 
     def observe_all_links(self):
         """
-        Get position of all robot's links
+        Returns the cartesian world position of all robot's links
         """
         observation = []
         for link in range(self.end_effector_index+1):
@@ -214,6 +217,15 @@ class Robot:
             observation.extend(list(pos))
 
         return observation
+
+    def get_joints_states(self):
+        """
+        Returns the current positions of all robot's joints
+        """
+        joints = []
+        for link in range(self.end_effector_index + 1):
+           joints.append(self.p.getJointState(self.robot_uid,link)[0])
+        return joints
 
     def get_observation_dimension(self):
         """
@@ -267,6 +279,15 @@ class Robot:
             :return position: (list) Position of end-effector link (center of mass)
         """
         return self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
+
+    def get_orientation(self):
+        """
+        Get orientation of robot's end-effector link
+
+        Returns:
+            :return orientation: (list) Orientation of end-effector link (center of mass)
+        """
+        return self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
 
     def _run_motors(self, joint_poses):
         """
