@@ -238,7 +238,7 @@ class Robot:
 
     def get_observation(self):
         """
-        Get robot part of observation data
+        Get position and orientation of the robot end effector
 
         Returns: 
             :return observation: (list) Position of end-effector link (center of mass)
@@ -249,6 +249,7 @@ class Robot:
         orn = self.p.getEulerFromQuaternion(state[1])
 
         observation.extend(list(pos))
+        observation.extend(list(orn))
         return observation
 
     def get_links_observation(self, num):

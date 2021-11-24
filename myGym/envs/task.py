@@ -89,7 +89,7 @@ class TaskModule():
         if t["additional_obs"]:
             assert [x in ["joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"] for x in
                     t["additional_obs"]], "Failed to parse some of the additional_obs in config"
-        assert t["actual_state"] in ["endeff_xyz", "obj_xyz", "obj_6D", "vae", "yolact", "voxel", "dope"],\
+        assert t["actual_state"] in ["endeff_xyz", "endeff_6D", "obj_xyz", "obj_6D", "vae", "yolact", "voxel", "dope"],\
             "failed to parse actual_state in Observation config"
         assert t["goal_state"] in ["obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"],\
             "failed to parse goal_state in Observation config"
@@ -97,6 +97,8 @@ class TaskModule():
             assert t["actual_state"] == t["goal_state"], \
                 "actual_state and goal_state in Observation must have the same format"
         else:
+            assert t["actual_state"].split("_")[-1] == t["goal_state"] .split("_")[-1], "Actual state and goal state must " \
+                                                                                        "have the same number of dimensions!"
             if "endeff_xyz" or "endeff_6D" in t["additional_obs"]:
                 warnings.warn("Observation config: endeff_xyz already in actual_state, no need to have it in additional_obs. Removing it")
                 [self.obs_template["additional_obs"].remove(x) for x in t["additional_obs"] if "endeff" in x]
@@ -104,15 +106,15 @@ class TaskModule():
         for x in [t["actual_state"], t["goal_state"]]:
             if x in ["endeff_xyz", "obj_xyz", "yolact", "voxel"]:
                 obsdim += 3
-            elif x in ["dope", "obj_6D"]:
-                obsdim += 6
+            elif x in ["dope", "obj_6D", "endeff_6D"]:
+                obsdim += 7
             else:
                 obsdim += self.vision_module.obsdim
         for x in t["additional_obs"]:
             if x in ["joints_xyz", "joints_angles", "endeff_xyz", "distractor"]:
                 obsdim += 3
             elif x == "endeff_6D":
-                obsdim += 6
+                obsdim += 7
             else:
                 obsdim += 1
         return obsdim
@@ -177,6 +179,7 @@ class TaskModule():
             for key in ["actual_state", "goal_state"]:
                     if "endeff" in info_dict[key]:
                            xyz = self.vision_module.get_obj_position(self.env.task_objects["robot"], self.image, self.depth)
+                           xyz = xyz[:3] if "xyz" in info_dict else xyz
                     else:
                            xyz = self.vision_module.get_obj_position(self.env.task_objects[key],self.image,self.depth)
                     info_dict[key] = xyz
