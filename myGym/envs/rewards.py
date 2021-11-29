@@ -91,10 +91,7 @@ class DistanceReward(Reward):
         o1 = observation["actual_state"]
         o2 = observation["goal_state"]
         reward = self.calc_dist_diff(o1, o2)
-        if self.task.check_object_moved(self.env.task_objects[0]): # if pushes goal too far
-            self.env.episode_over   = True
-            self.env.episode_failed = True
-        self.task.check_reach_distance_threshold(observation)
+        self.task.check_distance_threshold(observation)
         self.rewards_history.append(reward)
         return reward
 
@@ -330,9 +327,6 @@ class PokeReachReward(Reward):
             return False
         return True
 
-# vector rewards
-
-
 class VectorReward(Reward):
     """
     Reward class for reward signal calculation based on distance differences between 2 objects
@@ -439,7 +433,7 @@ class VectorReward(Reward):
             reward += np.dot(self.set_vector_len(optimal_vector.vector, 1), self.set_vector_len(real_vector.vector, 1))
 
         self.prev_gipper_position = gripper
-        self.task.check_distractor_distance_threshold(goal_position, gripper)
+        self.task.check_distance_threshold([goal_position, gripper], threshold=0.1)
         self.rewards_history.append(reward)
 
         if self.task.calc_distance(goal_position, gripper) <= 0.11:
@@ -765,8 +759,8 @@ class SwitchReward(DistanceReward):
             :return angle: (int) Angle of switch
         """
         assert self.task.task_type in ["switch", "turn", "press"], "Expected task type switch or turn"
-        o1 = self.task.current_task_objects[0]
-        o2 = self.task.current_task_objects[1]
+        o1 = self.env.task_objects["actual_state"]
+        o2 = self.env.task_objects["goal_state"]
         switch = o2 if o1 == self.env.robot else o1
         pos = self.env.p.getJointState(switch.get_uid(), 0)
         angle = pos[0] * 180 / math.pi  # in degrees

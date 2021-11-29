@@ -62,7 +62,7 @@ class BaseEnv(gym.Env):
 
         # Set objects information
         self.objects_dir_path = objects_dir_path
-        self.env_objects = []
+        self.env_objects = {}
         self.scene_objects_uids = {}
         self.all_objects_filenames = self._get_all_urdf_filenames(self.objects_dir_path)
 
@@ -301,23 +301,24 @@ class BaseEnv(gym.Env):
                 list_all += [os.path.join(dirpath, file) for file in filenames]
         return list_all
 
-    def _remove_object(self, object):
+    def _remove_object(self, key, object):
         """
         Totally remove object from the simulation
 
         Parameters:
             :param object: (EnvObject) Object to remove
         """
-        self.env_objects.remove(object)
+        self.env_objects[key] = []
         self.p.removeBody(object.uid)
 
     def _remove_all_objects(self):
         """
         Remove all objects from simulation (not scene objects or robots)
         """
-        env_objects_copy = self.env_objects[:]
-        for env_object in env_objects_copy:
-            self._remove_object(env_object)
+        env_objects_copy = self.env_objects.copy()
+        for key, o in env_objects_copy.items():
+            if o:
+             self._remove_object(key,o)
 
     def get_texturizable_objects_uids(self):
         """
