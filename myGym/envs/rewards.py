@@ -40,6 +40,16 @@ class Reward:
             plt.savefig(save_dir + "/reward_over_steps_episode{}.png".format(self.env.episode_number))
             plt.close()
 
+    def get_accurate_gripper_position(self, gripper_position):
+        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
+        gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
+        direction_vector    = Vector([0,0,0], [0, 0, 0.1], self.env)
+        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
+        direction_vector.rotate_with_matrix(m)
+        gripper = Vector([0,0,0], gripper_position, self.env)
+        return direction_vector.add_vector(gripper)
+
+
     def visualize_reward_over_episodes(self):
         """
         Plot and save a graph of cumulative reward values assigned to individual episodes. Call this method to plot data from the current and all previous episodes.
@@ -78,9 +88,8 @@ class DistanceReward(Reward):
         Returns:
             :return reward: (float) Reward signal for the environment
         """
-        observation = observation["observation"] if isinstance(observation, dict) else observation
-        o1 = observation[0:3] if self.env.reward_type != "2dvu" else observation[0:int(len(observation[:-3])/2)]
-        o2 = self.get_accurate_gripper_position(observation[3:6]) if self.env.reward_type != "2dvu" else observation[int(len(observation[:-3])/2):-3]
+        o1 = observation["actual_state"]
+        o2 = observation["goal_state"]
         reward = self.calc_dist_diff(o1, o2)
         if self.task.check_object_moved(self.env.task_objects[0]): # if pushes goal too far
             self.env.episode_over   = True
@@ -118,16 +127,6 @@ class DistanceReward(Reward):
         self.prev_obj2_position = obj2_position
 
         return norm_diff
-
-    def get_accurate_gripper_position(self, gripper_position):
-        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
-        gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
-        direction_vector    = Vector([0,0,0], [0, 0, 0.1], self.env)
-        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
-        direction_vector.rotate_with_matrix(m)
-        gripper = Vector([0,0,0], gripper_position, self.env)
-        return direction_vector.add_vector(gripper)
-
 
 class ComplexDistanceReward(DistanceReward):
     """
@@ -312,15 +311,6 @@ class PokeReachReward(Reward):
             self.env.episode_over   = True
             self.env.episode_failed = True
             self.env.episode_info   = "too strong poke"
-
-    def get_accurate_gripper_position(self, gripper_position):
-        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
-        gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
-        direction_vector    = Vector([0,0,0], [0, 0, 0.1], self.env)
-        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
-        direction_vector.rotate_with_matrix(m)
-        gripper = Vector([0,0,0], gripper_position, self.env)
-        return direction_vector.add_vector(gripper)
 
     def is_poker_moving(self, poker):
         if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1]:
@@ -902,7 +892,7 @@ class SwitchReward(DistanceReward):
 
         # auxiliary variables
         self.offset = None
-        self.prev_angle = None
+        self.prev_val = None
         self.debug = True
 
         # coefficients used to calculate reward
@@ -976,7 +966,7 @@ class SwitchReward(DistanceReward):
 
         # auxiliary variables
         self.offset = None
-        self.prev_angle = None
+        self.prev_val = None
 
     def get_accurate_gripper_position(self, gripper_position):
         """
@@ -1129,26 +1119,16 @@ class SwitchReward(DistanceReward):
         Returns:
             :return angle: (int) Angle of switch
         """
+        assert self.task.task_type in ["switch", "turn"], "Expected task type switch or turn"
+        o1 = self.task.current_task_objects[0]
+        o2 = self.task.current_task_objects[1]
+        switch = o2 if o1 == self.env.robot else o1
+        pos = self.env.p.getJointState(switch.get_uid(), 0)
+        angle = pos[0] * 180 / math.pi  # in degrees
         if self.task.task_type == "switch":
-            if len(self.task.current_task_objects) != 2:
-                raise "not expected number of objects"
-
-            o1 = self.task.current_task_objects[0]
-            o2 = self.task.current_task_objects[1]
-
-            if o1 == self.env.robot:
-                # robot = o1
-                switch = o2
-            else:
-                # robot = o2
-                switch = o1
-
-            p = self.env.p
-            pos = p.getJointState(switch.get_uid(), 0)
-            angle = int(pos[0] * 180 / math.pi)  # in degrees
-            return abs(angle)
+            return int(abs(angle))
         else:
-            raise "expected task_type - switch"
+            return -angle
 
     def calc_angle_reward(self):
         """
@@ -1157,32 +1137,21 @@ class SwitchReward(DistanceReward):
             :return reward: (int) Additional reward value
         """
         angle = self.get_angle()
-        if self.task.task_type == "switch":
-            if self.prev_angle is None:
-                self.prev_angle = angle
-
-            if angle < 0:
-                k = angle // 2
-
-            else:
-                k = angle // 2
-
-            reward = k * angle
-
-            if reward >= 162:
-                reward += 50
-            reward /= 100
-            if self.prev_angle == angle:
-                reward = 0
-
-            self.prev_angle = angle
-
-            return reward
-        else:
-            raise "not expected to use this function"
+        assert self.task.task_type == "switch", "Function implemented only for switch"
+        if self.prev_val is None:
+            self.prev_val = angle
+        k = angle // 2
+        reward = k * angle
+        if reward >= 162:
+            reward += 50
+        reward /= 100
+        if self.prev_val == angle:
+            reward = 0
+        self.prev_val = angle
+        return reward
 
 
-class ButtonReward(DistanceReward):
+class ButtonReward(SwitchReward):
     """
     Reward class for reward signal calculation based on distance differences between 2 objects,
     button's position and difference between point and line (function used for that: calc_direction_3d()).
@@ -1192,24 +1161,6 @@ class ButtonReward(DistanceReward):
     """
     def __init__(self, env, task):
         super(ButtonReward, self).__init__(env, task)
-        self.x_obj = None
-        self.y_obj = None
-        self.z_obj = None
-        self.x_bot = None
-        self.y_bot = None
-        self.z_bot = None
-
-        self.x_obj_curr_pos = None
-        self.y_obj_curr_pos = None
-        self.z_obj_curr_pos = None
-        self.x_bot_curr_pos = None
-        self.y_bot_curr_pos = None
-        self.z_bot_curr_pos = None
-
-        self.debug = False
-        self.offset = None
-        self.prev_press = None
-
         self.k_w = self.env.coefficient_kw
         self.k_d = self.env.coefficient_kd
         self.k_a = self.env.coefficient_ka
@@ -1254,68 +1205,6 @@ class ButtonReward(DistanceReward):
         self.task.check_distance_threshold(observation=observation)
         self.rewards_history.append(reward)
         return reward
-
-    def reset(self):
-        """
-        Reset current positions of button and robot, initial position of switch and robot and previous position of button.
-        Call this after the end of an episode.
-        """
-        self.x_obj = None
-        self.y_obj = None
-        self.z_obj = None
-        self.x_bot = None
-        self.y_bot = None
-        self.z_bot = None
-
-        self.x_obj_curr_pos = None
-        self.y_obj_curr_pos = None
-        self.z_obj_curr_pos = None
-        self.x_bot_curr_pos = None
-        self.y_bot_curr_pos = None
-        self.z_bot_curr_pos = None
-
-        self.offset = None
-        self.prev_press = None
-
-    def get_accurate_gripper_position(self, gripper_position):
-        """
-        Calculate more accurate position of gripper
-        """
-        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
-        gripper_matrix = self.env.p.getMatrixFromQuaternion(gripper_orientation)
-        direction = [0, 0, 0.1]  # length is 0.1
-        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]],
-                      [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]],
-                      [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
-        orientation_vector = m.dot(direction)  # length is 0.1
-        gripper_position = np.add(gripper_position, orientation_vector)
-        return gripper_position
-
-    def set_variables(self, o1, o2):
-        if self.x_obj is None:
-            self.x_obj = o1[0]
-
-        if self.y_obj is None:
-            self.y_obj = o1[1]
-
-        if self.z_obj is None:
-            self.z_obj = o1[2]
-
-        if self.x_bot is None:
-            self.x_bot = o2[0]
-
-        if self.y_bot is None:
-            self.y_bot = o2[1]
-
-        if self.z_bot is None:
-            self.z_bot = o2[2]
-
-        self.x_obj_curr_pos = o1[0]
-        self.y_obj_curr_pos = o1[1]
-        self.z_obj_curr_pos = o1[2]
-        self.x_bot_curr_pos = o2[0]
-        self.y_bot_curr_pos = o2[1]
-        self.z_bot_curr_pos = o2[2]
 
     def set_offset(self, x=0.0, y=0.0, z=0.0):
         if self.offset is None:
@@ -1385,58 +1274,39 @@ class ButtonReward(DistanceReward):
         """
         Calculate position of button
         """
-        if self.task.task_type == "press":
-            if len(self.task.current_task_objects) != 2:
-                raise "not expected number of objects"
+        if len(self.task.current_task_objects) != 2:
+            raise "not expected number of objects"
 
-            o1 = self.task.current_task_objects[0]
-            o2 = self.task.current_task_objects[1]
+        o1 = self.task.current_task_objects[0]
+        o2 = self.task.current_task_objects[1]
 
-            if o1 == self.env.robot:
-                # robot = o1
-                switch = o2
-            else:
-                # robot = o2
-                switch = o1
-
-            p = self.env.p
-            pos = p.getJointState(switch.get_uid(), 0)
-            angle = pos[0] * 180 / math.pi  # in degrees
-            return abs(angle)
+        if o1 == self.env.robot:
+            # robot = o1
+            switch = o2
         else:
-            raise "expected task_type - press"
+            # robot = o2
+            switch = o1
+
+        p = self.env.p
+        pos = p.getJointState(switch.get_uid(), 0)
+        angle = pos[0] * 180 / math.pi  # in degrees
+        return abs(angle)
 
     def calc_press_reward(self):
-        press = self.get_position()
-        if self.task.task_type == "press":
-            press *= 100
-            press = int(press)
-            if self.prev_press is None:
-                self.prev_press = press
+        press = (self.get_position() *100)
+        if self.prev_val is None:
+            self.prev_val = press
+        k = press // 2
+        reward = (k * press)/1000
+        if reward >= 14:
+            reward += 2
+        reward /= 10
+        if self.prev_val == press:
+            reward = 0
+        self.prev_val = press
+        return reward
 
-            if press < 0:
-                k = press // 2
-
-            else:
-                k = press // 2
-
-            reward = k * press
-            reward /= 1000
-
-            if reward >= 14:
-                reward += 2
-            reward /= 10
-            if self.prev_press == press:
-                reward = 0
-
-            self.prev_press = press
-
-            return reward
-        else:
-            raise "not expected to use this function"
-
-
-class TurnReward(DistanceReward):
+class TurnReward(SwitchReward):
     """
     Reward class for reward signal calculation based on distance between 2 points (robot gripper and middle point of predefined line) and angle of handle
     Parameters:
@@ -1445,25 +1315,7 @@ class TurnReward(DistanceReward):
     """
     def __init__(self, env, task):
         super(TurnReward, self).__init__(env, task)
-        self.x_obj = None
-        self.y_obj = None
-        self.z_obj = None
-        self.x_bot = None
-        self.y_bot = None
-        self.z_bot = None
-
-        self.x_obj_curr_pos = None
-        self.y_obj_curr_pos = None
-        self.z_obj_curr_pos = None
-        self.x_bot_curr_pos = None
-        self.y_bot_curr_pos = None
-        self.z_bot_curr_pos = None
-
-        self.debug = False
-        self.offset = None
-        self.prev_turn = None
         self.r = 0.45
-
         self.k_w = self.env.coefficient_kw
         self.k_d = self.env.coefficient_kd
         self.k_a = self.env.coefficient_ka
@@ -1495,67 +1347,6 @@ class TurnReward(DistanceReward):
         self.rewards_history.append(reward)
         return reward
 
-    def reset(self):
-        """
-        Reset current positions of handle and robot, initial position of handle and robot and previous angle of handle.
-        Call this after the end of an episode.
-        """
-        self.x_obj = None
-        self.y_obj = None
-        self.z_obj = None
-        self.x_bot = None
-        self.y_bot = None
-        self.z_bot = None
-
-        self.x_obj_curr_pos = None
-        self.y_obj_curr_pos = None
-        self.z_obj_curr_pos = None
-        self.x_bot_curr_pos = None
-        self.y_bot_curr_pos = None
-        self.z_bot_curr_pos = None
-
-        self.offset = None
-        self.prev_turn = None
-
-    def get_accurate_gripper_position(self, gripper_position):
-        """
-        Calculate more accurate position of gripper
-        """
-        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
-        gripper_matrix = self.env.p.getMatrixFromQuaternion(gripper_orientation)
-        direction = [0, 0, 0.1]  # length is 0.1
-        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]],
-                      [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]],
-                      [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
-        orientation_vector = m.dot(direction)  # length is 0.1
-        gripper_position = np.add(gripper_position, orientation_vector)
-        return gripper_position
-
-    def set_variables(self, o1, o2):
-        if self.x_obj is None:
-            self.x_obj = o1[0]
-
-        if self.y_obj is None:
-            self.y_obj = o1[1]
-
-        if self.z_obj is None:
-            self.z_obj = o1[2]
-
-        if self.x_bot is None:
-            self.x_bot = o2[0]
-
-        if self.y_bot is None:
-            self.y_bot = o2[1]
-
-        if self.z_bot is None:
-            self.z_bot = o2[2]
-
-        self.x_obj_curr_pos = o1[0]
-        self.y_obj_curr_pos = o1[1]
-        self.z_obj_curr_pos = o1[2]
-        self.x_bot_curr_pos = o2[0]
-        self.y_bot_curr_pos = o2[1]
-        self.z_bot_curr_pos = o2[2]
 
     def set_offset(self, x=0.0, y=0.0, z=0.0):
         if self.offset is None:
@@ -1643,46 +1434,17 @@ class TurnReward(DistanceReward):
             return self.angle_adaptive_reward(change_reward=True, visualize=self.debug) - 1
         return self.angle_adaptive_reward(visualize=self.debug)
 
-    def get_angle(self):
-        """
-        Calculate angle of handle
-        """
-        if self.task.task_type == "turn":
-            if len(self.task.current_task_objects) != 2:
-                raise "not expected number of objects"
-
-            o1 = self.task.current_task_objects[0]
-            o2 = self.task.current_task_objects[1]
-            # print(o1,o2)
-            if o1 == self.env.robot:
-                # robot = o1
-                switch = o2
-            else:
-                # robot = o2
-                switch = o1
-
-            p = self.env.p
-            pos = p.getJointState(switch.get_uid(), 0)
-            angle = -pos[0] * 180 / math.pi  # in degrees
-            return angle
-        else:
-            raise "expected task_type - turn"
-
     def calc_turn_reward(self):
         turn = int(self.get_angle())
-        if self.task.task_type == "turn":
-            reward = turn
-            if self.prev_turn is None:
-                self.prev_turn = turn
+        reward = turn
+        if self.prev_val is None:
+            self.prev_val = turn
+        if self.prev_val == turn:
+            reward = 0
+        if self.prev_val > turn:
+            reward = 0
+        if reward < 0 and self.prev_val < turn:
+            reward = 0
 
-            if self.prev_turn == turn:
-                reward = 0
-            if self.prev_turn > turn:
-                reward = 0
-            if reward < 0 and self.prev_turn < turn:
-                reward = 0
-
-            self.prev_turn = turn
-            return reward
-        else:
-            raise "not expected to use this function"
+        self.prev_val = turn
+        return reward
