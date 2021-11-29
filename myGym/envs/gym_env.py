@@ -2,7 +2,7 @@ from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward, SwitchReward, ButtonReward, TurnReward
+from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReachReward, SwitchReward, ButtonReward, TurnReward
 import pybullet
 from collections import ChainMap
 import numpy as np
@@ -168,8 +168,6 @@ class GymEnv(CameraEnv):
             self.reward = VectorReward(env=self, task=self.task)
         elif reward == 'poke':
             self.reward = PokeReachReward(env=self, task=self.task)
-            # self.reward = PokeVectorReward(env=self, task=self.task)
-            # self.reward = PokeReward(env=self, task=self.task)
         elif reward == 'switch':
             self.reward = SwitchReward(env=self, task=self.task)
         elif reward == 'btn':
