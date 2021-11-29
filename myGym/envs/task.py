@@ -290,9 +290,9 @@ class TaskModule():
         Returns:
             :return: (bool)
         """
-        observation = observation["observation"] if isinstance(observation, dict) else observation
-        goal    = observation[0:3]
-        gripper = self.env.reward.get_accurate_gripper_position(observation[3:6])
+        goal    = observation["goal_state"]
+        g = observation["actual_state"] if "endeff" in self.obs_template["actual_state"] else observation["additional_obs"]
+        gripper = self.env.reward.get_accurate_gripper_position()
         self.current_norm_distance = self.calc_distance(goal, gripper)
         return self.current_norm_distance < self.threshold
 
