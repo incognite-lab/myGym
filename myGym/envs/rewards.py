@@ -246,16 +246,12 @@ class PokeReachReward(Reward):
         self.last_distance         = None
         self.last_gripper_distance = None
         self.moved                 = False
-
         self.prev_poker_position   = [None]*3
 
     def compute(self, observation=None):
         poker_position, distance, gripper_distance = self.init(observation)
-
         reward = self.count_reward(poker_position, distance, gripper_distance)
-
         self.finish(observation, poker_position, distance, gripper_distance, reward)
-
         return reward
 
     def init(self, observation):
@@ -366,13 +362,9 @@ class VectorReward(Reward):
         Returns:
             :return reward: (float) Reward signal for the environment
         """
-        observation = observation["observation"] if isinstance(observation, dict) else observation
-
         goals, distractors, arm, links = [], [], [], []
         self.fill_objects_lists(goals, distractors, arm, links, observation)
-
         reward = 0
-
         contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.env_objects[-1].uid, x, -1) for x in range(0,self.env.robot.end_effector_index+1)]
         for p in contact_points:
             if p:
@@ -388,10 +380,8 @@ class VectorReward(Reward):
                     self.env.episode_info   = "Arm crushed the distractor"
                     self.env.episode_over   = True
                     self.env.episode_failed = True
-
                     return reward
 
-        # end_effector  = links[self.env.robot.gripper_index]
         gripper       = links[-1] # = end effector
         goal_position = goals[0]
         distractor    = self.env.env_objects[1]
@@ -400,8 +390,6 @@ class VectorReward(Reward):
         minimum = 1000
         for point in closest_distractor_points:
             if point[8] < minimum:
-                # if point[8] < 0:
-                #     print("akruci, je potřeba udělat z point[8] abs hodnotu")
                 minimum = point[8]
                 closest_distractor_point = list(point[6])
 
@@ -420,45 +408,20 @@ class VectorReward(Reward):
 
         push_vector.set_len(push_amplifier)
         pull_vector.set_len(pull_amplifier)
-
-        # ideal_vector.visualize(origin=self.prev_gipper_position, time = 0.3, color = (0, 255, 0))
-        # push_vector.visualize(origin=closest_distractor_point, time = 0.3, color = (255, 0, 0))
-        # pull_vector.visualize(origin=self.prev_gipper_position, time = 0.3, color = (0, 0, 255))
-
         push_vector.add(pull_vector)
         force_vector = push_vector
-
-        # force_vector.visualize(origin=self.prev_gipper_position, time = 0.3, color = (255, 0, 255))
-
-
         force_vector.add(ideal_vector)
         optimal_vector = force_vector
-        # optimal_vector.visualize(origin=self.prev_gipper_position, time = 0.3, color = (255, 255, 255))
         optimal_vector.multiply(0.005)
 
         real_vector = Vector(self.prev_gipper_position, gripper, self.env)
-        # real_vector.visualize(origin=self.prev_gipper_position, time = 0.3, color = (0, 0, 0))
-
-        # ideal_vector   = self.move_to_origin([self.prev_gipper_position, goal_position])
-        # push_vector    = self.set_vector_len(self.move_to_origin([closest_distractor_point, self.prev_gipper_position]), push_amplifier)
-        # pull_vector    = self.set_vector_len(self.move_to_origin([self.prev_gipper_position, goal_position]), pull_amplifier)   #(*2)
-        # force_vector   = np.add(np.array(push_vector), np.array(pull_vector))
-        # optimal_vector = np.add(np.array(ideal_vector), np.array(force_vector))
-        # optimal_vector = optimal_vector * 0.005  # move to same řád as is real vector and divide by 2 (just for visualization aesthetics)
-        # real_vector    = self.move_to_origin([self.prev_gipper_position, gripper])
-
-        # self.visualize_vectors(gripper, goal_position, force_vector, optimal_vector)
-
         if real_vector.norm == 0:
             reward += 0
         else:
             reward += np.dot(self.set_vector_len(optimal_vector.vector, 1), self.set_vector_len(real_vector.vector, 1))
 
         self.prev_gipper_position = gripper
-
-        # self.task.check_distance_threshold(observation=observation)
         self.task.check_distractor_distance_threshold(goal_position, gripper)
-
         self.rewards_history.append(reward)
 
         if self.task.calc_distance(goal_position, gripper) <= 0.11:
@@ -471,21 +434,9 @@ class VectorReward(Reward):
         return reward
 
     def visualize_vectors(self, gripper, goal_position, force_vector, optimal_vector):
-
         self.env.p.addUserDebugLine(self.prev_gipper_position, goal_position, lineColorRGB=(255, 255, 255), lineWidth = 1, lifeTime = 0.1)
-        # self.env.p.addUserDebugLine(closest_distractor_point, self.gripper, lineColorRGB=(255, 255, 0), lineWidth = push_amplifier, lifeTime = 1)
-        # self.env.p.addUserDebugLine(gripper, goal_position, lineColorRGB=(255, 128, 0), lineWidth = pull_amplifier, lifeTime = 1)
         self.env.p.addUserDebugLine(gripper, np.add(np.array(force_vector), np.array(gripper)), lineColorRGB=(255, 0, 0), lineWidth = 1, lifeTime = 0.1)
         self.env.p.addUserDebugLine(gripper, np.add(np.array(optimal_vector*100), np.array(gripper)), lineColorRGB=(0, 0, 255), lineWidth = 1, lifeTime = 0.1)
-        # self.env.p.addUserDebugLine(gripper, np.add(np.array(self.prev_gipper_position), np.array(end_effector)), lineColorRGB=(0, 255, 0), lineWidth = 10, lifeTime = 1)
-
-
-        # ideal_vector,  lineColorRGB=(255, 255, 255)
-        # push_vector,   lineColorRGB=(255, 255, 0)
-        # pull_vector,   lineColorRGB=(255, 128, 0)
-        # force_vector   lineColorRGB=(255, 0, 0)
-        # optimal_vector lineColorRGB=(0, 0, 255)
-        # real_vector    lineColorRGB=(0, 255, 0)
 
     def fill_objects_lists(self, goals, distractors, arm, links, observation):
 
@@ -494,8 +445,6 @@ class VectorReward(Reward):
         #              last  n 3: distractors   (n = number of distractors) (len(self.env.distractors))
         #              next    3: arm
         #              lasting 3: links
-
-        items_count = len(self.env.task_objects_names) + len(self.env.distractors) + 1 + self.env.robot.end_effector_index+1
 
         j = 0
         while len(goals) < len(self.env.task_objects_names):
@@ -516,10 +465,8 @@ class VectorReward(Reward):
 
     def add_vectors(self, v1, v2):
         r = []
-
         for i in range(len(v1)):
             r.append(v1[i] + v2[i])
-
         return r
 
     def count_vector_norm(self, vector):
@@ -527,7 +474,6 @@ class VectorReward(Reward):
 
     def get_dot_product(self, v1, v2):
         product = 0
-
         for i in range(len(v1)):
             product += v1[i]* v2[i]
         return product
@@ -536,7 +482,6 @@ class VectorReward(Reward):
         a = vector[1][0] - vector[0][0]
         b = vector[1][1] - vector[0][1]
         c = vector[1][2] - vector[0][2]
-
         return [a, b, c]
 
     def multiply_vector(self, vector, multiplier):
@@ -545,7 +490,6 @@ class VectorReward(Reward):
     def set_vector_len(self, vector, len):
         norm    = self.count_vector_norm(vector)
         vector  = self.multiply_vector(vector, 1/norm)
-
         return self.multiply_vector(vector, len)
 
     def get_angle_between_vectors(self, v1, v2):
@@ -801,17 +745,17 @@ class SwitchReward(DistanceReward):
 
     def get_angle(self):
         """
-        Calculate angle of switch
+        Calculate angle of switch/button
         Returns:
             :return angle: (int) Angle of switch
         """
-        assert self.task.task_type in ["switch", "turn"], "Expected task type switch or turn"
+        assert self.task.task_type in ["switch", "turn", "press"], "Expected task type switch or turn"
         o1 = self.task.current_task_objects[0]
         o2 = self.task.current_task_objects[1]
         switch = o2 if o1 == self.env.robot else o1
         pos = self.env.p.getJointState(switch.get_uid(), 0)
         angle = pos[0] * 180 / math.pi  # in degrees
-        if self.task.task_type == "switch":
+        if self.task.task_type in  ["switch", "press"]:
             return int(abs(angle))
         else:
             return -angle
@@ -861,14 +805,10 @@ class ButtonReward(SwitchReward):
         Returns:
             :return reward: (float) Reward signal for the environment
         """
-        observation = observation["observation"] if isinstance(observation, dict) else observation
         o1 = observation[0:3] if self.env.reward_type != "2dvu" else observation[0:int(len(observation[:-3])/2)]
         gripper_position = self.get_accurate_gripper_position(observation[3:6])
         self.set_variables(o1, gripper_position)
         self.set_offset(z=0.16)
-        # v1 = Vector([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1], self.env)
-        # v2 = Vector([self.x_obj, self.y_obj, self.z_obj], gripper_position, self.env)
-        # w = np.dot(self.set_vector_len(v1.vector, 1), self.set_vector_len(v2.vector, 1))
 
         w = self.calc_direction_3d(self.x_obj, self.y_obj, 1, self.x_obj, self.y_obj, self.z_obj,
                                    self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
@@ -906,45 +846,9 @@ class ButtonReward(SwitchReward):
         """
         norm = math.sqrt(np.dot(vector, vector))
         if norm == 0:
-            return 0
-        vector = vector * (1/norm)
-        return vector * len
-
-    @staticmethod
-    def calc_direction_2d(x1, y1, x2, y2, x3, y3):
-        """
-        This function calculates difference between point - (actual position of robot's gripper [x3, y3])
-        and line - (initial position of robot: [x1, y1], final position of robot: [x2, y2]) in 2D
-        """
-        x = x1 + ((x1 - x2) * (x1 * x2 + x1 * x3 - x2 * x3 + y1 * y2 + y1 * y3 - y2 * y3 - x1 ** 2 - y1 ** 2)) / (
-                x1 ** 2 - 2 * x1 * x2 + x2 ** 2 + y1 ** 2 - 2 * y1 * y2 + y2 ** 2)
-        y = y1 + ((y1 - y2) * (x1 * x2 + x1 * x3 - x2 * x3 + y1 * y2 + y1 * y3 - y2 * y3 - x1 ** 2 - y1 ** 2)) / (
-                x1 ** 2 - 2 * x1 * x2 + x2 ** 2 + y1 ** 2 - 2 * y1 * y2 + y2 ** 2)
-        d = sqrt((x1 * y2 - x2 * y1 - x1 * y3 + x3 * y1 + x2 * y3 - x3 * y2) ** 2 / (
-                x1 ** 2 - 2 * x1 * x2 + x2 ** 2 + y1 ** 2 - 2 * y1 * y2 + y2 ** 2))
-        return [x, y, d]
-
-    @staticmethod
-    def calc_direction_3d(x1, y1, z1, x2, y2, z2, x3, y3, z3):
-        """
-        This function calculates difference between point - (actual position of robot's gripper [x3, y3, z3])
-        and line - (initial position of robot: [x1, y1, z1], final position of robot: [x2, y2, z2]) in 3D
-        """
-        x = x1 - ((x1 - x2) * (
-                x1 * (x1 - x2) - x3 * (x1 - x2) + y1 * (y1 - y2) - y3 * (y1 - y2) + z1 * (z1 - z2) - z3 * (
-                z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
-
-        y = y1 - ((y1 - y2) * (
-                x1 * (x1 - x2) - x3 * (x1 - x2) + y1 * (y1 - y2) - y3 * (y1 - y2) + z1 * (z1 - z2) - z3 * (
-                z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
-
-        z = z1 - ((z1 - z2) * (
-                x1 * (x1 - x2) - x3 * (x1 - x2) + y1 * (y1 - y2) - y3 * (y1 - y2) + z1 * (z1 - z2) - z3 * (
-                z1 - z2))) / ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
-
-        d = sqrt((x - x3) ** 2 + (y - y3) ** 2 + (z - z3) ** 2)
-
-        return d
+            return norm
+        else:
+           return (vector * (1/norm))*len
 
     def abs_diff(self):
         """
@@ -956,30 +860,8 @@ class ButtonReward(SwitchReward):
         abs_diff = sqrt(x_diff ** 2 + y_diff ** 2 + z_diff ** 2)
         return abs_diff
 
-    def get_position(self):
-        """
-        Calculate position of button
-        """
-        if len(self.task.current_task_objects) != 2:
-            raise "not expected number of objects"
-
-        o1 = self.task.current_task_objects[0]
-        o2 = self.task.current_task_objects[1]
-
-        if o1 == self.env.robot:
-            # robot = o1
-            switch = o2
-        else:
-            # robot = o2
-            switch = o1
-
-        p = self.env.p
-        pos = p.getJointState(switch.get_uid(), 0)
-        angle = pos[0] * 180 / math.pi  # in degrees
-        return abs(angle)
-
     def calc_press_reward(self):
-        press = (self.get_position() *100)
+        press = (self.get_angle() *100)
         if self.prev_val is None:
             self.prev_val = press
         k = press // 2
@@ -1053,7 +935,6 @@ class TurnReward(SwitchReward):
         k = 0.2
         offset = 0.2
         normalize = 0.1
-        r = self.r
         coef = 3 * math.pi / 2
 
         Sx = self.x_obj
@@ -1064,35 +945,27 @@ class TurnReward(SwitchReward):
         Py = self.y_bot_curr_pos
         Pz = self.z_bot_curr_pos
 
-        if change_reward:
-            l = coef - offset
-        else:
-            l = coef + offset
+        l = coef - offset if change_reward  else coef + offset
         l += normalize
-
-
-        Ax = r * math.cos(alfa + l) + Sx
-        Ay = r * math.sin(alfa + l) + Sy
-        Az = Sz
+        Ax = self.rr * math.cos(alfa + l) + Sx
+        Ay = self.rr * math.sin(alfa + l) + Sy
 
         Bx = k * math.cos(alfa + l) + Sx
         By = k * math.sin(alfa + l) + Sy
-        Bz = Sz
 
-        AB_mid_x = (k + (r - k)/2) * math.cos(alfa + l) + Sx
-        AB_mid_y = (k + (r - k)/2) * math.sin(alfa + l) + Sy
-        AB_mid_z = Sz
+        AB_mid_x = (k + (self.rr - k)/2) * math.cos(alfa + l) + Sx
+        AB_mid_y = (k + (self.rr - k)/2) * math.sin(alfa + l) + Sy
 
         P_MID_diff_x = AB_mid_x - Px
         P_MID_diff_y = AB_mid_y - Py
-        P_MID_diff_z = AB_mid_z - Pz
+        P_MID_diff_z = Sz - Pz
 
         if visualize:
-            self.env.p.addUserDebugLine([Ax, Ay, Az], [Bx, By, Bz],
+            self.env.p.addUserDebugLine([Ax, Ay, Sz], [Bx, By, Sz],
                                         lineColorRGB=(1, 0, 1), lineWidth=3, lifeTime=0.03)
-            self.env.p.addUserDebugLine([P_MID_diff_x, P_MID_diff_y, P_MID_diff_z], [Ax, Ay, Az],
+            self.env.p.addUserDebugLine([P_MID_diff_x, P_MID_diff_y, P_MID_diff_z], [Ax, Ay, Sz],
                                         lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=0.03)
-            self.env.p.addUserDebugLine([Px, Py, Pz], [AB_mid_x, AB_mid_y, AB_mid_z],
+            self.env.p.addUserDebugLine([Px, Py, Pz], [AB_mid_x, AB_mid_y, Sz],
                                         lineColorRGB=(0, 1, 1), lineWidth=3, lifeTime=0.03)
 
         d = sqrt(P_MID_diff_x ** 2 + P_MID_diff_y ** 2 + P_MID_diff_z ** 2)
@@ -1104,11 +977,9 @@ class TurnReward(SwitchReward):
         """
         contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.env_objects[0].uid, x, 0)
                           for x in range(0, self.env.robot.end_effector_index+1)]
-        for _ in contact_points:
-            if _:
+        if any(contact_points):
                 return True
-        else:
-            return False
+        return False
 
     def threshold_reached(self):
         """
@@ -1125,12 +996,9 @@ class TurnReward(SwitchReward):
         reward = turn
         if self.prev_val is None:
             self.prev_val = turn
-        if self.prev_val == turn:
-            reward = 0
-        if self.prev_val > turn:
+        if self.prev_val >= turn:
             reward = 0
         if reward < 0 and self.prev_val < turn:
             reward = 0
-
         self.prev_val = turn
         return reward
