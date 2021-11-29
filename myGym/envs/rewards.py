@@ -226,27 +226,28 @@ class SparseReward(Reward):
         self.rewards_history.append(reward)
         return reward
 
+
 class PokeReachReward(Reward):
 
     def __init__(self, env, task):
         super(PokeReachReward, self).__init__(env, task)
 
-        self.threshold             = 0.1
-        self.last_distance         = None
+        self.threshold = 0.1
+        self.last_distance = None
         self.last_gripper_distance = None
-        self.moved                 = False
+        self.moved = False
 
-        self.prev_poker_position   = [None]*3
+        self.prev_poker_position = [None]*3
 
     def reset(self):
         """
         Reset stored value of distance between 2 objects. Call this after the end of an episode.
         """
 
-        self.last_distance         = None
+        self.last_distance = None
         self.last_gripper_distance = None
-        self.moved                 = False
-        self.prev_poker_position   = [None]*3
+        self.moved = False
+        self.prev_poker_position = [None]*3
 
     def compute(self, observation=None):
         poker_position, distance, gripper_distance = self.init(observation)
@@ -256,8 +257,8 @@ class PokeReachReward(Reward):
 
     def init(self, observation):
         # load positions
-        goal_position    = observation[0:3]
-        poker_position   = observation[3:6]
+        goal_position = observation[0:3]
+        poker_position = observation[3:6]
         gripper_position = self.get_accurate_gripper_position(observation[6:9])
 
         for i in range(len(poker_position)):
@@ -293,15 +294,24 @@ class PokeReachReward(Reward):
             self.prev_poker_position = poker_position
 
     def update_positions(self, poker_position, distance, gripper_distance):
-        self.last_distance         = distance
+        self.last_distance = distance
         self.last_gripper_distance = gripper_distance
-        self.prev_poker_position   = poker_position
+        self.prev_poker_position = poker_position
 
     def check_strength_threshold(self):
         if self.task.check_object_moved(self.env.task_objects[1], 2):
-            self.env.episode_over   = True
+            self.env.episode_over = True
             self.env.episode_failed = True
-            self.env.episode_info   = "too strong poke"
+            self.env.episode_info = "too strong poke"
+
+    def get_accurate_gripper_position(self, gripper_position):
+        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
+        gripper_matrix = self.env.p.getMatrixFromQuaternion(gripper_orientation)
+        direction_vector = Vector([0,0,0], [0, 0, 0.1], self.env)
+        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
+        direction_vector.rotate_with_matrix(m)
+        gripper = Vector([0,0,0], gripper_position, self.env)
+        return direction_vector.add_vector(gripper)
 
     def is_poker_moving(self, poker):
         if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1]:
@@ -312,9 +322,9 @@ class PokeReachReward(Reward):
 
     def check_motion(self, poker):
         if not self.is_poker_moving(poker) and self.moved:
-            self.env.episode_over   = True
+            self.env.episode_over = True
             self.env.episode_failed = True
-            self.env.episode_info   = "too weak poke"
+            self.env.episode_info = "too weak poke"
             return True
         elif self.is_poker_moving(poker):
             return False
@@ -334,24 +344,24 @@ class VectorReward(Reward):
     def __init__(self, env, task):
         super(VectorReward, self).__init__(env, task)
 
-        self.prev_goals_positions       = [None]*(len(self.env.task_objects_names))
+        self.prev_goals_positions = [None]*(len(self.env.task_objects_names))
         self.prev_distractors_positions = [None]*(len(self.env.distractors))
-        self.prev_links_positions       = [None]*11
-        self.prev_gipper_position       = [None, None, None]
+        self.prev_links_positions = [None]*11
+        self.prev_gipper_position = [None, None, None]
 
-        self.touches                    = 0
+        self.touches = 0
 
     def reset(self):
         """
         Reset stored value of distance between 2 objects. Call this after the end of an episode.
         """
-        self.prev_goals_positions       = [None]*(len(self.env.task_objects_names))
+        self.prev_goals_positions = [None]*(len(self.env.task_objects_names))
         self.prev_distractors_positions = [None]*(len(self.env.distractors))
-        self.prev_links_positions       = [None]*(self.env.robot.end_effector_index+1)
-        self.prev_gipper_position       = [None, None, None]
+        self.prev_links_positions = [None]*(self.env.robot.end_effector_index+1)
+        self.prev_gipper_position = [None, None, None]
 
-        self.touches                    = 0
-        self.env.distractor_stopped     = False
+        self.touches = 0
+        self.env.distractor_stopped = False
 
     def compute(self, observation=None):
         """
@@ -365,7 +375,10 @@ class VectorReward(Reward):
         goals, distractors, arm, links = [], [], [], []
         self.fill_objects_lists(goals, distractors, arm, links, observation)
         reward = 0
-        contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.env_objects[-1].uid, x, -1) for x in range(0,self.env.robot.end_effector_index+1)]
+
+        contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid,
+                          self.env.env_objects[-1].uid, x, -1)
+                          for x in range(0,self.env.robot.end_effector_index+1)]
         for p in contact_points:
             if p:
                 reward = -5
@@ -376,18 +389,20 @@ class VectorReward(Reward):
                     if self.env.episode_reward > 0:
                         self.env.episode_reward = -1
 
-                    self.episode_number     = 1024
-                    self.env.episode_info   = "Arm crushed the distractor"
-                    self.env.episode_over   = True
+                    self.episode_number = 1024
+                    self.env.episode_info = "Arm crushed the distractor"
+                    self.env.episode_over = True
                     self.env.episode_failed = True
                     return reward
 
+        # end_effector  = links[self.env.robot.gripper_index]
+        gripper = links[-1] # = end effector
         gripper       = links[-1] # = end effector
         goal_position = goals[0]
-        distractor    = self.env.env_objects[1]
+        distractor = self.env.env_objects[1]
         closest_distractor_points = self.env.p.getClosestPoints(self.env.robot.robot_uid, distractor.uid, self.env.robot.gripper_index)
 
-        minimum = 1000
+        minimum = float('inf')
         for point in closest_distractor_points:
             if point[8] < minimum:
                 minimum = point[8]
@@ -403,18 +418,21 @@ class VectorReward(Reward):
             push_amplifier = 0
 
         ideal_vector = Vector(self.prev_gipper_position, goal_position, self.env)
-        push_vector  = Vector(closest_distractor_point, self.prev_gipper_position, self.env)
-        pull_vector  = Vector(self.prev_gipper_position, goal_position, self.env)
+        push_vector = Vector(closest_distractor_point, self.prev_gipper_position, self.env)
+        pull_vector = Vector(self.prev_gipper_position, goal_position, self.env)
 
         push_vector.set_len(push_amplifier)
         pull_vector.set_len(pull_amplifier)
+
         push_vector.add(pull_vector)
         force_vector = push_vector
+
         force_vector.add(ideal_vector)
         optimal_vector = force_vector
         optimal_vector.multiply(0.005)
 
         real_vector = Vector(self.prev_gipper_position, gripper, self.env)
+
         if real_vector.norm == 0:
             reward += 0
         else:
@@ -488,12 +506,9 @@ class VectorReward(Reward):
         return np.array(vector) * multiplier
 
     def set_vector_len(self, vector, len):
-        norm    = self.count_vector_norm(vector)
-        vector  = self.multiply_vector(vector, 1/norm)
+        norm = self.count_vector_norm(vector)
+        vector = self.multiply_vector(vector, 1/norm)
         return self.multiply_vector(vector, len)
-
-    def get_angle_between_vectors(self, v1, v2):
-        return math.acos(np.dot(v1, v2)/(self.count_vector_norm(v1)*self.count_vector_norm(v2)))
 
 
 class SwitchReward(DistanceReward):
