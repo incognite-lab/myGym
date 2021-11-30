@@ -226,7 +226,6 @@ def get_parser():
     parser.add_argument("-de", "--distractor_movement_endpoints", nargs="*", type=float, help="2 coordinates (starting point and ending point)")
     parser.add_argument("-no", "--observed_links_num", type=int, help="number of robot links in observation space")
     #Reward
-    parser.add_argument("-rt", "--reward_type", type=str, help="Type of reward: gt(ground truth), 3dvs(3D vision supervised), 2dvu(2D vision unsupervised), 6dvs(6D vision supervised)")
     parser.add_argument("-re", "--reward", type=str,  help="Defines how to compute the reward")
     parser.add_argument("-dt", "--distance_type", type=str, help="Type of distance metrics: euclidean, manhattan")
     #Train

@@ -730,11 +730,15 @@ class SwitchReward(DistanceReward):
         Returns:
             :return angle: (int) Angle of switch
         """
-        assert self.task.task_type in ["switch", "turn", "press"], "Expected task type switch or turn"
+        assert self.task.task_type in ["switch", "turn", "press"], "Expected task type switch, press or turn"
         pos = self.env.p.getJointState(self.env.task_objects["goal_state"].get_uid(), 0)
         angle = pos[0] * 180 / math.pi  # in degrees
-        if self.task.task_type in  ["switch", "press"]:
+        if self.task.task_type == "switch":
             return int(abs(angle))
+        elif self.task.task_type == "press":
+            if abs(angle)>1.71:
+                print("Press")
+            return abs(angle)
         else:
             return -angle
 

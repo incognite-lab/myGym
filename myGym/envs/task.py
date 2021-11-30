@@ -43,9 +43,9 @@ class TaskModule():
         self.coefficient_kw = 0
         self.coefficient_ka = 0
         self.obs_template = observation
+        self.obsdim = self.check_obs_template()
         self.vision_module = VisionModule(observation=observation, env=env, vae_path=vae_path, yolact_path=yolact_path, yolact_config=yolact_config)
         self.vision_src = self.vision_module.src
-        self.obsdim = self.check_obs_template()
 
     def reset_task(self):
         """
@@ -217,7 +217,7 @@ class TaskModule():
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
         finished = None
-        if self.task_type == 'reach' or 'poke':
+        if self.task_type in ['reach', 'poke']:
             finished = self.check_distance_threshold(self._observation)
         if self.task_type in ['push', 'throw', 'pnp']:
             finished = self.check_points_distance_threshold()

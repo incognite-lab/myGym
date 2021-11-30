@@ -374,8 +374,8 @@ class GymEnv(CameraEnv):
             self.task_objects["distractor"] = distrs
 
         self.env_objects = {**self.task_objects, **self.env_objects}
-        self.robot.reset(random_robot=random_robot)
         self.task.reset_task()
+        self.robot.reset(random_robot=random_robot)
         self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
@@ -520,7 +520,7 @@ class GymEnv(CameraEnv):
                     n = "actual_state" if o == "init" else "goal_state"
                     env_objects.append({n:self._place_object(d)})
                 elif d["obj_name"] == "null" and o == "init":
-                    env_objects.append({"actual_state":self.robot.get_observation()[:3]})
+                    env_objects.append({"actual_state":self.robot})
         return env_objects
 
     def color_of_object(self, object):

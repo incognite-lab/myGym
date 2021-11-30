@@ -84,7 +84,7 @@ class VisionModule:
             :return mask: (list) Mask of object
             :return centroid: (list) Centroid of object in pixel sprace coordinates
         """
-        if self.src == "ground_truth" or "ground_truth_6D":
+        if self.src == "ground_truth" or self.src == "ground_truth_6D":
             pass
         elif self.src in ["dope", "yolact"]:
             if img is not None:
@@ -287,9 +287,6 @@ class VisionModule:
             try:
                 self.yolact_cnn = InfTool(weights=weights, config=config, score_threshold=0.2)
             except:
-                raise Exception("For reward_type other than 'gt', you need to download pre-trained vision model and specify path to it in config. Specified {} and {} not found.".format(self.yolact_path, self.yolact_config))
-            self.obsdim = (len(self.env.task_objects_names) + 1) * 3
-        elif network == "dope":
-            self.obsdim = (len(self.env.task_objects_names) + 1) * 7
+                raise Exception("For observations other than 'obj' or 'endeff', you need to download pre-trained vision model and specify path to it in config. Specified {} and {} not found.".format(self.yolact_path, self.yolact_config))
         return
 

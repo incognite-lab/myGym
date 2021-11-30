@@ -307,7 +307,8 @@ class BaseEnv(gym.Env):
         Parameters:
             :param object: (EnvObject) Object to remove
         """
-        self.p.removeBody(obj.uid)
+        assert hasattr(obj, 'get_uid'), "Trying to remove something else than EnvObject"
+        self.p.removeBody(obj.get_uid())
 
 
     def _remove_all_objects(self):
@@ -316,12 +317,13 @@ class BaseEnv(gym.Env):
         """
         env_objects_copy = self.env_objects.copy()
         for key, o in env_objects_copy.items():
-            if hasattr(o, 'get_uid'):
-                self._remove_object(o)
-            elif isinstance(o, list) and len(o) >0:
+            if isinstance(o, list):
                 for i in o:
-                    if hasattr(i, 'get_uid'):
-                        self._remove_object(i)
+                  if o not in [self.robot, []]:
+                    self._remove_object(i)
+            else:
+              if o != self.robot:
+                self._remove_object(o)
 
     def get_texturizable_objects_uids(self):
         """

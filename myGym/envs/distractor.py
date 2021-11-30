@@ -26,7 +26,7 @@ class DistractorModule():
 
 
     def place_distractor(self, distractor, p, goal):
-        gripper_position = self.env.robot.observe_all_links()[-3:]
+        gripper_position = self.env.robot.get_observation()[:3]
         # get position in between
         a = 0.07 # constant needed, because goal spawns above table and then falls
         position = [((gripper_position[0]+goal[0])/2), ((gripper_position[1]+goal[1])/2), ((gripper_position[2]+goal[2])/2)-a]
