@@ -224,7 +224,7 @@ class TaskModule():
         if self.task_type == "switch":
             finished = abs(self.env.reward.get_angle()) >= 18
         if self.task_type == "press":
-            finished = self.env.reward.get_position() >= 1.71
+            finished = self.env.reward.get_angle() >= 1.71
         if self.task_type == "turn":
             finished = self.check_turn_threshold()
         if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:

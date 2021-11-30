@@ -3,7 +3,6 @@ from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
 from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReachReward, SwitchReward, ButtonReward, TurnReward
-import pybullet
 from collections import ChainMap
 import numpy as np
 from gym import spaces
@@ -386,7 +385,7 @@ class GymEnv(CameraEnv):
     def flatten_obs(self, obs):
         if len(obs["additional_obs"].keys()) != 0:
            obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
-        return [p for sublist in list(obs.values()) for p in sublist]
+        return np.asarray([p for sublist in list(obs.values()) for p in sublist])
 
     def _set_cameras(self):
         """
@@ -520,6 +519,8 @@ class GymEnv(CameraEnv):
                     d["urdf"] = self._get_urdf_filename(d["obj_name"])
                     n = "actual_state" if o == "init" else "goal_state"
                     env_objects.append({n:self._place_object(d)})
+                elif d["obj_name"] == "null" and o == "init":
+                    env_objects.append({"actual_state":self.robot.get_observation()[:3]})
         return env_objects
 
     def color_of_object(self, object):

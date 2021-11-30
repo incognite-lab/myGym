@@ -1,12 +1,11 @@
 import pybullet_data
-import glob
+import os
 import pybullet
 import pybullet_utils.bullet_client as bc
 import time
 import numpy as np
 from gym.utils import seeding
 import gym
-import os
 import inspect
 from myGym.envs.camera import Camera
 import pkg_resources
@@ -301,15 +300,15 @@ class BaseEnv(gym.Env):
                 list_all += [os.path.join(dirpath, file) for file in filenames]
         return list_all
 
-    def _remove_object(self, key, object):
+    def _remove_object(self, obj):
         """
         Totally remove object from the simulation
 
         Parameters:
             :param object: (EnvObject) Object to remove
         """
-        self.env_objects[key] = []
-        self.p.removeBody(object.uid)
+        self.p.removeBody(obj.uid)
+
 
     def _remove_all_objects(self):
         """
@@ -317,8 +316,12 @@ class BaseEnv(gym.Env):
         """
         env_objects_copy = self.env_objects.copy()
         for key, o in env_objects_copy.items():
-            if o:
-             self._remove_object(key,o)
+            if hasattr(o, 'get_uid'):
+                self._remove_object(o)
+            elif isinstance(o, list) and len(o) >0:
+                for i in o:
+                    if hasattr(i, 'get_uid'):
+                        self._remove_object(i)
 
     def get_texturizable_objects_uids(self):
         """

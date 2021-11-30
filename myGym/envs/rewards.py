@@ -146,7 +146,7 @@ class ComplexDistanceReward(DistanceReward):
         Returns:
             :return reward: (float) Reward signal for the environment
         """
-        reward = self.calc_dist_diff(observation[0:3], observation[3:6], observation[6:9])
+        reward = self.calc_dist_diff(observation["actual_state"], observation["goal_state"], observation["additional_obs"]["endeff_xyz"])
         self.task.check_distance_threshold(observation=observation)
         self.rewards_history.append(reward)
         return reward
@@ -300,15 +300,6 @@ class PokeReachReward(Reward):
             self.env.episode_over = True
             self.env.episode_failed = True
             self.env.episode_info = "too strong poke"
-
-    def get_accurate_gripper_position(self, gripper_position):
-        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
-        gripper_matrix = self.env.p.getMatrixFromQuaternion(gripper_orientation)
-        direction_vector = Vector([0,0,0], [0, 0, 0.1], self.env)
-        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
-        direction_vector.rotate_with_matrix(m)
-        gripper = Vector([0,0,0], gripper_position, self.env)
-        return direction_vector.add_vector(gripper)
 
     def is_poker_moving(self, poker):
         if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1]:
@@ -549,9 +540,8 @@ class SwitchReward(DistanceReward):
         Returns:
             :return reward: (float) Reward signal for the environment
         """
-        observation = observation["observation"] if isinstance(observation, dict) else observation
-        o1 = observation[0:3] if self.env.reward_type != "2dvu" else observation[0:int(len(observation[:-3])/2)]
-        gripper_position = self.get_accurate_gripper_position(observation[3:6])
+        o1 = observation["goal_state"]
+        gripper_position = self.get_accurate_gripper_position(observation["actual_state"])
         self.set_variables(o1, gripper_position)    # save local positions of task_object and gripper to global positions
         self.set_offset(x=-0.1, z=0.25)
         if self.x_obj > 0:
@@ -606,24 +596,6 @@ class SwitchReward(DistanceReward):
         # auxiliary variables
         self.offset = None
         self.prev_val = None
-
-    def get_accurate_gripper_position(self, gripper_position):
-        """
-        Calculate more accurate position of gripper
-        Params:
-            :param gripper_position: (list) Observation of the environment
-        Returns:
-            :return gripper_position: (list) Accurate position of gripper
-        """
-        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
-        gripper_matrix = self.env.p.getMatrixFromQuaternion(gripper_orientation)
-        direction = [0, 0, 0.1]  # length is 0.1
-        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]],
-                      [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]],
-                      [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
-        orientation_vector = m.dot(direction)  # length is 0.1
-        gripper_position = np.add(gripper_position, orientation_vector)
-        return gripper_position
 
     def set_variables(self, o1, o2):
         """
@@ -759,10 +731,7 @@ class SwitchReward(DistanceReward):
             :return angle: (int) Angle of switch
         """
         assert self.task.task_type in ["switch", "turn", "press"], "Expected task type switch or turn"
-        o1 = self.env.task_objects["actual_state"]
-        o2 = self.env.task_objects["goal_state"]
-        switch = o2 if o1 == self.env.robot else o1
-        pos = self.env.p.getJointState(switch.get_uid(), 0)
+        pos = self.env.p.getJointState(self.env.task_objects["goal_state"].get_uid(), 0)
         angle = pos[0] * 180 / math.pi  # in degrees
         if self.task.task_type in  ["switch", "press"]:
             return int(abs(angle))
@@ -814,9 +783,9 @@ class ButtonReward(SwitchReward):
         Returns:
             :return reward: (float) Reward signal for the environment
         """
-        o1 = observation[0:3] if self.env.reward_type != "2dvu" else observation[0:int(len(observation[:-3])/2)]
-        gripper_position = self.get_accurate_gripper_position(observation[3:6])
-        self.set_variables(o1, gripper_position)
+        goal = observation["goal_state"]
+        gripper_position = self.get_accurate_gripper_position(observation["actual_state"])
+        self.set_variables(goal, gripper_position)
         self.set_offset(z=0.16)
 
         w = self.calc_direction_3d(self.x_obj, self.y_obj, 1, self.x_obj, self.y_obj, self.z_obj,
@@ -907,10 +876,9 @@ class TurnReward(SwitchReward):
         Returns:
             :return reward: (float) Reward signal for the environment
         """
-        observation = observation["observation"] if isinstance(observation, dict) else observation
-        o1 = observation[0:3] if self.env.reward_type != "2dvu" else observation[0:int(len(observation[:-3])/2)]
-        gripper_position = self.get_accurate_gripper_position(observation[3:6])
-        self.set_variables(o1, gripper_position)
+        goal = observation["goal_state"]
+        gripper_position = self.get_accurate_gripper_position(observation["actual_state"])
+        self.set_variables(goal, gripper_position)
         self.set_offset(z=0.1)
 
         d = self.threshold_reached()
@@ -956,14 +924,14 @@ class TurnReward(SwitchReward):
 
         l = coef - offset if change_reward  else coef + offset
         l += normalize
-        Ax = self.rr * math.cos(alfa + l) + Sx
-        Ay = self.rr * math.sin(alfa + l) + Sy
+        Ax = self.r * math.cos(alfa + l) + Sx
+        Ay = self.r * math.sin(alfa + l) + Sy
 
         Bx = k * math.cos(alfa + l) + Sx
         By = k * math.sin(alfa + l) + Sy
 
-        AB_mid_x = (k + (self.rr - k)/2) * math.cos(alfa + l) + Sx
-        AB_mid_y = (k + (self.rr - k)/2) * math.sin(alfa + l) + Sy
+        AB_mid_x = (k + (self.r - k)/2) * math.cos(alfa + l) + Sx
+        AB_mid_y = (k + (self.r - k)/2) * math.sin(alfa + l) + Sy
 
         P_MID_diff_x = AB_mid_x - Px
         P_MID_diff_y = AB_mid_y - Py
@@ -984,7 +952,7 @@ class TurnReward(SwitchReward):
         """
         Checking if gripper is touching handle
         """
-        contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.env_objects[0].uid, x, 0)
+        contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.env_objects["goal_state"].uid, x, 0)
                           for x in range(0, self.env.robot.end_effector_index+1)]
         if any(contact_points):
                 return True
