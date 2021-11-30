@@ -112,8 +112,6 @@ class GymEnv(CameraEnv):
         self.observed_links_num     = observed_links_num
 
         self.task_type              = task_type
-        if dataset:
-            task_objects = []
         self.task_objects_dict     = task_objects
         self.task_objects = []
         self.env_objects = []
@@ -383,9 +381,11 @@ class GymEnv(CameraEnv):
         return self.flatten_obs(self._observation.copy())
 
     def flatten_obs(self, obs):
-        if len(obs["additional_obs"].keys()) != 0:
+        if len(obs["additional_obs"].keys()) != 0 and not self.dataset:
            obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
-        return np.asarray([p for sublist in list(obs.values()) for p in sublist])
+        if not self.dataset:
+            obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])
+        return obs
 
     def _set_cameras(self):
         """
@@ -418,6 +418,7 @@ class GymEnv(CameraEnv):
             if self.dataset:
                 self.observation["camera_data"] = self.render(mode="rgb_array")
                 self.observation["objects"] = self.env_objects
+                self.observation["additional_obs"] = {}
                 return self.observation
             else:
                 return self.observation["task_objects"]
@@ -456,7 +457,6 @@ class GymEnv(CameraEnv):
             self.episode_final_distance.append(self.task.last_distance / self.task.init_distance)
             self.episode_number += 1
             self._print_episode_summary(info)
-
 
         return self.flatten_obs(self._observation.copy()), reward, done, info
 

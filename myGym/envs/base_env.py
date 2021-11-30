@@ -248,6 +248,8 @@ class BaseEnv(gym.Env):
         Returns:
             :return urdf: (string)
         """
+        if "virtual" in obj_name:
+            return "virtual.urdf"
         for file in self.all_objects_filenames:
             if '/' + obj_name + '.' in file:
                 return file
@@ -332,7 +334,15 @@ class BaseEnv(gym.Env):
         Returns:
             :return texturizable_objects_uids: (list)
         """
-        return [object.get_uid() for object in self.env_objects] + list(self.scene_objects_uids.keys())
+        uids = []
+        for key, val in self.env_objects.items():
+            if hasattr(val, "get_uid"):
+                uids.append(val.get_uid())
+            elif isinstance(val, list):
+               for item in val:
+                  if hasattr(item, "get_uid"):
+                    uids.append(item.get_uid())
+        return uids + list(self.scene_objects_uids.keys())
 
     def get_colorizable_objects_uids(self):
         """

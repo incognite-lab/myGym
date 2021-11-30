@@ -277,7 +277,7 @@ class VisionModule:
             try:
                 self.vae_embedder, imsize = load_checkpoint(weights_pth, use_cuda=True)
             except:
-                raise Exception("For reward_type other than 'gt', you need to download pre-trained vision model and specify path to it in config. Specified {} not found.".format(self.vae_path))
+                raise Exception("For vae observation, you need to download pre-trained vision model and specify its path in config. Specified {} not found.".format(self.vae_path))
             self.vae_imsize = imsize
             self.obsdim = (2*self.vae_embedder.n_latents) + 3
         elif network == "yolact":
@@ -287,6 +287,6 @@ class VisionModule:
             try:
                 self.yolact_cnn = InfTool(weights=weights, config=config, score_threshold=0.2)
             except:
-                raise Exception("For observations other than 'obj' or 'endeff', you need to download pre-trained vision model and specify path to it in config. Specified {} and {} not found.".format(self.yolact_path, self.yolact_config))
+                raise Exception("For yolact observations, you need to download pre-trained vision model and specify its path in config. Specified {} and {} not found.".format(self.yolact_path, self.yolact_config))
         return
 

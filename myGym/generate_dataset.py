@@ -120,9 +120,9 @@ class GeneratorCoco: #COCO
             changing_light_gui = config['changing_light_gui'],
             shadows_on = config['shadows_on'],
             color_dict = config['color_dict'],
-            object_sampling_area = config['object_sampling_area'],
-            num_objects_range = config['num_objects_range'],
+            observation = config["observation"],
             used_objects = used_objects,
+            task_objects = config["task_objects"],
             active_cameras = config['active_cameras'],
             camera_resolution = config['camera_resolution'],
             renderer=p.ER_BULLET_HARDWARE_OPENGL,
@@ -511,10 +511,10 @@ if __name__ == "__main__":
 
     #define objects to appear in the env, add colors
     config['used_class_names'] = dict([x[1:3] for x in config['used_class_names_quantity']])
-    used_objects = []
+    used_objects = {"num_range":config["num_objects_range"], "obj_list":[]}
     for x in config['used_class_names_quantity']:
         for _ in range(x[0]):
-            used_objects.append(x[1])
+            used_objects["obj_list"].append({"obj_name":x[1], "fixed":0,"rand_rot":1, "sampling_area":config["object_sampling_area"]})
     if config['color_dict'] == 'object_colors':
         color_names_to_rgb()
         config['texture_randomizer']['exclude'].append("objects")
@@ -600,7 +600,15 @@ if __name__ == "__main__":
                         elif object_uid == gripper_uids[0]:
                             class_name = env.robot.get_name()
                         else:
-                            env_object_list = list(filter(lambda object: object.uid == object_uid, env_objects))
+                            e = list(env_objects.values())
+                            env_object_list = []
+                            for sublist in e:
+                                if isinstance(sublist, list):
+                                    for item in sublist:
+                                       env_object_list.append(item)
+                                else:
+                                    env_object_list.append(sublist)
+
                             if len(env_object_list) > 0:
                                 env_object = env_object_list[0]
                                 class_name = env_object.get_name()

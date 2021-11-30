@@ -43,8 +43,8 @@ class TaskModule():
         self.coefficient_kw = 0
         self.coefficient_ka = 0
         self.obs_template = observation
-        self.obsdim = self.check_obs_template()
         self.vision_module = VisionModule(observation=observation, env=env, vae_path=vae_path, yolact_path=yolact_path, yolact_config=yolact_config)
+        self.obsdim = self.check_obs_template()
         self.vision_src = self.vision_module.src
 
     def reset_task(self):

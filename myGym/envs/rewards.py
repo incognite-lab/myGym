@@ -254,9 +254,9 @@ class PokeReachReward(Reward):
 
     def init(self, observation):
         # load positions
-        goal_position = observation[0:3]
-        poker_position = observation[3:6]
-        gripper_position = self.get_accurate_gripper_position(observation[6:9])
+        goal_position = observation["goal_state"]
+        poker_position = observation["actual_state"]
+        gripper_position = self.get_accurate_gripper_position(observation["additional_obs"]["endeff_xyz"])
 
         for i in range(len(poker_position)):
             poker_position[i] = round(poker_position[i], 4)
@@ -270,7 +270,7 @@ class PokeReachReward(Reward):
     def finish(self, observation, poker_position, distance, gripper_distance, reward):
         self.update_positions(poker_position, distance, gripper_distance)
         self.check_strength_threshold()
-        self.task.check_poke_threshold(observation)
+        self.task.check_distance_threshold(observation)
         self.rewards_history.append(reward)
 
     def count_reward(self, poker_position, distance, gripper_distance):
@@ -296,10 +296,10 @@ class PokeReachReward(Reward):
         self.prev_poker_position = poker_position
 
     def check_strength_threshold(self):
-        if self.task.check_object_moved(self.env.task_objects[1], 2):
+        if self.task.check_object_moved(self.env.task_objects["actual_state"], 2):
             self.env.episode_over = True
             self.env.episode_failed = True
-            self.env.episode_info = "too strong poke"
+            self.env.episode_info = "poke too strong"
 
     def is_poker_moving(self, poker):
         if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1]:
