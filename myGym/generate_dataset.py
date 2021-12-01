@@ -26,7 +26,7 @@ def color_names_to_rgb():
     """
     Assign RGB colors to objects by name as specified in the training config file
     """
-    with open(pkg_resources.resource_filename("myGym", 'configs/rgbcolors.json'), "r") as read_file:
+    with open(pkg_resources.resource_filename("myGym", 'utils/rgbcolors.json'), "r") as read_file:
         clr = json.load(read_file) #json file with suggested colors
         new_dict = {}
         for key, value in config['object_colors'].items():
@@ -243,13 +243,13 @@ class GeneratorCoco: #COCO
         mask = 255*mask.astype('uint8')
         cv2.imshow('image',im)
         cv2.waitKey(1)
-        print(class_name)
         if self.too_small_obj:
             cv2.imshow('Too small object', mask)
         else:
             cv2.imshow('Labeled object', mask)
+        print("Object class: {}".format(class_name))
         cv2.waitKey(1000)
-        print(self.data_dict['bbox'])
+        #print(self.data_dict['bbox'])
 
     def write_json_end(self): #COCO
         """
@@ -289,8 +289,9 @@ class GeneratorDope: #DOPE
             shadows_on = config['shadows_on'],
             color_dict = config['color_dict'],
             object_sampling_area = config['object_sampling_area'],
-            num_objects_range = config['num_objects_range'],
+            observation = config["observation"],
             used_objects = used_objects,
+            task_objects = config["task_objects"],
             active_cameras = config['active_cameras'],
             camera_resolution = config['camera_resolution'],
             dataset = True,
@@ -304,9 +305,18 @@ class GeneratorDope: #DOPE
             env.reset(random_robot=config['random_arm_movement'], random_pos=False)
             observation = env.get_observation()
             env_objects = observation["objects"]
-            for obj in env_objects:
+            e = list(env_objects.values())
+            env_object_list = []
+            for sublist in e:
+                if isinstance(sublist, list):
+                    for item in sublist:
+                        env_object_list.append(item)
+                else:
+                    env_object_list.append(sublist)
+            for obj in env_object_list:
                 if obj.name not in self.objdim.keys():
-                    self.objdim[obj.name] = obj.get_cuboid_dimensions()
+                    if obj != env.robot:
+                        self.objdim[obj.name] = obj.get_cuboid_dimensions()
 
     def init_data(self): #DOPE
         data_train = {"objects":[]}
@@ -389,7 +399,6 @@ class GeneratorDope: #DOPE
         image = cv2.circle(cv2.UMat(image), tuple(map(int, [data["objects"][-1]["projected_3DBB_centroid"][0],data["objects"][-1]["projected_3DBB_centroid"][1]])), 4, [255,0,0], -1)
         image = cv2.circle(cv2.UMat(image), tuple(map(int, [data["objects"][-1]["bounding_box"]["top_left"][0],data["objects"][-1]["bounding_box"]["top_left"][1]])), 4, [255,255,0], -1)
         image = cv2.circle(cv2.UMat(image), tuple(map(int, [data["objects"][-1]["bounding_box"]["bottom_right"][0],data["objects"][-1]["bounding_box"]["bottom_right"][1]])), 4, [255,255,0], -1)
-        print(class_name)
         cv2.imshow('image',image)
         cv2.waitKey(1000)
         self.draw_bounding_box_3D()
@@ -447,8 +456,9 @@ class GeneratorVae:
             shadows_on = config['shadows_on'],
             color_dict = config['color_dict'],
             object_sampling_area = config['object_sampling_area'],
-            num_objects_range = config['num_objects_range'],
+            observation = config["observation"],
             used_objects = used_objects,
+            task_objects = config["task_objects"],
             active_cameras = config['active_cameras'],
             camera_resolution = config['camera_resolution'],
             dataset = True,
@@ -467,11 +477,10 @@ class GeneratorVae:
             self.env.reset(random_pos=True)
             self.env.render()
             action = [random.uniform(1,2) for x in range(6)]
-            #action = [2,2,2,2,2,2]
-            self.env.robot.reset_random(action)
+            self.env.robot.reset_random()
             # send the Kuka arms up
             observation, reward, done, info = self.env.step(action)
-            img = observation['camera_data'][6]['image']
+            img = observation['camera_data'][4]['image']
             imgs = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
             img = cv2.resize(imgs[0:450,100:500], (self.imsize, self.imsize))
             cv2.imshow("image", img)
@@ -608,10 +617,10 @@ if __name__ == "__main__":
                                        env_object_list.append(item)
                                 else:
                                     env_object_list.append(sublist)
-
-                            if len(env_object_list) > 0:
-                                env_object = env_object_list[0]
-                                class_name = env_object.get_name()
+                            env_objects_ids = [x.get_uid() for x in env_object_list]
+                            if object_uid in env_objects_ids:
+                                  env_object = env_object_list[env_objects_ids.index(object_uid)]
+                                  class_name = env_object.get_name()
                             else:
                                 continue
                         if class_name in config['used_class_names']:

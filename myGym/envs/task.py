@@ -39,9 +39,6 @@ class TaskModule():
         self.current_norm_distance = None
         self.stored_observation = []
         self.threshold = 0.1 # distance threshold for successful task completion
-        self.coefficient_kd = 0
-        self.coefficient_kw = 0
-        self.coefficient_ka = 0
         self.obs_template = observation
         self.vision_module = VisionModule(observation=observation, env=env, vae_path=vae_path, yolact_path=yolact_path, yolact_config=yolact_config)
         self.obsdim = self.check_obs_template()

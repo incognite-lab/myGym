@@ -737,7 +737,7 @@ class SwitchReward(DistanceReward):
             return int(abs(angle))
         elif self.task.task_type == "press":
             if abs(angle)>1.71:
-                print("Press")
+                print("Button pressed")
             return abs(angle)
         else:
             return -angle

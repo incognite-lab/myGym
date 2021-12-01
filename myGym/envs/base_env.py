@@ -253,7 +253,11 @@ class BaseEnv(gym.Env):
         for file in self.all_objects_filenames:
             if '/' + obj_name + '.' in file:
                 return file
-        raise Exception('Could not match the object name {} with its urdf path'.format(obj_name))
+        if self.dataset:
+            print("Did not find an urdf for {}, if it is a robot, it is OK".format(obj_name))
+            return None
+        else:
+            raise Exception('Could not match the object name {} with its urdf path'.format(obj_name))
 
     def _get_random_urdf_filenames(self, n, used_objects=None):
         """
@@ -271,7 +275,9 @@ class BaseEnv(gym.Env):
             for object_name in used_objects:
                 if "null" in object_name:
                     all_objects_filenames.append("goal")
-                all_objects_filenames.append(self._get_urdf_filename(object_name))
+                urdf = self._get_urdf_filename(object_name)
+                if urdf:
+                    all_objects_filenames.append(urdf)
         assert all_objects_filenames is not [], "Could not find any urdf among the objects: {}".format(used_objects)
 
         selected_objects_filenames = []
