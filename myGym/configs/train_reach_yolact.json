@@ -5,7 +5,7 @@
 "engine":"pybullet",
 "render":"opengl",
 "camera":4,
-"gui":1,
+"gui":0,
 "visualize":1,
 "visgym":0,
 #Robot
@@ -14,14 +14,16 @@
 "robot_init":[0.0, 0.5, 0.5],
 #Task
 "task_type":"reach",
-"task_objects"          :[{"init":{"obj_name":"null"},
-                           "goal":{"obj_name":"cube_holes","fixed":1,"rand_rot":0, "sampling_area":[-0.7, 0.7, 0.5, 0.7, 0.1, 0.1]}}],
-"used_objects"          :{"num_range":[0,0], "obj_list":[]},
+"task_objects":[{"init":{"obj_name":"null"},
+                           "goal":{"obj_name":"hammer","fixed":0,"rand_rot":0, "sampling_area":[-0.5, 0.5, 0.5, 0.8, 0.1, 0.1]}}],
+"used_objects":{"num_range":[1,4], "obj_list":[{"obj_name":"screwdriver","fixed":0,"rand_rot":0, "sampling_area":[-0.6, 0.6, 0.3, 0.9, 0.1, 0.1]},
+                          {"obj_name":"wrench","fixed":0,"rand_rot":0, "sampling_area":[-0.6, 0.6, 0.3, 0.9, 0.1, 0.1]},
+                          {"obj_name":"pliers","fixed":0,"rand_rot":0, "sampling_area":[-0.6, 0.6, 0.3, 0.9, 0.1, 0.1]}]},
 // Observation
 // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
 // goal_state options (pick one): "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
 // additional_obs options (pick none/one/more): "joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"
-"observation"           : {"actual_state":"vae", "goal_state":"vae", "additional_obs":[]},
+"observation"           : {"actual_state":"yolact", "goal_state":"yolact", "additional_obs":["endeff_xyz"]},
 #Distractor
 "distractors"                   : ["sphere"],
 "distractor_moveable"           : 1,
@@ -36,20 +38,20 @@
 #Reward
 "reward":"distance",
 "distance_type":"euclidean",
-"vae_path":"/vae/trained_models/vae_armtop_12_12/model_best.pth.tar",
-"yolact_path":null,
-"yolact_config":null,
+"vae_path":null,
+"yolact_path":"trained_models/weights_yolact_mygym_23/crow_base_15_266666.pth",
+"yolact_config":"trained_models/weights_yolact_mygym_23/config_train_15.obj",
 #Train
 "train_framework":"tensorflow",
 "algo":"ppo2",
-"max_episode_steps":500,
+"max_episode_steps":1024,
 "algo_steps":1024,
-"steps":800000,
+"steps":50000,
 "pretrained_model":null,
 "multiprocessing":false,
 #Evaluation
-"eval_freq":10000,
-"eval_episodes":100,
+"eval_freq":1000,
+"eval_episodes":10,
 #Saving and logging
 "logdir":"trained_models",
 "record":0

@@ -1,12 +1,11 @@
 import pybullet_data
-import glob
+import os
 import pybullet
 import pybullet_utils.bullet_client as bc
 import time
 import numpy as np
 from gym.utils import seeding
 import gym
-import os
 import inspect
 from myGym.envs.camera import Camera
 import pkg_resources
@@ -62,7 +61,7 @@ class BaseEnv(gym.Env):
 
         # Set objects information
         self.objects_dir_path = objects_dir_path
-        self.env_objects = []
+        self.env_objects = {}
         self.scene_objects_uids = {}
         self.all_objects_filenames = self._get_all_urdf_filenames(self.objects_dir_path)
 
@@ -241,6 +240,25 @@ class BaseEnv(gym.Env):
         for key, value in info_dict.items():
             print(key + ": " + str(value))
 
+    def _get_urdf_filename(self, obj_name):
+        """
+        Return a matching URDF from directory with objects URDFs
+        Parameters:
+            :param obj_name: (string) Name of the object
+        Returns:
+            :return urdf: (string)
+        """
+        if "virtual" in obj_name:
+            return "virtual.urdf"
+        for file in self.all_objects_filenames:
+            if '/' + obj_name + '.' in file:
+                return file
+        if self.dataset:
+            print("Did not find an urdf for {}, if it is a robot, it is OK".format(obj_name))
+            return None
+        else:
+            raise Exception('Could not match the object name {} with its urdf path'.format(obj_name))
+
     def _get_random_urdf_filenames(self, n, used_objects=None):
         """
         Sample random URDF files from directory with objects URDFs
@@ -251,29 +269,26 @@ class BaseEnv(gym.Env):
         Returns:
             :return selected_objects_filenames: (list)
         """
-        if used_objects or (self.all_objects_filenames is None):
+        all_objects_filenames = self.all_objects_filenames
+        if used_objects:
             all_objects_filenames = []
             for object_name in used_objects:
-                if "virtual" in object_name:
-                    all_objects_filenames.append(object_name)
-                for file in self.all_objects_filenames:
-                    if '/'+object_name+'.' in file:
-                        all_objects_filenames.append(file)
-        else:
-          # uses self.all_objects_filenames
-          pass
-        assert all_objects_filenames is not None
+                if "null" in object_name:
+                    all_objects_filenames.append("goal")
+                urdf = self._get_urdf_filename(object_name)
+                if urdf:
+                    all_objects_filenames.append(urdf)
+        assert all_objects_filenames is not [], "Could not find any urdf among the objects: {}".format(used_objects)
 
         selected_objects_filenames = []
-        total_num_objects = len(all_objects_filenames)
-        if (n <= total_num_objects):
+        if (n <= len(all_objects_filenames)):
             selected_objects = np.random.choice(
-                np.arange(total_num_objects), n, replace=True)
+                np.arange(len(all_objects_filenames)), n, replace=True)
         else:
-            selected_objects = list(np.arange(total_num_objects))
-            remain = n - total_num_objects
+            selected_objects = list(np.arange(len(all_objects_filenames)))
+            remain = n - len(all_objects_filenames)
             selected_objects += list(np.random.choice(
-                np.arange(total_num_objects), remain))
+                np.arange(len(all_objects_filenames)), remain))
         for object_id in selected_objects:
             selected_objects_filenames.append(all_objects_filenames[object_id])
         return selected_objects_filenames
@@ -293,23 +308,30 @@ class BaseEnv(gym.Env):
                 list_all += [os.path.join(dirpath, file) for file in filenames]
         return list_all
 
-    def _remove_object(self, object):
+    def _remove_object(self, obj):
         """
         Totally remove object from the simulation
 
         Parameters:
             :param object: (EnvObject) Object to remove
         """
-        self.env_objects.remove(object)
-        self.p.removeBody(object.uid)
+        assert hasattr(obj, 'get_uid'), "Trying to remove something else than EnvObject"
+        self.p.removeBody(obj.get_uid())
+
 
     def _remove_all_objects(self):
         """
         Remove all objects from simulation (not scene objects or robots)
         """
-        env_objects_copy = self.env_objects[:]
-        for env_object in env_objects_copy:
-            self._remove_object(env_object)
+        env_objects_copy = self.env_objects.copy()
+        for key, o in env_objects_copy.items():
+            if isinstance(o, list):
+                for i in o:
+                  if o not in [self.robot, []]:
+                    self._remove_object(i)
+            else:
+              if o != self.robot:
+                self._remove_object(o)
 
     def get_texturizable_objects_uids(self):
         """
@@ -318,7 +340,15 @@ class BaseEnv(gym.Env):
         Returns:
             :return texturizable_objects_uids: (list)
         """
-        return [object.get_uid() for object in self.env_objects] + list(self.scene_objects_uids.keys())
+        uids = []
+        for key, val in self.env_objects.items():
+            if hasattr(val, "get_uid"):
+                uids.append(val.get_uid())
+            elif isinstance(val, list):
+               for item in val:
+                  if hasattr(item, "get_uid"):
+                    uids.append(item.get_uid())
+        return uids + list(self.scene_objects_uids.keys())
 
     def get_colorizable_objects_uids(self):
         """

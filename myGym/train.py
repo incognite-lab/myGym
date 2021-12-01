@@ -70,8 +70,8 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
     if arg_dict["engine"] == "pybullet":
         env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                          "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
-                         "robot_action": arg_dict["robot_action"], "task_type": arg_dict["task_type"], "num_subgoals": arg_dict["num_subgoals"],
-                         "task_objects":arg_dict["task_objects"], "distractors":arg_dict["distractors"],
+                         "robot_action": arg_dict["robot_action"], "task_type": arg_dict["task_type"], "num_subgoals": len(arg_dict["task_objects"]),
+                         "task_objects":arg_dict["task_objects"], "observation":arg_dict["observation"], "distractors":arg_dict["distractors"],
                          "distractor_moveable":arg_dict["distractor_moveable"],
                          "distractor_constant_speed":arg_dict["distractor_constant_speed"],
                          "distractor_movement_dimensions":arg_dict["distractor_movement_dimensions"],
@@ -80,9 +80,8 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                          "coefficient_kw":arg_dict["coefficient_kw"],
                          "coefficient_ka":arg_dict["coefficient_ka"],
                          "observed_links_num":arg_dict["observed_links_num"],
-                         "reward_type": arg_dict["reward_type"],
                          "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
-                         "object_sampling_area": arg_dict["object_sampling_area"], "active_cameras": arg_dict["camera"],
+                         "active_cameras": arg_dict["camera"],
                          "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
                          "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                          "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"]}
@@ -227,7 +226,6 @@ def get_parser():
     parser.add_argument("-de", "--distractor_movement_endpoints", nargs="*", type=float, help="2 coordinates (starting point and ending point)")
     parser.add_argument("-no", "--observed_links_num", type=int, help="number of robot links in observation space")
     #Reward
-    parser.add_argument("-rt", "--reward_type", type=str, help="Type of reward: gt(ground truth), 3dvs(3D vision supervised), 2dvu(2D vision unsupervised), 6dvs(6D vision supervised)")
     parser.add_argument("-re", "--reward", type=str,  help="Defines how to compute the reward")
     parser.add_argument("-dt", "--distance_type", type=str, help="Type of distance metrics: euclidean, manhattan")
     #Train
@@ -277,7 +275,7 @@ def main():
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = pkg_resources.resource_filename("myGym", arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
-    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["task_type"],arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["reward_type"],arg_dict["algo"])))
+    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["task_type"],arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["algo"])))
     model_logdir = model_logdir_ori
     add = 2
     while True:

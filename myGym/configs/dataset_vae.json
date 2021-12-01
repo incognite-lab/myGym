@@ -16,6 +16,8 @@
     "min_obj_area" : 49, #each object will have at least this pixels visible, to be reasonably recognizable. If not, skip. (49 ~ 7x7pix img)
     "train_test_split_pct" : 0.1, #data split, 0.0 = only train, 1.0 = only test 
     "visualize" : false, #binary masks for each labeled object
+    "task_objects":[{"init":{"obj_name":"null"},"goal":{"obj_name":"cube_virtual","fixed":1,"rand_rot":0, "sampling_area":[-0.7, 0.7, 0.5, 0.7, 0.1, 0.1]}}], # ignore this one, only for compatibility
+    "observation": {"actual_state":"endeff_xyz", "goal_state":"obj_xyz", "additional_obs":[]},  # ignore this one, only for compatibility
 # env parameters
     "env_name" : "Gym-v0", #name of environment
     "workspace" : "table", #name of workspace

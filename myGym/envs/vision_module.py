@@ -29,8 +29,8 @@ class VisionModule:
         :param yolact_path: (string) Path to a trained Yolact in 3dvu reward type
         :param yolact_config: (string) Path to saved Yolact config obj or name of an existing one in the data/Config script or None for autodetection
     """
-    def __init__(self, vision_src="ground_truth", env=None, vae_path=None, yolact_path=None, yolact_config=None):
-        self.src = vision_src
+    def __init__(self, observation={}, env=None, vae_path=None, yolact_path=None, yolact_config=None):
+        self.src = self.get_module_type(observation)
         self.env = env
         self.vae_embedder = None
         self.vae_imsize = None
@@ -44,14 +44,18 @@ class VisionModule:
         self.centroid_transformed = {}
 
 
-    def get_module_type(self):
+    def get_module_type(self, observation):
         """
         Get source of the information from environment (ground_truth, yolact, vae)
 
         Returns:
             :return source: (string) Source of information
         """
-        return self.src
+        if observation["actual_state"] not in ["vae", "yolact", "voxel", "dope"]:
+            src = "ground_truth_6D" if "6D" in observation["actual_state"] else "ground_truth"
+        else:
+            src = observation["actual_state"]
+        return src
 
     def crop_image(self, img):
         """
@@ -80,7 +84,7 @@ class VisionModule:
             :return mask: (list) Mask of object
             :return centroid: (list) Centroid of object in pixel sprace coordinates
         """
-        if self.src == "ground_truth":
+        if self.src == "ground_truth" or self.src == "ground_truth_6D":
             pass
         elif self.src in ["dope", "yolact"]:
             if img is not None:
@@ -117,7 +121,7 @@ class VisionModule:
         Returns:
             :return bbox: (list) Bounding box of object
         """
-        if self.src == "ground_truth":
+        if self.src == "ground_truth" or "ground_truth_6D":
             if obj is not None:
                 return obj.get_bounding_box()
             else:
@@ -156,6 +160,11 @@ class VisionModule:
                 return list(obj.get_position())
             else:
                 raise Exception("You need to provide obj argument to get gt position")
+        elif self.src == "ground_truth_6D":
+            if obj is not None:
+                return (list(obj.get_position()) + list(obj.get_orientation()))
+            else:
+                raise Exception("You need to provide obj argument to get gt position")
         elif self.src in ["yolact", "dope"]:
             if img is not None:
                 if self.src == "yolact":
@@ -186,7 +195,7 @@ class VisionModule:
         Returns:
             :return orientation: (list) Orientation of object in world coordinates
         """
-        if self.src == "ground_truth":
+        if self.src == "ground_truth" or "ground_truth_6D":
             if obj is not None:
                 return obj.get_orientation()
             else:
@@ -268,7 +277,7 @@ class VisionModule:
             try:
                 self.vae_embedder, imsize = load_checkpoint(weights_pth, use_cuda=True)
             except:
-                raise Exception("For reward_type other than 'gt', you need to download pre-trained vision model and specify path to it in config. Specified {} not found.".format(self.vae_path))
+                raise Exception("For vae observation, you need to download pre-trained vision model and specify its path in config. Specified {} not found.".format(self.vae_path))
             self.vae_imsize = imsize
             self.obsdim = (2*self.vae_embedder.n_latents) + 3
         elif network == "yolact":
@@ -278,9 +287,6 @@ class VisionModule:
             try:
                 self.yolact_cnn = InfTool(weights=weights, config=config, score_threshold=0.2)
             except:
-                raise Exception("For reward_type other than 'gt', you need to download pre-trained vision model and specify path to it in config. Specified {} and {} not found.".format(self.yolact_path, self.yolact_config))
-            self.obsdim = (len(self.env.task_objects_names) + 1) * 3
-        elif network == "dope":
-            self.obsdim = (len(self.env.task_objects_names) + 1) * 7
+                raise Exception("For yolact observations, you need to download pre-trained vision model and specify its path in config. Specified {} and {} not found.".format(self.yolact_path, self.yolact_config))
         return
 
