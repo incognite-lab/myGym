@@ -5,8 +5,8 @@
 "engine"   :"pybullet",
 "render"   :"opengl",
 "camera"   :3,
-"gui"      :0,
-"visualize":0,
+"gui"      :1,
+"visualize":1,
 "visgym"   :0,
 #Robot
 "robot"       :"kuka",
@@ -41,16 +41,17 @@
 "yolact_config":null,
 #Train
 "train_framework"  :"tensorflow",
-"algo"             :"ppo",
-"max_episode_steps":1024,
-"algo_steps"       :1024,
-"steps"            :500000,
+"algo"             :"ppo2",
+"diagram"           :[0, 0],
+"max_episode_steps":512,
+"algo_steps"       :512,
+"steps"            :300000,
 "pretrained_model" :null,
 "multiprocessing"  :false,
 #Evaluation
-"eval_freq"    :20000,
-"eval_episodes":10,
+"eval_freq"    :10000,
+"eval_episodes":100,
 #Saving and logging
-"logdir": "trained_models/poke/", 
+"logdir": "trained_models/poke/",
 "record":0
 }

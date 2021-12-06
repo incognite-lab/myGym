@@ -318,6 +318,318 @@ class PokeReachReward(Reward):
             return False
         return True
 
+# vector rewards
+
+class PokeReward(Reward):
+
+    def __init__(self, env, task):
+        super(PokeReward, self).__init__(env, task)
+
+        self.prev_goal_position    = [None]*3
+        self.prev_poker_position   = [None]*3
+        self.prev_gripper_position = [None]*3
+
+        self.threshold             = 0.1
+        self.last_distance         = None
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+        self.prev_goal_position    = [None]*3
+        self.prev_poker_position   = [None]*3
+        self.prev_gripper_position = [None]*3
+
+        self.last_distance         = None
+
+    def compute(self, observation=None):
+
+        # load positions
+        goal_position    = observation[0:3]
+        poker_position   = observation[3:6]
+        gripper_position = observation[6:9]
+
+        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
+        gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
+
+        direction = [0, 0, 1]                       # length is 1
+        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
+
+        orientation_vector = m.dot(direction)       # length is 1
+        orientation_vector = orientation_vector*0.1
+
+        gripper_position[0] = gripper_position[0]+orientation_vector[0]
+        gripper_position[1] = gripper_position[1]+orientation_vector[1]
+        gripper_position[2] = gripper_position[2]+orientation_vector[2]
+
+        # make sure none is None
+        if self.prev_poker_position[0] is None:
+            self.prev_poker_position   = poker_position
+
+        if self.prev_gripper_position[0] is None:
+            self.prev_gripper_position = gripper_position
+
+        if self.prev_goal_position[0] is None:   #is stationary for now
+            self.prev_goal_position    = goal_position
+
+        # with gripper in [0.0, Y, Z] coords
+        poke_vector  = self.move_to_origin([self.prev_poker_position, goal_position])  # goal is stationary (for now ;)
+        align_vector = self.set_vector_len([-poke_vector[0], poke_vector[1], 0], 1) # to poke line
+        real_vector  = self.move_to_origin([self.prev_gripper_position, gripper_position])
+
+        self.env.p.addUserDebugLine(goal_position, poker_position, lineColorRGB=(255, 0, 0), lineWidth = 1, lifeTime = 0.1)
+        # self.env.p.addUserDebugLine([goal_position[0], goal_position[1], goal_position[2]+0.05], [poker_position[0], poker_position[1], poker_position[2]+0.05], lineColorRGB=(0, 0, 255), lineWidth = 1, lifeTime = 1)
+        poker_vector = self.set_vector_len(poke_vector, -10)
+        self.env.p.addUserDebugLine(poker_position, np.add(poker_position, poker_vector), lineColorRGB=(255, 0, 0), lineWidth = 1, lifeTime = 0.1)
+        self.env.p.addUserDebugLine(gripper_position, goal_position, lineColorRGB=(255, 0, 0), lineWidth = 1, lifeTime = 0.1)
+
+        # vzdálenost gripperu od přímky protínající goal a poker
+        distance = self.get_distance_from_poke_line(poke_vector, poker_position, goal_position)
+
+        if self.last_distance is None:
+            self.last_distance = distance
+
+        # reward
+        # if is poker in motion
+        if self.is_poker_moving(poker_position): 
+
+            self.prev_poker_position = poker_position
+            self.task.check_poke_threshold(observation)
+
+            # reward = -abs(self.count_vector_norm(real_vector))
+            reward = 0
+
+            self.rewards_history.append(reward)
+            return reward
+
+        speed = 1000*self.count_vector_norm(real_vector)
+
+        # if is poker stationary
+        if distance < self.threshold:
+            # gripper is in align with poker and goal
+            # go in direction of goal
+            print("close")
+            optimal_vector = self.set_vector_len(poke_vector, 1)
+
+            if self.count_vector_norm(real_vector) == 0:
+                reward = 0
+            else:
+                reward = np.dot(optimal_vector, self.set_vector_len(real_vector, 1))
+                reward *= speed # rewards higher speed of motion (further poke)
+        else:
+            # gripper needs to align
+            optimal_vector = align_vector
+
+            reward = ((self.last_distance - distance) / self.last_distance)*speed # rewards higher speed of motion
+
+        self.prev_poker_position   = poker_position
+        self.prev_gripper_position = gripper_position
+        self.prev_goal_position    = goal_position
+        self.last_distance         = distance
+
+        self.task.check_poke_threshold(observation)
+
+        self.rewards_history.append(reward)
+        return reward
+
+    def move_to_origin(self, vector):
+        a = vector[1][0] - vector[0][0]
+        b = vector[1][1] - vector[0][1]
+        c = vector[1][2] - vector[0][2]       
+        
+        return [a, b, c]
+
+    def set_vector_len(self, vector, len):
+        norm    = self.count_vector_norm(vector)
+        vector  = self.multiply_vector(vector, 1/norm)
+
+        return self.multiply_vector(vector, len)
+
+    def multiply_vector(self, vector, multiplier):
+        return np.array(vector) * multiplier
+
+    def distance_between_vectors(self, v1, v2):
+        return 0
+
+    def distance_between_point_and_vector(self, point, vector):
+        return 0
+
+    def triangle_height(self, a, b, c):
+        p = a+b+c
+        p = p/2
+        one = 2/a
+        two = p*(p-a)
+        three = (p-b)
+        four = (p-c)
+        five = two*three*four
+        six = math.sqrt(five)
+        return one*six
+
+    def poke_line(self, x, goal_position, poker_position):
+
+        align_factor = (goal_position[1]-poker_position[1])/(goal_position[0]-poker_position[0])
+        addition     = poker_position[1] - align_factor*poker_position[0]
+        return align_factor*x + addition
+
+    def count_vector_norm(self, vector):
+        return math.sqrt(np.dot(vector, vector))
+
+    def is_poker_moving(self, poker):
+        if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1] and self.prev_poker_position[1] == poker[1]:
+            return False
+        return True
+
+    def get_distance_from_poke_line(self, poke_vector, poker_position, goal_position):
+        z = self.prev_gripper_position[2]
+
+        a = self.count_vector_norm(poke_vector)
+        b = math.sqrt((self.prev_gripper_position[0]-poker_position[0])**2 + (self.prev_gripper_position[1]-poker_position[1])**2)
+        c = math.sqrt((self.prev_gripper_position[0]-goal_position[0])**2 + (self.prev_gripper_position[1]-goal_position[1])**2)
+
+        if a < 0.1:
+            print("_____")
+            self.env.episode_info = "Successfull poke"
+            self.env.episode_over = True
+
+        a = round(a, 5)
+        b = round(b, 5)
+        c = round(c, 5)
+
+        while b+c <= a:
+            c += 0.00001
+
+        while a+c <= b:
+            c += 0.00001
+
+        while a+b <= c:
+            b += 0.00001
+
+        distanceXY = math.sqrt(self.triangle_height(a, b, c))
+        distanceZ  = z-0.0 # moving the line into height of center of the cubes
+        distance   = math.sqrt(distanceZ**2+distanceXY**2)
+
+        return distance
+
+class PokeVectorReward(Reward):
+
+    def __init__(self, env, task):
+        super(PokeVectorReward, self).__init__(env, task)
+
+        # self.prev_goal_position    = [None]*3
+        self.prev_poker_position   = [None]*3
+        self.prev_gripper_position = [None]*3
+
+        self.last_align            = 0
+        self.last_len              = 0
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+        # self.prev_goal_position    = [None]*3
+        self.prev_poker_position   = [None]*3
+        self.prev_gripper_position = [None]*3
+
+        self.last_align            = 0
+        self.last_len              = 0
+
+    def compute(self, observation=None):
+
+        # load positions
+        goal_position    = observation[0:3]
+        poker_position   = observation[3:6]
+        gripper_position = observation[6:9]
+
+        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
+        gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
+
+        # direction = [0, 0, 0.1]                         # length is 0.1
+        direction_vector = Vector([0,0,0], [0, 0, 0.1], self.env)
+        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
+
+        # orientation_vector = m.dot(direction)           # length is 0.1
+        direction_vector.rotate_with_matrix(m)
+
+        # gripper_position = np.add(gripper_position, direction_vector.vector)
+        gripper = Vector([0,0,0], gripper_position, self.env)
+        gripper_position = direction_vector.add_vector(gripper)
+
+        # make sure none is None
+        if self.prev_poker_position[0] is None:
+            self.prev_poker_position   = poker_position
+
+        if self.prev_gripper_position[0] is None:
+            self.prev_gripper_position = gripper_position
+
+        # if self.prev_goal_position[0] is None:   #is stationary for now
+        #     self.prev_goal_position    = goal_position
+
+        # align
+        poke_vector = Vector(self.prev_poker_position, goal_position, self.env)
+        aim_vector  = Vector(self.prev_gripper_position, self.prev_poker_position, self.env)
+
+        # align = poke_vector.get_align(aim_vector)
+
+        align = np.dot(self.set_vector_len(poke_vector.vector, 1), self.set_vector_len(aim_vector.vector, 1))
+
+        # reward
+        align_factor = 0
+        poke_factor  = 0
+
+        len = aim_vector.norm
+        align_factor = (align - self.last_align) + (self.last_len - len)
+
+        if align > 0.95:
+            real_vector = Vector(self.prev_gripper_position, gripper_position, self.env)
+            # poke_factor = poke_vector.get_align(real_vector)
+            poke_factor = np.dot(self.set_vector_len(poke_vector.vector, 1), self.set_vector_len(real_vector.vector, 1))
+            # real_vector.visualize(self.prev_gripper_position, color=(0, 0, 255))
+
+        # poke_vector.visualize(self.prev_poker_position, color=(255, 0, 0))
+        # aim_vector.visualize(self.prev_gripper_position, color=(0, 255, 0))
+
+        # print()
+        # print("align:        ", align)
+        # print("align_factor: ", align_factor)
+        # print("poke_factor:  ", poke_factor)
+        # print("reward:       ", align_factor + poke_factor)
+
+        reward = align_factor + poke_factor
+
+        if self.is_poker_moving(poker_position): 
+            reward = 0
+
+        self.prev_poker_position   = poker_position
+        self.prev_gripper_position = gripper_position
+        self.last_align            = align
+        self.last_len              = len
+
+        if self.task.check_object_moved(self.env.task_objects[1], 2):
+            self.env.episode_over   = True
+            self.env.episode_failed = True
+            self.env.episode_info   = "too strong poke"
+        self.task.check_poke_threshold(observation)
+
+        self.rewards_history.append(reward)
+        return reward
+
+    def is_poker_moving(self, poker):
+        if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1] and self.prev_poker_position[1] == poker[1]:
+            return False
+        return True
+
+    def set_vector_len(self, vector, len):
+        norm    = self.count_vector_norm(vector)
+        vector  = self.multiply_vector(vector, 1/norm)
+
+        return self.multiply_vector(vector, len)
+
+    def count_vector_norm(self, vector):
+        return math.sqrt(np.dot(vector, vector))
+
+    def multiply_vector(self, vector, multiplier):
+        return np.array(vector) * multiplier
+
 class VectorReward(Reward):
     """
     Reward class for reward signal calculation based on distance differences between 2 objects
@@ -983,3 +1295,235 @@ class TurnReward(SwitchReward):
             reward = 0
         self.prev_val = turn
         return reward
+
+    def get_angle_between_vectors(self, v1, v2):
+        return math.acos(np.dot(v1, v2)/(self.count_vector_norm(v1)*self.count_vector_norm(v2)))
+
+# dual rewards
+
+class DualPoke(Reward):
+    """
+    Reward class for reward signal calculation based on distance differences between 2 objects
+
+    Parameters:
+        :param env: (object) Environment, where the training takes place
+        :param task: (object) Task that is being trained, instance of a class TaskModule
+    """
+    def __init__(self, env, task):
+        super(DualPoke, self).__init__(env, task)
+
+        self.prev_poker_position = [None]*3
+
+        self.touched               = False
+
+        self.last_aimer_dist       = 0
+        self.last_poker_dist       = 0
+
+        self.poker_reward = 0
+        self.aimer_reward = 0
+
+        self.last_owner = None
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+        self.prev_poker_position = [None]*3
+
+        self.touched               = False
+
+        self.last_aimer_dist       = 0
+        self.last_poker_dist       = 0
+
+        self.poker_reward = 0
+        self.aimer_reward = 0
+
+        self.last_owner = None
+
+    def compute(self, observation=None):
+        """
+        Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
+
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        reward = 0
+        owner  = self.decide(observation)
+
+        if owner   == 0: reward = self.aimer_compute(observation)
+        elif owner == 1: reward = self.poker_compute(observation)
+        else:            exit("decision error")
+
+
+        self.last_owner = owner
+        self.task.check_poke_threshold(observation)
+        self.rewards_history.append(reward)
+
+        return reward
+
+    def aimer_compute(self, observation=None):
+        self.env.p.addUserDebugText("XXX", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,125,0])
+        goal_position, poker_position, gripper_position = self.get_positions(observation)
+        aim_point = self.get_aim_point(goal_position, poker_position)
+
+        aimer_dist = self.task.calc_distance(gripper_position, aim_point)
+
+        if self.last_owner != 0 or self.last_aimer_dist is None:
+            self.last_aimer_dist = aimer_dist
+
+        reward = self.last_aimer_dist - aimer_dist
+        # if self.is_poker_moving(poker_position):
+            # self.touched = True
+            # reward = -5
+            # self.env.episode_over = True
+            # self.env.episode_failed = True
+            # self.env.episode_info = "unintended poke"
+        self.aimer_reward += reward
+
+        self.env.p.addUserDebugText(str(self.aimer_reward), [0.5,0.5,0.5], lifeTime=0.1, textColorRGB=[0,125,0])
+        self.last_aimer_dist = aimer_dist
+        if self.env.episode_steps > 25:
+            self.tuched = self.is_poker_moving(poker_position)
+        self.prev_poker_position = poker_position
+        return reward
+
+    def poker_compute(self, observation=None):
+        self.env.p.addUserDebugText("XXX", [-0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
+        goal_position, poker_position, gripper_position = self.get_positions(observation)
+
+        poker_dist = round(self.task.calc_distance(poker_position, goal_position), 5)
+
+        if self.last_owner != 1 or self.last_poker_dist is None:
+            self.last_poker_dist = poker_dist
+
+        reward = 5*(self.last_poker_dist - poker_dist)
+        if self.task.check_object_moved(self.env.task_objects[0], 1): # if pushes goal too far
+            self.env.episode_over   = True
+            self.env.episode_failed = True
+            self.env.episode_info   = "too strong poke"
+            reward = -5
+        self.poker_reward += reward
+
+        self.env.p.addUserDebugText(str(self.poker_reward), [-0.5,0.5,0.5], lifeTime=0.1, textColorRGB=[0,0,125])
+        self.last_poker_dist = poker_dist
+        self.prev_poker_position = poker_position
+
+        if self.touched and not self.is_poker_moving(observation[3:6]):
+            self.env.episode_over = True
+            if self.last_poker_dist > 0.1:
+                self.env.episode_failed = True
+                self.env.episode_info   = "bad poke"
+            else:
+                self.env.episode_info   = "good poke"
+
+        return reward
+
+    def get_aim_point(self, goal_position, poker_position):
+        aim_vector = Vector(poker_position, goal_position, self.env.p)
+        aim_vector.set_len(-0.2)
+        aim_point = poker_position + aim_vector.vector
+        return aim_point
+
+    def get_positions(self, observation):
+        observation      = observation["observation"] if isinstance(observation, dict) else observation
+        goal_position    = observation[0:3]
+        poker_position   = observation[3:6]
+        gripper_position = self.get_accurate_gripper_position(observation[6:9])
+
+        if self.prev_poker_position[0] is None:
+            self.prev_poker_position = poker_position
+
+        return goal_position,poker_position,gripper_position
+
+    def get_accurate_gripper_position(self, gripper_position):
+        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
+        gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
+        direction_vector    = Vector([0,0,0], [0, 0, 0.1], self.env)
+        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
+        direction_vector.rotate_with_matrix(m)
+        gripper = Vector([0,0,0], gripper_position, self.env)
+        return direction_vector.add_vector(gripper)
+
+
+
+    def decide(self, observation=None):
+        goal_position, poker_position, gripper_position = self.get_positions(observation)
+
+        # if self.did_touch():
+        #     self.touched = True
+
+        is_aimed = self.is_aimed(goal_position, poker_position, gripper_position)
+
+
+
+        if self.touched:
+            self.env.p.addUserDebugText("touched", [-0.3,0.3,0.3], lifeTime=0.1, textColorRGB=[0,0,125])
+
+        if is_aimed or self.touched:
+            owner = 1 # poke
+        elif not is_aimed and not self.touched:
+            owner = 0 # aim
+        else:
+            print("wat?")
+
+        return owner
+
+    def did_touch(self):
+        contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.env_objects[1].uid, x, -1) for x in range(0,self.env.robot.end_effector_index+1)]
+        touched = False
+        for point in contact_points:
+            if len(point) > 0:
+                touched = True
+        return touched
+
+    def is_aimed(self, goal_position, poker_position, gripper_position):
+        poke_vector = Vector(poker_position, goal_position, self.env.p)
+        poke_vector.set_len(-0.2)
+
+        poker_in_XY = poker_position + poke_vector.vector
+
+        # gripper_in_XY = [0.0, 0.3, poker_position[2]] # gripper initial position with z == 0
+        poker_in_XY = [poker_in_XY[0], poker_in_XY[1], poker_position[2]] # gripper initial position with z == 0
+        gripper_in_XY = poker_position + 3*poke_vector.vector
+        len = self.distance_of_point_from_abscissa(gripper_in_XY, poker_position, gripper_position)
+
+        if len < 0.1:
+            return True
+        return False
+
+    def is_poker_moving(self, poker):
+        if      round(self.prev_poker_position[0], 4) == round(poker[0], 4) \
+            and round(self.prev_poker_position[1], 4) == round(poker[1], 4) \
+            and round(self.prev_poker_position[2], 4) == round(poker[2], 4):
+            return False
+        else:
+            self.touched = True
+            return True
+
+    def triangle_height(self, a, b, c):
+        p = a+b+c
+        p = p/2
+        one = 2/a
+        two = p*(p-a)
+        three = (p-b)
+        four = (p-c)
+        five = two*three*four
+        six = math.sqrt(five)
+        return one*six
+
+    def distance_of_point_from_abscissa(self, A, B, point):
+        a = self.task.calc_distance(A, B)
+        b = self.task.calc_distance(A, point)
+        c = self.task.calc_distance(point, B)
+
+        height_a = self.triangle_height(a, b, c)
+        distance = height_a
+
+        if b > a:
+            distance = c
+        if c > a:
+            distance = c
+
+        return distance

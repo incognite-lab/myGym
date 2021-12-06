@@ -22,6 +22,8 @@ except:
     print("Torch isn't probably installed correctly")
 
 from myGym.stable_baselines_mygym.algo import MyAlgo
+from myGym.stable_baselines_mygym.reference import REFER
+from myGym.stable_baselines_mygym.dual_ppo2 import Dual
 from myGym.stable_baselines_mygym.policies import MyMlpPolicy
 from myGym.stable_baselines_mygym.TorchPPO import TorchPPO
 from myGym.stable_baselines_mygym.TorchPPOpolicies import TorchMlpPolicy

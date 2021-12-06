@@ -4,6 +4,9 @@ from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
 from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReachReward, SwitchReward, ButtonReward, TurnReward
 from collections import ChainMap
+from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward, DualPoke
+import pybullet
+import time
 import numpy as np
 from gym import spaces
 import random
@@ -471,6 +474,29 @@ class GymEnv(CameraEnv):
             :return env_objects: (list of objects) Objects that are present in the current scene
         """
         env_objects = []
+        objects_filenames = self._get_random_urdf_filenames(n, object_names)
+        for object_filename in objects_filenames:
+            if random_pos:
+                fixed = False
+                borders = self.objects_area_boarders
+                if self.task_type == 'poke':
+                    if "poke" in object_filename:
+                        borders = [-0.0, 0.0, 0.6, 0.6, 0.1, 0.1]
+                    if "cube" in object_filename:
+                        borders = [-0.0, 0.0, 1, 1, 0.025, 0.025]
+                        fixed = True
+
+                pos = env_object.EnvObject.get_random_object_position(borders)
+                #orn = env_object.EnvObject.get_random_object_orientation()
+                orn = [0, 0, 0, 1]
+            for x in ["target", "crate", "bin", "box", "trash"]:
+                if x in object_filename:
+                    fixed = True
+                    pos[2] = 0.05
+            object = env_object.EnvObject(object_filename, pos, orn, pybullet_client=self.p, fixed=fixed)
+            if self.color_dict:
+                object.set_color(self.color_of_object(object))
+            env_objects.append(object)
         if "num_range" in object_dict.keys():  # solves used_objects
             for idx, o in enumerate(object_dict["obj_list"]):
                   urdf = self._get_urdf_filename(o["obj_name"])
