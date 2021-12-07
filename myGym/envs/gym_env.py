@@ -216,10 +216,6 @@ class GymEnv(CameraEnv):
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -1.0, 0.9], [1.4, 0.7, 0.88], [-1.4, 0.7, 0.88], [0.0, 0.698, 1.28],
                                                                    [0.0, 1.3, 0.5], [-0.0, -0.2, 0.6], [0.6, 0.7, 0.4], [-0.6, 0.7, 0.5], [0.0, 0.698, 0.8]]},
                                             'boarders':[-0.7, 0.7, 0.5, 1.3, 0.15, 0.15]},  
-                                'compactmaze': {'urdf': 'compactmaze.urdf', 'texture': None,
-                                            'transform': {'position':[-7.5, 5, 0.0], 'orientation':[0.0, 0.0, 0.0]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
-                                            'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.05, 2.5]]}},
                                 'table':    {'urdf': 'table.urdf', 'texture': 'table.jpg',
                                             'transform': {'position':[-0.0, -0.0, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
@@ -234,7 +230,7 @@ class GymEnv(CameraEnv):
                                             'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.05, 2.5]],
                                                         'target': [[-0.0, -1.05, 1.0], [0.0, 0.55, 1.3], [1.4, -0.75, 0.9], [-1.3, -0.75, 0.9], [0.0, 0.15, 2.1]]},
                                             'boarders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]},
-                                'modularmaze': {'urdf': 'modularmaze.urdf', 'texture': None,
+                                'modularmaze': {'urdf': 'modularmaze.urdf', 'texture': 'verticalmaze.jpg',
                                             'transform': {'position':[-7, 8, 0.0], 'orientation':[0.0, 0.0, 0.0]},
                                             'robot': {'position': [0.0, -0.5, 0.05], 'orientation': [0.0, 0.0, 0.5*np.pi]}, 
                                             'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.7, 2.1], [-0.0, -0.3, 0.2]], 
@@ -265,6 +261,7 @@ class GymEnv(CameraEnv):
             pkg_resources.resource_filename("myGym", "/envs/rooms/collision/"+self.workspace_dict[self.workspace]['urdf']),
                                             transform['position'],self.p.getQuaternionFromEuler(transform['orientation']),useFixedBase=True, useMaximalCoordinates=True), self.workspace)
         # Add textures
+        workspace_texture_id = None
         if self.task.vision_src != "vae":
              if self.workspace_dict[self.workspace]['texture'] is not None:
                  workspace_texture_id = self.p.loadTexture(
@@ -274,8 +271,9 @@ class GymEnv(CameraEnv):
         else:
              workspace_texture_id = self.p.loadTexture(pkg_resources.resource_filename("myGym",
                                                 "/envs/textures/grey.png"))
-        self.p.changeVisualShape(self.get_scene_object_uid_by_name(self.workspace), -1,
-                                     rgbaColor=[1, 1, 1, 1], textureUniqueId=workspace_texture_id)
+        if workspace_texture_id:
+            self.p.changeVisualShape(self.get_scene_object_uid_by_name(self.workspace), -1,
+                                         rgbaColor=[1, 1, 1, 1], textureUniqueId=workspace_texture_id)
         floor_texture_id = self.p.loadTexture(
             pkg_resources.resource_filename("myGym", "/envs/textures/parquet1.jpg"))
         self.p.changeVisualShape(self.get_scene_object_uid_by_name("floor"), -1,
