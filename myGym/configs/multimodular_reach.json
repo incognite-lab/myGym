@@ -42,7 +42,7 @@
 #Train
 "train_framework"   :"tensorflow",
 "algo"              :"multi",
-"num_networks"      :2,
+"num_networks"      :5,
 "network_switcher"  :"gt",
 "max_episode_steps" :1024,
 "algo_steps"        :1024,

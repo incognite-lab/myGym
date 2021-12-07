@@ -3,9 +3,7 @@ from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
 from collections import ChainMap
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, DualPoke, SwitchReward, ButtonReward, TurnReward
-import pybullet
-import time
+from myGym.envs.rewards import *
 import numpy as np
 from gym import spaces
 import random
@@ -150,11 +148,13 @@ class GymEnv(CameraEnv):
             self.has_distractor = True
             self.distractor = ['bus'] if not self.distractors else self.distractors
 
-        reward_classes = {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
-                          "distractor": VectorReward, "poke": DualPoke, "switch": SwitchReward,
-                          "btn": ButtonReward, "turn": TurnReward}
-
-        self.reward = reward_classes[reward](env=self, task=self.task)
+        reward_classes = {"single network":   {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
+                                              "distractor": VectorReward, "poke": PokeReachReward, "switch": SwitchReward,
+                                              "btn": ButtonReward, "turn": TurnReward, "pnp":GripperPickAndPlace},
+                          "multinetwork":     {"poke": DualPoke, "pnp":GripperPickAndPlace, "distance": DistanceReward,  "complex_distance": ComplexDistanceReward}}
+        scheme = "multinetwork" if self.num_networks > 1 else "single network"
+        assert reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
+        self.reward = reward_classes[scheme][reward](env=self, task=self.task)
         self.dataset   = dataset
         self.obs_space = obs_space
         self.visualize = visualize
@@ -318,6 +318,11 @@ class GymEnv(CameraEnv):
         elif self.robot_action in ["joints", "joints_gripper"]:
             self.action_low = np.array(self.robot.joints_limits[0])
             self.action_high = np.array(self.robot.joints_limits[1])
+        if "gripper" in self.robot_action:
+            self.action_low = np.insert(self.action_low, action_dim, 0)
+            self.action_high = np.insert(self.action_high, action_dim, 1)
+            action_dim += 1
+
         self.action_space = spaces.Box(np.array([-1]*action_dim), np.array([1]*action_dim))
 
     def _rescale_action(self, action):

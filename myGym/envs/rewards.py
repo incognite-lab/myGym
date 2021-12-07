@@ -5,7 +5,7 @@ import os
 import math
 from math import sqrt
 from myGym.utils.vector import Vector
-
+import random
 
 class Reward:
     """
@@ -90,8 +90,7 @@ class DistanceReward(Reward):
         self.prev_obj2_position = None
 
     def decide(self, observation=None):
-        import random
-        return random.randint(0, 1)
+        return random.randint(0, self.env.num_networks-1)
 
     def compute(self, observation):
         """
@@ -237,98 +236,6 @@ class SparseReward(Reward):
         self.rewards_history.append(reward)
         return reward
 
-
-class PokeReachReward(Reward):
-
-    def __init__(self, env, task):
-        super(PokeReachReward, self).__init__(env, task)
-
-        self.threshold = 0.1
-        self.last_distance = None
-        self.last_gripper_distance = None
-        self.moved = False
-        self.prev_poker_position = [None]*3
-
-    def reset(self):
-        """
-        Reset stored value of distance between 2 objects. Call this after the end of an episode.
-        """
-        self.last_distance = None
-        self.last_gripper_distance = None
-        self.moved = False
-        self.prev_poker_position = [None]*3
-
-    def compute(self, observation=None):
-        poker_position, distance, gripper_distance = self.init(observation)
-        reward = self.count_reward(poker_position, distance, gripper_distance)
-        self.finish(observation, poker_position, distance, gripper_distance, reward)
-        return reward
-
-    def init(self, observation):
-        # load positions
-        goal_position = observation["goal_state"]
-        poker_position = observation["actual_state"]
-        gripper_position = self.get_accurate_gripper_position(observation["additional_obs"]["endeff_xyz"])
-
-        for i in range(len(poker_position)):
-            poker_position[i] = round(poker_position[i], 4)
-
-        distance = round(self.env.task.calc_distance(goal_position, poker_position), 7)
-        gripper_distance = self.env.task.calc_distance(poker_position, gripper_position)
-        self.initialize_positions(poker_position, distance, gripper_distance)
-
-        return poker_position, distance, gripper_distance
-
-    def finish(self, observation, poker_position, distance, gripper_distance, reward):
-        self.update_positions(poker_position, distance, gripper_distance)
-        self.check_strength_threshold()
-        self.task.check_distance_threshold(observation)
-        self.rewards_history.append(reward)
-
-    def count_reward(self, poker_position, distance, gripper_distance):
-        reward = 0
-        if self.check_motion(poker_position):
-            reward += self.last_gripper_distance - gripper_distance
-        reward += 100*(self.last_distance - distance)
-        return reward
-
-    def initialize_positions(self, poker_position, distance, gripper_distance):
-        if self.last_distance is None:
-            self.last_distance = distance
-
-        if self.last_gripper_distance is None:
-            self.last_gripper_distance = gripper_distance
-
-        if self.prev_poker_position[0] is None:
-            self.prev_poker_position = poker_position
-
-    def update_positions(self, poker_position, distance, gripper_distance):
-        self.last_distance = distance
-        self.last_gripper_distance = gripper_distance
-        self.prev_poker_position = poker_position
-
-    def check_strength_threshold(self):
-        if self.task.check_object_moved(self.env.task_objects["actual_state"], 2):
-            self.env.episode_over = True
-            self.env.episode_failed = True
-            self.env.episode_info = "poke too strong"
-
-    def is_poker_moving(self, poker):
-        if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1]:
-            return False
-        elif self.env.episode_steps > 25:   # it slightly moves on the beginning
-            self.moved = True
-        return True
-
-    def check_motion(self, poker):
-        if not self.is_poker_moving(poker) and self.moved:
-            self.env.episode_over = True
-            self.env.episode_failed = True
-            self.env.episode_info = "too weak poke"
-            return True
-        elif self.is_poker_moving(poker):
-            return False
-        return True
 
 # vector rewards
 class VectorReward(Reward):
@@ -1000,9 +907,101 @@ class TurnReward(SwitchReward):
     def get_angle_between_vectors(self, v1, v2):
         return math.acos(np.dot(v1, v2)/(self.count_vector_norm(v1)*self.count_vector_norm(v2)))
 
+
+class PokeReachReward(SwitchReward):
+
+    def __init__(self, env, task):
+        super(PokeReachReward, self).__init__(env, task)
+
+        self.threshold = 0.1
+        self.last_distance = None
+        self.last_gripper_distance = None
+        self.moved = False
+        self.prev_poker_position = [None]*3
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+        self.last_distance = None
+        self.last_gripper_distance = None
+        self.moved = False
+        self.prev_poker_position = [None]*3
+
+    def compute(self, observation=None):
+        poker_position, distance, gripper_distance = self.init(observation)
+        reward = self.count_reward(poker_position, distance, gripper_distance)
+        self.finish(observation, poker_position, distance, gripper_distance, reward)
+        return reward
+
+    def init(self, observation):
+        # load positions
+        goal_position = observation["goal_state"]
+        poker_position = observation["actual_state"]
+        gripper_position = self.get_accurate_gripper_position(observation["additional_obs"]["endeff_xyz"])
+
+        for i in range(len(poker_position)):
+            poker_position[i] = round(poker_position[i], 4)
+
+        distance = round(self.env.task.calc_distance(goal_position, poker_position), 7)
+        gripper_distance = self.env.task.calc_distance(poker_position, gripper_position)
+        self.initialize_positions(poker_position, distance, gripper_distance)
+
+        return poker_position, distance, gripper_distance
+
+    def finish(self, observation, poker_position, distance, gripper_distance, reward):
+        self.update_positions(poker_position, distance, gripper_distance)
+        self.check_strength_threshold()
+        self.task.check_distance_threshold(observation)
+        self.rewards_history.append(reward)
+
+    def count_reward(self, poker_position, distance, gripper_distance):
+        reward = 0
+        if self.check_motion(poker_position):
+            reward += self.last_gripper_distance - gripper_distance
+        reward += 100*(self.last_distance - distance)
+        return reward
+
+    def initialize_positions(self, poker_position, distance, gripper_distance):
+        if self.last_distance is None:
+            self.last_distance = distance
+
+        if self.last_gripper_distance is None:
+            self.last_gripper_distance = gripper_distance
+
+        if self.prev_poker_position[0] is None:
+            self.prev_poker_position = poker_position
+
+    def update_positions(self, poker_position, distance, gripper_distance):
+        self.last_distance = distance
+        self.last_gripper_distance = gripper_distance
+        self.prev_poker_position = poker_position
+
+    def check_strength_threshold(self):
+        if self.task.check_object_moved(self.env.task_objects["actual_state"], 2):
+            self.env.episode_over = True
+            self.env.episode_failed = True
+            self.env.episode_info = "poke too strong"
+
+    def is_poker_moving(self, poker):
+        if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1]:
+            return False
+        elif self.env.episode_steps > 25:   # it slightly moves on the beginning
+            self.moved = True
+        return True
+
+    def check_motion(self, poker):
+        if not self.is_poker_moving(poker) and self.moved:
+            self.env.episode_over = True
+            self.env.episode_failed = True
+            self.env.episode_info = "too weak poke"
+            return True
+        elif self.is_poker_moving(poker):
+            return False
+        return True
 # dual rewards
 
-class DualPoke(SwitchReward):
+class DualPoke(PokeReachReward):
     """
     Reward class for reward signal calculation based on distance differences between 2 objects
 
@@ -1028,6 +1027,13 @@ class DualPoke(SwitchReward):
         self.last_poker_dist = 0
         self.network_rewards = [0,0]
         self.current_network = 0
+
+    def is_poker_moving(self, poker):
+        if sum([poker[i] - self.prev_poker_position[i] for i in range(len(poker))]) < 0.01:
+            return False
+        else:
+            self.touched = True
+            return True
 
     def compute(self, observation=None):
         """
@@ -1103,7 +1109,6 @@ class DualPoke(SwitchReward):
         goal_position, poker_position, gripper_position = self.get_positions(observation)
         is_aimed = self.is_aimed(goal_position, poker_position, gripper_position)
         if self.touched:
-            print("TOUCH")
             self.env.p.addUserDebugText("touched", [-0.3,0.3,0.3], lifeTime=0.1, textColorRGB=[0,0,125])
         if is_aimed or self.touched:
             owner = 1  # poke
@@ -1127,13 +1132,6 @@ class DualPoke(SwitchReward):
             return True
         return False
 
-    def is_poker_moving(self, poker):
-        if sum([poker[i] - self.prev_poker_position[i] for i in range(len(poker))]) < 0.01:
-            return False
-        else:
-            self.touched = True
-            return True
-
     def triangle_height(self, a, b, c):
         p = (a+b+c)/2
         v = math.sqrt(p*(p-a)*(p-b)*(p-c))
@@ -1148,3 +1146,474 @@ class DualPoke(SwitchReward):
         if b > a or c > a:
             distance = c
         return distance
+
+
+# pick and place rewards
+
+class DualPickAndPlace(DualPoke):
+    """
+    Pick and place with two neural networks, gripper is operated automatically.
+
+    Parameters:
+        :param env: (object) Environment, where the training takes place
+        :param task: (object) Task that is being trained, instance of a class TaskModule
+    """
+    def __init__(self, env, task):
+        super(DualPickAndPlace, self).__init__(env, task)
+
+        self.object_before_lift = [None]*3
+        self.countdown = None
+        self.gripped      = None
+        self.lifted    = False
+        self.last_owner = None
+        self.last_find_dist  = None
+        self.last_lift_dist  = None
+        self.last_move_dist  = None
+        self.last_place_dist = None
+        self.current_network = 0
+        self.network_rewards = [0,0]
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+
+        self.object_before_lift = [None]*3
+        self.countdown = None
+        self.gripped      = None
+        self.lifted    = False
+        self.last_owner = None
+        self.last_find_dist  = None
+        self.last_lift_dist  = None
+        self.last_move_dist  = None
+        self.last_place_dist = None
+        self.current_network = 0
+        self.network_rewards = [0,0]
+
+    def compute(self, observation=None):
+        """
+        Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
+
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        owner = self.decide(observation)
+
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+
+        if owner   == 0: reward = self.find_compute(gripper_position, object_position)
+        elif owner == 1: reward = self.move_compute(object_position, goal_position)
+
+        self.last_owner = owner
+        self.task.check_distance_threshold(observation, threshold=0.02)
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        self.current_network = 0
+        if self.gripper_reached_object(gripper_position, object_position) or self.countdown is not None:
+            self.current_network= 1
+        return self.current_network
+
+    def gripper_reached_object(self, gripper, object):
+        self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
+        distance = self.task.calc_distance(gripper, object)
+        if self.gripped is not None:
+            return True
+        if distance < 0.1:
+            self.grip_object()
+            return True
+        return False
+
+    def find_compute(self, gripper, object):
+        # initial reach
+        self.env.p.addUserDebugText("find", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
+        dist = self.task.calc_distance(gripper, object)
+        if self.last_find_dist is None:
+            self.last_find_dist = dist
+        if self.last_owner != 0:
+            self.last_find_dist = dist
+        reward = self.last_find_dist - dist
+        self.last_find_dist = dist
+        if self.task.check_object_moved(self.env.task_objects["actual_state"]):
+            self.env.episode_over   = True
+            self.env.episode_failed = True
+
+        self.network_rewards[0] += reward
+        return reward
+
+    def move_compute(self, object, goal):
+        # reach of goal position + task object height in Z axis and release
+        self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        dist = self.task.calc_distance(object, goal)
+
+        if self.last_place_dist is None:
+            self.last_place_dist = dist
+        if self.last_owner != 1:
+            self.last_place_dist = dist
+
+        reward = self.last_place_dist - dist
+        reward = reward * 10
+        self.last_place_dist = dist
+
+        if self.last_owner == 1 and dist < 0.1:
+            self.release_object()
+            self.env.episode_info = "Object was placed to desired position"
+            self.countdown = 0
+        if self.env.episode_steps <= 5:
+            self.env.episode_info = "Task finished in initial configuration"
+            self.env.episode_over = True
+
+        if self.countdown is not None:
+            reward = 0
+            if self.countdown == 20:
+                self.env.episode_over = True
+            else:
+                self.countdown += 1
+
+        self.network_rewards[1] += reward
+        return reward
+
+    def grip_object(self):
+        if self.countdown is None:
+            object = self.env.env_objects["actual_state"]
+            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
+            self.grip = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.15])
+
+    def release_object(self):
+        if self.gripped is not None:
+            object = self.env.env_objects["actual_state"]
+            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0,0,0,1])
+            self.env.p.removeConstraint(self.grip)
+        self.gripped = None
+
+class ConsequentialPickAndPlace(DualPickAndPlace):
+    """
+    Pick and place with three neural networks, gripper is NOT operated by neural network (grasping automatic)
+
+    Parameters:
+        :param env: (object) Environment, where the training takes place
+        :param task: (object) Task that is being trained, instance of a class TaskModule
+    """
+    def __init__(self, env, task):
+        super(ConsequentialPickAndPlace, self).__init__(env, task)
+
+        self.object_before_lift = [None]*3
+        self.countdown = None
+        self.gripped      = None
+        self.lifted    = False
+        self.last_owner = None
+        self.last_find_dist  = None
+        self.last_lift_dist  = None
+        self.last_move_dist  = None
+        self.last_place_dist = None
+        self.current_network = 0
+        self.network_rewards = [0,0,0]
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+
+        self.object_before_lift = [None]*3
+        self.countdown = None
+        self.gripped      = None
+        self.lifted    = False
+        self.last_owner = None
+        self.last_find_dist  = None
+        self.last_lift_dist  = None
+        self.last_move_dist  = None
+        self.last_place_dist = None
+        self.current_network = 0
+        self.network_rewards = [0,0,0]
+
+    def compute(self, observation=None):
+        """
+        Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
+
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        reward = [self.find_compute(gripper_position, object_position),self.move_compute(object_position, goal_position),
+                  self.place_compute(object_position, goal_position)][owner]
+        self.last_owner = owner
+        self.task.check_pnp_threshold(observation)
+        self.rewards_history.append(reward)
+        return reward
+
+    def find_compute(self, gripper, object):
+        # initial reach
+        self.env.p.addUserDebugText("find", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
+        dist = self.task.calc_distance(gripper, object)
+        if self.last_find_dist is None:
+            self.last_find_dist = dist
+        if self.last_owner != 0:
+            self.last_find_dist = dist
+        reward = self.last_find_dist - dist
+        self.last_find_dist = dist
+        if self.task.check_object_moved(self.env.task_objects[1]):
+            self.env.episode_over   = True
+            self.env.episode_failed = True
+        self.network_rewards[0] += reward
+        return reward
+
+    def move_compute(self, object, goal):
+        # moving object above goal position (forced 2D reach)
+        self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
+
+        object_XY = object
+        goal_XY   = [goal[0], goal[1], goal[2]+0.2]
+
+        self.env.p.addUserDebugLine(object_XY, goal_XY, lifeTime=0.1)
+
+        dist = self.task.calc_distance(object_XY, goal_XY)
+        if self.last_move_dist is None:
+           self.last_move_dist = dist
+        if self.last_owner != 1:
+           self.last_move_dist = dist
+
+        reward = self.last_move_dist - dist
+        self.last_move_dist = dist
+        self.network_rewards[1]  += reward
+        return reward
+
+    def place_compute(self, object, goal):
+        # reach of goal position + task object height in Z axis and release
+        self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        dist = self.task.calc_distance(object, goal)
+
+        if self.last_place_dist is None:
+            self.last_place_dist = dist
+        if self.last_owner != 2:
+            self.last_place_dist = dist
+
+        reward = self.last_place_dist - dist
+        reward = reward * 10
+        self.last_place_dist = dist
+
+        if self.last_owner == 2 and dist < 0.1:
+            self.release_object()
+            self.env.episode_info = "Object was placed to desired position"
+            self.countdown = 0
+        if self.env.episode_steps <= 5:
+            self.env.episode_info = "Task finished in initial configuration"
+            self.env.episode_over = True
+
+        if self.countdown is not None:
+            reward = 0
+            if self.countdown == 5:
+                self.env.episode_over = True
+            else:
+                self.countdown += 1
+
+        self.network_rewards[2]  += reward
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        self.current_network= 1
+        if not self.gripper_reached_object(gripper_position, object_position):
+            self.current_network= 0
+        if self.object_above_goal(object_position, goal_position):
+            self.current_network = 2
+        return self.current_network
+
+    def get_positions(self, observation):
+        goal_position    = observation["actual_state"]
+        object_position  = observation["goal_state"]
+        gripper_position = self.get_accurate_gripper_position(observation["additional_obs"]["endeff_xyz"])
+
+        if self.object_before_lift[0] is None:
+            self.object_before_lift = object_position
+        return goal_position,object_position,gripper_position
+
+    def gripper_reached_object(self, gripper, object):
+        self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
+        distance = self.task.calc_distance(gripper, object)
+        if self.gripped is not None:
+            return True
+        if distance < 0.1:
+            self.grip_object()
+            return True
+        return False
+
+    def object_lifted(self, object, object_before_lift):
+        lifted_position = [object_before_lift[0], object_before_lift[1], object_before_lift[2]+0.1] # position of object before lifting but hightened with its height
+        self.task.calc_distance(object, lifted_position)
+        if object[2] < 0.079:
+            self.lifted = False # object has fallen
+            self.object_before_lift = object
+        else:
+            self.lifted = True
+            return True
+        return False
+
+    def object_above_goal(self, object, goal):
+        goal_XY   = [goal[0],   goal[1],   0]
+        object_XY = [object[0], object[1], 0]
+        distance  = self.task.calc_distance(goal_XY, object_XY)
+        if distance < 0.1:
+            return True
+        return False
+
+    def grip_object(self):
+        if self.countdown is None:
+            object = self.env.env_objects[1]
+            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
+            self.gripped = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.15])
+
+    def release_object(self):
+        if self.gripped is not None:
+            object = self.env.env_objects[1]
+            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0,0,0,1])
+            self.env.p.removeConstraint(self.grip)
+        self.gripped = None
+
+class GripperPickAndPlace(ConsequentialPickAndPlace):
+    """
+    Pick and place with three neural networks, gripper is operated by one of these networks
+
+    Parameters:
+        :param env: (object) Environment, where the training takes place
+        :param task: (object) Task that is being trained, instance of a class TaskModule
+    """
+    def __init__(self, env, task):
+        super(GripperPickAndPlace, self).__init__(env, task)
+        self.prev_object_position = [None]*3
+        self.current_network  = 0
+        self.picked = False
+        self.moved  = False
+        self.last_pick_dist  = None
+        self.last_move_dist  = None
+        self.last_place_dist = None
+        self.network_rewards = [0,0,0]
+        self.cooldown = 0
+        self.gripped   = None
+
+    def reset(self):
+        self.prev_object_position = [None]*3
+        self.current_network  = 0
+        self.picked = False
+        self.moved  = False
+        self.last_pick_dist  = None
+        self.last_move_dist  = None
+        self.last_place_dist = None
+        self.network_rewards = [0,0,0]
+        self.cooldown = 0
+        self.gripped   = None
+
+    def compute(self, observation=None):
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        reward = [self.pick(gripper_position, object_position),self.move(goal_position, object_position),
+                  self.place(goal_position, object_position)][owner]
+        self.task.check_distance_threshold(observation,threshold=0.05)
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        self.current_network = 0
+        self.gripper()
+        if self.picked:
+            self.current_network = 1
+        if self.moved:
+            self.current_network = 2
+        return self.current_network
+
+    def pick(self, gripper, object):
+        self.env.p.addUserDebugText("pick", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
+        dist = self.task.calc_distance(gripper, object)
+        if self.last_pick_dist is None:
+            self.last_pick_dist = dist
+
+        reward = self.last_pick_dist - dist
+        self.last_pick_dist = dist
+
+        if self.task.check_object_moved(self.env.task_objects["actual_state"], threshold=1):
+            self.env.episode_over   = True
+            self.env.episode_failed = True
+
+        if dist < 0.1 and self.env.robot.gripper_active:
+            self.picked = True
+            reward += 1
+        self.network_rewards[0]  += reward
+        return reward
+
+    def move(self, goal, object):
+        self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        dist = self.task.calc_distance(object, goal)
+        if self.last_move_dist is None:
+            self.last_move_dist = dist
+        reward = self.last_move_dist - dist
+        reward = reward * 1
+        self.last_move_dist = dist
+        if not self.env.robot.gripper_active:
+            reward += -1
+            self.picked = False
+        if dist < 0.1:
+            reward += 1
+            self.moved = True
+        self.network_rewards[1] += reward
+        return reward
+
+    def place(self, goal, object):
+        self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,125,125])
+        dist = self.task.calc_distance(object, goal)
+
+        self.env.p.addUserDebugText("distance " + str(dist), [0.5,0.5,0.5], lifeTime=0.1, textColorRGB=[0,125,125])
+        if self.last_place_dist is None:
+            self.last_place_dist = dist
+
+        reward = self.last_place_dist - dist
+        self.last_place_dist = dist
+
+        if dist < 0.1 and self.is_poker_moving(object):
+            if not self.env.robot.gripper_active:
+                reward += 1
+            else:
+                reward -= 1
+
+        if dist < 0.1 and not self.is_poker_moving(object):
+            reward += 1
+            self.env.episode_info = "Object was placed to desired location"
+            self.env.episode_over = True
+        elif dist > 0.1:
+            self.picked = False
+            self.moved  = False
+            reward -= 1
+
+        self.network_rewards[2] += reward
+        return reward
+
+    def gripper(self):
+        if self.env.robot.gripper_active:
+            self.grip()
+        else:
+            self.release()
+
+    def grip(self):
+            object_coords  = self.env._observation["actual_state"]
+            gripper_coords = self.get_accurate_gripper_position(self.env._observation["additional_obs"]["endeff_xyz"])
+            if self.env.task.calc_distance(object_coords, gripper_coords) < 0.1 and not self.gripped:
+                object = self.env.env_objects["actual_state"]
+                self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
+                self.gripped = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.15])
+                self.cooldown = 5
+
+    def release(self):
+        if self.cooldown > 0:
+            self.cooldown -= 1
+            return
+        if self.gripped is not None:
+            object = self.env.env_objects["actual_state"]
+            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0,0,0,1])
+            self.env.p.removeConstraint(self.gripped)
+        self.gripped = None
+
