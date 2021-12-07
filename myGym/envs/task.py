@@ -24,10 +24,11 @@ class TaskModule():
     """
     def __init__(self, task_type='reach', task_objects='cube_holes', num_subgoals=0, observation={},
                  vae_path=None, yolact_path=None, yolact_config=None, distance_type='euclidean',
-                 logdir=currentdir, env=None):
+                 logdir=currentdir, env=None, number_tasks=1):
         self.task_type = task_type
-        self.current_task = 0
         self.distance_type = distance_type
+        self.current_task = 0
+        self.number_tasks = number_tasks
         self.logdir = logdir
         self.task_objects_names = task_objects
         self.num_subgoals = num_subgoals
@@ -50,6 +51,7 @@ class TaskModule():
         """
         self.last_distance = None
         self.init_distance = None
+        self.current_task = 0
         self.current_norm_distance = None
         self.vision_module.mask = {}
         self.vision_module.centroid = {}
@@ -254,11 +256,14 @@ class TaskModule():
         self.env.episode_info = message
 
     def end_episode_success(self):
-        self.env.episode_over = True
-        if self.env.episode_steps == 1:
-            self.env.episode_info = "Task completed in initial configuration"
+        if self.current_task == (self.number_tasks-1):
+            self.env.episode_over = True
+            if self.env.episode_steps == 1:
+                self.env.episode_info = "Task completed in initial configuration"
+            else:
+                self.env.episode_info = "Task completed successfully"
         else:
-            self.env.episode_info = "Task completed successfully"
+            self.current_task += 1
 
     def calc_distance(self, obj1, obj2):
         """

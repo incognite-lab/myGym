@@ -43,6 +43,7 @@
     #Train
     "train_framework":"tensorflow",
     "algo":"torchppo",
+    "num_networks" : 1,
     "max_episode_steps":1024,
     "algo_steps":1024,
     "steps":100000,

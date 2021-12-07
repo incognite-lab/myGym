@@ -234,8 +234,8 @@ class BaseEnv(gym.Env):
         print("Episode status: " + episode_status)
         print("Episode info: " + self.episode_info)
         print("Episode reward: " + str(self.episode_reward))
-        print("Aimer reward:   " + str(self.reward.aimer_reward))
-        print("Poker reward:   " + str(self.reward.poker_reward))
+        if hasattr(self.reward, "network_rewards"):
+                [print("Reward network {}: {}".format(i, x)) for i, x in enumerate(self.reward.network_rewards)]
         print("Last step reward: " + str(self.reward.rewards_history[-1]))
         print("#---------------------------------#")
 

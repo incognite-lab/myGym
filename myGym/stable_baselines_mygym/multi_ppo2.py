@@ -18,7 +18,7 @@ from stable_baselines.common.tf_util import total_episode_reward_logger
 from stable_baselines.common.math_util import safe_mean
 
 
-class Dual(ActorCriticRLModel):
+class MultiPPO2(ActorCriticRLModel):
     """
     Proximal Policy Optimization algorithm (GPU version).
     Paper: https://arxiv.org/abs/1707.06347
@@ -58,7 +58,7 @@ class Dual(ActorCriticRLModel):
     def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
-                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None, diagram=[0, 0]):
+                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
 
         self.learning_rate          = learning_rate
         self.cliprange              = cliprange
@@ -73,8 +73,7 @@ class Dual(ActorCriticRLModel):
         self.noptepochs             = noptepochs
         self.tensorboard_log        = tensorboard_log
         self.full_tensorboard_log   = full_tensorboard_log
-        self.diagram                = diagram
-        self.models_num             = len(diagram)
+        self.models_num             = env.num_networks
 
         self.action_ph          = None
         self.advs_ph            = None
@@ -164,12 +163,7 @@ class Dual(ActorCriticRLModel):
                 summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = model.sess.run([self.summary, self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train], td_map, options=run_options, run_metadata=run_metadata)
                 writer.add_run_metadata(run_metadata, 'step%d' % (update * update_fac))
             else:
-                # params = model.get_parameters()
-                # print("in ", params["model/vf/b:0"])
                 summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = model.sess.run([model.summary, model.pg_loss, model.vf_loss, model.entropy, model.approxkl, model.clipfrac, model._train],td_map)
-
-                # params = model.get_parameters()
-                # print("out ", params["model/vf/b:0"])
             writer.add_summary(summary, (update * update_fac))
         else:
             policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = model.sess.run([self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train], td_map)
@@ -328,8 +322,6 @@ class Dual(ActorCriticRLModel):
             file that can not be deserialized.
         :param kwargs: extra arguments to change the model when loading
         """
-        # print(load_path)
-        # load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
         load_path = load_path.split("/")
         load_path = load_path[:-1]
         path = "/".join(load_path)
@@ -396,19 +388,11 @@ class Dual(ActorCriticRLModel):
         return clipped_actions, states
 
     def approved(self, observation):
-        observation = observation[0]
         # based on obs, decide which model should be used
-        try: # in training
-            submodel_id = self.env.envs[0].env.env.reward.decide(observation)
-            # if self.models[submodel_id].n_batch > ((self.n_steps/2)-1):
-            #     submodel_id = (submodel_id+1)%self.models_num
-        except:
-            submodel_id = self.env.reward.decide(observation) # with unitialized env
-        
-
+        submodel_id = self.env.envs[0].env.env.reward.network_switch_control(self.env.envs[0].env.env.observation["task_objects"])
         return submodel_id
 
-class SubModel(Dual):
+class SubModel(MultiPPO2):
     def __init__(self, parent, i):
         self.episode_reward  = 0
         self._param_load_ops = None
@@ -419,10 +403,7 @@ class SubModel(Dual):
             pass
 
         self.env = parent.env
-        if parent.diagram[i] == 0:
-            self.observation_space = parent.observation_space
-        else:
-            self.observation_space = parent.diagram[i]
+        self.observation_space = parent.observation_space
 
         with SetVerbosity(parent.verbose):
 
@@ -703,11 +684,8 @@ class Runner(AbstractEnvRunner):
             mb_advs      = np.zeros_like(mb_rewards) # 0s long as rewards
             true_reward  = np.copy(mb_rewards)   # true rewards list
             last_gae_lam = 0
-            # count = self.n_steps
             count = len(mb_rewards) # number of steps in this minibatch
             self.models[i].episode_reward = sum(true_reward)
-            print()
-            print(count)
             for step in reversed(range(count)):
                 if step == count - 1:
                     nextnonterminal = 1.0 - self.dones
@@ -718,11 +696,10 @@ class Runner(AbstractEnvRunner):
                 delta = mb_rewards[step] + self.gamma * nextvalues * nextnonterminal - mb_values[step]
                 mb_advs[step] = last_gae_lam = delta + self.gamma * self.lam * nextnonterminal * last_gae_lam
             mb_returns = mb_advs + mb_values
-
-            try:            
+            try:
                 mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward = map(swap_and_flatten, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward))
             except:
-              print("one model got 0 steps")
+              print("first model took all the steps")
 
             finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward
             finished_minibatches.append(finished_minibatch)
@@ -730,7 +707,6 @@ class Runner(AbstractEnvRunner):
         return finished_minibatches
 
         return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward
-        #      obs,    returns,    masks,    actions,    values,    neglogpacs,    states,    infos,    reward = runner.run()
 
 def swap_and_flatten(arr):
     """

@@ -2,9 +2,8 @@ from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReachReward, SwitchReward, ButtonReward, TurnReward
 from collections import ChainMap
-from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, PokeReward, PokeVectorReward, PokeReachReward, DualPoke
+from myGym.envs.rewards import DistanceReward, ComplexDistanceReward, SparseReward, VectorReward, DualPoke, SwitchReward, ButtonReward, TurnReward
 import pybullet
 import time
 import numpy as np
@@ -71,7 +70,8 @@ class GymEnv(CameraEnv):
                  task_type='reach',
                  num_subgoals=0,
                  task_objects=["virtual_cube_holes"],
-
+                 num_networks=1,
+                 network_switcher="gt",
                  distractors=None,
                  distractor_moveable=0,
                  distractor_movement_endpoints=[-0.7+0.12, 0.7-0.15],
@@ -97,6 +97,8 @@ class GymEnv(CameraEnv):
 
         self.workspace              = workspace
         self.robot_type             = robot
+        self.num_networks           = num_networks
+        self.network_switcher       = network_switcher
         self.robot_position         = robot_position
         self.robot_orientation      = robot_orientation
         self.robot_init_joint_poses = robot_init_joint_poses
@@ -131,6 +133,7 @@ class GymEnv(CameraEnv):
                                  yolact_path=yolact_path,
                                  yolact_config=yolact_config,
                                  distance_type=self.distance_type,
+                                 number_tasks=len(task_objects),
                                  env=self)
 
         self.dist = d.DistractorModule(distractor_moveable,
@@ -148,7 +151,7 @@ class GymEnv(CameraEnv):
             self.distractor = ['bus'] if not self.distractors else self.distractors
 
         reward_classes = {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
-                          "distractor": VectorReward, "poke": PokeReachReward, "switch": SwitchReward,
+                          "distractor": VectorReward, "poke": DualPoke, "switch": SwitchReward,
                           "btn": ButtonReward, "turn": TurnReward}
 
         self.reward = reward_classes[reward](env=self, task=self.task)
@@ -474,29 +477,6 @@ class GymEnv(CameraEnv):
             :return env_objects: (list of objects) Objects that are present in the current scene
         """
         env_objects = []
-        objects_filenames = self._get_random_urdf_filenames(n, object_names)
-        for object_filename in objects_filenames:
-            if random_pos:
-                fixed = False
-                borders = self.objects_area_boarders
-                if self.task_type == 'poke':
-                    if "poke" in object_filename:
-                        borders = [-0.0, 0.0, 0.6, 0.6, 0.1, 0.1]
-                    if "cube" in object_filename:
-                        borders = [-0.0, 0.0, 1, 1, 0.025, 0.025]
-                        fixed = True
-
-                pos = env_object.EnvObject.get_random_object_position(borders)
-                #orn = env_object.EnvObject.get_random_object_orientation()
-                orn = [0, 0, 0, 1]
-            for x in ["target", "crate", "bin", "box", "trash"]:
-                if x in object_filename:
-                    fixed = True
-                    pos[2] = 0.05
-            object = env_object.EnvObject(object_filename, pos, orn, pybullet_client=self.p, fixed=fixed)
-            if self.color_dict:
-                object.set_color(self.color_of_object(object))
-            env_objects.append(object)
         if "num_range" in object_dict.keys():  # solves used_objects
             for idx, o in enumerate(object_dict["obj_list"]):
                   urdf = self._get_urdf_filename(o["obj_name"])
