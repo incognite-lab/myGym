@@ -19,7 +19,7 @@
                           {"init":{"obj_name":"null"},
                            "goal":{"obj_name":"sphere_holes","fixed":0,"rand_rot":0, "sampling_area":[-0.7, 0.7, 0.5, 0.7, 0.1, 0.1]}},
                           {"init":{"obj_name":"null"},
-                           "goal":{"obj_name":"hammer","fixed":0,"rand_rot":1, "sampling_area":[-0.7, 0, 0.5, 0.6, 0.1, 0.1]}}],
+                           "goal":{"obj_name":"hammer","fixed":0,"rand_rot":0, "sampling_area":[-0.7, 0, 0.5, 0.6, 0.1, 0.1]}}],
 "used_objects"          :{"num_range":[0,0], "obj_list":[]},
 // Observation
 // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
