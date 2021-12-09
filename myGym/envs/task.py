@@ -263,6 +263,7 @@ class TaskModule():
             else:
                 self.env.episode_info = "Task completed successfully"
         else:
+            print("Task {} complete".format(self.current_task))
             self.current_task += 1
 
     def calc_distance(self, obj1, obj2):
