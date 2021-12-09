@@ -35,6 +35,7 @@ class TaskModule():
         self.env = env
         self.image = None
         self.depth = None
+        self.subtask_over = False
         self.last_distance = None
         self.init_distance = None
         self.current_norm_distance = None
@@ -51,7 +52,7 @@ class TaskModule():
         """
         self.last_distance = None
         self.init_distance = None
-        self.current_task = 0
+        self.subtask_over = False
         self.current_norm_distance = None
         self.vision_module.mask = {}
         self.vision_module.centroid = {}
@@ -59,10 +60,6 @@ class TaskModule():
         self.env.task_objects["robot"] = self.env.robot
         if self.vision_src == "vae":
             self.generate_new_goal(self.env.objects_area_boarders, self.env.active_cameras)
-        self.subgoals = [False]*self.num_subgoals #subgoal completed?
-        if self.task_type == '2stepreach':
-            self.obs_sub = [[0,2],[0,1]] #objects to have in observation for given subgoal
-            self.sub_idx = 0
 
     def render_images(self):
         render_info = self.env.render(mode="rgb_array", camera_id=self.env.active_cameras)
@@ -232,8 +229,6 @@ class TaskModule():
                 self.env.robot.magnetize_object(self.env.task_objects["actual_state"], finished)
             else:
                 self.end_episode_success()
-        elif (self.task_type == '2stepreach') and (False in self.subgoals) and finished:
-            self.end_subgoal()
         elif finished:
             self.end_episode_success()
         if self.check_time_exceeded() or self.env.episode_steps == self.env.max_steps:
@@ -242,28 +237,23 @@ class TaskModule():
             self.stored_observation = []
             self.end_episode_fail("Vision fails repeatedly")
 
-    def end_subgoal(self):
-        self.env.episode_info = "Subgoal {}/{} completed successfully".format(self.sub_idx + 1, self.num_subgoals)
-        self.subgoals[self.sub_idx] = True  # current subgoal done
-        self.env.episode_over = False  # don't reset episode
-        self.env.robot.magnetize_object(self.env.task_objects[self.obs_sub[self.sub_idx][0]], True)
-        self.sub_idx += 1  # continue with next subgoal
-        self.env.reward.reset()  # reward reset
-
     def end_episode_fail(self, message):
         self.env.episode_over = True
         self.env.episode_failed = True
         self.env.episode_info = message
 
     def end_episode_success(self):
+        print("Finished task {}".format(self.current_task))
         if self.current_task == (self.number_tasks-1):
             self.env.episode_over = True
+            self.current_task = 0
             if self.env.episode_steps == 1:
                 self.env.episode_info = "Task completed in initial configuration"
             else:
                 self.env.episode_info = "Task completed successfully"
         else:
-            print("Task {} complete".format(self.current_task))
+            self.env.episode_over = False
+            self.subtask_over = True
             self.current_task += 1
 
     def calc_distance(self, obj1, obj2):

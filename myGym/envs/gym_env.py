@@ -352,7 +352,7 @@ class GymEnv(CameraEnv):
         """
         return [(sub + 1) * (h - l) / 2 + l for sub, l, h in zip(action, self.action_low, self.action_high)]
 
-    def reset(self, random_pos=True, hard=False, random_robot=False):
+    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False):
         """
         Environment reset called at the beginning of an episode. Reset state of objects, robot, task and reward.
 
@@ -376,12 +376,14 @@ class GymEnv(CameraEnv):
 
         self.env_objects = {**self.task_objects, **self.env_objects}
         self.task.reset_task()
-        self.robot.reset(random_robot=random_robot)
+        if not only_subtask:
+            self.robot.reset(random_robot=random_robot)
         self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
         self.prev_gripper_position = self.robot.get_observation()[:3]
         return self.flatten_obs(self._observation.copy())
+
 
     def flatten_obs(self, obs):
         if len(obs["additional_obs"].keys()) != 0 and not self.dataset:
@@ -448,6 +450,8 @@ class GymEnv(CameraEnv):
             self.episode_final_distance.append(self.task.last_distance / self.task.init_distance)
             self.episode_number += 1
             self._print_episode_summary(info)
+        if self.task.subtask_over:
+            self.reset(only_subtask=True)
 
         return self.flatten_obs(self._observation.copy()), reward, done, info
 
