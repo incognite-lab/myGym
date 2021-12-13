@@ -872,23 +872,13 @@ class TurnReward(SwitchReward):
         d = sqrt(P_MID_diff_x ** 2 + P_MID_diff_y ** 2 + P_MID_diff_z ** 2)
         return d
 
-    def is_touch(self):
-        """
-        Checking if gripper is touching handle
-        """
-        contact_points = [self.env.p.getContactPoints(self.env.robot.robot_uid, self.env.env_objects["goal_state"].uid, x, 0)
-                          for x in range(0, self.env.robot.end_effector_index+1)]
-        if any(contact_points):
-                return True
-        return False
-
     def threshold_reached(self):
         """
         Switching output reward according to distance
         """
         threshold = 0.1
         d = self.angle_adaptive_reward()
-        if d < threshold and self.is_touch():
+        if d < threshold and self.env.robot.touch_sensors_active(self.env.env_objects["goal_state"]):
             return self.angle_adaptive_reward(change_reward=True, visualize=self.debug) - 1
         return self.angle_adaptive_reward(visualize=self.debug)
 
@@ -1029,6 +1019,8 @@ class DualPoke(PokeReachReward):
         self.current_network = 0
 
     def is_poker_moving(self, poker):
+        if not any(self.prev_poker_position):
+            return False
         if sum([poker[i] - self.prev_poker_position[i] for i in range(len(poker))]) < 0.01:
             return False
         else:

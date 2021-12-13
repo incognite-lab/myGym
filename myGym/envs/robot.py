@@ -134,8 +134,13 @@ class Robot:
         print("Gripper index is: " + str(self.gripper_index))
         print("End effector index is: " + str(self.end_effector_index))
 
-    def touch_sensors_active(self):
-        raise NotImplementedError("Touch is not currently implemented")
+    def touch_sensors_active(self, target_object):
+        contact_points = [
+            self.p.getContactPoints(self.robot_uid, target_object.uid, x, 0)
+            for x in range(0, self.end_effector_index + 1)]
+        if any(contact_points):
+            return True
+        return False
 
     def reset(self, random_robot=False):
         """

@@ -97,7 +97,7 @@ class TaskModule():
                 info["additional_obs"]["endeff_6D"] = list(self.vision_module.get_obj_position(robot, self.image, self.depth)) \
                                                       + list(self.vision_module.get_obj_orientation(robot))
             elif key == "touch":
-                info["additional_obs"]["touch"] = 1 if self.env.robot.touch_sensors_active() else 0
+                info["additional_obs"]["touch"] = [1] if self.env.robot.touch_sensors_active(self.env.env_objects["actual_state"]) else [0]
             elif key == "distractor":
                 poses = [self.vision_module.get_obj_position(self.env.task_objects["distractor"][x],\
                                     self.image, self.depth) for x in range(len(self.env.task_objects["distractor"]))]
