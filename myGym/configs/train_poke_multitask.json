@@ -31,10 +31,6 @@
 "distractor_movement_dimensions":1,
 "distractor_movement_endpoints" :[-0.3, 0.3],
 "observed_links_num"            :1,
-#Coefficients
-"coefficient_kw": 0,
-"coefficient_kd": 0,
-"coefficient_ka": 0,
 #Reward
 "reward"       :"poke",
 "distance_type":"euclidean",
