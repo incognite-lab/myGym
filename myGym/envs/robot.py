@@ -434,7 +434,7 @@ class Robot:
         joint_poses = np.add(self.joints_state, action)
         self._run_motors(joint_poses)
 
-    def apply_action(self, action):
+    def apply_action(self, action, env_objects=None):
         """
         Apply action command to robot in simulated environment
 
@@ -450,10 +450,13 @@ class Robot:
         elif self.robot_action in ["joints", "joints_gripper"]:
             if self.robot_action == "joints_gripper":
                 self.apply_action_joints(action[:-1])
+                assert env_objects is not None, "Need to provide env_objects to use gripper"
                 if action[-1] > 0.5:
-                    self.grip_object()
+                    self.gripper_active = True
+                    self.magnetize_object(env_objects["actual_state"])
                 else:
-                    self.release_object()
+                    self.gripper_active = False
+                    self.release_object(env_objects["actual_state"])
             else:
                 self.apply_action_joints(action)
         if len(self.magnetized_objects):
@@ -465,19 +468,21 @@ class Robot:
             for joint_index in range(self.gripper_index, self.end_effector_index + 1):
                 self.p.resetJointState(self.robot_uid, joint_index, self.p.getJointInfo(self.robot_uid, joint_index)[9])
 
-    def magnetize_object(self, object, contacts):
-        if any(isinstance(i, tuple) for i in contacts):
-            contacts = contacts[0]
-        self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
-
-        self.end_effector_prev_pos = self.end_effector_pos
-        constraint_id = self.p.createConstraint(object.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0],
-                              object.get_position())
-        self.magnetized_objects[object] = constraint_id
+    def magnetize_object(self, object, distance_threshold=0.1):
+        if np.linalg.norm(np.asarray(self.end_effector_pos) - np.asarray(object.get_position()[:3])) <= distance_threshold:
+            self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
+            self.end_effector_prev_pos = self.end_effector_pos
+            constraint_id = self.p.createConstraint(object.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0],
+                                  object.get_position())
+            self.magnetized_objects[object] = constraint_id
+            print("MAGNETIZED object")
+        self.gripper_active = True
 
     def release_object(self, object):
-        self.p.removeConstraint(self.magnetized_objects[object])
-        self.magnetized_objects.pop(object)
+        if object in self.magnetized_objects:
+            self.p.removeConstraint(self.magnetized_objects[object])
+            self.magnetized_objects.pop(object)
+        self.gripper_active = False
 
     def get_name(self):
         """
@@ -495,20 +500,4 @@ class Robot:
             :return self.uid: Robot's unique ID
         """
         return self.robot_uid
-
-    def grip_object(self):
-       #object_coords  = self.env._observation[3:6]
-       #gripper_coords = self.env.reward.get_accurate_gripper_positon(self.env._observation[-3:])
-       #if self.env.task.calc_distance(object_coords, gripper_coords) < 0.1:
-       #    object = self.env.env_objects[1]
-       #    self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
-       #    self.grip = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.15])
-
-        self.gripper_active = True
-
-    def release_object(self):
-       #object = self.env.env_objects[1]
-       #self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0,0,0,1])
-       #self.env.p.removeConstraint(self.grip)
-        self.gripper_active = False
 

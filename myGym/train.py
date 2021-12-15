@@ -69,40 +69,30 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
         plt.show()
 
 def configure_env(arg_dict, model_logdir=None, for_train=True):
-    if arg_dict["engine"] == "pybullet":
-        env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
-                         "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
-                         "robot_action": arg_dict["robot_action"], "task_type": arg_dict["task_type"], "num_subgoals": len(arg_dict["task_objects"]),
-                         "task_objects":arg_dict["task_objects"], "observation":arg_dict["observation"], "distractors":arg_dict["distractors"],
-                         "num_networks":arg_dict.get("num_networks", 1), "network_switcher":arg_dict.get("network_switcher", "gt"),
-                         "distractor_moveable":arg_dict["distractor_moveable"],
-                         "distractor_constant_speed":arg_dict["distractor_constant_speed"],
-                         "distractor_movement_dimensions":arg_dict["distractor_movement_dimensions"],
-                         "distractor_movement_endpoints":arg_dict["distractor_movement_endpoints"],
-                         "coefficient_kd":arg_dict["coefficient_kd"],
-                         "coefficient_kw":arg_dict["coefficient_kw"],
-                         "coefficient_ka":arg_dict["coefficient_ka"],
-                         "observed_links_num":arg_dict["observed_links_num"],
-                         "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
-                         "active_cameras": arg_dict["camera"],
-                         "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
-                         "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
-                         "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"]}
-        if for_train:
-            env_arguments["gui_on"] = False
-        else:
-            env_arguments["gui_on"] = arg_dict["gui"]
+    env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
+                     "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
+                     "robot_action": arg_dict["robot_action"], "task_type": arg_dict["task_type"],
+                     "task_objects":arg_dict["task_objects"], "observation":arg_dict["observation"], "distractors":arg_dict["distractors"],
+                     "num_networks":arg_dict.get("num_networks", 1), "network_switcher":arg_dict.get("network_switcher", "gt"),
+                     "distractor_moveable":arg_dict["distractor_moveable"],
+                     "distractor_constant_speed":arg_dict["distractor_constant_speed"],
+                     "distractor_movement_dimensions":arg_dict["distractor_movement_dimensions"],
+                     "distractor_movement_endpoints":arg_dict["distractor_movement_endpoints"],
+                     "observed_links_num":arg_dict["observed_links_num"],
+                     "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
+                     "active_cameras": arg_dict["camera"],
+                     "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
+                     "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
+                     "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"]}
+    if for_train:
+        env_arguments["gui_on"] = False
+    else:
+        env_arguments["gui_on"] = arg_dict["gui"]
 
-        if arg_dict["algo"] == "her":
-            env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
-        else:
-            env = gym.make(arg_dict["env_name"], **env_arguments)
-    elif arg_dict["engine"] == "mujoco":
-        if arg_dict["multiprocessing"]:
-            # ACKTR, PPO2, A2C, DDPG can use vectorized environments, but the only way to display the results (for me) is using CV2 imshow. -(TensorFlow comment)
-            env = make_vec_env(arg_dict["env_name"], n_envs=arg_dict["vectorized_envs"])
-        else:
-            env = gym.make(arg_dict["env_name"])
+    if arg_dict["algo"] == "her":
+        env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
+    else:
+        env = gym.make(arg_dict["env_name"], **env_arguments)
     if for_train:
         if arg_dict["engine"] == "mujoco":
             env = VecMonitor(env, model_logdir) if arg_dict["multiprocessing"] else Monitor(env, model_logdir)
@@ -217,10 +207,8 @@ def get_parser():
     parser.add_argument("-ba", "--robot_action", type=str, help="Robot's action control: step - end-effector relative position, absolute - end-effector absolute position, joints - joints' coordinates")
     #Task
     parser.add_argument("-tt", "--task_type", type=str,  help="Type of task to learn: reach, push, throw, pick_and_place")
-    parser.add_argument("-ns", "--num_subgoals", type=int, help="Number of subgoals in task")
     parser.add_argument("-to", "--task_objects", nargs="*", type=str, help="Object (for reach) or a pair of objects (for other tasks) to manipulate with")
     parser.add_argument("-u", "--used_objects", nargs="*", type=str, help="List of extra objects to randomly appear in the scene")
-    parser.add_argument("-oa", "--object_sampling_area", nargs="*", type=float, help="Area in the scene where objects can appear")
     #Distractors
     parser.add_argument("-di", "--distractors", type=str, help="Object (for reach) to evade")
     parser.add_argument("-dm", "--distractor_moveable", type=int, help="can distractor move (0/1)")
@@ -260,7 +248,7 @@ def get_arguments(parser):
             arg_dict = commentjson.load(f)
     for key, value in vars(args).items():
         if value is not None and key is not "config":
-            if key in ["robot_init", "object_sampling_area"]:
+            if key in ["robot_init"]:
                 arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
             else:
                 arg_dict[key] = value

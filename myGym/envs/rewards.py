@@ -159,7 +159,8 @@ class ComplexDistanceReward(DistanceReward):
         Returns:
             :return reward: (float) Reward signal for the environment
         """
-        reward = self.calc_dist_diff(observation["actual_state"], observation["goal_state"], observation["additional_obs"]["endeff_xyz"])
+        gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
+        reward = self.calc_dist_diff(observation["actual_state"], observation["goal_state"], observation["additional_obs"][gripper_name])
         self.task.check_distance_threshold(observation=observation)
         self.rewards_history.append(reward)
         return reward
@@ -447,7 +448,7 @@ class SwitchReward(DistanceReward):
 
         # coefficients used to calculate reward
         self.k_w = 0.4    # coefficient for distance between actual position of robot's gripper and generated line
-        self.k_d = 0.3    # coefficients for absolute distance gripper and end position
+        self.k_d = 0.3    # coefficient for absolute distance between gripper and end position
         self.k_a = 1      # coefficient for calculated angle reward
 
     def compute(self, observation):
@@ -693,9 +694,9 @@ class ButtonReward(SwitchReward):
     """
     def __init__(self, env, task):
         super(ButtonReward, self).__init__(env, task)
-        self.k_w = self.env.coefficient_kw
-        self.k_d = self.env.coefficient_kd
-        self.k_a = self.env.coefficient_ka
+        self.k_w = 0.1   # coefficient for distance between actual position of robot's gripper and generated line
+        self.k_d = 0.1   # coefficient for absolute distance between gripper and end position
+        self.k_a = 1     # coefficient for calculated angle reward
 
     def compute(self, observation):
         """
@@ -786,9 +787,9 @@ class TurnReward(SwitchReward):
     def __init__(self, env, task):
         super(TurnReward, self).__init__(env, task)
         self.r = 0.45
-        self.k_w = self.env.coefficient_kw
-        self.k_d = self.env.coefficient_kd
-        self.k_a = self.env.coefficient_ka
+        self.k_w = 0    # coefficient for distance between actual position of robot's gripper and generated line
+        self.k_d = 1    # coefficient for absolute distance between gripper and end position
+        self.k_a = 0    # coefficient for calculated angle reward
 
     def compute(self, observation):
         """
@@ -928,7 +929,8 @@ class PokeReachReward(SwitchReward):
         # load positions
         goal_position = observation["goal_state"]
         poker_position = observation["actual_state"]
-        gripper_position = self.get_accurate_gripper_position(observation["additional_obs"]["endeff_xyz"])
+        gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
+        gripper_position = self.get_accurate_gripper_position(observation["additional_obs"][gripper_name])
 
         for i in range(len(poker_position)):
             poker_position[i] = round(poker_position[i], 4)
@@ -1092,7 +1094,8 @@ class DualPoke(PokeReachReward):
     def get_positions(self, observation):
         goal_position = observation["goal_state"]
         poker_position = observation["actual_state"]
-        gripper_position = self.get_accurate_gripper_position(observation["additional_obs"]["endeff_xyz"])
+        gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
+        gripper_position = self.get_accurate_gripper_position(observation["additional_obs"][gripper_name])
         if self.prev_poker_position[0] is None:
             self.prev_poker_position = poker_position
         return goal_position,poker_position,gripper_position
@@ -1217,6 +1220,14 @@ class DualPickAndPlace(DualPoke):
             return True
         if distance < 0.1:
             self.grip_object()
+            return True
+        return False
+
+    def gripper_reached_object(self, gripper, object):
+        self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
+        if len(self.env.robot.magnetized_objects) > 0:
+            return True
+        if self.task.calc_distance(gripper, object) < 0.1:
             return True
         return False
 
@@ -1418,9 +1429,10 @@ class ConsequentialPickAndPlace(DualPickAndPlace):
         return self.current_network
 
     def get_positions(self, observation):
-        goal_position    = observation["actual_state"]
-        object_position  = observation["goal_state"]
-        gripper_position = self.get_accurate_gripper_position(observation["additional_obs"]["endeff_xyz"])
+        goal_position    = observation["goal_state"]
+        object_position  = observation["actual_state"]
+        gripper_name = [x for x in observation["additional_obs"].keys() if "endeff" in x][0]
+        gripper_position = observation["additional_obs"][gripper_name][:3]
 
         if self.object_before_lift[0] is None:
             self.object_before_lift = object_position
@@ -1428,11 +1440,9 @@ class ConsequentialPickAndPlace(DualPickAndPlace):
 
     def gripper_reached_object(self, gripper, object):
         self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
-        distance = self.task.calc_distance(gripper, object)
-        if self.gripped is not None:
+        if len(self.env.robot.magnetized_objects) > 0:
             return True
-        if distance < 0.1:
-            self.grip_object()
+        if self.task.calc_distance(gripper, object) < 0.05:
             return True
         return False
 
@@ -1486,8 +1496,7 @@ class GripperPickAndPlace(ConsequentialPickAndPlace):
         self.last_move_dist  = None
         self.last_place_dist = None
         self.network_rewards = [0,0,0]
-        self.cooldown = 0
-        self.gripped   = None
+        self.gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
 
     def reset(self):
         self.prev_object_position = [None]*3
@@ -1498,8 +1507,6 @@ class GripperPickAndPlace(ConsequentialPickAndPlace):
         self.last_move_dist  = None
         self.last_place_dist = None
         self.network_rewards = [0,0,0]
-        self.cooldown = 0
-        self.gripped   = None
 
     def compute(self, observation=None):
         owner = self.decide(observation)
@@ -1512,7 +1519,6 @@ class GripperPickAndPlace(ConsequentialPickAndPlace):
 
     def decide(self, observation=None):
         self.current_network = 0
-        self.gripper()
         if self.picked:
             self.current_network = 1
         if self.moved:
@@ -1583,29 +1589,3 @@ class GripperPickAndPlace(ConsequentialPickAndPlace):
 
         self.network_rewards[2] += reward
         return reward
-
-    def gripper(self):
-        if self.env.robot.gripper_active:
-            self.grip()
-        else:
-            self.release()
-
-    def grip(self):
-            object_coords  = self.env._observation["actual_state"]
-            gripper_coords = self.get_accurate_gripper_position(self.env._observation["additional_obs"]["endeff_xyz"])
-            if self.env.task.calc_distance(object_coords, gripper_coords) < 0.1 and not self.gripped:
-                object = self.env.env_objects["actual_state"]
-                self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
-                self.gripped = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.15])
-                self.cooldown = 5
-
-    def release(self):
-        if self.cooldown > 0:
-            self.cooldown -= 1
-            return
-        if self.gripped is not None:
-            object = self.env.env_objects["actual_state"]
-            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0,0,0,1])
-            self.env.p.removeConstraint(self.gripped)
-        self.gripped = None
-

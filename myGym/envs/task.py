@@ -16,31 +16,28 @@ class TaskModule():
 
     Parameters:
         :param task_type: (string) Type of learned task (reach, push, ...)
-        :param num_subgoals: (int) Number of subgoals in task
         :param task_objects: (list of strings) Objects that are relevant for performing the task
         :param distance_type: (string) Way of calculating distances (euclidean, manhattan)
         :param logdir: (string) Directory for logging
         :param env: (object) Environment, where the training takes place
     """
-    def __init__(self, task_type='reach', task_objects='cube_holes', num_subgoals=0, observation={},
+    def __init__(self, task_type='reach', task_objects='cube_holes', observation={},
                  vae_path=None, yolact_path=None, yolact_config=None, distance_type='euclidean',
                  logdir=currentdir, env=None, number_tasks=1):
         self.task_type = task_type
         self.distance_type = distance_type
-        self.current_task = 0
         self.number_tasks = number_tasks
+        self.current_task = 0
+        self.subtask_over = False
         self.logdir = logdir
         self.task_objects_names = task_objects
-        self.num_subgoals = num_subgoals
         self.env = env
         self.image = None
         self.depth = None
-        self.subtask_over = False
         self.last_distance = None
         self.init_distance = None
         self.current_norm_distance = None
         self.stored_observation = []
-        self.threshold = 0.1 # distance threshold for successful task completion
         self.obs_template = observation
         self.vision_module = VisionModule(observation=observation, env=env, vae_path=vae_path, yolact_path=yolact_path, yolact_config=yolact_config)
         self.obsdim = self.check_obs_template()
@@ -97,6 +94,8 @@ class TaskModule():
                 info["additional_obs"]["endeff_6D"] = list(self.vision_module.get_obj_position(robot, self.image, self.depth)) \
                                                       + list(self.vision_module.get_obj_orientation(robot))
             elif key == "touch":
+                if self.env.robot.touch_sensors_active(self.env.env_objects["actual_state"]):
+                    print("TOUCH")
                 info["additional_obs"]["touch"] = [1] if self.env.robot.touch_sensors_active(self.env.env_objects["actual_state"]) else [0]
             elif key == "distractor":
                 poses = [self.vision_module.get_obj_position(self.env.task_objects["distractor"][x],\
@@ -183,26 +182,25 @@ class TaskModule():
             return -1
         return False
 
-    def check_distance_threshold(self, observation, threshold=None):
+    def check_distance_threshold(self, observation, threshold=0.1):
         """
         Check if the distance between relevant task objects is under threshold for successful task completion
         Returns:
             :return: (bool)
         """
         self.current_norm_distance = self.calc_distance(observation["goal_state"], observation["actual_state"])
-        thres = threshold if threshold is not None else self.threshold
-        return self.current_norm_distance < thres
+        return self.current_norm_distance < threshold
 
-    def check_points_distance_threshold(self):
+    def check_points_distance_threshold(self, threshold=0.1):
         o1 = self.env.task_objects["actual_state"]
         if (self.task_type == 'pnp') and (self.env.robot_action != 'joints_gripper') and (len(self.env.robot.magnetized_objects) == 0):
             o2 = self.env.robot
-            closest_points = self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), self.threshold,
+            closest_points = self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), threshold,
                                                          o2.end_effector_index, -1)
         else:
             o2 = self.env.task_objects["goal_state"]
             idx = -1 if o1 != self.env.robot else self.env.robot.end_effector_index
-            closest_points = self.env.p.getClosestPoints(o1.get_uid(), o2.get_uid(), self.threshold, idx, -1)
+            closest_points = self.env.p.getClosestPoints(o1.get_uid(), o2.get_uid(), threshold, idx, -1)
         return closest_points if len(closest_points) > 0 else False
 
     def check_goal(self):

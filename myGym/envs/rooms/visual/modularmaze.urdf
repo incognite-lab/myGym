@@ -1,0 +1,207 @@
+
+<?xml version="1.0" ?>
+<robot name="modularmaze">
+  <link name="modularmaze">
+    <contact>
+      <lateral_friction value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0.0001 0 0" xyz="0.0001 0 0"/>
+       <mass value="0.000"/>
+       <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+
+<!--visual-->
+<!--boarder left-->
+<visual>
+      <origin rpy="0 0 0" xyz="6.725 -6.8 0.00"/>
+      <geometry>
+				<box size="0.05 2 0.1"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </visual>
+<!--boarder right-->
+<visual>
+      <origin rpy="0 0 0" xyz="7.275 -6.8 0.00"/>
+      <geometry>
+				<box size="0.05 2 0.1"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </visual>
+
+<!--tower3 left-->
+    <visual>
+      <origin rpy="0 0 0" xyz="6.8 -7.6 0"/>
+      <geometry>
+				<box size="0.1 0.1 0.35"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </visual>
+<!--tower3 middle-->
+    <visual>
+      <origin rpy="0 0 0" xyz="7.0 -7.6 0"/>
+      <geometry>
+				<box size="0.1 0.1 0.35"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </visual>
+<!--tower3 right-->
+    <visual>
+      <origin rpy="0 0 0" xyz="7.2 -7.6 0"/>
+      <geometry>
+				<box size="0.1 0.1 0.35"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </visual>
+
+<!--tower2 left-->
+    <visual>
+      <origin rpy="0 0 0" xyz="6.825 -7.3 0"/>
+      <geometry>
+				<box size="0.15 0.1 0.5"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </visual>
+<!--tower2 right-->
+    <visual>
+      <origin rpy="0 0 0" xyz="7.175 -7.3 0"/>
+      <geometry>
+				<box size="0.15 0.1 0.5"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </visual>
+
+<!--ramp first half-->
+    <visual>
+      <origin rpy="0 -0.5 1.57" xyz="7 -7.0 0.00"/>
+      <geometry>
+				<box size="0.23 0.5 0.1"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </visual>
+<!--ramp top-->
+    <visual>
+      <origin rpy="0 0 1.57" xyz="7 -6.821 0"/>
+      <geometry>
+				<box size="0.2 0.5 0.2"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </visual>
+<!--ramp second half-->
+    <visual>
+      <origin rpy="0 0.5 1.57" xyz="7 -6.642 0.00"/>
+      <geometry>
+				<box size="0.23 0.5 0.1"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </visual>
+
+<!--cylinder bridge-->
+    <visual>
+      <origin rpy="1.57 0 1.57" xyz="7 -6.35 0.0"/>
+      <geometry>
+				<cylinder length="0.5" radius="0.05"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="0.5 0 1 1"/>
+      </material>
+    </visual>
+
+<!--collision-->
+<!--boarder left-->
+<collision>
+      <origin rpy="0 0 0" xyz="6.725 -6.8 0.00"/>
+      <geometry>
+				<box size="0.05 2 0.1"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </collision>
+<!--boarder right-->
+<collision>
+      <origin rpy="0 0 0" xyz="7.275 -6.8 0.00"/>
+      <geometry>
+				<box size="0.05 2 0.1"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </collision>
+
+<!--tower3 left-->
+    <collision>
+      <origin rpy="0 0 0" xyz="6.8 -7.6 0"/>
+      <geometry>
+				<box size="0.1 0.1 0.35"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </collision>
+<!--tower3 middle-->
+    <collision>
+      <origin rpy="0 0 0" xyz="7.0 -7.6 0"/>
+      <geometry>
+				<box size="0.1 0.1 0.35"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </collision>
+<!--tower3 right-->
+    <collision>
+      <origin rpy="0 0 0" xyz="7.2 -7.6 0"/>
+      <geometry>
+				<box size="0.1 0.1 0.35"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </collision>
+
+<!--tower2 left-->
+    <collision>
+      <origin rpy="0 0 0" xyz="6.825 -7.3 0"/>
+      <geometry>
+				<box size="0.15 0.1 0.5"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </collision>
+<!--tower2 right-->
+    <collision>
+      <origin rpy="0 0 0" xyz="7.175 -7.3 0"/>
+      <geometry>
+				<box size="0.15 0.1 0.5"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </collision>
+
+<!--ramp first half-->
+    <collision>
+      <origin rpy="0 -0.5 1.57" xyz="7 -7.0 0.00"/>
+      <geometry>
+				<box size="0.23 0.5 0.1"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </collision>
+<!--ramp top-->
+    <collision>
+      <origin rpy="0 0 1.57" xyz="7 -6.821 0"/>
+      <geometry>
+				<box size="0.2 0.5 0.2"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </collision>
+<!--ramp second half-->
+    <collision>
+      <origin rpy="0 0.5 1.57" xyz="7 -6.642 0.00"/>
+      <geometry>
+				<box size="0.23 0.5 0.1"/>
+      </geometry>
+        <color rgba="0.5 0 1 1"/>
+    </collision>
+
+<!--cylinder bridge-->
+    <collision>
+      <origin rpy="1.57 0 1.57" xyz="7 -6.35 0.0"/>
+      <geometry>
+				<cylinder length="0.5" radius="0.05"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="0.5 0 1 1"/>
+      </material>
+    </collision>
+
+  </link>
+</robot>
