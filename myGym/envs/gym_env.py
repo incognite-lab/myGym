@@ -10,15 +10,14 @@ import random
 from myGym.utils.helpers import get_workspace_dict
 import pkg_resources
 currentdir = pkg_resources.resource_filename("myGym", "envs")
-repodir = pkg_resources.resource_filename("myGym", "")
-print("current_dir=" + currentdir)
-
 
 class GymEnv(CameraEnv):
     """
     Environment class for particular environment based on myGym basic environment classes
 
     Parameters:
+        :param task_objects: (list of strings) Objects that are relevant for performing the task
+        :param observation: (dict) Template dictionary of what should be part of the network observation
         :param workspace: (string) Workspace in gym, where training takes place (collabtable, maze, drawer, ...)
         :param dimension_velocity: (float) Maximum allowed velocity for robot movements in individual x,y,z axis
         :param used_objects: (list of strings) Names of extra objects (not task objects) that can appear in the scene
@@ -29,7 +28,6 @@ class GymEnv(CameraEnv):
         :param robot_init_joint_poses: (list) Configuration in which robot will be initialized in the environment. Specified either in joint space as list of joint poses or in the end-effector space as [x,y,z] coordinates.
         :param task_type: (string) Type of learned task (reach, push, ...)
         :param num_subgoals: (int) Number of subgoals in task
-        :param task_objects: (list of strings) Objects that are relevant for performing the task
         :param distractors: (dict) Objects distracting from performed task
         :param reward_type: (string) Type of reward signal source (gt, 3dvs, 2dvu)
         :param reward: (string) Defines how to compute the reward
@@ -45,17 +43,17 @@ class GymEnv(CameraEnv):
         :param yolact_config: (string) Path to saved Yolact config obj or name of an existing one in the data/Config script or None for autodetection
     """
     def __init__(self,
+                 task_objects,
+                 observation,
                  workspace="table",
                  dimension_velocity=0.05,
                  used_objects=None,
-                 observation={},
                  action_repeat=1,
                  color_dict=None,
                  robot='kuka',
                  robot_action="step",
                  robot_init_joint_poses=[],
                  task_type='reach',
-                 task_objects=["virtual_cube_holes"],
                  num_networks=1,
                  network_switcher="gt",
                  distractors=None,

@@ -1095,7 +1095,7 @@ class DualPoke(PokeReachReward):
         goal_position = observation["goal_state"]
         poker_position = observation["actual_state"]
         gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
-        gripper_position = self.get_accurate_gripper_position(observation["additional_obs"][gripper_name])
+        gripper_position = observation["additional_obs"][gripper_name][:3]
         if self.prev_poker_position[0] is None:
             self.prev_poker_position = poker_position
         return goal_position,poker_position,gripper_position
@@ -1157,7 +1157,6 @@ class DualPickAndPlace(DualPoke):
         super(DualPickAndPlace, self).__init__(env, task)
 
         self.object_before_lift = [None]*3
-        self.countdown = None
         self.gripped      = None
         self.lifted    = False
         self.last_owner = None
@@ -1174,7 +1173,6 @@ class DualPickAndPlace(DualPoke):
         """
 
         self.object_before_lift = [None]*3
-        self.countdown = None
         self.gripped      = None
         self.lifted    = False
         self.last_owner = None
@@ -1195,12 +1193,9 @@ class DualPickAndPlace(DualPoke):
             :return reward: (float) Reward signal for the environment
         """
         owner = self.decide(observation)
-
         goal_position, object_position, gripper_position = self.get_positions(observation)
-
         if owner   == 0: reward = self.find_compute(gripper_position, object_position)
         elif owner == 1: reward = self.move_compute(object_position, goal_position)
-
         self.last_owner = owner
         self.task.check_distance_threshold(observation, threshold=0.02)
         self.rewards_history.append(reward)
@@ -1209,25 +1204,15 @@ class DualPickAndPlace(DualPoke):
     def decide(self, observation=None):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         self.current_network = 0
-        if self.gripper_reached_object(gripper_position, object_position) or self.countdown is not None:
+        if self.gripper_reached_object(gripper_position, object_position):
             self.current_network= 1
         return self.current_network
 
     def gripper_reached_object(self, gripper, object):
         self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
-        distance = self.task.calc_distance(gripper, object)
-        if self.gripped is not None:
-            return True
-        if distance < 0.1:
-            self.grip_object()
-            return True
-        return False
-
-    def gripper_reached_object(self, gripper, object):
-        self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
+        self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
         if len(self.env.robot.magnetized_objects) > 0:
-            return True
-        if self.task.calc_distance(gripper, object) < 0.1:
+            self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
             return True
         return False
 
@@ -1235,16 +1220,13 @@ class DualPickAndPlace(DualPoke):
         # initial reach
         self.env.p.addUserDebugText("find", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
         dist = self.task.calc_distance(gripper, object)
-        if self.last_find_dist is None:
-            self.last_find_dist = dist
-        if self.last_owner != 0:
+        if self.last_find_dist is None or self.last_owner != 0:
             self.last_find_dist = dist
         reward = self.last_find_dist - dist
         self.last_find_dist = dist
         if self.task.check_object_moved(self.env.task_objects["actual_state"]):
             self.env.episode_over   = True
             self.env.episode_failed = True
-
         self.network_rewards[0] += reward
         return reward
 
@@ -1263,35 +1245,14 @@ class DualPickAndPlace(DualPoke):
         self.last_place_dist = dist
 
         if self.last_owner == 1 and dist < 0.1:
-            self.release_object()
+            self.env.robot.release_object(self.env.env_objects["actual_state"])
+            self.gripped = None
             self.env.episode_info = "Object was placed to desired position"
-            self.countdown = 0
         if self.env.episode_steps <= 5:
             self.env.episode_info = "Task finished in initial configuration"
             self.env.episode_over = True
-
-        if self.countdown is not None:
-            reward = 0
-            if self.countdown == 20:
-                self.env.episode_over = True
-            else:
-                self.countdown += 1
-
         self.network_rewards[1] += reward
         return reward
-
-    def grip_object(self):
-        if self.countdown is None:
-            object = self.env.env_objects["actual_state"]
-            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
-            self.grip = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.15])
-
-    def release_object(self):
-        if self.gripped is not None:
-            object = self.env.env_objects["actual_state"]
-            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0,0,0,1])
-            self.env.p.removeConstraint(self.grip)
-        self.gripped = None
 
 class ConsequentialPickAndPlace(DualPickAndPlace):
     """
@@ -1322,7 +1283,6 @@ class ConsequentialPickAndPlace(DualPickAndPlace):
         """
 
         self.object_before_lift = [None]*3
-        self.countdown = None
         self.gripped      = None
         self.lifted    = False
         self.last_owner = None
@@ -1361,7 +1321,7 @@ class ConsequentialPickAndPlace(DualPickAndPlace):
             self.last_find_dist = dist
         reward = self.last_find_dist - dist
         self.last_find_dist = dist
-        if self.task.check_object_moved(self.env.task_objects[1]):
+        if self.task.check_object_moved(self.env.task_objects["actual_state"]):
             self.env.episode_over   = True
             self.env.episode_failed = True
         self.network_rewards[0] += reward
@@ -1402,19 +1362,12 @@ class ConsequentialPickAndPlace(DualPickAndPlace):
         self.last_place_dist = dist
 
         if self.last_owner == 2 and dist < 0.1:
-            self.release_object()
+            self.env.robot.release_object(self.env.env_objects["actual_state"])
+            self.gripped = None
             self.env.episode_info = "Object was placed to desired position"
-            self.countdown = 0
         if self.env.episode_steps <= 5:
             self.env.episode_info = "Task finished in initial configuration"
             self.env.episode_over = True
-
-        if self.countdown is not None:
-            reward = 0
-            if self.countdown == 5:
-                self.env.episode_over = True
-            else:
-                self.countdown += 1
 
         self.network_rewards[2]  += reward
         return reward
@@ -1440,9 +1393,8 @@ class ConsequentialPickAndPlace(DualPickAndPlace):
 
     def gripper_reached_object(self, gripper, object):
         self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
+        self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
         if len(self.env.robot.magnetized_objects) > 0:
-            return True
-        if self.task.calc_distance(gripper, object) < 0.05:
             return True
         return False
 
@@ -1464,19 +1416,6 @@ class ConsequentialPickAndPlace(DualPickAndPlace):
         if distance < 0.1:
             return True
         return False
-
-    def grip_object(self):
-        if self.countdown is None:
-            object = self.env.env_objects[1]
-            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
-            self.gripped = self.env.p.createConstraint(self.env.robot.robot_uid, self.env.robot.gripper_index, object.uid, -1, self.env.p.JOINT_FIXED, [0,0,0], [0,0,0], [0,0,-0.15])
-
-    def release_object(self):
-        if self.gripped is not None:
-            object = self.env.env_objects[1]
-            self.env.p.changeVisualShape(object.uid, -1, rgbaColor=[0,0,0,1])
-            self.env.p.removeConstraint(self.grip)
-        self.gripped = None
 
 class GripperPickAndPlace(ConsequentialPickAndPlace):
     """

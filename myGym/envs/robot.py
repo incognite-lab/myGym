@@ -1,8 +1,8 @@
-import os, inspect
 import pkg_resources
 import pybullet
 import numpy as np
 import math
+from myGym.utils.helpers import get_robot_dict
 
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 repodir = pkg_resources.resource_filename("myGym", "")
@@ -41,33 +41,14 @@ class Robot:
                  pybullet_client=None):
 
         self.p = pybullet_client
-        self.robot_dict =   {'kuka': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_magnetic_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
-                             'kuka_push': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_push_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
-                             'kuka_realrobot': {'path': '/envs/robots/kuka_gripper/kuka_gripper.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
-                             'panda': {'path': '/envs/robots/franka_emika/panda_moveit/urdf/panda.urdf', 'position': np.array([0.0, -0.05, -0.04])},
-                             'jaco': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq.urdf', 'position': np.array([0.0, 0.0, -0.041])},
-                             'jaco_fixed': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq_fixed.urdf', 'position': np.array([0.0, 0.0, -0.041])},
-                             'reachy': {'path': '/envs/robots/pollen/reachy/urdf/reachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
-                             'leachy': {'path': '/envs/robots/pollen/reachy/urdf/leachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
-                             'reachy_and_leachy': {'path': '/envs/robots/pollen/reachy/urdf/reachy_and_leachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
-                             'gummi': {'path': '/envs/robots/gummi_arm/urdf/gummi.urdf', 'position': np.array([0.0, 0.0, 0.021]), 'orientation': [0.0, 0.0, 0.5*np.pi]},
-                             'gummi_fixed': {'path': '/envs/robots/gummi_arm/urdf/gummi_fixed.urdf', 'position': np.array([-0.1, 0.0, 0.021]), 'orientation': [0.0, 0.0, 0.5*np.pi]},
-                             'ur3': {'path': '/envs/robots/universal_robots/urdf/ur3.urdf', 'position': np.array([0.0, -0.02, -0.041]), 'orientation': [0.0, 0.0, 0.0]},
-                             'ur5': {'path': '/envs/robots/universal_robots/urdf/ur5.urdf', 'position': np.array([0.0, -0.03, -0.041]), 'orientation': [0.0, 0.0, 0.0]},
-                             'ur10': {'path': '/envs/robots/universal_robots/urdf/ur10.urdf', 'position': np.array([0.0, -0.04, -0.041]), 'orientation': [0.0, 0.0, 0.0]},
-                             'yumi': {'path': '/envs/robots/abb/yumi/urdf/yumi.urdf', 'position': np.array([0.0, 0.15, -0.042]), 'orientation': [0.0, 0.0, 0.0]},
-                             'human': {'path': '/envs/robots/real_hands/humanoid_with_hands_fixed.urdf', 'position': np.array([0.0, 1.5, 0.45]), 'orientation': [0.0, 0.0, 1.5*np.pi]}
-                            }
-
+        self.robot_dict = get_robot_dict()
         self.robot_path = self.robot_dict[robot]['path']
         self.position = np.array(position) + self.robot_dict[robot].get('position',np.zeros(len(position)))
-        self.orientation = np.array(orientation) + self.robot_dict[robot].get('orientation',np.zeros(len(orientation)))
-        self.orientation = self.p.getQuaternionFromEuler(self.orientation)
+        self.orientation = self.p.getQuaternionFromEuler(np.array(orientation) +
+                                                         self.robot_dict[robot].get('orientation',np.zeros(len(orientation))))
         self.name = robot + '_gripper'
-
         self.max_velocity = max_velocity
         self.max_force = max_force
-
         self.end_effector_index = end_effector_index
         self.gripper_index = gripper_index
         self.use_fixed_gripper_orn = use_fixed_gripper_orn
@@ -77,9 +58,7 @@ class Robot:
         self.motor_indices = []
         self.robot_action = robot_action
         self.magnetized_objects = {}
-
         self.gripper_active = False
-
         self._load_robot()
         self.num_joints = self.p.getNumJoints(self.robot_uid)
         self._set_motors()
@@ -315,9 +294,6 @@ class Robot:
                                     maxVelocity=self.joints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3)
-            #self.joints_state.append(self.p.getJointState(self.robot_uid, self.motor_indices[i])[0])
-        #print('poses',joint_poses)
-        #print('state',self.joints_state)
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
         
     def _calculate_joint_poses(self, end_effector_pos):
@@ -342,8 +318,7 @@ class Robot:
             joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                        self.gripper_index,
                                                        end_effector_pos)
-        joint_poses = joint_poses[:len(self.motor_indices)]
-        joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
+        joint_poses = np.clip(joint_poses[:len(self.motor_indices)], self.joints_limits[0], self.joints_limits[1])
         return joint_poses
 
     def _calculate_accurate_IK(self, end_effector_pos):
@@ -391,6 +366,89 @@ class Robot:
             closeEnough = ((diffPos < thresholdPos) and (diffOrn < thresholdOrn))
             iter = iter + 1
         return joint_poses
+
+
+    def apply_action_velo_step(self, action):
+        """
+        Apply action command to robot using velocity-step control mechanism
+
+        Parameters:
+            :param action: (list) Desired action data
+        """
+        action = [i * self.dimension_velocity for i in action]
+        _, joint_velos = self.get_joints_state()
+        new_velo = np.add(joint_velos, action)
+        new_velo = np.clip(new_velo, np.asarray(self.joints_max_velo)*-1, self.joints_max_velo)
+        #joint_poses = np.add(joint_states, new_velo*self.timestep)
+        #self._run_motors(joint_poses)
+        self._run_motors_velo(new_velo)
+
+    def apply_action_torque_step(self, action):
+        """
+        Apply action command to robot using torque-step control mechanism
+
+        Parameters:
+            :param action: (list) Desired action data
+        """
+        # action = [i * self.dimension_velocity * 50 for i in action]
+        # new_action = np.add(self.last_action, action)
+        # self.last_action = action
+        # self._run_motors_torque(new_action)
+        actions = []
+        for i, ac in enumerate(action):
+            actions.append(self.joints_max_force[i] * ac * 0.05)
+        new_action = np.add(self.last_action, actions)
+        self.last_action = actions
+        self._run_motors_torque(new_action)
+
+    def apply_action_pybulletx(self, action):
+        """
+        Apply action command to robot using pybulletx control mechanism
+
+        Parameters:
+            :param action: (list) Desired joint positions data
+        """
+        P_GAIN = 10
+        joint_states, _ = self.get_joints_state()
+        error = np.asarray(action) - np.asarray(joint_states)
+        torque = error * P_GAIN
+        self._run_motors_torque(torque)
+
+    def apply_action_torque_control(self, action):
+        """
+        Apply action command to robot using torque control mechanism
+
+        Parameters:
+            :param action: (list) Desired end_effector positions data
+        """
+        joint_states, joint_velocities = self.get_joints_state()
+
+        # Task-space controller parameters
+        # stiffness gains
+        P_pos = 10.
+        P_ori = 1.
+        # damping gains
+        D_pos = 2.
+        D_ori = 1.
+
+        curr_pos = np.asarray(self.get_position())
+        curr_ori = np.asarray(self.get_orientation())
+        curr_vel = np.asarray(self.get_lin_velocity()).reshape([3, 1])
+        curr_omg = np.asarray(self.get_ang_velocity()).reshape([3, 1])
+        goal_pos = np.asarray(action)
+        goal_ori = curr_ori #@TODO: change if control is made wrt orientation as well (not only e-e position)
+        delta_pos = (goal_pos - curr_pos).reshape([3, 1]) # +  0.01 * pdot.reshape((-1, 1))
+        #delta_ori = quatdiff_in_euler(curr_ori, goal_ori).reshape([3, 1])
+        delta_ori = np.zeros((3,1))
+        # TODO: limit speed when delta pos or ori are too big. we can scale the damping exponentially to catch to high deltas
+        # Desired task-space force using PD law
+        F = np.vstack([P_pos * (delta_pos), P_ori * (delta_ori)]) - \
+            np.vstack([D_pos * (curr_vel), D_ori * (curr_omg)])
+        Jt, Jr = self.p.calculateJacobian(self.robot_uid, self.end_effector_index, [0,0,0], joint_states, joint_velocities, [10]*(len(joint_states)))
+        J = np.array([Jt,Jr]).reshape(-1, len(joint_states))
+        tau = np.dot(J.T, F) # + robot.coriolis_comp().reshape(7,1)
+
+        self._run_motors_torque(tau)
 
     def apply_action_step(self, action):
         """
@@ -468,14 +526,13 @@ class Robot:
             for joint_index in range(self.gripper_index, self.end_effector_index + 1):
                 self.p.resetJointState(self.robot_uid, joint_index, self.p.getJointInfo(self.robot_uid, joint_index)[9])
 
-    def magnetize_object(self, object, distance_threshold=0.1):
-        if np.linalg.norm(np.asarray(self.end_effector_pos) - np.asarray(object.get_position()[:3])) <= distance_threshold:
+    def magnetize_object(self, object, distance_threshold=.5):
+        if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
             self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
             self.end_effector_prev_pos = self.end_effector_pos
             constraint_id = self.p.createConstraint(object.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0],
                                   object.get_position())
             self.magnetized_objects[object] = constraint_id
-            print("MAGNETIZED object")
         self.gripper_active = True
 
     def release_object(self, object):
