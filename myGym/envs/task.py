@@ -224,7 +224,6 @@ class TaskModule():
         if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
             if len(self.env.robot.magnetized_objects) == 0:
                 self.env.episode_over = False
-                self.env.robot.magnetize_object(self.env.task_objects["actual_state"], finished)
             else:
                 self.end_episode_success()
         elif finished:

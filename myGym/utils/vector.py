@@ -4,9 +4,7 @@ import math
 
 class Vector:
 
-    def __init__(self, beginning, end, env):
-        self.env = env
-
+    def __init__(self, beginning, end):
         self.beginning = beginning
         self.end = end
 
@@ -41,9 +39,8 @@ class Vector:
 
         return np.array([a, b, c])
 
-    def visualize(self, origin=[0, 0, 0], color=(0, 0, 0), time=0.1):
-
-        self.env.p.addUserDebugLine(origin, np.add(np.array(origin), np.array(self.vector)), lineColorRGB=color,
+    def visualize(self, origin=[0, 0, 0], color=(0, 0, 0), time=0.1, env=None):
+        env.p.addUserDebugLine(origin, np.add(np.array(origin), np.array(self.vector)), lineColorRGB=color,
                                     lineWidth=1, lifeTime=time)
 
     def add(self, v2):

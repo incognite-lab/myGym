@@ -1,5 +1,5 @@
 import pkg_resources
-import pybullet
+from myGym.utils.vector import Vector
 import numpy as np
 import math
 from myGym.utils.helpers import get_robot_dict
@@ -265,7 +265,8 @@ class Robot:
         Returns: 
             :return position: (list) Position of end-effector link (center of mass)
         """
-        return self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
+        pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
+        return self.get_accurate_gripper_position(pos)
 
     def get_orientation(self):
         """
@@ -518,28 +519,46 @@ class Robot:
             else:
                 self.apply_action_joints(action)
         if len(self.magnetized_objects):
-            pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
-            for key,val in self.magnetized_objects.items():
-                self.p.changeConstraint(val, key.get_position()+pos_diff)
-            self.end_effector_prev_pos = self.end_effector_pos
+             pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
+             for key,val in self.magnetized_objects.items():
+                 self.p.changeConstraint(val, key.get_position()+pos_diff)
+             self.end_effector_prev_pos = self.end_effector_pos
         if 'gripper' not in self.robot_action:
             for joint_index in range(self.gripper_index, self.end_effector_index + 1):
                 self.p.resetJointState(self.robot_uid, joint_index, self.p.getJointInfo(self.robot_uid, joint_index)[9])
 
-    def magnetize_object(self, object, distance_threshold=.5):
-        if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
-            self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
-            self.end_effector_prev_pos = self.end_effector_pos
-            constraint_id = self.p.createConstraint(object.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0],
-                                  object.get_position())
-            self.magnetized_objects[object] = constraint_id
-        self.gripper_active = True
+    def magnetize_object(self, object, distance_threshold=.05):
+        if object not in self.magnetized_objects.keys():
+            if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
+                self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
+                self.end_effector_prev_pos = self.end_effector_pos
+                constraint_id = self.p.createConstraint(object.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0],
+                                      object.get_position())
+                self.magnetized_objects[object] = constraint_id
+            self.gripper_active = True
 
     def release_object(self, object):
-        if object in self.magnetized_objects:
+        if object in self.magnetized_objects.keys():
             self.p.removeConstraint(self.magnetized_objects[object])
             self.magnetized_objects.pop(object)
         self.gripper_active = False
+
+    def release_all_objects(self):
+        mag_os = self.magnetized_objects.copy()
+        for x in mag_os:
+            self.p.removeConstraint(self.magnetized_objects[x])
+            self.magnetized_objects.pop(x)
+        self.gripper_active = False
+
+    def get_accurate_gripper_position(self, gripper_position):
+        gripper_orientation = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
+        gripper_matrix      = self.p.getMatrixFromQuaternion(gripper_orientation)
+        direction_vector    = Vector([0,0,0], [0, 0, 0.1])
+        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
+        direction_vector.rotate_with_matrix(m)
+        gripper = Vector([0,0,0], gripper_position)
+        return direction_vector.add_vector(gripper)
+
 
     def get_name(self):
         """

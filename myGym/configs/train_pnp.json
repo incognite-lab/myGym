@@ -10,12 +10,12 @@
     "visgym"    :0,
     #Robot
     "robot"         :"kuka",
-    "robot_action"  :"joints_gripper",
+    "robot_action"  :"joints",
     "robot_init"    :[0.0, 0.3, 0.9],
     #Task
     "task_type"             :"pnp",
-    "task_objects"          :[{"init":{"obj_name":"cube_holes","fixed":0,"rand_rot":0, "sampling_area":[-0.4, 0.4, 0.4, 0.45, 0.1, 0.1]},
-                           "goal":{"obj_name":"target","fixed":1,"rand_rot":0, "sampling_area":[-0.5, 0.5, 0.6, 0.7, 0.05, 0.05]}}],
+    "task_objects"          :[{"init":{"obj_name":"cube_holes","fixed":0,"rand_rot":0, "sampling_area":[-0.4, -0.2, 0.4, 0.6, 0.1, 0.1]},
+                           "goal":{"obj_name":"target","fixed":1,"rand_rot":0, "sampling_area":[0.2, 0.4, 0.4, 0.6, 0.05, 0.05]}}],
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
     // Observation
     // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"

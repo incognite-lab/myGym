@@ -51,16 +51,6 @@ class Reward:
             plt.savefig(save_dir + "/reward_over_steps_episode{}.png".format(self.env.episode_number))
             plt.close()
 
-    def get_accurate_gripper_position(self, gripper_position):
-        gripper_orientation = self.env.p.getLinkState(self.env.robot.robot_uid, self.env.robot.end_effector_index)[1]
-        gripper_matrix      = self.env.p.getMatrixFromQuaternion(gripper_orientation)
-        direction_vector    = Vector([0,0,0], [0, 0, 0.1], self.env)
-        m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
-        direction_vector.rotate_with_matrix(m)
-        gripper = Vector([0,0,0], gripper_position, self.env)
-        return direction_vector.add_vector(gripper)
-
-
     def visualize_reward_over_episodes(self):
         """
         Plot and save a graph of cumulative reward values assigned to individual episodes. Call this method to plot data from the current and all previous episodes.
@@ -462,7 +452,7 @@ class SwitchReward(DistanceReward):
             :return reward: (float) Reward signal for the environment
         """
         o1 = observation["goal_state"]
-        gripper_position = self.get_accurate_gripper_position(observation["actual_state"])
+        gripper_position = self.env.robot.get_accurate_gripper_position(observation["actual_state"])
         self.set_variables(o1, gripper_position)    # save local positions of task_object and gripper to global positions
         self.set_offset(x=-0.1, z=0.25)
         if self.x_obj > 0:
@@ -709,7 +699,7 @@ class ButtonReward(SwitchReward):
             :return reward: (float) Reward signal for the environment
         """
         goal = observation["goal_state"]
-        gripper_position = self.get_accurate_gripper_position(observation["actual_state"])
+        gripper_position = self.env.robot.get_accurate_gripper_position(observation["actual_state"])
         self.set_variables(goal, gripper_position)
         self.set_offset(z=0.16)
 
@@ -802,7 +792,7 @@ class TurnReward(SwitchReward):
             :return reward: (float) Reward signal for the environment
         """
         goal = observation["goal_state"]
-        gripper_position = self.get_accurate_gripper_position(observation["actual_state"])
+        gripper_position = self.env.robot.get_accurate_gripper_position(observation["actual_state"])
         self.set_variables(goal, gripper_position)
         self.set_offset(z=0.1)
 
@@ -930,7 +920,7 @@ class PokeReachReward(SwitchReward):
         goal_position = observation["goal_state"]
         poker_position = observation["actual_state"]
         gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
-        gripper_position = self.get_accurate_gripper_position(observation["additional_obs"][gripper_name])
+        gripper_position = self.env.robot.get_accurate_gripper_position(observation["additional_obs"][gripper_name])
 
         for i in range(len(poker_position)):
             poker_position[i] = round(poker_position[i], 4)
@@ -1211,7 +1201,7 @@ class DualPickAndPlace(DualPoke):
     def gripper_reached_object(self, gripper, object):
         self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
         self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
-        if len(self.env.robot.magnetized_objects) > 0:
+        if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
             self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
             return True
         return False
@@ -1220,11 +1210,13 @@ class DualPickAndPlace(DualPoke):
         # initial reach
         self.env.p.addUserDebugText("find", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
         dist = self.task.calc_distance(gripper, object)
-        if self.last_find_dist is None or self.last_owner != 0:
+        if self.last_find_dist is None:
+            self.last_find_dist = dist
+        if self.last_owner != 0:
             self.last_find_dist = dist
         reward = self.last_find_dist - dist
         self.last_find_dist = dist
-        if self.task.check_object_moved(self.env.task_objects["actual_state"]):
+        if self.task.check_object_moved(self.env.task_objects["actual_state"], threshold=1.2):
             self.env.episode_over   = True
             self.env.episode_failed = True
         self.network_rewards[0] += reward
@@ -1245,11 +1237,12 @@ class DualPickAndPlace(DualPoke):
         self.last_place_dist = dist
 
         if self.last_owner == 1 and dist < 0.1:
-            self.env.robot.release_object(self.env.env_objects["actual_state"])
+            self.env.robot.release_all_objects()
             self.gripped = None
             self.env.episode_info = "Object was placed to desired position"
-        if self.env.episode_steps <= 5:
+        if self.env.episode_steps <= 2:
             self.env.episode_info = "Task finished in initial configuration"
+            self.env.robot.release_all_objects()
             self.env.episode_over = True
         self.network_rewards[1] += reward
         return reward
@@ -1321,7 +1314,7 @@ class ConsequentialPickAndPlace(DualPickAndPlace):
             self.last_find_dist = dist
         reward = self.last_find_dist - dist
         self.last_find_dist = dist
-        if self.task.check_object_moved(self.env.task_objects["actual_state"]):
+        if self.task.check_object_moved(self.env.task_objects["actual_state"], threshold=1.2):
             self.env.episode_over   = True
             self.env.episode_failed = True
         self.network_rewards[0] += reward
@@ -1362,10 +1355,10 @@ class ConsequentialPickAndPlace(DualPickAndPlace):
         self.last_place_dist = dist
 
         if self.last_owner == 2 and dist < 0.1:
-            self.env.robot.release_object(self.env.env_objects["actual_state"])
+            self.env.robot.release_all_objects()
             self.gripped = None
             self.env.episode_info = "Object was placed to desired position"
-        if self.env.episode_steps <= 5:
+        if self.env.episode_steps <= 2:
             self.env.episode_info = "Task finished in initial configuration"
             self.env.episode_over = True
 
