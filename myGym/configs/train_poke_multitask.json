@@ -25,12 +25,8 @@
 // additional_obs options (pick none/one/more): "joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"
 "observation"           : {"actual_state":"obj_xyz", "goal_state":"obj_xyz", "additional_obs":["endeff_xyz"]},
 #Distractor
-"distractors"                   :null,
-"distractor_moveable"           :1,
-"distractor_constant_speed"     :1,
-"distractor_movement_dimensions":1,
-"distractor_movement_endpoints" :[-0.3, 0.3],
-"observed_links_num"            :1,
+"distractors"           : {"list":null, "moveable":1, "constant_speed":1, "movement_dims":1,
+                                       "movement_endpoints":[-0.3, 0.3]},
 #Reward
 "reward"       :"poke",
 "distance_type":"euclidean",

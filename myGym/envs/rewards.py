@@ -383,7 +383,7 @@ class VectorReward(Reward):
             arm.append(list(observation[j:j+3]))
             j += 3
 
-        while len(links) < self.env.robot.observed_links_num:
+        while len(links) < len(self.env.robot.observe_all_links):
             links.append(list(observation[j:j+3]))
             j += 3
 

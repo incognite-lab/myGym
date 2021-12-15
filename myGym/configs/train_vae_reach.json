@@ -23,12 +23,8 @@
 // additional_obs options (pick none/one/more): "joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"
 "observation"           : {"actual_state":"vae", "goal_state":"vae", "additional_obs":[]},
 #Distractor
-"distractors"                   : ["sphere"],
-"distractor_moveable"           : 1,
-"distractor_constant_speed"     : 0,
-"distractor_movement_dimensions": 3,
-"distractor_movement_endpoints" : [-0.3, 0.3, 0.4, 0.7, 0.1, 0.3],
-"observed_links_num"            : 5,
+"distractors"           : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
+                                       "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
 #Reward
 "reward":"distance",
 "distance_type":"euclidean",

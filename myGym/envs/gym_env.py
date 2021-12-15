@@ -20,26 +20,17 @@ class GymEnv(CameraEnv):
 
     Parameters:
         :param workspace: (string) Workspace in gym, where training takes place (collabtable, maze, drawer, ...)
-        :param object_sampling_area: (list of floats) Volume in the scene where objects can appear ([x,x,y,y,z,z])
         :param dimension_velocity: (float) Maximum allowed velocity for robot movements in individual x,y,z axis
         :param used_objects: (list of strings) Names of extra objects (not task objects) that can appear in the scene
         :param action_repeat: (int) Amount of steps the robot takes between the simulation steps (updates)
         :param color_dict: (dict) Dictionary of specified colors for chosen objects, Key: object name, Value: RGB color
         :param robot: (string) Type of robot to train in the environment (kuka, panda, ur3, ...)
-        :param robot_position: (list) Position of the robot's base link in the coordinate frame of the environment ([x,y,z])
-        :param robot_orientation: (list) Orientation of the robot's base link in the coordinate frame of the environment (Euler angles [x,y,z])
         :param robot_action: (string) Mechanism of robot control (absolute, step, joints)
         :param robot_init_joint_poses: (list) Configuration in which robot will be initialized in the environment. Specified either in joint space as list of joint poses or in the end-effector space as [x,y,z] coordinates.
         :param task_type: (string) Type of learned task (reach, push, ...)
         :param num_subgoals: (int) Number of subgoals in task
         :param task_objects: (list of strings) Objects that are relevant for performing the task
-
-        :param distractors: (list of strings) Objects distracting from performed task
-        :param distractor_moveable: (bool) can distractors move
-        :param distractor_constant_speed: (bool) is speed of distractors constant
-        :param distractor_movement_dimensions: (int) number of dimensions of distractors motion
-        :param distractor_movement_endpoints: (list of floats) borders of dostractors movement
-
+        :param distractors: (dict) Objects distracting from performed task
         :param reward_type: (string) Type of reward signal source (gt, 3dvs, 2dvu)
         :param reward: (string) Defines how to compute the reward
         :param distance_type: (string) Way of calculating distances (euclidean, manhattan)
@@ -55,15 +46,12 @@ class GymEnv(CameraEnv):
     """
     def __init__(self,
                  workspace="table",
-                 object_sampling_area=None,
                  dimension_velocity=0.05,
                  used_objects=None,
                  observation={},
                  action_repeat=1,
                  color_dict=None,
                  robot='kuka',
-                 robot_position=[0.0, 0.0, 0.0],
-                 robot_orientation=[0, 0, 0],
                  robot_action="step",
                  robot_init_joint_poses=[],
                  task_type='reach',
@@ -71,11 +59,6 @@ class GymEnv(CameraEnv):
                  num_networks=1,
                  network_switcher="gt",
                  distractors=None,
-                 distractor_moveable=0,
-                 distractor_movement_endpoints=[-0.7+0.12, 0.7-0.15],
-                 distractor_constant_speed=1,
-                 distractor_movement_dimensions=2,
-                 observed_links_num=11,
                  reward='distance',
                  distance_type='euclidean',
                  active_cameras=None,
@@ -94,8 +77,6 @@ class GymEnv(CameraEnv):
         self.robot_type             = robot
         self.num_networks           = num_networks
         self.network_switcher       = network_switcher
-        self.robot_position         = robot_position
-        self.robot_orientation      = robot_orientation
         self.robot_init_joint_poses = robot_init_joint_poses
         self.robot_action           = robot_action
         self.dimension_velocity     = dimension_velocity
@@ -103,12 +84,11 @@ class GymEnv(CameraEnv):
         self.used_objects           = used_objects
         self.action_repeat          = action_repeat
         self.color_dict             = color_dict
-        self.observed_links_num     = observed_links_num
         self.task_type              = task_type
         self.task_objects_dict     = task_objects
         self.task_objects = []
         self.env_objects = []
-        self.has_distractor         = distractors != None
+        self.has_distractor         = distractors["list"] != None
         self.distractors            = distractors
         self.distance_type          = distance_type
         self.objects_area_borders = None
@@ -123,15 +103,12 @@ class GymEnv(CameraEnv):
                                  number_tasks=len(task_objects),
                                  env=self)
 
-        self.dist = d.DistractorModule(distractor_moveable,
-                                       distractor_movement_endpoints,
-                                       distractor_constant_speed,
-                                       distractor_movement_dimensions,
-                                       env=self)
+        self.dist = d.DistractorModule(distractors["moveable"], distractors["movement_endpoints"],
+                                       distractors["constant_speed"], distractors["movement_dims"], env=self)
 
         if reward == 'distractor':
             self.has_distractor = True
-            self.distractor = ['bus'] if not self.distractors else self.distractors
+            self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
 
         reward_classes = {"single network":   {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
                                               "distractor": VectorReward, "poke": PokeReachReward, "switch": SwitchReward,
@@ -243,6 +220,7 @@ class GymEnv(CameraEnv):
             :param random_pos: (bool) Whether to initiate objects to random locations in the scene
             :param hard: (bool) Whether to do hard reset (resets whole pybullet scene)
             :param random_robot: (bool) Whether to initiate robot in random pose
+            :param only_subtask: (bool) if True, the robot's position is not reset and the next subtask is started
         Returns:
             :return self._observation: (list) Observation data of the environment
         """
@@ -253,7 +231,7 @@ class GymEnv(CameraEnv):
 
         if self.has_distractor:
             distrs = []
-            for distractor in self.distractors:
+            for distractor in self.distractors["list"]:
                 distrs.append(self.dist.place_distractor(distractor, self.p, self.task_objects["goal_state"].get_position()))
             self.task_objects["distractor"] = distrs
 
@@ -268,6 +246,7 @@ class GymEnv(CameraEnv):
 
 
     def flatten_obs(self, obs):
+        """ Returns the input obs dict as flattened list """
         if len(obs["additional_obs"].keys()) != 0 and not self.dataset:
            obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
         if not self.dataset:
@@ -302,7 +281,7 @@ class GymEnv(CameraEnv):
         Environment step in simulation
 
         Parameters:
-            :param actions: (list) Action data to send to robot to perform movement in this step
+            :param action: (list) Action data to send to robot to perform movement in this step
         Returns:
             :return self._observation: (list) Observation data from the environment after this step
             :return reward: (float) Reward value assigned to this step
@@ -310,7 +289,7 @@ class GymEnv(CameraEnv):
             :return info: (dict) Additional information about step
         """
         self._apply_action_robot(self._rescale_action(action))
-        if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors]
+        if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
         if self.dataset: reward, done, info = 0, False, {}
         else:
@@ -329,6 +308,11 @@ class GymEnv(CameraEnv):
         return reward
 
     def successful_finish(self, info):
+        """
+        End the episode and print summary
+        Parameters:
+            :param info: (dict) logged information about training
+        """
         self.episode_final_reward.append(self.episode_reward)
         self.episode_final_distance.append(self.task.last_distance / self.task.init_distance)
         self.episode_number += 1
