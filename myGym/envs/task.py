@@ -339,7 +339,7 @@ class TaskModule():
         else:
             assert t["actual_state"].split("_")[-1] == t["goal_state"] .split("_")[-1], "Actual state and goal state must " \
                                                                                         "have the same number of dimensions!"
-            if "endeff_xyz" or "endeff_6D" in t["additional_obs"]:
+            if "endeff_xyz" in t["additional_obs"] or "endeff_6D" in t["additional_obs"]:
                 warnings.warn("Observation config: endeff_xyz already in actual_state, no need to have it in additional_obs. Removing it")
                 [self.obs_template["additional_obs"].remove(x) for x in t["additional_obs"] if "endeff" in x]
         obsdim = 0
