@@ -11,6 +11,7 @@ from myGym.utils.helpers import get_workspace_dict
 import pkg_resources
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
+
 class GymEnv(CameraEnv):
     """
     Environment class for particular environment based on myGym basic environment classes
@@ -49,7 +50,7 @@ class GymEnv(CameraEnv):
                  dimension_velocity=0.05,
                  used_objects=None,
                  action_repeat=1,
-                 color_dict=None,
+                 color_dict={},
                  robot='kuka',
                  robot_action="step",
                  robot_init_joint_poses=[],
@@ -341,7 +342,7 @@ class GymEnv(CameraEnv):
     def _place_object(self, obj_info):
         fixed = True if obj_info["fixed"] == 1 else False
         pos = env_object.EnvObject.get_random_object_position(obj_info["sampling_area"])
-        orn = env_object.EnvObject.get_random_object_orientation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
+        orn = env_object.EnvObject.get_random_z_rotation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
         object = env_object.EnvObject(obj_info["urdf"], pos, orn, pybullet_client=self.p, fixed=fixed)
         if self.color_dict: object.set_color(self.color_of_object(object))
         return object
@@ -390,7 +391,7 @@ class GymEnv(CameraEnv):
         if object.name not in self.color_dict:
             return env_object.EnvObject.get_random_color()
         else:
-            color = random.sample(self.color_dict[object.name], 1)
-            color[:] = [x / 255 for x in color[0]]
-            color.append(1)
+            color = random.sample(self.color_dict[object.name], 1)[0]
+            color = [x / 255 for x in color] if any([x>1 for x in color]) else color
+            if len(color) < 4: color.append(1)
         return color

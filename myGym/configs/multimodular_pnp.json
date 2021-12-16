@@ -4,18 +4,19 @@
     "workspace" :"table",
     "engine"    :"pybullet",
     "render"    :"opengl",
-    "camera"    :1,
+    "camera"    :0,
     "gui"       :1,
     "visualize" :0,
     "visgym"    :0,
     #Robot
     "robot"         :"kuka",
-    "robot_action"  :"joints",
+    "robot_action"  :"joints_gripper",
     "robot_init"    :[0.0, 0.3, 0.9],
     #Task
     "task_type"             :"pnp",
-    "task_objects"          :[{"init":{"obj_name":"cube_holes","fixed":0,"rand_rot":0, "sampling_area":[-0.4, 0.4, 0.4, 0.5, 0.1, 0.1]},
-                           "goal":{"obj_name":"target","fixed":1,"rand_rot":0, "sampling_area":[-0.5, 0.5, 0.5, 0.7, 0.05, 0.05]}}],
+    "task_objects"          :[{"init":{"obj_name":"cube_holes","fixed":0,"rand_rot":0, "sampling_area":[0,0.4,0.5,0.6,0.1,0.1]},
+                           "goal":{"obj_name":"crate","fixed":1,"rand_rot":0, "sampling_area":[-0.4,0,0.5, 0.7, 0, 0]}}],
+    "color_dict"            : {"crate":[[0.2,0.5,0.2,1]], "spoon":[[0.3,0.3,0.3,1]]},
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
     // Observation
     // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
@@ -34,16 +35,16 @@
     #Train
     "train_framework"   :"tensorflow",
     "algo"              :"multi",
-    "num_networks"      : 2,
+    "num_networks"      : 3,
     "network_swtcher"   : "gt",
-    "max_episode_steps" :1024,
-    "algo_steps"        :1024,
+    "max_episode_steps" :512,
+    "algo_steps"        :512,
     "steps"             :100000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
     "eval_freq"     :10000,
-    "eval_episodes" :1,
+    "eval_episodes" :10,
     #Saving and logging
     "logdir"    :"trained_models/dual/PNP",
     "record"    :0

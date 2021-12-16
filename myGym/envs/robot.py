@@ -515,7 +515,7 @@ class Robot:
                     self.magnetize_object(env_objects["actual_state"])
                 else:
                     self.gripper_active = False
-                    self.release_object(env_objects["actual_state"])
+                    self.release_all_objects()
             else:
                 self.apply_action_joints(action)
         if len(self.magnetized_objects):
@@ -528,7 +528,7 @@ class Robot:
                 self.p.resetJointState(self.robot_uid, joint_index, self.p.getJointInfo(self.robot_uid, joint_index)[9])
 
     def magnetize_object(self, object, distance_threshold=.05):
-        if object not in self.magnetized_objects.keys():
+        if len(self.magnetized_objects) == 0 :
             if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
                 self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
                 self.end_effector_prev_pos = self.end_effector_pos
@@ -544,10 +544,9 @@ class Robot:
         self.gripper_active = False
 
     def release_all_objects(self):
-        mag_os = self.magnetized_objects.copy()
-        for x in mag_os:
+        for x in self.magnetized_objects:
             self.p.removeConstraint(self.magnetized_objects[x])
-            self.magnetized_objects.pop(x)
+        self.magnetized_objects = {}
         self.gripper_active = False
 
     def get_accurate_gripper_position(self, gripper_position):

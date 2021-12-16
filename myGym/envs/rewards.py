@@ -1187,7 +1187,7 @@ class DualPickAndPlace(DualPoke):
         if owner   == 0: reward = self.find_compute(gripper_position, object_position)
         elif owner == 1: reward = self.move_compute(object_position, goal_position)
         self.last_owner = owner
-        self.task.check_distance_threshold(observation, threshold=0.02)
+        self.task.check_distance_threshold(observation, threshold=0.12)
         self.rewards_history.append(reward)
         return reward
 
@@ -1204,11 +1204,13 @@ class DualPickAndPlace(DualPoke):
         if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
             self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
             return True
+        if len(self.env.robot.magnetized_objects)>0:
+            return True
         return False
 
     def find_compute(self, gripper, object):
         # initial reach
-        self.env.p.addUserDebugText("find", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
+        self.env.p.addUserDebugText("find object", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
         dist = self.task.calc_distance(gripper, object)
         if self.last_find_dist is None:
             self.last_find_dist = dist
@@ -1226,7 +1228,7 @@ class DualPickAndPlace(DualPoke):
         # reach of goal position + task object height in Z axis and release
         self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
         dist = self.task.calc_distance(object, goal)
-
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.5,0.5,0.7], lifeTime=0.1, textColorRGB=[0, 125, 0])
         if self.last_place_dist is None:
             self.last_place_dist = dist
         if self.last_owner != 1:
