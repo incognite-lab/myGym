@@ -114,10 +114,8 @@ class Robot:
         print("End effector index is: " + str(self.end_effector_index))
 
     def touch_sensors_active(self, target_object):
-        contact_points = [
-            self.p.getContactPoints(self.robot_uid, target_object.uid, x, 0)
-            for x in range(0, self.end_effector_index + 1)]
-        if any(contact_points):
+        contact_points = self.p.getContactPoints(self.robot_uid, target_object.uid)
+        if len(contact_points)> 0:
             return True
         return False
 
@@ -155,6 +153,8 @@ class Robot:
         Parameters:
             :param positions: (list) Values for individual joint motors
         """
+        if len(joint_poses) == 3:
+            joint_poses = self._calculate_joint_poses(joint_poses)
         joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
         for jid in range(len(self.motor_indices)):
             self.p.resetJointState(self.robot_uid, self.motor_indices[jid], joint_poses[jid])
@@ -196,13 +196,7 @@ class Robot:
         """
         Returns the cartesian world position of all robot's links
         """
-        observation = []
-        for link in range(self.end_effector_index+1):
-            state = self.p.getLinkState(self.robot_uid, link)
-            pos = state[0]
-            observation.extend(list(pos))
-
-        return observation
+        return [self.p.getLinkState(self.robot_uid, link)[0] for link in range(self.num_joints)]
 
     def get_joints_states(self):
         """
@@ -265,8 +259,7 @@ class Robot:
         Returns: 
             :return position: (list) Position of end-effector link (center of mass)
         """
-        pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
-        return self.get_accurate_gripper_position(pos)
+        return self.get_accurate_gripper_position()
 
     def get_orientation(self):
         """
@@ -549,14 +542,19 @@ class Robot:
         self.magnetized_objects = {}
         self.gripper_active = False
 
-    def get_accurate_gripper_position(self, gripper_position):
+    def get_accurate_gripper_position(self):
+        """
+        Returns the position of the tip of the pointy gripper. Tested on Kuka only
+        """
+        gripper_position = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
         gripper_orientation = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
         gripper_matrix      = self.p.getMatrixFromQuaternion(gripper_orientation)
-        direction_vector    = Vector([0,0,0], [0, 0, 0.1])
+        direction_vector    = Vector([0,0,0], [0.02, 0, 0.14])
         m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
         direction_vector.rotate_with_matrix(m)
         gripper = Vector([0,0,0], gripper_position)
-        return direction_vector.add_vector(gripper)
+        final = direction_vector.add_vector(gripper)
+        return final
 
 
     def get_name(self):
