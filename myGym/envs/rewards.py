@@ -452,7 +452,7 @@ class SwitchReward(DistanceReward):
             :return reward: (float) Reward signal for the environment
         """
         o1 = observation["goal_state"]
-        gripper_position = self.env.robot.get_accurate_gripper_position(observation["actual_state"])
+        gripper_position = self.env.robot.get_accurate_gripper_position()
         self.set_variables(o1, gripper_position)    # save local positions of task_object and gripper to global positions
         self.set_offset(x=-0.1, z=0.25)
         if self.x_obj > 0:
@@ -699,7 +699,7 @@ class ButtonReward(SwitchReward):
             :return reward: (float) Reward signal for the environment
         """
         goal = observation["goal_state"]
-        gripper_position = self.env.robot.get_accurate_gripper_position(observation["actual_state"])
+        gripper_position = self.env.robot.get_accurate_gripper_position()
         self.set_variables(goal, gripper_position)
         self.set_offset(z=0.16)
 
@@ -792,7 +792,7 @@ class TurnReward(SwitchReward):
             :return reward: (float) Reward signal for the environment
         """
         goal = observation["goal_state"]
-        gripper_position = self.env.robot.get_accurate_gripper_position(observation["actual_state"])
+        gripper_position = self.env.robot.get_accurate_gripper_position()
         self.set_variables(goal, gripper_position)
         self.set_offset(z=0.1)
 
@@ -920,7 +920,7 @@ class PokeReachReward(SwitchReward):
         goal_position = observation["goal_state"]
         poker_position = observation["actual_state"]
         gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
-        gripper_position = self.env.robot.get_accurate_gripper_position(observation["additional_obs"][gripper_name])
+        gripper_position = self.env.robot.get_accurate_gripper_position()
 
         for i in range(len(poker_position)):
             poker_position[i] = round(poker_position[i], 4)
