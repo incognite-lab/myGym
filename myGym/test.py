@@ -100,7 +100,7 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     mean_steps_num = steps_sum // arg_dict["eval_episodes"]
 
     print("#---------Evaluation-Summary---------#")
-    print("{} of {} episodes were successful".format(success_episodes_num, arg_dict["eval_episodes"]))
+    print("{} of {} episodes ({} %) were successful".format(success_episodes_num, arg_dict["eval_episodes"], success_episodes_num / arg_dict["eval_episodes"]*100))
     print("Mean distance error is {:.2f}%".format(mean_distance_error * 100))
     print("Mean number of steps {}".format(mean_steps_num))
     print("#------------------------------------#")
