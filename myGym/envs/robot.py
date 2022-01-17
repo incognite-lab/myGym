@@ -36,8 +36,8 @@ class Robot:
                  use_fixed_gripper_orn=False,
                  gripper_orn=[0, -math.pi, 0],
                  dimension_velocity = 0.5,
-                 max_velocity = None, #1.,
-                 max_force = None, #50.,
+                 max_velocity = 1, #1.,
+                 max_force = 50, #50.,
                  pybullet_client=None):
 
         self.p = pybullet_client

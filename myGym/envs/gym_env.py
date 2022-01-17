@@ -49,7 +49,7 @@ class GymEnv(CameraEnv):
                  workspace="table",
                  dimension_velocity=0.05,
                  used_objects=None,
-                 action_repeat=1,
+                 action_repeat=20,
                  color_dict={},
                  robot='kuka',
                  robot_action="step",
@@ -330,7 +330,8 @@ class GymEnv(CameraEnv):
             if hasattr(self, 'human'):
                 self.human.apply_action(np.random.uniform(self.human.joints_limits[0], self.human.joints_limits[1]))
             self.p.stepSimulation()
-            self.episode_steps += 1
+        print(f"Substeps:{i}")
+        self.episode_steps += 1
 
     def draw_bounding_boxes(self):
         """

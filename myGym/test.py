@@ -5,6 +5,10 @@ from myGym.train import get_parser, get_arguments, configure_implemented_combos,
 import os, imageio
 import numpy as np
 import time
+from numpy import matrix
+
+
+clear = lambda: os.system('clear')
 
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
@@ -14,10 +18,26 @@ def test_env(env, arg_dict):
     env.reset()
     for e in range(10000):
         env.reset()
-        for t in range(100):
-            action = env.action_space.sample()
+        for t in range(arg_dict["max_episode_steps"]):
+            #action = env.action_space.sample()
+            
+            if t>=1:
+                action = observation[10:17]
+                #action = env.action_space.sample()
+            else:
+                action = [0,0,0,0,0,0,0]
+                #action = env.action_space.sample()
             observation, reward, done, info = env.step(action)
-            # print("Reward is {}, observation is {}".format(reward, observation))
+            #print("Reward is {}, observation is {}".format(reward, observation))
+            action = matrix(np.around(np.array(action),5))
+            oaction = matrix(np.around(np.array(observation[10:17]),5))
+            diff = matrix(np.around(np.array(action-oaction),5))
+            print(f"Step:{t}")
+            print (f"RAction:{action}")
+            print(f"OAction:{oaction}")
+            print(f"DAction:{diff}")
+            time.sleep(.5)
+            clear()
 
             if arg_dict["visualize"]:
                 visualizations = [[],[]]
