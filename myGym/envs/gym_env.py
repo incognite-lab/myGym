@@ -49,7 +49,7 @@ class GymEnv(CameraEnv):
                  workspace="table",
                  dimension_velocity=0.05,
                  used_objects=None,
-                 action_repeat=20,
+                 action_repeat=1,
                  color_dict={},
                  robot='kuka',
                  robot_action="step",
@@ -287,7 +287,7 @@ class GymEnv(CameraEnv):
             :return done: (bool) Whether this stop is episode's final
             :return info: (dict) Additional information about step
         """
-        self._apply_action_robot(self._rescale_action(action))
+        self._apply_action_robot(action)
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
         if self.dataset: reward, done, info = 0, False, {}

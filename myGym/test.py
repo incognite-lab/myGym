@@ -6,7 +6,7 @@ import os, imageio
 import numpy as np
 import time
 from numpy import matrix
-
+import pybullet as p
 
 clear = lambda: os.system('clear')
 
@@ -14,29 +14,51 @@ AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
 def test_env(env, arg_dict):
+    debug_mode = True
     env.render("human")
     env.reset()
+    if debug_mode:
+            p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
+            j1 = p.addUserDebugParameter("Joint1", -5, 5, 0)
+            j2 = p.addUserDebugParameter("Joint2", -5, 5, 0)
+            j3 = p.addUserDebugParameter("Joint3", -5, 5, 0)
+            j4 = p.addUserDebugParameter("Joint4", -5, 5, 0)
+            j5 = p.addUserDebugParameter("Joint5", -5, 5, 0)
+            j6 = p.addUserDebugParameter("Joint6", -5, 5, 0)
+            j7 = p.addUserDebugParameter("Joint7", -5, 5, 0)
+    p.resetDebugVisualizerCamera(2, 120, -30, [0, 1, 0])
     for e in range(10000):
         env.reset()
         for t in range(arg_dict["max_episode_steps"]):
             #action = env.action_space.sample()
             
             if t>=1:
-                action = observation[10:17]
+                jnt1 = p.readUserDebugParameter(j1)
+                jnt2 = p.readUserDebugParameter(j2)
+                jnt3 = p.readUserDebugParameter(j3)
+                jnt4 = p.readUserDebugParameter(j4)
+                jnt5 = p.readUserDebugParameter(j5)
+                jnt6 = p.readUserDebugParameter(j6)
+                jnt7 = p.readUserDebugParameter(j7)
+                action = [jnt1,jnt2,jnt3,jnt4,jnt5,jnt6,jnt7]
+                #action = observation[10:17]
                 #action = env.action_space.sample()
             else:
                 action = [0,0,0,0,0,0,0]
                 #action = env.action_space.sample()
             observation, reward, done, info = env.step(action)
-            #print("Reward is {}, observation is {}".format(reward, observation))
-            action = matrix(np.around(np.array(action),5))
-            oaction = matrix(np.around(np.array(observation[10:17]),5))
-            diff = matrix(np.around(np.array(action-oaction),5))
-            print(f"Step:{t}")
-            print (f"RAction:{action}")
-            print(f"OAction:{oaction}")
-            print(f"DAction:{diff}")
-            time.sleep(.5)
+            if debug_mode:
+                #print("Reward is {}, observation is {}".format(reward, observation))
+                action = matrix(np.around(np.array(action),5))
+                oaction = matrix(np.around(np.array(observation[10:17]),5))
+                diff = matrix(np.around(np.array(action-oaction),5))
+                print(f"Step:{t}")
+                print (f"RAction:{action}")
+                print(f"OAction:{oaction}")
+                print(f"DAction:{diff}")
+                p.addUserDebugText(f"DAction:{diff}",
+                                        [-1, -1, 2], textSize=1.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
+            #time.sleep(.5)
             clear()
 
             if arg_dict["visualize"]:
