@@ -17,30 +17,25 @@ def test_env(env, arg_dict):
     debug_mode = True
     env.render("human")
     env.reset()
+    joints = ['Joint1','Joint2','Joint3','Joint4','Joint5','Joint6','Joint7','Joint 8','Joint 9']
+    jointparams = ['Jnt1','Jnt2','Jnt3','Jnt4','Jnt5','Jnt6','Jnt7','Jnt 8','Jnt 9']
+    frictions = ['Friction 1','Friction 2','Friction 3','Friction 4','Friction 5','Friction 6','Friction 7','Friction 8','Friction 9']
+    
     if debug_mode:
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
-            j1 = p.addUserDebugParameter("Joint1", -5, 5, 0)
-            j2 = p.addUserDebugParameter("Joint2", -5, 5, 0)
-            j3 = p.addUserDebugParameter("Joint3", -5, 5, 0)
-            j4 = p.addUserDebugParameter("Joint4", -5, 5, 0)
-            j5 = p.addUserDebugParameter("Joint5", -5, 5, 0)
-            j6 = p.addUserDebugParameter("Joint6", -5, 5, 0)
-            j7 = p.addUserDebugParameter("Joint7", -5, 5, 0)
-    p.resetDebugVisualizerCamera(2, 120, -30, [0, 1, 0])
+            p.resetDebugVisualizerCamera(2, 120, -30, [0, 1, 0])
+            for i in range (env.action_space.shape[0]):
+                joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], 0)
+    
     for e in range(10000):
         env.reset()
         for t in range(arg_dict["max_episode_steps"]):
             #action = env.action_space.sample()
             
             if t>=1:
-                jnt1 = p.readUserDebugParameter(j1)
-                jnt2 = p.readUserDebugParameter(j2)
-                jnt3 = p.readUserDebugParameter(j3)
-                jnt4 = p.readUserDebugParameter(j4)
-                jnt5 = p.readUserDebugParameter(j5)
-                jnt6 = p.readUserDebugParameter(j6)
-                jnt7 = p.readUserDebugParameter(j7)
-                action = [jnt1,jnt2,jnt3,jnt4,jnt5,jnt6,jnt7]
+                for i in range (env.action_space.shape[0]):
+                    jointparams[i] = p.readUserDebugParameter(joints[i])
+                    action.append(jointparams[i])
                 #action = observation[10:17]
                 #action = env.action_space.sample()
             else:
@@ -58,9 +53,9 @@ def test_env(env, arg_dict):
                 print(f"DAction:{diff}")
                 p.addUserDebugText(f"DAction:{diff}",
                                         [-1, -1, 2], textSize=1.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
-            #time.sleep(.5)
-            clear()
-
+                #time.sleep(.5)
+                clear()
+            action=[]
             if arg_dict["visualize"]:
                 visualizations = [[],[]]
                 env.render("human")
