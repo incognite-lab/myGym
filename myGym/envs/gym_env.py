@@ -198,7 +198,7 @@ class GymEnv(CameraEnv):
             self.action_high = np.insert(self.action_high, action_dim, 1)
             action_dim += 1
 
-        self.action_space = spaces.Box(np.array([-1]*action_dim), np.array([1]*action_dim))
+        self.action_space = spaces.Box(self.action_low, self.action_high)
 
     def _rescale_action(self, action):
         """
