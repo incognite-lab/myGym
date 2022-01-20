@@ -23,38 +23,48 @@ def test_env(env, arg_dict):
     
     if debug_mode:
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
-            p.resetDebugVisualizerCamera(2, 120, -30, [0, 1, 0])
+            p.resetDebugVisualizerCamera(1.0, 140, -30, [0.4, .4, 0.1])
             for i in range (env.action_space.shape[0]):
-                joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], 0)
-    
+                joints[i] = p.addUserDebugParameter(joints[i], env.action_low[i], env.action_high[i], env.env.robot.init_joint_poses[i])
+            maxvelo = p.addUserDebugParameter("Max Velocity", 0, 100, 1) 
+            maxforce = p.addUserDebugParameter("Max Force", 0, 100, 50)
+            tfriction = p.addUserDebugParameter("Table Friction", 0, 100, 0)   
+            ofriction = p.addUserDebugParameter("Object Friction", 0, 100, 0)
+                    #action.append(jointparams[i])
+                
     for e in range(10000):
         env.reset()
+        action = env.action_space.sample()
         for t in range(arg_dict["max_episode_steps"]):
-            #action = env.action_space.sample()
-            
             if t>=1:
                 for i in range (env.action_space.shape[0]):
                     jointparams[i] = p.readUserDebugParameter(joints[i])
                     action.append(jointparams[i])
+                    env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
+                    env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxforce)
                 #action = observation[10:17]
                 #action = env.action_space.sample()
-            else:
-                action = [0,0,0,0,0,0,0]
-                #action = env.action_space.sample()
+                #print(env.env.robot.max_velocity)
+            #else:
+                #action = [0,0,0,0,0,0,0]
+                
             observation, reward, done, info = env.step(action)
-            if debug_mode:
+            #if debug_mode:
                 #print("Reward is {}, observation is {}".format(reward, observation))
-                action = matrix(np.around(np.array(action),5))
-                oaction = matrix(np.around(np.array(observation[10:17]),5))
-                diff = matrix(np.around(np.array(action-oaction),5))
-                print(f"Step:{t}")
-                print (f"RAction:{action}")
-                print(f"OAction:{oaction}")
-                print(f"DAction:{diff}")
-                p.addUserDebugText(f"DAction:{diff}",
-                                        [-1, -1, 2], textSize=1.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
-                #time.sleep(.5)
-                clear()
+                #if t>=1:
+                    #action = matrix(np.around(np.array(action),5))
+                    #oaction = env.env.robot.get_joints_states()
+                    #oaction = matrix(np.around(np.array(oaction[0:action.shape[0]]),5))
+                    #diff = matrix(np.around(np.array(action-oaction),5))
+                    #print(env.env.robot.get_joints_states())
+                    #print(f"Step:{t}")
+                    #print (f"RAction:{action}")
+                    #print(f"OAction:{oaction}")
+                    #print(f"DAction:{diff}")
+                    #p.addUserDebugText(f"DAction:{diff}",
+                    #                    [1, 1, 0.1], textSize=1.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
+                    #time.sleep(.5)
+                    #clear()
             action=[]
             if arg_dict["visualize"]:
                 visualizations = [[],[]]

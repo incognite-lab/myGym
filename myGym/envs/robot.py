@@ -178,6 +178,7 @@ class Robot:
             joints_rest_poses.append((joint_info[9] + joint_info[8])/2)
             joints_max_force.append(self.max_force if self.max_force else joint_info[10])
             joints_max_velo.append(self.max_velocity if self.max_velocity else joint_info[11])
+        print (self.max_velocity)
         return [joints_limits_l, joints_limits_u], joints_ranges, joints_rest_poses, joints_max_force, joints_max_velo
 
     def get_action_dimension(self):
@@ -289,7 +290,7 @@ class Robot:
                                     positionGain=0.7,
                                     velocityGain=0.3)
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
-        
+
     def _calculate_joint_poses(self, end_effector_pos):
         """
         Calculate joint poses corresponding to desired position of end-effector. Uses inverse kinematics.

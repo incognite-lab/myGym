@@ -330,7 +330,7 @@ class GymEnv(CameraEnv):
             if hasattr(self, 'human'):
                 self.human.apply_action(np.random.uniform(self.human.joints_limits[0], self.human.joints_limits[1]))
             self.p.stepSimulation()
-        print(f"Substeps:{i}")
+        #print(f"Substeps:{i}")
         self.episode_steps += 1
 
     def draw_bounding_boxes(self):
