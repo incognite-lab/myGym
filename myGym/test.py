@@ -7,7 +7,8 @@ import numpy as np
 import time
 from numpy import matrix
 import pybullet as p
-
+import pkg_resources
+import random
 clear = lambda: os.system('clear')
 
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
@@ -19,21 +20,25 @@ def test_env(env, arg_dict):
     env.reset()
     joints = ['Joint1','Joint2','Joint3','Joint4','Joint5','Joint6','Joint7','Joint 8','Joint 9']
     jointparams = ['Jnt1','Jnt2','Jnt3','Jnt4','Jnt5','Jnt6','Jnt7','Jnt 8','Jnt 9']
-    frictions = ['Friction 1','Friction 2','Friction 3','Friction 4','Friction 5','Friction 6','Friction 7','Friction 8','Friction 9']
+    cube = ['Cube1','Cube2','Cube3','Cube4','Cube5','Cube6','Cube7','Cube8','Cube9']
     
     if debug_mode:
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
             p.resetDebugVisualizerCamera(1.0, 140, -30, [0.4, .4, 0.1])
+            #cube[0] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [0.6,.6,0.1])
             for i in range (env.action_space.shape[0]):
-                joints[i] = p.addUserDebugParameter(joints[i], env.action_low[i], env.action_high[i], env.env.robot.init_joint_poses[i])
-            maxvelo = p.addUserDebugParameter("Max Velocity", 0, 100, 1) 
-            maxforce = p.addUserDebugParameter("Max Force", 0, 100, 50)
-            tfriction = p.addUserDebugParameter("Table Friction", 0, 100, 0)   
-            ofriction = p.addUserDebugParameter("Object Friction", 0, 100, 0)
+                joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
+            maxvelo = p.addUserDebugParameter("Max Velocity", 0, 500, env.env.robot.joints_max_velo[0]) 
+            maxforce = p.addUserDebugParameter("Max Force", 0, 500, env.env.robot.joints_max_force[0])
+            lfriction = p.addUserDebugParameter("Lateral Friction", 0, 100, 0)   
+            rfriction = p.addUserDebugParameter("Spinning Friction", 0, 100, 0)
+            ldamping = p.addUserDebugParameter("Linear Damping", 0, 100, 0)
+            adamping = p.addUserDebugParameter("Angular Damping", 0, 100, 0)
                     #action.append(jointparams[i])
                 
     for e in range(10000):
         env.reset()
+        cube[e] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [0, 0.5, 1])
         action = env.action_space.sample()
         for t in range(arg_dict["max_episode_steps"]):
             if t>=1:
@@ -41,7 +46,11 @@ def test_env(env, arg_dict):
                     jointparams[i] = p.readUserDebugParameter(joints[i])
                     action.append(jointparams[i])
                     env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
-                    env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxforce)
+                    env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
+                p.changeDynamics(cube[e], -1, lateralFriction=p.readUserDebugParameter(lfriction))
+                p.changeDynamics(cube[e],-1,rollingFriction=p.readUserDebugParameter(rfriction))
+                p.changeDynamics(cube[e], -1, linearDamping=p.readUserDebugParameter(ldamping))
+                p.changeDynamics(cube[e], -1, angularDamping=p.readUserDebugParameter(adamping))
                 #action = observation[10:17]
                 #action = env.action_space.sample()
                 #print(env.env.robot.max_velocity)
