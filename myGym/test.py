@@ -16,10 +16,12 @@ AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
 def test_env(env, arg_dict):
     debug_mode = True
+    spawn_objects = False
+    action_control = "slider" #"observation", "random", or "slider"
     env.render("human")
     env.reset()
-    joints = ['Joint1','Joint2','Joint3','Joint4','Joint5','Joint6','Joint7','Joint 8','Joint 9']
-    jointparams = ['Jnt1','Jnt2','Jnt3','Jnt4','Jnt5','Jnt6','Jnt7','Jnt 8','Jnt 9']
+    joints = ['Joint1','Joint2','Joint3','Joint4','Joint5','Joint6','Joint7','Joint 8','Joint 9', 'Joint10', 'Joint11','Joint12','Joint13','Joint14','Joint15','Joint16','Joint17','Joint 18','Joint 19']
+    jointparams = ['Jnt1','Jnt2','Jnt3','Jnt4','Jnt5','Jnt6','Jnt7','Jnt 8','Jnt 9', 'Jnt10', 'Jnt11','Jnt12','Jnt13','Jnt14','Jnt15','Jnt16','Jnt17','Jnt 18','Jnt 19']
     cube = ['Cube1','Cube2','Cube3','Cube4','Cube5','Cube6','Cube7','Cube8','Cube9','Cube10','Cube11','Cube12','Cube13','Cube14','Cube15','Cube16','Cube17','Cube18','Cube19']
     
     if debug_mode:
@@ -38,25 +40,33 @@ def test_env(env, arg_dict):
                 
     for e in range(10000):
         env.reset()
-        cube[e] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [0, 0.5, .1])
+        if spawn_objects:
+            cube[e] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [0, 0.5, .1])
         action = env.action_space.sample()
         for t in range(arg_dict["max_episode_steps"]):
             if t>=1:
+                
+                
+                if spawn_objects:
+                    p.changeDynamics(cube[e], -1, lateralFriction=p.readUserDebugParameter(lfriction))
+                    p.changeDynamics(cube[e],-1,rollingFriction=p.readUserDebugParameter(rfriction))
+                    p.changeDynamics(cube[e], -1, linearDamping=p.readUserDebugParameter(ldamping))
+                    p.changeDynamics(cube[e], -1, angularDamping=p.readUserDebugParameter(adamping))
+                
+                
                 for i in range (env.action_space.shape[0]):
-                    jointparams[i] = p.readUserDebugParameter(joints[i])
-                    action.append(jointparams[i])
+                    if action_control == "slider":
+                        jointparams[i] = p.readUserDebugParameter(joints[i])
+                        action.append(jointparams[i])
                     env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
                     env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
-                p.changeDynamics(cube[e], -1, lateralFriction=p.readUserDebugParameter(lfriction))
-                p.changeDynamics(cube[e],-1,rollingFriction=p.readUserDebugParameter(rfriction))
-                p.changeDynamics(cube[e], -1, linearDamping=p.readUserDebugParameter(ldamping))
-                p.changeDynamics(cube[e], -1, angularDamping=p.readUserDebugParameter(adamping))
-                #action = observation[10:17]
-                action = env.action_space.sample()
-                #print(env.env.robot.max_velocity)
-            #else:
-                #action = [0,0,0,0,0,0,0]
+
+                if action_control == "observation":
+                    action = observation[10:10+env.action_space.shape[0]] #n
                 
+                elif action_control == "random":
+                    action = env.action_space.sample()
+            
             observation, reward, done, info = env.step(action)
             #if debug_mode:
                 #print("Reward is {}, observation is {}".format(reward, observation))

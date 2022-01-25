@@ -58,9 +58,9 @@
     <parent link="j2s7s300_link_base"/>
     <child link="j2s7s300_link_1"/>
     <axis xyz="0 0 1"/>
-    <limit effort="2000" lower="-6.28318530718" upper="6.28318530718" velocity="10.0"/>
+    <limit effort="40" lower="-6.28318530718" upper="6.28318530718" velocity="1.0"/>
     <origin rpy="0 3.14159265359 0" xyz="0 0 0.15675"/>
-    <dynamics damping="0.5"/>
+    <dynamics damping="1"/>
   </joint>
   <link name="j2s7s300_link_2">
     <visual>
@@ -90,9 +90,9 @@
     <parent link="j2s7s300_link_1"/>
     <child link="j2s7s300_link_2"/>
     <axis xyz="0 0 1"/>
-    <limit effort="2000" lower="0.523598775598" upper="5.75958653158" velocity="1"/>
+    <limit effort="40" lower="0.523598775598" upper="5.75958653158" velocity="1"/>
     <origin rpy="-1.57079632679 0 3.14159265359" xyz="0 0.0016 -0.11875"/>
-    <dynamics damping="0.5"/>
+    <dynamics damping="1"/>
   </joint>
   <link name="j2s7s300_link_3">
     <visual>
@@ -122,9 +122,9 @@
     <parent link="j2s7s300_link_2"/>
     <child link="j2s7s300_link_3"/>
     <axis xyz="0 0 1"/>
-    <limit effort="2000" lower="-6.28318530718" upper="6.28318530718" velocity="1"/>
+    <limit effort="40" lower="-6.28318530718" upper="6.28318530718" velocity="1"/>
     <origin rpy="-1.57079632679 0 0" xyz="0 -0.205 0"/>
-    <dynamics damping="0.5"/>
+    <dynamics damping="1"/>
   </joint>
   <link name="j2s7s300_link_4">
     <visual>
@@ -154,9 +154,9 @@
     <parent link="j2s7s300_link_3"/>
     <child link="j2s7s300_link_4"/>
     <axis xyz="0 0 1"/>
-    <limit effort="2000" lower="0.523598775598" upper="5.75958653158" velocity="1"/>
+    <limit effort="40" lower="0.523598775598" upper="5.75958653158" velocity="1"/>
     <origin rpy="1.57079632679 0 3.14159265359" xyz="0 0 -0.205"/>
-    <dynamics damping="0.5"/>
+    <dynamics damping="1"/>
   </joint>
   <link name="j2s7s300_link_5">
     <visual>
@@ -186,9 +186,9 @@
     <parent link="j2s7s300_link_4"/>
     <child link="j2s7s300_link_5"/>
     <axis xyz="0 0 1"/>
-    <limit effort="2000" lower="-6.28318530718" upper="6.28318530718" velocity="1"/>
+    <limit effort="40" lower="-6.28318530718" upper="6.28318530718" velocity="1"/>
     <origin rpy="-1.57079632679 0 3.14159265359" xyz="0 0.2073 -0.0114"/>
-    <dynamics damping="0.5"/>
+    <dynamics damping="1"/>
   </joint>
   <link name="j2s7s300_link_6">
     <visual>
@@ -218,9 +218,9 @@
     <parent link="j2s7s300_link_5"/>
     <child link="j2s7s300_link_6"/>
     <axis xyz="0 0 1"/>
-    <limit effort="2000" lower="0.523598775598" upper="5.75958653158" velocity="1"/>
+    <limit effort="40" lower="0.523598775598" upper="5.75958653158" velocity="1"/>
     <origin rpy="1.57079632679 0 3.14159265359" xyz="0 0 -0.10375"/>
-    <dynamics damping="0.5"/>
+    <dynamics damping="1"/>
   </joint>
   <!--
         <xacro:kinova_armlink link_name="${prefix}_link_7" link_mesh="${link_7_mesh}" use_ring_mesh="true" ring_mesh="ring_small" mesh_no="${link_7_mesh_no}"/>
@@ -237,8 +237,8 @@
     <child link="gripper"/>
     <origin rpy="1.5707 0 0" xyz="0 0.06075 0"/>
     <axis xyz="0 0 1"/>
-    <limit lower="-3.14159265359" upper="3.14159265359" effort="600.8" velocity="0.785"/>
-    <dynamics damping="0.5"/>
+    <limit lower="-3.14159265359" upper="3.14159265359" effort="40" velocity="1"/>
+    <dynamics damping="1"/>
   </joint>
   <link name="gripper">
     <visual>
@@ -317,14 +317,14 @@
     <child link="robotiq_85_left_knuckle_link"/>
     <axis xyz="0 0 1"/>
     <origin rpy="3.14159 0.0 0.0" xyz="0.05490451627 0.03060114443 0.0"/>
-    <limit lower="0.0" upper="0.81" velocity="100.0"/>
+    <limit lower="0.0" upper="0.81" velocity="1.0"/>
   </joint>
   <joint name="robotiq_85_right_knuckle_joint" type="revolute"> <!--revolute-->
     <parent link="robotiq_85_base_link"/>
     <child link="robotiq_85_right_knuckle_link"/>
     <axis xyz="0 0 1"/>
     <origin rpy="0.0 0.0 0.0" xyz="0.05490451627 -0.03060114443 0.0"/>
-    <limit lower="0.0" upper="0.81" velocity="100.0"/>
+    <limit lower="0.0" upper="0.81" velocity="1.0"/>
   </joint>
   <link name="robotiq_85_left_knuckle_link">
     <visual>
@@ -366,13 +366,13 @@
     <parent link="robotiq_85_left_knuckle_link"/>
     <child link="robotiq_85_left_finger_link"/>
     <origin rpy="0 0 0" xyz="-0.00408552455 -0.03148604435 0.0"/>
-    <limit lower="-3.14" upper="3.14" velocity="100.0"/>
+    <limit lower="-3.14" upper="3.14" velocity="1.0"/>
   </joint>
   <joint name="robotiq_85_right_finger_joint" type="fixed">
     <parent link="robotiq_85_right_knuckle_link"/>
     <child link="robotiq_85_right_finger_link"/>
     <origin rpy="0 0 0" xyz="-0.00408552455 -0.03148604435 0.0"/>
-    <limit lower="-3.14" upper="3.14" velocity="100.0"/>
+    <limit lower="-3.14" upper="3.14" velocity="1.0"/>
   </joint>
   <link name="robotiq_85_left_finger_link">
     <visual>
@@ -415,14 +415,14 @@
     <child link="robotiq_85_left_inner_knuckle_link"/>
     <axis xyz="0 0 1"/>
     <origin rpy="3.14159 0.0 0.0" xyz="0.06142 0.0127 0"/>
-    <limit lower="0.0" upper="0.8757" velocity="100.0"/>
+    <limit lower="0.0" upper="0.8757" velocity="1.0"/>
   </joint>
   <joint name="robotiq_85_right_inner_knuckle_joint" type="fixed"> <!--revolute-->
     <parent link="robotiq_85_base_link"/>
     <child link="robotiq_85_right_inner_knuckle_link"/>
     <axis xyz="0 0 1"/>
     <origin rpy="0 0 0" xyz="0.06142 -0.0127 0"/>
-    <limit lower="0.0" upper="0.8757" velocity="100.0"/>
+    <limit lower="0.0" upper="0.8757" velocity="1.0"/>
   </joint>
   <link name="robotiq_85_left_inner_knuckle_link">
     <visual>
@@ -465,14 +465,14 @@
     <child link="end_effector"/>
     <axis xyz="0 0 1"/>
     <origin rpy="0.0 0.0 0.0" xyz="0.04303959807 -0.03759940821 0.0"/>
-    <limit lower="-0.8757" upper="0.0" velocity="100.0"/>
+    <limit lower="-0.8757" upper="0.0" velocity="1.0"/>
   </joint>
   <joint name="robotiq_85_right_finger_tip_joint" type="fixed"> <!--revolute-->
     <parent link="robotiq_85_right_inner_knuckle_link"/>
     <child link="robotiq_85_right_finger_tip_link"/>
     <axis xyz="0 0 1"/>
     <origin rpy="0.0 0.0 0.0" xyz="0.04303959807 -0.03759940821  0.0"/>
-    <limit lower="-0.8757" upper="0.0" velocity="100.0"/>
+    <limit lower="-0.8757" upper="0.0" velocity="1.0"/>
   </joint>
   <link name="end_effector"> <!--robotiq_85_left_finger_tip_link-->
     <contact>

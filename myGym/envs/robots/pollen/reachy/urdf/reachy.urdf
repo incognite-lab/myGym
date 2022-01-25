@@ -184,7 +184,7 @@
     <child link="shoulder"/>
     <origin rpy="0 -1.5 0" xyz="0 -0.14 0"/>
     <axis xyz="0 1 0"/>
-    <limit lower="-1.5708" upper="3.14159"/>
+    <limit effort="30" lower="-1.5708" upper="3.14159" velocity="1"/>
   </joint>
 
   <joint name="shoulder_roll" type="revolute">
@@ -192,7 +192,7 @@
     <child link="shoulder_to_arm"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="1 0 0"/>
-    <limit lower="-3.14159" upper="0.174533"/>
+    <limit effort="30" lower="-3.14159" upper="0.174533" velocity="1"/>
   </joint>
 
   <joint name="arm_yaw" type="revolute">
@@ -200,7 +200,7 @@
     <child link="upper_arm"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1"/>
-    <limit lower="-1.5708" upper="1.5708"/>
+    <limit effort="30" lower="-1.5708" upper="1.5708" velocity="1"/>
   </joint>
 
   <joint name="elbow_pitch" type="revolute">
@@ -208,7 +208,7 @@
     <child link="forearm"/>
     <origin rpy="0 0 0" xyz="0 0 -0.30745"/>
     <axis xyz="0 1 0"/>
-    <limit lower="-2.18166" upper="0"/>
+    <limit effort="30" lower="-2.18166" upper="0" velocity="1"/>
   </joint>
 
   <joint name="forearm_yaw" type="revolute">
@@ -216,7 +216,7 @@
     <child link="wrist"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1"/>
-    <limit lower="-2.61799" upper="2.61799"/>
+    <limit effort="30" lower="-2.61799" upper="2.61799" velocity="1"/>
   </joint>
 
   <joint name="wrist_pitch" type="revolute">
@@ -224,7 +224,7 @@
     <child link="gripper"/>
     <origin rpy="0 0 0" xyz="0 0 -0.22425"/>
     <axis xyz="0 1 0"/>
-    <limit lower="-1.22173" upper="1.22173"/>
+    <limit effort="30" lower="-1.22173" upper="1.22173" velocity="1"/>
   </joint>
 
   <joint name="wrist_roll" type="revolute">
@@ -232,7 +232,7 @@
     <child link="end_effector"/>
     <origin rpy="0 0 0" xyz="0 0 -0.03243"/>
     <axis xyz="1 0 0"/>
-    <limit lower="-1.0472" upper="1.0472"/>
+    <limit effort="30" lower="-1.0472" upper="1.0472" velocity="1"/>
   </joint>
 
 
@@ -276,7 +276,7 @@
     <child link="head_U"/>
     <origin rpy="0 0 0" xyz="0 0 0.13775"/>
     <axis xyz="0 0 1"/>
-    <limit lower="-1.5708" upper="3.14159"/>
+    <limit effort="30" lower="-1.5708" upper="3.14159" velocity="1"/>
   </joint>
 
     <joint name="head_pitch" type="revolute">
@@ -284,7 +284,7 @@
     <child link="head_eyes"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 1 0"/>
-    <limit lower="-3.14159" upper="0.174533"/>
+    <limit effort="30" lower="-3.14159" upper="0.174533" velocity="1"/>
   </joint>
 
 

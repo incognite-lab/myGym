@@ -1,7 +1,7 @@
 {
 #Environment
 "env_name" :"Gym-v0",
-"workspace":"table",
+"workspace":"baskets",
 "engine"   :"pybullet",
 "render"   :"opengl",
 "camera"   :0,
@@ -9,7 +9,7 @@
 "visualize":0,
 "visgym"   :0,
 #Robot
-"robot"       :"kuka_poke",
+"robot"       :"icub",
 "robot_action":"joints",
 "robot_init"  :[0.0, 0.5, 0.2],
 #Task

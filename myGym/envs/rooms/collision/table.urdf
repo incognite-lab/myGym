@@ -3,7 +3,7 @@
 <robot name="table">
   <link name="table">
     <contact>
-      <lateral_friction value="10"/>
+      <lateral_friction value="0.1"/>
     </contact>
     <inertial>
       <origin rpy="0.0001 0 0" xyz="0.0001 0 0"/>
