@@ -7,17 +7,22 @@ import numpy as np
 import time
 from numpy import matrix
 import pybullet as p
+import pybullet_data
+
 import pkg_resources
 import random
+
 clear = lambda: os.system('clear')
 
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
+
 def test_env(env, arg_dict):
     debug_mode = True
     spawn_objects = False
     action_control = "slider" #"observation", "random", or "slider"
+    visualize_sampling = True
     env.render("human")
     env.reset()
     joints = ['Joint1','Joint2','Joint3','Joint4','Joint5','Joint6','Joint7','Joint 8','Joint 9', 'Joint10', 'Joint11','Joint12','Joint13','Joint14','Joint15','Joint16','Joint17','Joint 18','Joint 19']
@@ -27,7 +32,9 @@ def test_env(env, arg_dict):
     if debug_mode:
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
             p.resetDebugVisualizerCamera(1.0, 140, -30, [0.4, .4, 0.1])
-            #cube[0] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes_heavy.urdf")), [0.6,.6,0.1])
+            p.setAdditionalSearchPath(pybullet_data.getDataPath())
+            #newobject = p.loadURDF("cube.urdf", [3.1,3.7,0.1])
+            #p.changeDynamics(newobject, -1, lateralFriction=1.00)
             for i in range (env.action_space.shape[0]):
                 joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
             maxvelo = p.addUserDebugParameter("Max Velocity", 0.1, 50, env.env.robot.joints_max_velo[0]) 
@@ -37,6 +44,19 @@ def test_env(env, arg_dict):
             ldamping = p.addUserDebugParameter("Linear Damping", 0, 100, 0)
             adamping = p.addUserDebugParameter("Angular Damping", 0, 100, 0)
                     #action.append(jointparams[i])
+    if visualize_sampling:
+        rx = (arg_dict["task_objects"][0]["goal"]["sampling_area"][0] - arg_dict["task_objects"][0]["goal"]["sampling_area"][1])/2
+        ry = (arg_dict["task_objects"][0]["goal"]["sampling_area"][2] - arg_dict["task_objects"][0]["goal"]["sampling_area"][3])/2
+        rz = (arg_dict["task_objects"][0]["goal"]["sampling_area"][4] - arg_dict["task_objects"][0]["goal"]["sampling_area"][5])/2
+
+        visual = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[rx,ry,rz], rgbaColor=[1,0,0,.2])
+        collision = -1
+        sampling = p.createMultiBody(
+            baseVisualShapeIndex=visual,
+            baseCollisionShapeIndex=collision,
+            baseMass=0,
+            basePosition=[arg_dict["task_objects"][0]["goal"]["sampling_area"][0]-rx, arg_dict["task_objects"][0]["goal"]["sampling_area"][2]-ry,arg_dict["task_objects"][0]["goal"]["sampling_area"][4]-rz],
+        )
                 
     for e in range(10000):
         env.reset()

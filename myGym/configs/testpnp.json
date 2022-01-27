@@ -15,7 +15,7 @@
     #Task
     "task_type"             :"pnp",
     "task_objects"          :[{"init":{"obj_name":"cube_push","fixed":0,"rand_rot":0, "sampling_area":[0.4,0.4,0.5,0.5,0.1,0.1]},
-                           "goal":{"obj_name":"crate","fixed":1,"rand_rot":0, "sampling_area":[-0.4,0,0.5, 0.7, 0, 0]}}],
+                           "goal":{"obj_name":"crate","fixed":1,"rand_rot":0, "sampling_area":[0.5,0,0.7, 0.2, 0.3,0.1]}}],
     "color_dict"            : {"crate":[[0.2,0.5,0.2,1]], "spoon":[[0.3,0.3,0.3,1]]},
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
     // Observation
