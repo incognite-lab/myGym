@@ -17,6 +17,29 @@ clear = lambda: os.system('clear')
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
+def visualize_sampling_area(arg_dict):
+    rx = (arg_dict["task_objects"][0]["goal"]["sampling_area"][0] - arg_dict["task_objects"][0]["goal"]["sampling_area"][1])/2
+    ry = (arg_dict["task_objects"][0]["goal"]["sampling_area"][2] - arg_dict["task_objects"][0]["goal"]["sampling_area"][3])/2
+    rz = (arg_dict["task_objects"][0]["goal"]["sampling_area"][4] - arg_dict["task_objects"][0]["goal"]["sampling_area"][5])/2
+
+    visual = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[rx,ry,rz], rgbaColor=[1,0,0,.2])
+    collision = -1
+    sampling = p.createMultiBody(
+        baseVisualShapeIndex=visual,
+        baseCollisionShapeIndex=collision,
+        baseMass=0,
+        basePosition=[arg_dict["task_objects"][0]["goal"]["sampling_area"][0]-rx, arg_dict["task_objects"][0]["goal"]["sampling_area"][2]-ry,arg_dict["task_objects"][0]["goal"]["sampling_area"][4]-rz],
+    )
+
+    visualrobot = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=1, rgbaColor=[0,1,0,.2])
+    collisionrobot = -1
+    sampling = p.createMultiBody(
+        baseVisualShapeIndex=visualrobot,
+        baseCollisionShapeIndex=collisionrobot,
+        baseMass=0,
+        basePosition=[0,0,0.3],
+    )
+
 
 def test_env(env, arg_dict):
     debug_mode = True
@@ -35,8 +58,12 @@ def test_env(env, arg_dict):
             p.setAdditionalSearchPath(pybullet_data.getDataPath())
             #newobject = p.loadURDF("cube.urdf", [3.1,3.7,0.1])
             #p.changeDynamics(newobject, -1, lateralFriction=1.00)
-            for i in range (env.action_space.shape[0]):
-                joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
+            if arg_dict["robot_action"] == "joints":
+                for i in range (env.action_space.shape[0]):
+                    joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
+            else:
+                for i in range (env.action_space.shape[0]):
+                    joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
             maxvelo = p.addUserDebugParameter("Max Velocity", 0.1, 50, env.env.robot.joints_max_velo[0]) 
             maxforce = p.addUserDebugParameter("Max Force", 0.1, 300, env.env.robot.joints_max_force[0])
             lfriction = p.addUserDebugParameter("Lateral Friction", 0, 100, 0)   
@@ -45,18 +72,7 @@ def test_env(env, arg_dict):
             adamping = p.addUserDebugParameter("Angular Damping", 0, 100, 0)
                     #action.append(jointparams[i])
     if visualize_sampling:
-        rx = (arg_dict["task_objects"][0]["goal"]["sampling_area"][0] - arg_dict["task_objects"][0]["goal"]["sampling_area"][1])/2
-        ry = (arg_dict["task_objects"][0]["goal"]["sampling_area"][2] - arg_dict["task_objects"][0]["goal"]["sampling_area"][3])/2
-        rz = (arg_dict["task_objects"][0]["goal"]["sampling_area"][4] - arg_dict["task_objects"][0]["goal"]["sampling_area"][5])/2
-
-        visual = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[rx,ry,rz], rgbaColor=[1,0,0,.2])
-        collision = -1
-        sampling = p.createMultiBody(
-            baseVisualShapeIndex=visual,
-            baseCollisionShapeIndex=collision,
-            baseMass=0,
-            basePosition=[arg_dict["task_objects"][0]["goal"]["sampling_area"][0]-rx, arg_dict["task_objects"][0]["goal"]["sampling_area"][2]-ry,arg_dict["task_objects"][0]["goal"]["sampling_area"][4]-rz],
-        )
+        visualize_sampling_area(arg_dict)
                 
     for e in range(10000):
         env.reset()
@@ -82,10 +98,13 @@ def test_env(env, arg_dict):
                     env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
 
                 if action_control == "observation":
-                    action = observation[10:10+env.action_space.shape[0]] #n
+                    action = observation[9:9+env.action_space.shape[0]] #n
                 
                 elif action_control == "random":
                     action = env.action_space.sample()
+                
+                p.addUserDebugText(f"EEposition:{observation[6:9]}",
+                               [.8, .5, 0.1], textSize=1.0, lifeTime=0.05, textColorRGB=[0.0, 0.9, 0.6])
             
             observation, reward, done, info = env.step(action)
             #if debug_mode:

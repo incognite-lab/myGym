@@ -9,7 +9,7 @@
 "visualize":0,
 "visgym"   :0,
 #Robot
-"robot"       :"panda_bullet",
+"robot"       :"kuka_magnetic",
 "robot_action":"joints",
 "robot_init"  :[0.1, 0.5, 0.6],
 #Task

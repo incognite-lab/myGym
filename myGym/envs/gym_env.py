@@ -53,6 +53,8 @@ class GymEnv(CameraEnv):
                  color_dict={},
                  robot='kuka',
                  robot_action="step",
+                 max_velocity = 1,
+                 max_force = 30,
                  robot_init_joint_poses=[],
                  task_type='reach',
                  num_networks=1,
@@ -78,6 +80,9 @@ class GymEnv(CameraEnv):
         self.network_switcher       = network_switcher
         self.robot_init_joint_poses = robot_init_joint_poses
         self.robot_action           = robot_action
+        self.max_velocity           = max_velocity
+        self.max_force              = max_force
+        self.action_repeat          = action_repeat
         self.dimension_velocity     = dimension_velocity
         self.active_cameras         = active_cameras
         self.used_objects           = used_objects
@@ -140,7 +145,8 @@ class GymEnv(CameraEnv):
         self.objects_area_borders = self.workspace_dict[self.workspace]['borders']
         kwargs = {"position": self.workspace_dict[self.workspace]['robot']['position'],
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
-                  "init_joint_poses":self.robot_init_joint_poses, "dimension_velocity":self.dimension_velocity,
+                  "init_joint_poses":self.robot_init_joint_poses, "max_velocity":self.max_velocity,
+                    "max_force":self.max_force,"dimension_velocity":self.dimension_velocity,
                   "pybullet_client":self.p}
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, **kwargs)
         if self.workspace == 'collabtable':  self.human = robot.Robot('human', robot_action='joints', **kwargs)
