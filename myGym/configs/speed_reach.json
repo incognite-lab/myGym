@@ -5,15 +5,15 @@
 "engine"    :"pybullet",
 "render"    :"opengl",
 "camera"    :0,
-"gui"       :0,
+"gui"       :1,
 "visualize" :0,
 "visgym"    :0,
 #Robot
-"robot"         :"kuka_magnetic",
-"robot_action"  :"joints",
+"robot"         :"kuka",
+"robot_action"  :"absolute",
 "robot_init"    :[0.0, 0.4, 0.4],
-"max_velocity"  :10,
-"max_force"     :300,
+"max_velocity"  :1,
+"max_force"     :30,
 "action_repeat" :1,
 #Task
 "task_type"             :"reach",
@@ -24,7 +24,7 @@
 // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
 // goal_state options (pick one): "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
 // additional_obs options (pick none/one/more): "joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"
-"observation"           : {"actual_state":"obj_xyz", "goal_state":"obj_xyz", "additional_obs":["endeff_6D"]},
+"observation"           : {"actual_state":"obj_xyz", "goal_state":"obj_xyz", "additional_obs":["endeff_xyz","joints_xyz","joints_angles"]},
 #Distractor
 "distractors"           : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
                                        "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
@@ -38,7 +38,7 @@
 "train_framework"   :"tensorflow",
 "algo"              :"ppo2",
 "num_networks" : 1,
-"max_episode_steps" :256,
+"max_episode_steps" :10256,
 "algo_steps"        :256,
 "steps"             :200000,
 "pretrained_model"  :null,

@@ -305,7 +305,8 @@ class GymEnv(CameraEnv):
             info = {'d': self.task.last_distance / self.task.init_distance, 'f': int(self.episode_failed)}
         if done: self.successful_finish(info)
         if self.task.subtask_over: self.reset(only_subtask=True)
-        return self.flatten_obs(self._observation.copy()), reward, done, info
+        return self._observation, reward, done, info
+        #return self.flatten_obs(self._observation.copy()), reward, done, info
 
     def compute_reward(self, achieved_goal, desired_goal, info):
         #@TODO: Reward computation for HER, argument for .compute()
