@@ -11,14 +11,14 @@
     #Robot
     "robot"         :"kuka_magnetic",
     "robot_action"  :"absolute",
-    "robot_init"    :[0.4, 0.4, 0.3],
+    "robot_init"    :[0.35, 0.35, 0.4],
     "max_velocity"  :1,
-    "max_force"     :50,
-    "action_repeat" :5,
+    "max_force"     :25,
+    "action_repeat" :1,
 
     #Task
     "task_type"             :"pnp",
-    "task_objects"          :[{"init":{"obj_name":"cube_holes","fixed":0,"rand_rot":0, "sampling_area":[0.4,0.4,0.4,0.4,0.1,0.1]},
+    "task_objects"          :[{"init":{"obj_name":"cube_push","fixed":0,"rand_rot":0, "sampling_area":[0.4,0.4,0.4,0.4,0.1,0.1]},
                            "goal":{"obj_name":"crate","fixed":1,"rand_rot":0, "sampling_area":[-0.0,0,0.4, 0.4, 0, 0]}}],
     "color_dict"            : {"crate":[[0.2,0.5,0.2,1]], "spoon":[[0.3,0.3,0.3,1]]},
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
@@ -40,7 +40,7 @@
     "train_framework"   :"tensorflow",
     "algo"              :"multi",
     "num_networks"      : 3,
-    "network_swtcher"   : "gt",
+    "network_switcher"   : "gt",
     "max_episode_steps" :512,
     "algo_steps"        :512,
     "steps"             :10000,

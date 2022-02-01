@@ -48,7 +48,7 @@ def visualize_sampling_area(arg_dict):
 def test_env(env, arg_dict):
     debug_mode = True
     spawn_objects = False
-    action_control = "random" #"observation", "random", or "slider"
+    action_control = "slider" #"observation", "random", or "slider"
     visualize_sampling = True
     env.render("human")
     env.reset()
