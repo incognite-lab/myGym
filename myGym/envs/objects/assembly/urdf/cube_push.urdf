@@ -2,12 +2,12 @@
 <robot name="cube_holes">
   <link name="baseLink">
     <contact>
-            <restitution value="10" />
-            <lateral_friction value="0"/>
-            <rolling_friction value="0"/>
-            <spinning_friction value="0"/>
-            <linear_damping value="10"/>
-            <angular_damping value="10"/>
+            <restitution value="100" />
+            <lateral_friction value="100"/>
+            <rolling_friction value="100"/>
+            <spinning_friction value="100"/>
+            <linear_damping value="100"/>
+            <angular_damping value="100"/>
     </contact>
     <inertial>
       <origin rpy="0 0 0" xyz="0.0001 0.0 0.0"/>
