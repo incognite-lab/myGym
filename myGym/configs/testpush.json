@@ -9,9 +9,13 @@
 "visualize":0,
 "visgym"   :0,
 #Robot
-"robot"       :"kuka_magnetic",
+"robot"       :"kuka_push",
 "robot_action":"joints",
 "robot_init"  :[0.1, 0.5, 0.6],
+"max_velocity"  :1,
+"max_force"     :25,
+"action_repeat" :1,
+
 #Task
 "task_type"           :"push",
 "task_objects"          :[{"init":{"obj_name":"cube_push","fixed":0,"rand_rot":0, "sampling_area":[0, 0, 0.5, 0.5, 0.1, 0.1]},
