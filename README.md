@@ -5,6 +5,8 @@
 
 We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks  with increasing complexity and test your network on them. We also included an automatic evaluation and benchmark tool for your developed model. We have pretained the Yolact network for visual recognition of all objects in the simulator, so that you can reward your networks based on visual sensors only. We keep training the current state-of-the-art algorithms to provide baselines for the tasks in the toolbox. There is also a leaderboard showing algorithms with the best generalization capability, tested on the tasks in our basic curriculum.
 
+IMPORTANT: From version 2.0 it is possible to train multiple networks within one task and switch between them based on reward or adaptively. The number of neteworks is specified in config file.
+
 ## Overview
 
 
@@ -15,7 +17,7 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 | Robots  | 8 robotic arms, 2 dualarms, humanoid |
 | Robot actions  | Absolute, Relative, Joints |
 | Objects  | 54 objects in 5 categories |
-| Tasks  | Reach, Press, Switch, Turn, Push, Pick, Place, PicknPlace, Throw, Hit, Catch, Navigate|
+| Tasks  | Reach, Press, Switch, Turn, Push, Pick, Place, PicknPlace, Poke,|
 | Randomizers  | Light, Texture, Size, Camera position |
 | Baselines  | Tensorflow, Pytorch |
 
@@ -106,33 +108,29 @@ Run the default training without specifying the parameters:
 
 `python train.py`
 
-The training will start with the GUI window and a standstill visualization. Wait until the first evaluation after 10000 steps to check the progress: 
-
-![alt text](myGym/images/workspaces/kuka50000.gif "training")
-
-After 100000 steps, the arm is able to reach the goal object with 80% accuracy:
+The training will start with the GUI window and a standstill visualization. Wait until the first evaluation to check the progress: 
 
 ![alt text](myGym/images/workspaces/kuka100000.gif "training")
 
 There are more training tutorials in the [documentation](https://mygym.readthedocs.io/en/latest/user_guide/basic_training.html)
 
 
-## Training Examples
+## Tasks
 
-### Task - Press
-Run training using following command
 
-``python train.py --config ./configs/train_press.json``
+### Reach
 
-Wait until the first evaluation after 100000 steps to check the progress:
+``python train.py --config ./configs/train_reach.json``
 
-![alt text](myGym/images/workspaces/press/kuka100000.gif "training")
 
-After 250000 steps the arm is able to press the button with 90% accuracy:
+
+### Press
+
+``python train.py --config ./configs/train_reach.json``
 
 ![alt text](myGym/images/workspaces/press/kuka500000.gif "training")
 
-There are more training tutorials in the [documentation](https://mygym.readthedocs.io/en/latest/user_guide/train_press.html)
+For details see [documentation](https://mygym.readthedocs.io/en/latest/user_guide/train_press.html)
 
 
 ### Task - Switch
