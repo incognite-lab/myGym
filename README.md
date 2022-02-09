@@ -122,54 +122,53 @@ There are more training tutorials in the [documentation](https://mygym.readthedo
 
 ``python train.py --config ./configs/train_reach.json``
 
-
-
 ### Press
 
-``python train.py --config ./configs/train_reach.json``
+``python train.py --config ./configs/train_press.json``
 
 ![alt text](myGym/images/workspaces/press/kuka500000.gif "training")
 
 For details see [documentation](https://mygym.readthedocs.io/en/latest/user_guide/train_press.html)
 
 
-### Task - Switch
-Run training using following command
+### Switch
 
 ``python train.py --config ./configs/train_switch.json``
 
-Wait until the first evaluation after 50000 steps to check the progress:
-
-![alt text](myGym/images/workspaces/switch/kuka50000.gif "training")
-
-After 250000 steps the arm is able to switch the lever with 80% accuracy:
-
 ![alt text](myGym/images/workspaces/switch/kuka250000.gif "training")
 
-There are more training tutorials in the [documentation](https://mygym.readthedocs.io/en/latest/user_guide/train_switch.html)
+For details see [documentation](https://mygym.readthedocs.io/en/latest/user_guide/train_switch.html)
 
-### Task - Turn
-Run training using following command
+### Turn
 
 ``python train.py --config ./configs/train_turn.json``
 
-Wait until the first evaluation after 250000 steps to check the progress:
-
-![alt text](myGym/images/workspaces/turn/kuka250000.gif "training")
-
-After 500000 steps the arm is able to turn the handle with 90% accuracy:
-
 ![alt text](myGym/images/workspaces/turn/kuka500000.gif "training")
 
-There are more training tutorials in the [documentation](https://mygym.readthedocs.io/en/latest/user_guide/train_turn.html)
+For details see [documentation(https://mygym.readthedocs.io/en/latest/user_guide/train_turn.html)
+
+### Push
+
+``python train.py --config ./configs/train_reach.json``
+
+### Poke
+
+``python train.py --config ./configs/train_reach.json``
+
+### Pick and Place
+
+``python train.py --config ./configs/train_reach.json``
+
+### Multi-step tasks
+
+Fropm myGym 2.0 you can define multi-step tasks easily in config file and adopt multiple networks and swich among them within taks (Documentationm in preparation)
+
 
 ##  Parametric Training
 
 As myGym is modular, you can easily train with different robots:
 
 `python train.py --robot jaco`
-
-![alt text](myGym/images/workspaces/jacoabsolute90000.gif "training")
 
 You can also change the workspace within the gym, the task or the goal object. If you want to store an ouput video, just add the record parameter:
 
@@ -225,6 +224,9 @@ If you want to interactively compare different parameters, just run tensorboard 
 
 ![alt text](myGym/images/results/tensorboard_compare.png "training")
 
+
+There are also other visualization scripts (Documerntation in preparation)
+
 ## Environment
 
 As myGym allows curriculum learning, the workspaces and tasks are concentrated in single gym, so that you can easily transfer the robot. The basic environment is called Gym-v0. There are more gyms for navigation and multi-agent collaboration in preparation. 
@@ -265,9 +267,9 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 
 ## Baselines
 
-| Workspace  |Reach| Pick | Place | PicknPlace | Push | Throw | Hit | Open | Close | Kick | Give |
+| Workspace  |Reach| Pick | Place | PicknPlace | Push | Press | Switch | Turn | Poke | Multistep PNP | Multistep Reach |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Tabledesk | :heavy_check_mark: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: |
+| Tabledesk | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | Drawer | :heavy_check_mark: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: |
 | Fridge | :heavy_check_mark: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: |
 | Baskets | :heavy_check_mark: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: | :x: |
@@ -305,6 +307,17 @@ Contributors:
 
 Radoslav Skoviera, Peter Basar, Michael Tesar, Vojtech Pospisil, Jiri Kulisek, Anastasia Ostapenko, Sara Thu Nguyen
 
+## Citation
+
+'@INPROCEEDINGS{9643210,
+  author={Vavrecka, Michal and Sokovnin, Nikita and Mejdrechova, Megi and Sejnova, Gabriela},
+  booktitle={2021 IEEE 33rd International Conference on Tools with Artificial Intelligence (ICTAI)}, 
+  title={MyGym: Modular Toolkit for Visuomotor Robotic Tasks}, 
+  year={2021},
+  volume={},
+  number={},
+  pages={279-283},
+  doi={10.1109/ICTAI52525.2021.00046}}'
 
 ## Paper
 
