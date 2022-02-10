@@ -149,15 +149,15 @@ For details see [documentation(https://mygym.readthedocs.io/en/latest/user_guide
 
 ### Push
 
-``python train.py --config ./configs/train_reach.json``
+``python train.py --config ./configs/train_push.json``
 
 ### Poke
 
-``python train.py --config ./configs/train_reach.json``
+``python train.py --config ./configs/train_poke.json``
 
 ### Pick and Place
 
-``python train.py --config ./configs/train_reach.json``
+``python train.py --config ./configs/train_pnp.json``
 
 ### Multi-step tasks
 
