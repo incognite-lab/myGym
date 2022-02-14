@@ -11,9 +11,9 @@ import pybullet_data
 #import keyboard
 import pkg_resources
 import random
-from pynput.keyboard import Key, Controller
+#from pynput.keyboard import Key, Controller
 
-keyboard = Controller()
+#keyboard = Controller()
 
 
 clear = lambda: os.system('clear')
@@ -28,12 +28,15 @@ def visualize_sampling_area(arg_dict):
 
     visual = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[rx,ry,rz], rgbaColor=[1,0,0,.2])
     collision = -1
+    
     sampling = p.createMultiBody(
         baseVisualShapeIndex=visual,
         baseCollisionShapeIndex=collision,
         baseMass=0,
         basePosition=[arg_dict["task_objects"][0]["goal"]["sampling_area"][0]-rx, arg_dict["task_objects"][0]["goal"]["sampling_area"][2]-ry,arg_dict["task_objects"][0]["goal"]["sampling_area"][4]-rz],
     )
+        
+
 
     #visualrobot = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=1, rgbaColor=[0,1,0,.2])
     #collisionrobot = -1
@@ -81,7 +84,9 @@ def test_env(env, arg_dict):
                     #action.append(jointparams[i])
     if visualize_sampling:
         visualize_sampling_area(arg_dict)
-                
+
+    visualgr = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=.005, rgbaColor=[0,0,1,.1])
+
     for e in range(10000):
         env.reset()
         if spawn_objects:
@@ -107,10 +112,10 @@ def test_env(env, arg_dict):
 
                 if action_control == "observation":
                     if arg_dict["robot_action"] == "joints":
-                        action = observation["additional_obs"]["joints_angles"] #n
+                        action = info['o']["additional_obs"]["joints_angles"] #n
                     else:
-                        action = observation["additional_obs"]["endeff_xyz"]
-                        action[0] +=.3
+                        action = info['o']["additional_obs"]["endeff_xyz"]
+                        #action[0] +=.3
 
 
                     p.addUserDebugText(f"EEposition:{action}",
@@ -119,7 +124,25 @@ def test_env(env, arg_dict):
 
                 elif action_control == "random":
                     action = env.action_space.sample()
-            
+
+                visualo = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[0,0,1,.3])
+                collision = -1
+                p.createMultiBody(
+                        baseVisualShapeIndex=visualo,
+                        baseCollisionShapeIndex=collision,
+                        baseMass=0,
+                        basePosition=info['o']['actual_state'],
+                )
+
+                visualr = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[0,1,0,.3])
+                p.createMultiBody(
+                        baseVisualShapeIndex=visualr,
+                        baseCollisionShapeIndex=collision,
+                        baseMass=0,
+                        basePosition=info['o']['additional_obs']['endeff_xyz'],
+                )
+                
+
             observation, reward, done, info = env.step(action)
             #if debug_mode:
                 #print("Reward is {}, observation is {}".format(reward, observation))
@@ -137,6 +160,16 @@ def test_env(env, arg_dict):
                     #                    [1, 1, 0.1], textSize=1.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
                     #time.sleep(.5)
                     #clear()
+            #if t==0:
+            #        visualg = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.12, rgbaColor=[1,0,0,.5])
+            #        collision = -1
+            #        p.createMultiBody(
+            #            baseVisualShapeIndex=visualg,
+            #            baseCollisionShapeIndex=collision,
+            #            baseMass=0,
+            #            basePosition=info['o']['goal_state'],
+            #        )
+            
             action=[]
             if arg_dict["visualize"]:
                 visualizations = [[],[]]
