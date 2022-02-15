@@ -290,6 +290,7 @@ class Robot:
                                     positionGain=0.7,
                                     velocityGain=0.3)
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
+        self.end_effector_ori = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
 
     def _calculate_joint_poses(self, end_effector_pos):
         """
@@ -513,10 +514,13 @@ class Robot:
             else:
                 self.apply_action_joints(action)
         if len(self.magnetized_objects):
-             pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
-             for key,val in self.magnetized_objects.items():
-                 self.p.changeConstraint(val, key.get_position()+pos_diff)
-             self.end_effector_prev_pos = self.end_effector_pos
+            #pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
+            #ori_diff = np.array(self.end_effector_ori) - np.array(self.end_effector_prev_ori)
+            for key,val in self.magnetized_objects.items():
+                self.p.changeConstraint(val, self.get_position(),self.get_orientation())
+                #self.p.resetBasePositionAndOrientation(val,self.end_effector_pos,self.end_effector_ori)
+            #self.end_effector_prev_pos = self.end_effector_pos
+            #self.end_effector_prev_ori = self.end_effector_ori
         if 'gripper' not in self.robot_action:
             for joint_index in range(self.gripper_index, self.end_effector_index + 1):
                 self.p.resetJointState(self.robot_uid, joint_index, self.p.getJointInfo(self.robot_uid, joint_index)[9])
@@ -525,11 +529,14 @@ class Robot:
         if len(self.magnetized_objects) == 0 :
             if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
                 self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
-                self.end_effector_prev_pos = self.end_effector_pos
+                #self.end_effector_prev_pos = self.end_effector_pos
+                #self.end_effector_prev_ori = self.end_effector_ori
+                self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())
                 constraint_id = self.p.createConstraint(object.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0],
-                                      object.get_position())
+                                      self.get_position())
+                self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())
                 self.magnetized_objects[object] = constraint_id
-            self.gripper_active = True
+                self.gripper_active = True
 
     def release_object(self, object):
         if object in self.magnetized_objects.keys():
@@ -550,7 +557,7 @@ class Robot:
         gripper_position = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
         gripper_orientation = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
         gripper_matrix      = self.p.getMatrixFromQuaternion(gripper_orientation)
-        direction_vector    = Vector([0,0,0], [0.02, 0, 0.14])
+        direction_vector    = Vector([0,0,0], [0.0, 0, 0.14])
         m = np.array([[gripper_matrix[0], gripper_matrix[1], gripper_matrix[2]], [gripper_matrix[3], gripper_matrix[4], gripper_matrix[5]], [gripper_matrix[6], gripper_matrix[7], gripper_matrix[8]]])
         direction_vector.rotate_with_matrix(m)
         gripper = Vector([0,0,0], gripper_position)
