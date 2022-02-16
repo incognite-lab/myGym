@@ -11,8 +11,8 @@
     #Robot
     "robot"         :"kuka_magnetic",
     "robot_action"  :"joints",
-    "robot_init"    :[0.35, 0.35, 0.4],
-    "max_velocity"  :1,
+    "robot_init"    :[0.2, 0.6, 0.7],
+    "max_velocity"  :10,
     "max_force"     :50,
     "action_repeat" :1,
     #Task
@@ -39,8 +39,8 @@
     "train_framework"   :"tensorflow",
     "algo"              :"ppo2",
     "num_networks"      :1,
-    "max_episode_steps" :1024,
-    "algo_steps"        :1024,
+    "max_episode_steps" :512,
+    "algo_steps"        :512,
     "steps"             :2000000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
