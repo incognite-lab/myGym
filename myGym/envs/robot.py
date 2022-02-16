@@ -541,12 +541,14 @@ class Robot:
     def release_object(self, object):
         if object in self.magnetized_objects.keys():
             self.p.removeConstraint(self.magnetized_objects[object])
+            #self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())
             self.magnetized_objects.pop(object)
         self.gripper_active = False
 
     def release_all_objects(self):
         for x in self.magnetized_objects:
             self.p.removeConstraint(self.magnetized_objects[x])
+            #self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())
         self.magnetized_objects = {}
         self.gripper_active = False
 

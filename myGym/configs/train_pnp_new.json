@@ -10,7 +10,7 @@
     "visgym"    :0,
     #Robot
     "robot"         :"kuka_magnetic",
-    "robot_action"  :"absolute",
+    "robot_action"  :"joints",
     "robot_init"    :[0.35, 0.35, 0.4],
     "max_velocity"  :1,
     "max_force"     :50,

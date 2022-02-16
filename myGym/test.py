@@ -160,15 +160,15 @@ def test_env(env, arg_dict):
                     #                    [1, 1, 0.1], textSize=1.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
                     #time.sleep(.5)
                     #clear()
-            #if t==0:
-            #        visualg = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.12, rgbaColor=[1,0,0,.5])
-            #        collision = -1
-            #        p.createMultiBody(
-            #            baseVisualShapeIndex=visualg,
-            #            baseCollisionShapeIndex=collision,
-            #            baseMass=0,
-            #            basePosition=info['o']['goal_state'],
-            #        )
+            if t==0:
+                    visualg = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[1,0,0,.5])
+                    collision = -1
+                    p.createMultiBody(
+                        baseVisualShapeIndex=visualg,
+                        baseCollisionShapeIndex=collision,
+                        baseMass=0,
+                        basePosition=info['o']['goal_state'],
+                    )
             
             action=[]
             if arg_dict["visualize"]:
