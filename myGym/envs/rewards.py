@@ -1419,7 +1419,7 @@ class ThreeStagePnP(TwoStagePnP):
             return True
         return False
 
-class GripperPickAndPlace(ConsequentialPickAndPlace):
+class GripperPickAndPlace():
     """
     Pick and place with three neural networks, gripper is operated by one of these networks
 
