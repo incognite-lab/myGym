@@ -222,9 +222,9 @@ class TaskModule():
             finished = self.check_turn_threshold()
         if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
             if len(self.env.robot.magnetized_objects) == 0 and self.env.episode_steps > 5:
-                self.env.episode_over = False
-            else:
                 self.end_episode_success()
+            else:
+                self.env.episode_over = False
         elif finished:
             self.end_episode_success()
         if self.check_time_exceeded() or self.env.episode_steps == self.env.max_steps:
