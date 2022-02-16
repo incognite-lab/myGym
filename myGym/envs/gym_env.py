@@ -117,7 +117,7 @@ class GymEnv(CameraEnv):
         reward_classes = {"single network":   {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
                                               "distractor": VectorReward, "poke": PokeReachReward, "switch": SwitchReward,
                                               "btn": ButtonReward, "turn": TurnReward, "pnp":DualPickAndPlace},
-                          "multinetwork":     {"poke": DualPoke, "pnp":GripperPickAndPlace, "distance": DistanceReward,  "complex_distance": ComplexDistanceReward}}
+                          "multinetwork":     {"poke": DualPoke, "pnp":DualPickAndPlace, "distance": DistanceReward,  "complex_distance": ComplexDistanceReward}}
         scheme = "multinetwork" if self.num_networks > 1 else "single network"
         assert reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
         self.reward = reward_classes[scheme][reward](env=self, task=self.task)

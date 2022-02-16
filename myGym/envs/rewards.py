@@ -1176,7 +1176,6 @@ class DualPickAndPlace(DualPoke):
     def compute(self, observation=None):
         """
         Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
-
         Params:
             :param observation: (list) Observation of the environment
         Returns:
@@ -1187,20 +1186,20 @@ class DualPickAndPlace(DualPoke):
         if owner   == 0: reward = self.find_compute(gripper_position, object_position)
         elif owner == 1: reward = self.move_compute(object_position, goal_position)
         self.last_owner = owner
-        self.task.check_distance_threshold(observation, threshold=0.12)
+        self.task.check_goal()
         self.rewards_history.append(reward)
         return reward
 
     def decide(self, observation=None):
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        self.current_network = 0
         if self.gripper_reached_object(gripper_position, object_position):
             self.current_network= 1
         return self.current_network
 
     def gripper_reached_object(self, gripper, object):
         self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
-        self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+        if self.current_network == 0:
+            self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
         if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
             self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
             return True
@@ -1233,7 +1232,6 @@ class DualPickAndPlace(DualPoke):
             self.last_place_dist = dist
         if self.last_owner != 1:
             self.last_place_dist = dist
-
         reward = self.last_place_dist - dist
         reward = reward * 10
         self.last_place_dist = dist
