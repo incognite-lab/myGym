@@ -8,12 +8,10 @@ import time
 from numpy import matrix
 import pybullet as p
 import pybullet_data
-#import keyboard
 import pkg_resources
 import random
-#from pynput.keyboard import Key, Controller
+import getkey
 
-#keyboard = Controller()
 
 
 clear = lambda: os.system('clear')
@@ -51,7 +49,7 @@ def visualize_sampling_area(arg_dict):
 def test_env(env, arg_dict):
     debug_mode = True
     spawn_objects = False
-    action_control = "slider" #"observation", "random", or "slider"
+    action_control = "keyboard" #"observation", "random", or "slider"
     visualize_sampling = True
     env.render("human")
     env.reset()
@@ -107,8 +105,10 @@ def test_env(env, arg_dict):
                     if action_control == "slider":
                         jointparams[i] = p.readUserDebugParameter(joints[i])
                         action.append(jointparams[i])
+                    
                     env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
                     env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
+                
 
                 if action_control == "observation":
                     if arg_dict["robot_action"] == "joints":
@@ -121,6 +121,27 @@ def test_env(env, arg_dict):
                     p.addUserDebugText(f"EEposition:{action}",
                                [.8, .5, 0.1], textSize=1.0, lifeTime=0.05, textColorRGB=[0.0, 0.9, 0.6])
 
+                elif action_control == "keyboard":
+                    keypress = p.getKeyboardEvents()
+                    print(keypress)    
+                    if 97 in keypress.keys() and keypress[97] == 1:
+                        action[2] += .01
+                        print(action)
+                    if 122 in keypress.keys() and keypress[122] == 1:
+                        action[2] -= .01
+                        print(action)
+                    if 65297 in keypress.keys() and keypress[65297] == 1:
+                        action[1] -= .01
+                        print(action)
+                    if 65298 in keypress.keys() and keypress[65298] == 1:
+                        action[1] += .01
+                        print(action)
+                    if 65295 in keypress.keys() and keypress[65295] == 1:
+                        action[0] += .01
+                        print(action)
+                    if 65296 in keypress.keys() and keypress[65296] == 1:
+                        action[0] -= .01
+                        print(action)
 
                 elif action_control == "random":
                     action = env.action_space.sample()
@@ -169,8 +190,8 @@ def test_env(env, arg_dict):
                         baseMass=0,
                         basePosition=info['o']['goal_state'],
                     )
-            
-            action=[]
+                    action = arg_dict["robot_init"]
+            #action=[]
             if arg_dict["visualize"]:
                 visualizations = [[],[]]
                 env.render("human")
