@@ -38,7 +38,7 @@
     #Train
     "train_framework"   :"tensorflow",
     "algo"              :"ppo2",
-    "num_networks"      :3,
+    "num_networks"      :1,
     "max_episode_steps" :512,
     "algo_steps"        :512,
     "steps"             :3000000,
@@ -48,6 +48,6 @@
     "eval_freq"     :500000,
     "eval_episodes" :100,
     #Saving and logging
-    "logdir"    :"trained_models/pnp_3n",
+    "logdir"    :"trained_models/pnp_1n",
     "record"    :0
     }
