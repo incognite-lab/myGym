@@ -159,9 +159,12 @@ For details see [documentation(https://mygym.readthedocs.io/en/latest/user_guide
 
 ``python train.py --config ./configs/train_pnp.json``
 
+
 ### Multi-step tasks
 
 Fropm myGym 2.0 you can define multi-step tasks easily in config file and adopt multiple networks and swich among them within taks (Documentationm in preparation)
+
+![alt text](myGym/images/workspaces/pnp/train_ppo2_3000000.gif "training")
 
 
 ##  Parametric Training
