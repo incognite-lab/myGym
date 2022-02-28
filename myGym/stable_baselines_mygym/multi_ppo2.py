@@ -216,7 +216,7 @@ class MultiPPO2(ActorCriticRLModel):
                 # Unpack
                 i = 0
                 for rollout in rollouts:
-                    obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward = rollout
+                    obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward, success_stages = rollout
                     model = self.models[i]
                     # calc = len(true_reward)
                     # model.n_batch = calc
@@ -248,6 +248,9 @@ class MultiPPO2(ActorCriticRLModel):
                         if writer is not None:
                             n_steps = model.n_batch
                             total_episode_reward_logger(self.episode_reward, true_reward.reshape((self.n_envs, n_steps)), masks.reshape((self.n_envs, n_steps)), writer, self.num_timesteps)
+                            summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/Successful stages',
+                                                                         simple_value=success_stages)])
+                            writer.add_summary(summary, self.num_timesteps)
 
                         if self.verbose >= 1 and (update % log_interval == 0 or update == 1):
                             explained_var = explained_variance(values, returns)
@@ -395,6 +398,7 @@ class MultiPPO2(ActorCriticRLModel):
 class SubModel(MultiPPO2):
     def __init__(self, parent, i):
         self.episode_reward  = 0
+        self.model_num = i
         self._param_load_ops = None
         self.path = parent.tensorboard_log + "/submodel_" + str(i)
         try:
@@ -430,7 +434,7 @@ class SubModel(MultiPPO2):
                 with tf.variable_scope("train_model", reuse=True, custom_getter=tf_util.outer_scope_getter("train_model")):
                     train_model = parent.policy(self.sess, self.observation_space, parent.action_space, parent.n_envs // parent.nminibatches, parent.n_steps, n_batch_train, reuse=True, **parent.policy_kwargs)
 
-                with tf.variable_scope("loss", reuse=False):
+                with tf.variable_scope("loss_network_{}".format(self.model_num), reuse=False):
                     self.action_ph          = train_model.pdtype.sample_placeholder([None], name="action_ph")
                     self.advs_ph            = tf.placeholder(tf.float32, [None], name="advs_ph")
                     self.rewards_ph         = tf.placeholder(tf.float32, [None], name="rewards_ph")
@@ -483,7 +487,8 @@ class SubModel(MultiPPO2):
                     tf.summary.scalar('value_function_loss'         , self.vf_loss)
                     tf.summary.scalar('approximate_kullback-leibler', self.approxkl)
                     tf.summary.scalar('clip_factor'                 , self.clipfrac)
-                    tf.summary.scalar('loss'                        , loss)
+                    tf.summary.scalar('loss', loss)
+                    #tf.summary.scalar('reward', self.rewards_ph)
 
                     with tf.variable_scope('model'):
                         self.params = tf.trainable_variables()
@@ -633,7 +638,7 @@ class Runner(AbstractEnvRunner):
 
             model = self.models[owner]
             actions, values, self.states, neglogpacs = model.step(self.obs, self.states, self.dones)
-
+            successful_stages = self.env.envs[0].env.env.reward.current_network
             minibatch = minibatches[owner]
             mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = minibatch
 
@@ -701,12 +706,12 @@ class Runner(AbstractEnvRunner):
             except:
               print("first model took all the steps")
 
-            finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward
+            finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
             finished_minibatches.append(finished_minibatch)
             i+=1
         return finished_minibatches
 
-        return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward
+        return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
 
 def swap_and_flatten(arr):
     """
