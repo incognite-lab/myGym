@@ -215,7 +215,8 @@ class MultiPPO2(ActorCriticRLModel):
 
                 # Unpack
                 i = 0
-                for rollout in rollouts:
+                steps_used = rollouts[-1]
+                for rollout in rollouts[0]:
                     obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward, success_stages = rollout
                     model = self.models[i]
                     # calc = len(true_reward)
@@ -251,6 +252,11 @@ class MultiPPO2(ActorCriticRLModel):
                             summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/Successful stages',
                                                                          simple_value=success_stages)])
                             writer.add_summary(summary, self.num_timesteps)
+                            #@TODO plot in one graph:
+                            for i, val in enumerate(steps_used):
+                                summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/Used steps net {}'.format(i),
+                                                                              simple_value=val)])
+                                writer.add_summary(summary, self.num_timesteps)
 
                         if self.verbose >= 1 and (update % log_interval == 0 or update == 1):
                             explained_var = explained_variance(values, returns)
@@ -488,7 +494,6 @@ class SubModel(MultiPPO2):
                     tf.summary.scalar('approximate_kullback-leibler', self.approxkl)
                     tf.summary.scalar('clip_factor'                 , self.clipfrac)
                     tf.summary.scalar('loss', loss)
-                    #tf.summary.scalar('reward', self.rewards_ph)
 
                     with tf.variable_scope('model'):
                         self.params = tf.trainable_variables()
@@ -709,7 +714,8 @@ class Runner(AbstractEnvRunner):
             finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
             finished_minibatches.append(finished_minibatch)
             i+=1
-        return finished_minibatches
+        steps_taken = [finished_minibatches[x][0].shape[0] for x in range(len(finished_minibatches))]
+        return finished_minibatches, steps_taken
 
         return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
 
