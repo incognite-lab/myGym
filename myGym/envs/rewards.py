@@ -1224,6 +1224,7 @@ class TwoStagePnP(DualPoke):
         self.last_place_dist = None
         self.current_network = 0
         self.network_rewards = [0] * self.num_networks
+        self.was_above = False
 
 
     def compute(self, observation=None):
@@ -1311,6 +1312,7 @@ class ThreeStagePnP(TwoStagePnP):
     """
     def __init__(self, env, task):
         super(ThreeStagePnP, self).__init__(env, task)
+        self.was_above = False
 
     def check_num_networks(self):
         assert self.num_networks <= 3, "TwosStagePnP reward can work with maximum 3 networks"
@@ -1336,8 +1338,10 @@ class ThreeStagePnP(TwoStagePnP):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         if self.gripper_reached_object(gripper_position, object_position):
             self.current_network = 1
-        if self.object_above_goal(object_position, goal_position):
+        if self.object_above_goal(object_position, goal_position) or self.was_above:
             self.current_network = 2
+            self.was_above = True
+        
         return self.current_network
 
     def object_above_goal(self, object, goal):
@@ -1352,7 +1356,7 @@ class ThreeStagePnP(TwoStagePnP):
         # moving object above goal position (forced 2D reach)
         self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
         object_XY = object
-        goal_XY   = [goal[0], goal[1], goal[2]+0.2]
+        goal_XY   = [goal[0], goal[1], goal[2]+0.3]
         self.env.p.addUserDebugLine(object_XY, goal_XY, lifeTime=0.1)
         dist = self.task.calc_distance(object_XY, goal_XY)
         if self.last_move_dist is None:
