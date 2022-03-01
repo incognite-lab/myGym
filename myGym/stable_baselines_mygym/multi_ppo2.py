@@ -229,15 +229,18 @@ class MultiPPO2(ActorCriticRLModel):
                         mb_loss_vals = []
                         if states is None:  # nonrecurrent version
                             update_fac = max(model.n_batch // self.nminibatches // self.noptepochs, 1)
-                            inds = np.arange(model.n_batch)
+                            inds = np.arange(len(obs))#np.arange(model.n_batch)
                             for epoch_num in range(self.noptepochs):
                                 np.random.shuffle(inds)
                                 for start in range(0, model.n_batch, batch_size):
                                     timestep = self.num_timesteps // update_fac + ((epoch_num * model.n_batch + start) // batch_size)
                                     end      = start + batch_size
                                     mbinds   = inds[start:end]
-                                    slices   = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                                    mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, model=self.models[i], writer=writer, update=timestep, cliprange_vf=cliprange_vf_now))
+                                    if len(obs) > 1:
+                                        slices   = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
+                                        mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, model=self.models[i], writer=writer, update=timestep, cliprange_vf=cliprange_vf_now))
+                                    else:
+                                        mb_loss_vals.append((0,0,0,0,0))
                             i+=1
                         else:
                             exit("does not support recurrent version")
@@ -248,7 +251,10 @@ class MultiPPO2(ActorCriticRLModel):
 
                         if writer is not None:
                             n_steps = model.n_batch
-                            total_episode_reward_logger(self.episode_reward, true_reward.reshape((self.n_envs, n_steps)), masks.reshape((self.n_envs, n_steps)), writer, self.num_timesteps)
+                            try:
+                                total_episode_reward_logger(self.episode_reward, true_reward.reshape((self.n_envs, n_steps)), masks.reshape((self.n_envs, n_steps)), writer, self.num_timesteps)
+                            except:
+                                print("Failed to log episode reward of shape {}".format(true_reward.shape))
                             summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/Successful stages',
                                                                          simple_value=success_stages)])
                             writer.add_summary(summary, self.num_timesteps)
