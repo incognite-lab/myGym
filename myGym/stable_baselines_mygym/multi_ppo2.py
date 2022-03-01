@@ -650,6 +650,8 @@ class Runner(AbstractEnvRunner):
             model = self.models[owner]
             actions, values, self.states, neglogpacs = model.step(self.obs, self.states, self.dones)
             successful_stages = self.env.envs[0].env.env.reward.current_network
+            if self.states:
+                successful_stages += 1
             minibatch = minibatches[owner]
             mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = minibatch
 
