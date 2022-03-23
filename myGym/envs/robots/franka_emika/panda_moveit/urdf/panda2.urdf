@@ -30,7 +30,7 @@
             </geometry>
         </collision>
     </link>
-    <joint name="panda_joint1" type="revolute">
+    <joint name="panda_rjoint1" type="revolute">
         <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973" soft_upper_limit="2.8973" />
         <origin rpy="0 0 0" xyz="0 0 0.333" />
         <parent link="panda_link0" />
@@ -51,7 +51,7 @@
             </geometry>
         </collision>
     </link>
-    <joint name="panda_joint2" type="revolute">
+    <joint name="panda_rjoint2" type="revolute">
         <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-1.7628" soft_upper_limit="1.7628" />
         <origin rpy="-1.57079632679 0 0" xyz="0 0 0" />
         <parent link="panda_link1" />
@@ -72,7 +72,7 @@
             </geometry>
         </collision>
     </link>
-    <joint name="panda_joint3" type="revolute">
+    <joint name="panda_rjoint3" type="revolute">
         <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973" soft_upper_limit="2.8973" />
         <origin rpy="1.57079632679 0 0" xyz="0 -0.316 0" />
         <parent link="panda_link2" />
@@ -93,7 +93,7 @@
             </geometry>
         </collision>
     </link>
-    <joint name="panda_joint4" type="revolute">
+    <joint name="panda_rjoint4" type="revolute">
         <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-3.0718" soft_upper_limit="0.0175" />
         <origin rpy="1.57079632679 0 0" xyz="0.0825 0 0" />
         <parent link="panda_link3" />
@@ -114,7 +114,7 @@
             </geometry>
         </collision>
     </link>
-    <joint name="panda_joint5" type="revolute">
+    <joint name="panda_rjoint5" type="revolute">
         <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973" soft_upper_limit="2.8973" />
         <origin rpy="-1.57079632679 0 0" xyz="-0.0825 0.384 0" />
         <parent link="panda_link4" />
@@ -135,7 +135,7 @@
             </geometry>
         </collision>
     </link>
-    <joint name="panda_joint6" type="revolute">
+    <joint name="panda_rjoint6" type="revolute">
         <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-0.0175" soft_upper_limit="3.7525" />
         <origin rpy="1.57079632679 0 0" xyz="0 0 0" />
         <parent link="panda_link5" />
@@ -156,7 +156,7 @@
             </geometry>
         </collision>
     </link>
-    <joint name="panda_joint7" type="revolute">
+    <joint name="panda_rjoint7" type="revolute">
         <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973" soft_upper_limit="2.8973" />
         <origin rpy="1.57079632679 0 0" xyz="0.088 0 0" />
         <parent link="panda_link6" />
@@ -171,7 +171,7 @@
         <child link="panda_link8" />
         <axis xyz="0 0 0" />
     </joint>
-    <joint name="panda_hand_joint" type="fixed">
+    <joint name="gripper_joint" type="fixed">
         <parent link="panda_link8" />
         <child link="gripper" /> <!--panda_hand-->
         <origin rpy="0 0 -0.785398163397" xyz="0 0 0" />
@@ -189,6 +189,20 @@
             </geometry>
         </collision>
     </link>
+    <joint name="endeffector_joint" type="fixed">
+    <parent link="gripper"/>
+    <child link="endeffector"/>
+    <origin rpy="0 0 0" xyz="0 0.0 0.1"/>
+  </joint>
+  <link name="endeffector">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.01"/>
+      </geometry>
+      <material name="Lightgrey"/>
+    </visual>
+  </link>
     <link name="panda_leftfinger">
         <visual>
             <material name="panda_white"/>
@@ -202,7 +216,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="end_effector"> <!--panda_rightfinger-->
+    <link name="panda_rightfinger"> <!--panda_rightfinger-->
         <visual>
             <material name="panda_white"/>
             <origin rpy="0 0 3.14159265359" xyz="0 0 0" />
@@ -217,16 +231,16 @@
             </geometry>
         </collision>
     </link>
-    <joint name="panda_finger_joint1" type="prismatic">
+    <joint name="panda_finger_gjoint1" type="prismatic">
         <parent link="gripper" />
         <child link="panda_leftfinger" />
         <origin rpy="0 0 0" xyz="0 0 0.0584" />
         <axis xyz="0 1 0" />
         <limit effort="20" lower="0.0" upper="0.04" velocity="0.2" />
     </joint>
-    <joint name="panda_finger_joint2" type="prismatic">
+    <joint name="panda_finger_gjoint2" type="prismatic">
         <parent link="gripper" />
-        <child link="end_effector"/>
+        <child link="panda_rightfinger"/>
         <origin rpy="0 0 0" xyz="0 0 0.0584" />
         <axis xyz="0 -1 0" />
         <limit effort="20" lower="0.0" upper="0.04" velocity="0.2" />

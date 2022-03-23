@@ -1251,8 +1251,8 @@ class TwoStagePnP(DualPoke):
 
     def gripper_reached_object(self, gripper, object):
         self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
-        if self.current_network == 0:
-            self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+        #if self.current_network == 0:
+        #    self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
         if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
             self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
             return True
@@ -1298,6 +1298,17 @@ class TwoStagePnP(DualPoke):
         ix = 1 if self.num_networks > 1 else 0
         self.network_rewards[ix] += reward
         return reward
+
+class TwoStagePnPGripper(TwoStagePnP):
+
+    def gripper_reached_object(self, gripper, object):
+        self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
+        if self.current_network == 0 and action[3] > 0.5:
+            self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+        if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
+            self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+            return True
+        return False
 
 
 class ThreeStagePnP(TwoStagePnP):
@@ -1374,6 +1385,7 @@ class ThreeStagePnP(TwoStagePnP):
     def place_compute(self, object, goal):
         # reach of goal position + task object height in Z axis and release
         self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        self.env.p.addUserDebugLine(object, goal, lifeTime=0.1)
         dist = self.task.calc_distance(object, goal)
         if self.last_place_dist is None or self.last_owner != 2:
             self.last_place_dist = dist

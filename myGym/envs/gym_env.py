@@ -186,10 +186,10 @@ class GymEnv(CameraEnv):
         Set action space dimensions and range
         """
         action_dim = self.robot.get_action_dimension()
-        if self.robot_action in ["step", "joints_step"]:
+        if "step" in self.robot_action:
             self.action_low = np.array([-1] * action_dim)
             self.action_high = np.array([1] * action_dim)
-        elif self.robot_action == "absolute":
+        elif "absolute" in self.robot_action:
             if any(isinstance(i, list) for i in self.objects_area_borders):
                 borders_max = np.max(self.objects_area_borders,0)
                 borders_min = np.min(self.objects_area_borders,0)
@@ -198,7 +198,7 @@ class GymEnv(CameraEnv):
             else:
                 self.action_low = np.array(self.objects_area_borders[0:7:2])
                 self.action_high = np.array(self.objects_area_borders[1:7:2])
-        elif self.robot_action in ["joints", "joints_gripper"]:
+        elif "joints" in self.robot_action:
             self.action_low = np.array(self.robot.joints_limits[0])
             self.action_high = np.array(self.robot.joints_limits[1])
         if "gripper" in self.robot_action:
@@ -334,7 +334,7 @@ class GymEnv(CameraEnv):
             :param action: (list) Action data returned by trained model
         """
         for i in range(self.action_repeat):
-            objects = self.env_objects if "gripper" in self.robot_action else None
+            objects = self.env_objects
             self.robot.apply_action(action, env_objects=objects)
             if hasattr(self, 'human'):
                 self.human.apply_action(np.random.uniform(self.human.joints_limits[0], self.human.joints_limits[1]))

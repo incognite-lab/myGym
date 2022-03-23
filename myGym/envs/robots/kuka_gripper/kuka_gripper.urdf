@@ -38,7 +38,7 @@
         </collision>
     </link>
     <!-- joint between link_0 and link_1 -->
-    <joint name="lbr_iiwa_joint_1" type="revolute">
+    <joint name="lbr_iiwa_rjoint_1" type="revolute">
         <parent link="lbr_iiwa_link_0"/>
         <child link="lbr_iiwa_link_1"/>
         <origin rpy="0 0 0" xyz="0 0 0.1575"/>
@@ -67,7 +67,7 @@
         </collision>
     </link>
     <!-- joint between link_1 and link_2 -->
-    <joint name="lbr_iiwa_joint_2" type="revolute">
+    <joint name="lbr_iiwa_rjoint_2" type="revolute">
         <parent link="lbr_iiwa_link_1"/>
         <child link="lbr_iiwa_link_2"/>
         <origin rpy="1.57079632679   0 3.14159265359" xyz="0 0 0.2025"/>
@@ -96,7 +96,7 @@
         </collision>
     </link>
     <!-- joint between link_2 and link_3 -->
-    <joint name="lbr_iiwa_joint_3" type="revolute">
+    <joint name="lbr_iiwa_rjoint_3" type="revolute">
         <parent link="lbr_iiwa_link_2"/>
         <child link="lbr_iiwa_link_3"/>
         <origin rpy="1.57079632679 0 3.14159265359" xyz="0 0.2045 0"/>
@@ -125,7 +125,7 @@
         </collision>
     </link>
     <!-- joint between link_3 and link_4 -->
-    <joint name="lbr_iiwa_joint_4" type="revolute">
+    <joint name="lbr_iiwa_rjoint_4" type="revolute">
         <parent link="lbr_iiwa_link_3"/>
         <child link="lbr_iiwa_link_4"/>
         <origin rpy="1.57079632679 0 0" xyz="0 0 0.2155"/>
@@ -154,7 +154,7 @@
         </collision>
     </link>
     <!-- joint between link_4 and link_5 -->
-    <joint name="lbr_iiwa_joint_5" type="revolute">
+    <joint name="lbr_iiwa_rjoint_5" type="revolute">
         <parent link="lbr_iiwa_link_4"/>
         <child link="lbr_iiwa_link_5"/>
         <origin rpy="-1.57079632679 3.14159265359 0" xyz="0 0.1845 0"/>
@@ -183,7 +183,7 @@
         </collision>
     </link>
     <!-- joint between link_5 and link_6 -->
-    <joint name="lbr_iiwa_joint_6" type="revolute">
+    <joint name="lbr_iiwa_rjoint_6" type="revolute">
         <parent link="lbr_iiwa_link_5"/>
         <child link="lbr_iiwa_link_6"/>
         <origin rpy="1.57079632679 0 0" xyz="0 0 0.2155"/>
@@ -212,7 +212,7 @@
         </collision>
     </link>
     <!-- joint between link_6 and link_7 -->
-    <joint name="lbr_iiwa_joint_7" type="revolute">
+    <joint name="lbr_iiwa_rjoint_7" type="revolute">
         <parent link="lbr_iiwa_link_6"/>
         <child link="lbr_iiwa_link_7"/>
         <origin rpy="-1.57079632679 3.14159265359 0" xyz="0 0.081 0"/>
@@ -254,12 +254,12 @@
 
 
     <!-- joint between kuka and gripper -->
-    <joint name="kuka_to_gripper_joint" type="fixed">
+    <joint name="gripper_joint" type="fixed">
         <parent link="lbr_iiwa_link_7"/>
-        <child link="base"/>
+        <child link="gripper"/>
         <origin rpy="0 0 0" xyz="0 0 0.05"/>
     </joint>
-    <link name="base">
+    <link name="gripper">
         <inertial>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <mass value="2.0"/>
@@ -279,9 +279,23 @@
             </geometry>
         </collision>
     </link>
+    <joint name="endeffector_joint" type="fixed">
+    <parent link="gripper"/>
+    <child link="endeffector"/>
+    <origin rpy="0 0 0" xyz="0 0.0 0.1"/>
+  </joint>
+  <link name="endeffector">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.01"/>
+      </geometry>
+      <material name="panda_white"/>
+    </visual>
+  </link>
     <!-- joint between link_0 and link_1 -->
-    <joint name="base_to_finger00_joint" type="revolute">
-        <parent link="base"/>
+    <joint name="base_to_finger00_gjoint" type="revolute">
+        <parent link="gripper"/>
         <child link="finger_00"/>
         <origin rpy="0 0 0" xyz="0.023510971786833857 0 0"/>
         <axis xyz="0 1 0"/>
@@ -314,7 +328,7 @@
         </collision>
     </link>
     <!-- joint between link_1 and link_2 -->
-    <joint name="finger00_to_finger01_joint" type="revolute">
+    <joint name="finger00_to_finger01_gjoint" type="revolute">
         <parent link="finger_00"/>
         <child link="finger_01"/>
         <origin rpy="0 0 0" xyz="0 0  0.0768025078369906"/>
@@ -353,8 +367,8 @@
 
 
     <!-- joint between link_0 and link_3 -->
-    <joint name="base_to_finger10_joint" type="revolute">
-        <parent link="base"/>
+    <joint name="base_to_finger10_gjoint" type="revolute">
+        <parent link="gripper"/>
         <child link="finger_10"/>
         <origin rpy="0 0 3.141592653589793" xyz="-0.023510971786833857 0 0"/>
         <axis xyz="0 1 0"/>
@@ -389,7 +403,7 @@
         </collision>
     </link>
     <!-- joint between link_1 and link_2 -->
-    <joint name="finger10_to_finger11_joint" type="revolute">
+    <joint name="finger10_to_finger11_gjoint" type="revolute">
         <parent link="finger_10"/>
         <child link="finger_11"/>
         <origin rpy="0 0 0" xyz="0 0 0.0768025078369906"/>
