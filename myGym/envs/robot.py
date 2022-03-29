@@ -511,7 +511,7 @@ class Robot:
         Parameters:
             :param action: (list) Desired action data
         """
-        action[:3] = [i * self.dimension_velocity for i in action]
+        action = [i * self.dimension_velocity for i in action[:3]]
         des_gripper_pos = np.add(self.gripper_pos, action)
         joint_poses = list(self._calculate_joint_poses(des_gripper_pos))
         self._run_motors(joint_poses)

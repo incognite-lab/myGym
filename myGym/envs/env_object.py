@@ -34,6 +34,12 @@ class EnvObject:
         self.fixed = fixed
         self.name = os.path.splitext(os.path.basename(self.urdf_path))[0]
         self.virtual = True if "virtual" in self.name else False
+        self.object_ldamping = 20
+        self.object_adamping = 20
+        self.object_lfriction = 50
+        self.object_rfriction = 50
+        self.object_mass = 3
+        self. object_stiffness = 20
         if not self.virtual:
             self.uid = self.load()
             self.bounding_box = self.get_bounding_box()
@@ -211,7 +217,11 @@ class EnvObject:
             :return self.uid: (int) ID of loaded object
         """
         self.uid = self.p.loadURDF(self.urdf_path, self.init_position, self.init_orientation, useFixedBase=self.fixed,  flags=self.p.URDF_USE_SELF_COLLISION)
-        self.p.changeDynamics(self.uid, 0, collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
+        self.p.changeDynamics(self.uid, 0, collisionMargin=0., contactProcessingThreshold=0.0, 
+                                ccdSweptSphereRadius=0, linearDamping=self.object_ldamping, 
+                                angularDamping=self.object_adamping, lateralFriction=self.object_lfriction,
+                                rollingFriction=self.object_rfriction, mass=self.object_mass)
+
         return self.uid
 
     def get_bounding_box(self):

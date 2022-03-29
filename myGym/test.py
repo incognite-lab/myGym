@@ -186,7 +186,7 @@ def test_env(env, arg_dict):
 
             elif action_control == "keyboard":
                 keypress = p.getKeyboardEvents()
-                print(keypress)    
+                #print(action)    
                 if 97 in keypress.keys() and keypress[97] == 1:
                     action[2] += .01
                     print(action)
@@ -215,6 +215,8 @@ def test_env(env, arg_dict):
                     cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
                     change_dynamics(cube[cubecount],lfriction,rfriction,ldamping,adamping)
                     cubecount +=1
+                if "step" in arg_dict["robot_action"]:
+                    action[:3] = np.multiply(action [:3],10)
                 for i in range (env.action_space.shape[0]):
                     env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
                     env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
@@ -256,6 +258,9 @@ def test_env(env, arg_dict):
                     
             #if action_control == "slider":
             #    action=[]
+            if "step" in arg_dict["robot_action"]:
+                action[:3] = [0,0,0] 
+            
             if arg_dict["visualize"]:
                 visualizations = [[],[]]
                 env.render("human")
