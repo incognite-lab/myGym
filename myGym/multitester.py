@@ -29,7 +29,7 @@ parameters = {
     "robot_action": args.robot_action,
     "algo": args.algorithms,
     "max_velocity": args.max_velocity,
-    "max_force": args.max_velocity,
+    "max_force": args.max_force,
     "action_repeat": args.action_repeat
 }
 parameter_grid = ParameterGrid(parameters)
