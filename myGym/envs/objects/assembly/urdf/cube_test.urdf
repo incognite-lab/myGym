@@ -3,11 +3,11 @@
   <link name="baseLink">
     <contact>
             <restitution value="100" />
-            <lateral_friction value="100"/>
-            <rolling_friction value="100"/>
-            <spinning_friction value="100"/>
-            <linear_damping value="100"/>
-            <angular_damping value="100"/>
+            <lateral_friction value="1000"/>
+            <rolling_friction value="1000"/>
+            <spinning_friction value="1000"/>
+            <linear_damping value="1000"/>
+            <angular_damping value="1000"/>
     </contact>
     <inertial>
       <origin rpy="0 0 0" xyz="0.0001 0.0 0.0"/>
