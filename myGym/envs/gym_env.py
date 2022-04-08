@@ -189,6 +189,11 @@ class GymEnv(CameraEnv):
         if "step" in self.robot_action:
             self.action_low = np.array([-1] * action_dim)
             self.action_high = np.array([1] * action_dim)
+            #if "gripper" in self.robot_action:
+            #    self.action_low = np.insert(self.action_low, action_dim, self.robot.gjoints_limits[0][1])
+            #    self.action_high = np.insert(self.action_high, action_dim,self.robot.gjoints_limits[1][1])
+                
+
         elif "absolute" in self.robot_action:
             if any(isinstance(i, list) for i in self.objects_area_borders):
                 borders_max = np.max(self.objects_area_borders,0)
@@ -198,13 +203,16 @@ class GymEnv(CameraEnv):
             else:
                 self.action_low = np.array(self.objects_area_borders[0:7:2])
                 self.action_high = np.array(self.objects_area_borders[1:7:2])
+            
+
         elif "joints" in self.robot_action:
             self.action_low = np.array(self.robot.joints_limits[0])
             self.action_high = np.array(self.robot.joints_limits[1])
+
         if "gripper" in self.robot_action:
-            self.action_low = np.insert(self.action_low, action_dim, 0)
-            self.action_high = np.insert(self.action_high, action_dim, 1)
-            action_dim += 1
+            self.action_low = np.append(self.action_low, np.array(self.robot.gjoints_limits[0]))
+            self.action_high = np.append(self.action_high, np.array(self.robot.gjoints_limits[1]))
+
 
         self.action_space = spaces.Box(self.action_low, self.action_high)
 

@@ -88,9 +88,10 @@ def change_dynamics(cubex,lfriction,rfriction,ldamping,adamping):
 
 
 def test_env(env, arg_dict):
+    #arg_dict["gui"] == 1
     debug_mode = True
     spawn_objects = False
-    action_control = "keyboard" #"observation", "random", "keyboard" or "slider"
+    action_control = "slider" #"observation", "random", "keyboard" or "slider"
     visualize_sampling = False
     visualize_traj = False
     env.render("human")
@@ -110,30 +111,42 @@ def test_env(env, arg_dict):
             #p.changeDynamics(newobject, -1, lateralFriction=1.00)
             if action_control == "slider":
                 if "joints" in arg_dict["robot_action"]:
-                    for i in range (env.action_space.shape[0]):
-                        joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
+                    if 'gripper' in arg_dict["robot_action"]:
+                        print ("gripper is present")
+                        for i in range (env.action_space.shape[0]):
+                            if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
+                                joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
+                            else:
+                                joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], .02)
+                    else:
+                        for i in range (env.action_space.shape[0]):
+                            joints[i] = p.addUserDebugParameter(joints[i],env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
                 elif "absolute" in arg_dict["robot_action"]:
                     if 'gripper' in arg_dict["robot_action"]:
                         print ("gripper is present")
-                        for i in range (env.action_space.shape[0] - 1):
-                            joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
-                        joints[3] = p.addUserDebugParameter(joints[3], 0, 1, 0.1)
+                        for i in range (env.action_space.shape[0]):
+                            if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
+                                joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
+                            else:
+                                joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
                     else:
                         for i in range (env.action_space.shape[0]):
                             joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
                 elif "step" in arg_dict["robot_action"]:
                     if 'gripper' in arg_dict["robot_action"]:
                         print ("gripper is present")
-                        for i in range (env.action_space.shape[0] - 1):
-                            joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
-                        joints[3] = p.addUserDebugParameter(joints[3], -1, 1, 0)
+                        for i in range (env.action_space.shape[0]):
+                            if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
+                                joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
+                            else:
+                                joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
                     else:
                         for i in range (env.action_space.shape[0]):
                             joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
             
             
-            maxvelo = p.addUserDebugParameter("Max Velocity", 0.1, 50, env.env.robot.joints_max_velo[0]) 
-            maxforce = p.addUserDebugParameter("Max Force", 0.1, 300, env.env.robot.joints_max_force[0])
+            #maxvelo = p.addUserDebugParameter("Max Velocity", 0.1, 50, env.env.robot.joints_max_velo[0]) 
+            #maxforce = p.addUserDebugParameter("Max Force", 0.1, 300, env.env.robot.joints_max_force[0])
             lfriction = p.addUserDebugParameter("Lateral Friction", 0, 100, 0)   
             rfriction = p.addUserDebugParameter("Spinning Friction", 0, 100, 0)
             ldamping = p.addUserDebugParameter("Linear Damping", 0, 100, 0)
@@ -172,8 +185,8 @@ def test_env(env, arg_dict):
                 for i in range (env.action_space.shape[0]):
                     jointparams[i] = p.readUserDebugParameter(joints[i])
                     action.append(jointparams[i])
-                    env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
-                    env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
+                    #env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
+                    #env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
             
 
             if action_control == "observation":

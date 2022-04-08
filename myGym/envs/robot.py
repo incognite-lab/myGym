@@ -46,7 +46,7 @@ class Robot:
         self.position = np.array(position) + self.robot_dict[robot].get('position',np.zeros(len(position)))
         self.orientation = self.p.getQuaternionFromEuler(np.array(orientation) +
                                                          self.robot_dict[robot].get('orientation',np.zeros(len(orientation))))
-        self.name = robot + '_gripper'
+        self.name = robot
         self.max_velocity = max_velocity
         self.max_force = max_force
         self.end_effector_index = end_effector_index
@@ -66,12 +66,12 @@ class Robot:
         self._load_robot()
         self.num_joints = self.p.getNumJoints(self.robot_uid)
         self._set_motors()
-        self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits()
-        if "absolute" or "step" or "joints" in self.robot_action:
-            joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
-            self.init_joint_poses = joint_poses
-        else:
-            self.init_joint_poses = np.zeros((len(self.motor_names)))
+        self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)       
+        if self.gripper_names:
+            self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
+        joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
+        self.init_joint_poses = joint_poses
+        #self.init_joint_poses = np.zeros((len(self.motor_names)))
         #self.reset()
 
     def _load_robot(self):
@@ -125,6 +125,9 @@ class Robot:
         print(f"Gripper joints:{self.gripper_names}")
         print("Gripper index is: " + str(self.gripper_index))
         print("End effector index is: " + str(self.end_effector_index))
+
+        self.joints_num = len(self.motor_names)
+        self.gjoints_num = len(self.gripper_names)
 
 
         if self.end_effector_index == None:
@@ -191,7 +194,7 @@ class Robot:
             self.p.resetJointState(self.robot_uid, self.motor_indices[jid], joint_poses[jid])
         self._run_motors(joint_poses)
 
-    def get_joints_limits(self):
+    def get_joints_limits(self,indices):
         """
         Identify limits, ranges and rest poses of individual robot joints. Uses data from robot model.
 
@@ -201,7 +204,7 @@ class Robot:
             :return joints_rest_poses: (list) Rest poses of all joints
         """
         joints_limits_l, joints_limits_u, joints_ranges, joints_rest_poses, joints_max_force, joints_max_velo = [], [], [], [], [], []
-        for jid in self.motor_indices:
+        for jid in indices:
             joint_info = self.p.getJointInfo(self.robot_uid, jid)
             joints_limits_l.append(joint_info[8])
             joints_limits_u.append(joint_info[9])
@@ -209,7 +212,6 @@ class Robot:
             joints_rest_poses.append((joint_info[9] + joint_info[8])/2)
             joints_max_force.append(self.max_force if self.max_force else joint_info[10])
             joints_max_velo.append(self.max_velocity if self.max_velocity else joint_info[11])
-        print (self.max_velocity)
         return [joints_limits_l, joints_limits_u], joints_ranges, joints_rest_poses, joints_max_force, joints_max_velo
 
     def get_action_dimension(self):
@@ -219,8 +221,8 @@ class Robot:
         Returns:
             :return dimension: (int) The dimension of action data
         """
-        if "absolute" or "step" in self.robot_action:
-            dim = 3 
+        if "absolute" in self.robot_action or "step" in self.robot_action:
+            dim = 3
         elif "joints" in self.robot_action:
             dim = len(self.motor_indices)
         return dim
@@ -340,9 +342,9 @@ class Robot:
             self.p.setJointMotorControl2(bodyUniqueId=self.robot_uid,
                                     jointIndex=self.gripper_indices[i],
                                     controlMode=self.p.POSITION_CONTROL,
-                                    targetPosition=action,
-                                    force=self.joints_max_force[-1],
-                                    maxVelocity=self.joints_max_velo[-1],
+                                    targetPosition=action[i],
+                                    force=self.gjoints_max_force[i],
+                                    maxVelocity=self.gjoints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3)
         
@@ -536,7 +538,7 @@ class Robot:
         Parameters:
             :param action: (list) Desired action data
         """
-        self._run_motors(action)
+        self._run_motors(action[:(self.joints_num)])
         
     def apply_action_joints_step(self, action):
         """
@@ -562,9 +564,9 @@ class Robot:
         elif "joints" in self.robot_action:
             self.apply_action_joints(action)
         if "gripper" in self.robot_action:
-            self._move_gripper(action[-1])
+            self._move_gripper(action[-(self.gjoints_num):])
         else:
-            self._move_gripper(1)
+            self._move_gripper(self.gjoints_limits[1])
             assert env_objects is not None, "Need to provide env_objects to use gripper"
             #When gripper is not in robot action it will magnetize objects
             self.gripper_active = True
