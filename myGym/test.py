@@ -91,7 +91,7 @@ def test_env(env, arg_dict):
     #arg_dict["gui"] == 1
     debug_mode = True
     spawn_objects = False
-    action_control = "slider" #"observation", "random", "keyboard" or "slider"
+    action_control = "keyboard" #"observation", "random", "keyboard" or "slider"
     visualize_sampling = False
     visualize_traj = False
     env.render("human")
@@ -230,9 +230,9 @@ def test_env(env, arg_dict):
                     cubecount +=1
                 if "step" in arg_dict["robot_action"]:
                     action[:3] = np.multiply(action [:3],10)
-                for i in range (env.action_space.shape[0]):
-                    env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
-                    env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
+                #for i in range (env.action_space.shape[0]):
+                #    env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
+                #    env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
             elif action_control == "random":
                 action = env.action_space.sample()
 
