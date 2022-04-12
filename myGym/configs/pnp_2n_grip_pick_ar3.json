@@ -41,7 +41,7 @@
     "num_networks"      :2,
     "max_episode_steps" :512,
     "algo_steps"        :512,
-    "steps"             :5100000,
+    "steps"             :2100000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
