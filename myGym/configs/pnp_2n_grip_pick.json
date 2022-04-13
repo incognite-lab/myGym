@@ -9,8 +9,8 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"kuka_gripper",
-    "robot_action"  :"joints_gripper",
+    "robot"         :"panda2",
+    "robot_action"  :"step_gripper",
     "robot_init"    :[-0.4, 0.4, 0.4],
     "max_velocity"  :10,
     "max_force"     :70,
