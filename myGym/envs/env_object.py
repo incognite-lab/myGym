@@ -34,11 +34,11 @@ class EnvObject:
         self.fixed = fixed
         self.name = os.path.splitext(os.path.basename(self.urdf_path))[0]
         self.virtual = True if "virtual" in self.name else False
-        self.object_ldamping = 100
-        self.object_adamping = 100
-        self.object_lfriction = 10
-        self.object_rfriction = 10
-        self.object_mass = 1
+        self.object_ldamping = 1
+        self.object_adamping = 1
+        self.object_lfriction = 100
+        self.object_rfriction = 100
+        self.object_mass = 10
         self. object_stiffness = 1
         if not self.virtual:
             self.uid = self.load()
@@ -225,8 +225,6 @@ class EnvObject:
                                 angularDamping=self.object_adamping, lateralFriction=self.object_lfriction,
                                 rollingFriction=self.object_rfriction, mass=self.object_mass)
         
-
-
         return self.uid
 
     def get_bounding_box(self):

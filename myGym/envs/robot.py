@@ -210,8 +210,8 @@ class Robot:
             joints_limits_u.append(joint_info[9])
             joints_ranges.append(joint_info[9] - joint_info[8])
             joints_rest_poses.append((joint_info[9] + joint_info[8])/2)
-            joints_max_force.append(self.max_force if self.max_force else joint_info[10])
-            joints_max_velo.append(self.max_velocity if self.max_velocity else joint_info[11])
+            joints_max_force.append(joint_info[10] if "gjoint" in joint_info[1].decode("utf-8") else self.max_force)
+            joints_max_velo.append(joint_info[11] if "gjoint" in joint_info[1].decode("utf-8") else self.max_velocity)
         return [joints_limits_l, joints_limits_u], joints_ranges, joints_rest_poses, joints_max_force, joints_max_velo
 
     def get_action_dimension(self):

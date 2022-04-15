@@ -223,6 +223,14 @@
     </visual>
   </link>
   <link name="panda_leftfinger">
+    <contact>
+            <restitution value="0" />
+            <lateral_friction value="100"/>
+            <rolling_friction value="100"/>
+            <spinning_friction value="100"/>
+            <linear_damping value="0"/>
+            <angular_damping value="0"/>
+    </contact>
     <visual>
       <geometry>
         <mesh filename="meshes/collision/finger1.obj"/>
@@ -237,6 +245,14 @@
     </collision>
   </link>
   <link name="panda_rightfinger"> <!--panda_rightfinger-->
+    <contact>
+            <restitution value="0" />
+            <lateral_friction value="100"/>
+            <rolling_friction value="100"/>
+            <spinning_friction value="100"/>
+            <linear_damping value="0"/>
+            <angular_damping value="0"/>
+    </contact>
     <visual>
       <origin rpy="0 0 3.14159265359" xyz="0 0 0"/>
       <geometry>
@@ -257,14 +273,14 @@
     <child link="panda_leftfinger"/>
     <origin rpy="0 0 0" xyz="0 0 0.0584"/>
     <axis xyz="0 1 0"/>
-    <limit effort="30" lower="0.0" upper="0.04" velocity="1"/>
+    <limit effort="100" lower="0.0" upper="0.06" velocity="10"/>
   </joint>
   <joint name="panda_finger_gjoint2" type="prismatic">
     <parent link="gripper"/>
     <child link="panda_rightfinger"/>
     <origin rpy="0 0 0" xyz="0 0 0.0584"/>
     <axis xyz="0 -1 0"/>
-    <limit effort="30" lower="0.0" upper="0.04" velocity="1"/>
+    <limit effort="100" lower="0.0" upper="0.06" velocity="10"/>
     <mimic joint="panda_finger_gjoint1"/>
   </joint>
   <material name="panda_white">

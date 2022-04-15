@@ -163,6 +163,7 @@ def test_env(env, arg_dict):
         action = arg_dict["robot_init"]
         if "gripper" in arg_dict["robot_action"]:
             action.append(.1)
+            action.append(.1)
     if action_control == "slider":
         action = [] 
         for i in range (env.action_space.shape[0]):
@@ -219,10 +220,12 @@ def test_env(env, arg_dict):
                     action[0] -= .01
                     print(action)
                 if 120 in keypress.keys() and keypress[120] == 1:
-                    action[3] -= .005
+                    action[3] -= .002
+                    action[4] -= .002
                     print(action)
                 if 99 in keypress.keys() and keypress[99] == 1:
-                    action[3] += .005
+                    action[3] += .002
+                    action[4] += .002
                     print(action)
                 if 100 in keypress.keys() and keypress[100] == 1:
                     cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
