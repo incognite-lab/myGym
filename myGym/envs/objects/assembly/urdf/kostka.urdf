@@ -9,12 +9,12 @@
     </inertial>
     <visual>
       <geometry>
-        <box size=".1 .05 .07"/>
+        <box size=".05 .05 .05"/>
       </geometry>
     </visual>
     <collision name="box">
       <geometry>
-        <box size=".1 .05 .07"/>
+        <box size=".05 .05 .05"/>
       </geometry>
     </collision>
   </link>

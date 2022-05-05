@@ -104,8 +104,8 @@ def test_env(env, arg_dict):
             if arg_dict["gui"] == 0:
                 print ("Add --gui 1 parameter to visualize environment")        
             
-            p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
-            p.resetDebugVisualizerCamera(1.0, 140, -30, [0.4, .4, 0.1])
+            p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+            p.resetDebugVisualizerCamera(1.0, 240, -20, [-0.1, .0, 0.05])
             p.setAdditionalSearchPath(pybullet_data.getDataPath())
             #newobject = p.loadURDF("cube.urdf", [3.1,3.7,0.1])
             #p.changeDynamics(newobject, -1, lateralFriction=1.00)
@@ -220,12 +220,12 @@ def test_env(env, arg_dict):
                     action[0] -= .01
                     print(action)
                 if 120 in keypress.keys() and keypress[120] == 1:
-                    action[3] -= .002
-                    action[4] -= .002
+                    action[3] -= .01
+                    action[4] -= .01
                     print(action)
                 if 99 in keypress.keys() and keypress[99] == 1:
-                    action[3] += .002
-                    action[4] += .002
+                    action[3] += .01
+                    action[4] += .01
                     print(action)
                 if 100 in keypress.keys() and keypress[100] == 1:
                     cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
@@ -330,6 +330,8 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     success_episodes_num = 0
     distance_error_sum = 0
     steps_sum = 0
+    p.resetDebugVisualizerCamera(1.0, 210, -20, [-1.0, .1, 0.1])
+
 
     for e in range(arg_dict["eval_episodes"]):
         done = False
