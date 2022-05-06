@@ -9,16 +9,16 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"panda1",
+    "robot"         :"panda_boxgripper",
     "robot_action"  :"step_gripper",
     "robot_init"    :[-0.4, 0.4, 0.4],
     "max_velocity"  :10,
     "max_force"     :70,
     "action_repeat" :1,
     #Task
-    "task_type"             :"pnp",
+    "task_type"             :"pnpbgrip",
     "task_objects"          :[{"init":{"obj_name":"cube_holes","fixed":0,"rand_rot":0, "sampling_area":[-0.38,-0.38,0.42,0.42,0.1,0.1]},
-                           "goal":{"obj_name":"cube_target","fixed":1,"rand_rot":0, "sampling_area":[-0.2,-0.6,0.2,0.6,0.25,0.45]}}],
+                           "goal":{"obj_name":"cube_target","fixed":1,"rand_rot":0, "sampling_area":[-0.2,-0.5,0.2,0.6,0.25,0.45]}}],
     "color_dict"            : {"cube_holes":[[0.2,0.5,0.2,1]], "target":[[0.3,0.3,0.3,1]]},
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
     // Observation
@@ -30,7 +30,7 @@
     "distractors"           : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
                                        "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
     #Reward
-    "reward"        :"pnp",
+    "reward"        :"pnpbgrip",
     "distance_type" :"euclidean",
     "vae_path"      :null,
     "yolact_path"   :null,

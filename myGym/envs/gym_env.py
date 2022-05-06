@@ -117,7 +117,7 @@ class GymEnv(CameraEnv):
         reward_classes = {"1-network":   {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
                                               "distractor": VectorReward, "poke": PokeReachReward, "switch": SwitchReward,
                                               "btn": ButtonReward, "turn": TurnReward, "pnp":SingleStagePnP},
-                          "2-network":     {"poke": DualPoke, "pnp":TwoStagePnP},
+                          "2-network":     {"poke": DualPoke, "pnp":TwoStagePnP,"pnpbgrip":TwoStagePnPBgrip},
                           "3-network":     {"pnp":ThreeStagePnP}}
         print(self.num_networks)
         scheme = "{}-network".format(str(self.num_networks))

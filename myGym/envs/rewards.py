@@ -1257,6 +1257,9 @@ class TwoStagePnP(DualPoke):
             if self.task.calc_distance(gripper, object) <= 0.05:
                 self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
                 return True
+            else:
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[255, 0, 0, 1])
+                return False
         else:
             if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
                 self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
@@ -1304,15 +1307,23 @@ class TwoStagePnP(DualPoke):
         self.network_rewards[ix] += reward
         return reward
 
-class TwoStagePnPGripper(TwoStagePnP):
+class TwoStagePnPBgrip(TwoStagePnP):
 
     def gripper_reached_object(self, gripper, object):
         self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
-        if self.current_network == 0 and action[3] > 0.5:
-            self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
-        if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
-            self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
-            return True
+        #if self.current_network == 0:
+        #    self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+        if "gripper" in self.env.robot_action:
+            if self.task.calc_distance(gripper, object) <= 0.08:
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+                return True
+            else:
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[255, 0, 0, 1])
+                return False
+        else:
+            if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+                return True
         return False
 
 
