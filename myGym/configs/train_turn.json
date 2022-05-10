@@ -5,13 +5,16 @@
 "engine"    :"pybullet",
 "render"    :"opengl",
 "camera"    :1,
-"gui"       :0,
+"gui"       :1,
 "visualize" :0,
-"visgym"    :0,
+"visgym"    :1,
 #Robot
-"robot"         :"kuka",
+"robot"         :"kuka_gripper",
 "robot_action"  :"joints",
 "robot_init"    :[0.0, 0.3, 0.9],
+"max_velocity"  :1,
+"max_force"     :70,
+"action_repeat" :1,
 #Task
 "task_type"             :"turn",
 "task_objects"          :[{"init":{"obj_name":"null"},
@@ -41,8 +44,8 @@
 "pretrained_model"  :null,
 "multiprocessing"   :false,
 #Evaluation
-"eval_freq"     :20000,
-"eval_episodes" :20,
+"eval_freq"     :10000,
+"eval_episodes" :10,
 #Saving and logging
 "logdir"    :"trained_models/turn",
 "record"    :0

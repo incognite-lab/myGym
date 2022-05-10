@@ -12,6 +12,11 @@
 "robot":"kuka",
 "robot_action":"joints",
 "robot_init":[0.0, 0.5, 0.5],
+"robot_init"    :[0.0, 0.4, 0.6],
+"max_velocity"  :1,
+"max_force"     :100,
+"action_repeat" :1,
+
 #Task
 "task_type":"reach",
 "task_objects":[{"init":{"obj_name":"null"},

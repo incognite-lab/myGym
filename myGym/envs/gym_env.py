@@ -138,6 +138,7 @@ class GymEnv(CameraEnv):
         self._add_scene_object_uid(self._load_urdf(path="rooms/plane.urdf"), "floor")
         if self.visgym:
             self._add_scene_object_uid(self._load_urdf(path="rooms/room.urdf"), "gym")
+            #self._change_texture("gym", self._load_texture("verticalmaze.jpg"))
             [self._add_scene_object_uid(self._load_urdf(path="rooms/visual/" + self.workspace_dict[w]['urdf']), w)
              for w in self.workspace_dict if w != self.workspace]
         self._add_scene_object_uid(self._load_urdf(path="rooms/collision/"+self.workspace_dict[self.workspace]['urdf']), self.workspace)

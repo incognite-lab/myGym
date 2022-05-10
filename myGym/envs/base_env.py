@@ -91,7 +91,7 @@ class BaseEnv(gym.Env):
         """
         Set GUI parameters: camera, shadows, extra elements
         """
-        self.p.resetDebugVisualizerCamera(3.3, 0, -41, [0.0, 0.0, 0.33])
+        self.p.resetDebugVisualizerCamera(1.5, 225, -20, [0.0, 0.4, 0.2])
         self.p.configureDebugVisualizer(self.p.COV_ENABLE_SHADOWS, self.shadows_on_gui)
         self.p.configureDebugVisualizer(self.p.COV_ENABLE_GUI, 0)
 

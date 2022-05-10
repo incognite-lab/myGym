@@ -3,7 +3,7 @@ import numpy as np
 def get_workspace_dict():
     ws_dict = {'baskets':  {'urdf': 'baskets.urdf', 'texture': 'baskets.jpg',
                                             'transform': {'position':[3.18, -3.49, -1.05], 'orientation':[0.0, 0.0, -0.4*np.pi]},
-                                            'robot': {'position': [0.5, 0.5, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[0.56, -1.71, 0.6], [-1.3, 3.99, 0.6], [-3.43, 0.67, 1.0], [2.76, 2.68, 1.0], [-0.54, 1.19, 3.4]],
                                                         'target': [[0.53, -1.62, 0.59], [-1.24, 3.8, 0.55], [-2.95, 0.83, 0.8], [2.28, 2.53, 0.8], [-0.53, 1.2, 3.2]]},
                                             'borders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]},
@@ -21,7 +21,7 @@ def get_workspace_dict():
                                             'borders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]},
                                 'drawer':   {'urdf': 'drawer.urdf', 'texture': 'drawer.jpg',
                                             'transform': {'position':[-4.81, 1.75, -1.05], 'orientation':[0.0, 0.0, 0.0*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0, 0, 0.5*np.pi]},
+                                            'robot': {'position': [0.0, 0.2, 0.0], 'orientation': [0, 0, 0.5*np.pi]},
                                             'camera': {'position': [[-0.14, -1.63, 1.0], [-0.14, 3.04, 1.0], [-1.56, -0.92, 1.0], [1.2, -1.41, 1.0], [-0.18, 0.88, 2.5]],
                                                         'target': [[-0.14, -0.92, 0.8], [-0.14, 2.33, 0.8], [-0.71, -0.35, 0.7], [0.28, -0.07, 0.6], [-0.18, 0.84, 2.1]]},
                                             'borders':[-0.7, 0.7, 0.4, 1.3, 0.8, 0.1]},
