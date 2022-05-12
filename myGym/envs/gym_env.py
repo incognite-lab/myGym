@@ -151,7 +151,7 @@ class GymEnv(CameraEnv):
                   "init_joint_poses":self.robot_init_joint_poses, "max_velocity":self.max_velocity,
                     "max_force":self.max_force,"dimension_velocity":self.dimension_velocity,
                   "pybullet_client":self.p}
-        self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, **kwargs)
+        self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action,task_type=self.task_type, **kwargs)
         if self.workspace == 'collabtable':  self.human = robot.Robot('human', robot_action='joints', **kwargs)
 
     def _load_urdf(self, path, fixedbase=True, maxcoords=True):

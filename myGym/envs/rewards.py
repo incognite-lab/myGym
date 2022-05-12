@@ -1386,7 +1386,7 @@ class ThreeStagePnP(TwoStagePnP):
         # moving object above goal position (forced 2D reach)
         self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
         object_XY = object
-        goal_XY   = [goal[0], goal[1], goal[2]+0.3]
+        goal_XY   = [goal[0], goal[1], goal[2]+0.1]
         self.env.p.addUserDebugLine(object_XY, goal_XY, lifeTime=0.1)
         dist = self.task.calc_distance(object_XY, goal_XY)
         if self.last_move_dist is None or self.last_owner != 1:
