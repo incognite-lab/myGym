@@ -92,7 +92,7 @@ def test_env(env, arg_dict):
     debug_mode = True
     spawn_objects = False
     action_control = "keyboard" #"observation", "random", "keyboard" or "slider"
-    visualize_sampling = False
+    visualize_sampling = True
     visualize_traj = False
     env.render("human")
     #env.reset()
@@ -109,6 +109,7 @@ def test_env(env, arg_dict):
             p.setAdditionalSearchPath(pybullet_data.getDataPath())
             #newobject = p.loadURDF("cube.urdf", [3.1,3.7,0.1])
             #p.changeDynamics(newobject, -1, lateralFriction=1.00)
+            #p.setRealTimeSimulation(1)
             if action_control == "slider":
                 if "joints" in arg_dict["robot_action"]:
                     if 'gripper' in arg_dict["robot_action"]:

@@ -1386,7 +1386,7 @@ class ThreeStagePnP(TwoStagePnP):
         # moving object above goal position (forced 2D reach)
         self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
         object_XY = object
-        goal_XY   = [goal[0], goal[1], goal[2]+0.1]
+        goal_XY   = [goal[0], goal[1], goal[2]+0.2]
         self.env.p.addUserDebugLine(object_XY, goal_XY, lifeTime=0.1)
         dist = self.task.calc_distance(object_XY, goal_XY)
         if self.last_move_dist is None or self.last_owner != 1:
@@ -1420,9 +1420,19 @@ class ThreeStagePnP(TwoStagePnP):
 
     def gripper_reached_object(self, gripper, object):
         self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
-        self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
-        if len(self.env.robot.magnetized_objects) > 0:
-            return True
+        #if self.current_network == 0:
+        #    self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+        if "gripper" in self.env.robot_action:
+            if self.task.calc_distance(gripper, object) <= 0.08:
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+                return True
+            else:
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[255, 0, 0, 1])
+                return False
+        else:
+            if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+                return True
         return False
 
     def object_lifted(self, object, object_before_lift):
