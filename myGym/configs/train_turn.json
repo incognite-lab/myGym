@@ -13,7 +13,7 @@
 "robot_action"  :"joints",
 "robot_init"    :[0.0, 0.3, 0.9],
 "max_velocity"  :1,
-"max_force"     :70,
+"max_force"     :100,
 "action_repeat" :1,
 #Task
 "task_type"             :"turn",

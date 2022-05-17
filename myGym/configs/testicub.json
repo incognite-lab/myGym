@@ -12,6 +12,10 @@
 "robot"       :"icub",
 "robot_action":"joints",
 "robot_init"  :[0.0, 0.5, 0.2],
+"max_velocity"  :10,
+"max_force"     :70,
+"action_repeat" :1,
+
 #Task
 "task_type"           :"poke",
 "task_objects"          :[{"init":{"obj_name":"cube_poke","fixed":0,"rand_rot":0, "sampling_area":[0, 0, 0.6, 0.6, 0.1, 0.1]},
