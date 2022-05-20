@@ -561,6 +561,15 @@ class SwitchReward(DistanceReward):
                 self.x_obj += x
                 self.y_obj += y
                 self.z_obj += z
+    
+    def get_positions(self, observation):
+        goal_position = observation["goal_state"]
+        poker_position = observation["actual_state"]
+        #gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
+        #gripper_position = observation["additional_obs"]["endeff_xyz"]
+        #if self.prev_poker_position[0] is None:
+        #    self.prev_poker_position = poker_position
+        return goal_position,poker_position,poker_position
 
     @staticmethod
     def calc_direction_2d(x1, y1, x2, y2, x3, y3):
@@ -700,7 +709,7 @@ class ButtonReward(SwitchReward):
             :return reward: (float) Reward signal for the environment
         """
         goal = observation["goal_state"]
-        gripper_position = self.env.robot.get_accurate_gripper_position()
+        goal_position, object_position, gripper_position = self.get_positions(observation)
         self.set_variables(goal, gripper_position)
         self.set_offset(z=0.16)
 
@@ -793,7 +802,7 @@ class TurnReward(SwitchReward):
             :return reward: (float) Reward signal for the environment
         """
         goal = observation["goal_state"]
-        gripper_position = self.env.robot.get_accurate_gripper_position()
+        goal_position, object_position, gripper_position = self.get_positions(observation)
         self.set_variables(goal, gripper_position)
         self.set_offset(z=0.1)
 

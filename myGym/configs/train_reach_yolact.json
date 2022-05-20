@@ -36,8 +36,8 @@
 "reward":"distance",
 "distance_type":"euclidean",
 "vae_path":null,
-"yolact_path":"trained_models/weights_yolact_mygym_23/crow_base_15_266666.pth",
-"yolact_config":"trained_models/weights_yolact_mygym_23/config_train_15.obj",
+"yolact_path":"/home/michal/code/myGym/myGym/trained_models/weights_yolact_mygym_23/crow_base_15_266666.pth",
+"yolact_config":"/home/michal/code/myGym/myGym/trained_models/weights_yolact_mygym_23/config_train_15.obj",
 #Train
 "train_framework":"tensorflow",
 "algo":"ppo2",

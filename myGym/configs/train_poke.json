@@ -9,11 +9,11 @@
 "visualize":0,
 "visgym"   :0,
 #Robot
-"robot"         :"kuka_gripper",
+"robot"         :"kuka_push",
 "robot_action"  :"joints",
 "robot_init"    :[0.0, 0.3, 0.9],
-"max_velocity"  :10,
-"max_force"     :70,
+"max_velocity"  :40,
+"max_force"     :300,
 "action_repeat" :1,
 
 #Task

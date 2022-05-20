@@ -4,12 +4,12 @@
 "workspace" :"table",
 "engine"    :"pybullet",
 "render"    :"opengl",
-"camera"    :1,
-"gui"       :1,
+"camera"    :0,
+"gui"       :0,
 "visualize" :0,
 "visgym"    :0,
 #Robot
-"robot"         :"kuka",
+"robot"         :"kuka_push",
 "robot_action"  :"step",
 "robot_init"    :[-0.4, 0.4, 0.4],
 "max_velocity"  :1,
@@ -43,13 +43,13 @@
 "num_networks" : 1,
 "max_episode_steps" :1024,
 "algo_steps"        :1024,
-"steps"             :5000000,
+"steps"             :2000000,
 "pretrained_model"  :null,
 "multiprocessing"   :false,
 #Evaluation
 "eval_freq"     :500000,
 "eval_episodes" :100,
 #Saving and logging
-"logdir"    :"trained_models/reach",
+"logdir"    :"trained_models/reachmulti",
 "record"    :0
 }
