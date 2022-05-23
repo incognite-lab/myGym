@@ -128,6 +128,7 @@ class DistanceReward(Reward):
 
         return norm_diff
 
+
 class ComplexDistanceReward(DistanceReward):
     """
     Reward class for reward signal calculation based on distance differences between 3 objects, e.g. 2 objects and gripper for complex tasks
@@ -560,6 +561,15 @@ class SwitchReward(DistanceReward):
                 self.x_obj += x
                 self.y_obj += y
                 self.z_obj += z
+    
+    def get_positions(self, observation):
+        goal_position = observation["goal_state"]
+        poker_position = observation["actual_state"]
+        #gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
+        #gripper_position = observation["additional_obs"]["endeff_xyz"]
+        #if self.prev_poker_position[0] is None:
+        #    self.prev_poker_position = poker_position
+        return goal_position,poker_position,poker_position
 
     @staticmethod
     def calc_direction_2d(x1, y1, x2, y2, x3, y3):
@@ -699,7 +709,7 @@ class ButtonReward(SwitchReward):
             :return reward: (float) Reward signal for the environment
         """
         goal = observation["goal_state"]
-        gripper_position = self.env.robot.get_accurate_gripper_position()
+        goal_position, object_position, gripper_position = self.get_positions(observation)
         self.set_variables(goal, gripper_position)
         self.set_offset(z=0.16)
 
@@ -792,7 +802,7 @@ class TurnReward(SwitchReward):
             :return reward: (float) Reward signal for the environment
         """
         goal = observation["goal_state"]
-        gripper_position = self.env.robot.get_accurate_gripper_position()
+        goal_position, object_position, gripper_position = self.get_positions(observation)
         self.set_variables(goal, gripper_position)
         self.set_offset(z=0.1)
 
@@ -1134,49 +1144,100 @@ class DualPoke(PokeReachReward):
 
 
 # pick and place rewards
-
-class DualPickAndPlace(DualPoke):
+class SingleStagePnP(DistanceReward):
     """
-    Pick and place with two neural networks, gripper is operated automatically.
+    Pick and place with simple Distance reward. The gripper is operated automatically.
+    Applicable for 1 network.
 
     Parameters:
         :param env: (object) Environment, where the training takes place
         :param task: (object) Task that is being trained, instance of a class TaskModule
     """
     def __init__(self, env, task):
-        super(DualPickAndPlace, self).__init__(env, task)
+        super(SingleStagePnP, self).__init__(env, task)
+        self.before_pick = True
 
-        self.object_before_lift = [None]*3
-        self.gripped      = None
-        self.lifted    = False
-        self.last_owner = None
-        self.last_find_dist  = None
-        self.last_lift_dist  = None
-        self.last_move_dist  = None
-        self.last_place_dist = None
-        self.current_network = 0
-        self.network_rewards = [0,0]
+    def compute(self, observation):
+        """
+        Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
+
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        o1 = observation["actual_state"]
+        o2 = observation["goal_state"]
+        if self.gripper_reached_object(observation):
+            self.before_pick = False
+        reward = self.calc_dist_diff(o1, o2)
+        if self.task.calc_distance(o1, o2) < 0.1:
+            self.env.robot.release_all_objects()
+            self.env.episode_over = True
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def gripper_reached_object(self, observation):
+        gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
+        gripper = observation["additional_obs"][gripper_name][:3]
+        object = observation["actual_state"]
+        self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
+        if self.before_pick:
+            self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+        if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
+            self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+            return True
+        return False
 
     def reset(self):
         """
         Reset stored value of distance between 2 objects. Call this after the end of an episode.
         """
+        self.prev_obj1_position = None
+        self.prev_obj2_position = None
+        self.before_pick = True
 
-        self.object_before_lift = [None]*3
-        self.gripped      = None
-        self.lifted    = False
+class TwoStagePnP(DualPoke):
+    """
+    Pick and place with two rewarded stages - find and move, gripper is operated automatically.
+    Applicable for 1 or 2 networks.
+
+    Parameters:
+        :param env: (object) Environment, where the training takes place
+        :param task: (object) Task that is being trained, instance of a class TaskModule
+    """
+    def __init__(self, env, task):
+        super(TwoStagePnP, self).__init__(env, task)
         self.last_owner = None
         self.last_find_dist  = None
         self.last_lift_dist  = None
         self.last_move_dist  = None
         self.last_place_dist = None
         self.current_network = 0
-        self.network_rewards = [0,0]
+        self.num_networks = env.num_networks
+        self.check_num_networks()
+        self.network_rewards = [0] * self.num_networks
+
+    def check_num_networks(self):
+        assert self.num_networks <= 2, "TwosStagePnP reward can work with maximum 2 networks"
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+        self.last_owner = None
+        self.last_find_dist  = None
+        self.last_lift_dist  = None
+        self.last_move_dist  = None
+        self.last_place_dist = None
+        self.current_network = 0
+        self.network_rewards = [0] * self.num_networks
+
 
     def compute(self, observation=None):
         """
         Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
-
         Params:
             :param observation: (list) Observation of the environment
         Returns:
@@ -1187,26 +1248,33 @@ class DualPickAndPlace(DualPoke):
         if owner   == 0: reward = self.find_compute(gripper_position, object_position)
         elif owner == 1: reward = self.move_compute(object_position, goal_position)
         self.last_owner = owner
-        self.task.check_distance_threshold(observation, threshold=0.12)
+        self.task.check_goal()
         self.rewards_history.append(reward)
         return reward
 
     def decide(self, observation=None):
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        self.current_network = 0
         if self.gripper_reached_object(gripper_position, object_position):
             self.current_network= 1
         return self.current_network
 
     def gripper_reached_object(self, gripper, object):
         self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
-        self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
-        if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
-            self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
-            return True
-        if len(self.env.robot.magnetized_objects)>0:
-            return True
+        #if self.current_network == 0:
+        #    self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+        if "gripper" in self.env.robot_action:
+            if self.task.calc_distance(gripper, object) <= 0.05:
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+                return True
+            else:
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[255, 0, 0, 1])
+                return False
+        else:
+            if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+                return True
         return False
+
 
     def find_compute(self, gripper, object):
         # initial reach
@@ -1226,18 +1294,16 @@ class DualPickAndPlace(DualPoke):
 
     def move_compute(self, object, goal):
         # reach of goal position + task object height in Z axis and release
-        self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
         dist = self.task.calc_distance(object, goal)
         self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.5,0.5,0.7], lifeTime=0.1, textColorRGB=[0, 125, 0])
         if self.last_place_dist is None:
             self.last_place_dist = dist
         if self.last_owner != 1:
             self.last_place_dist = dist
-
         reward = self.last_place_dist - dist
         reward = reward * 10
         self.last_place_dist = dist
-
         if self.last_owner == 1 and dist < 0.1:
             self.env.robot.release_all_objects()
             self.gripped = None
@@ -1246,47 +1312,49 @@ class DualPickAndPlace(DualPoke):
             self.env.episode_info = "Task finished in initial configuration"
             self.env.robot.release_all_objects()
             self.env.episode_over = True
-        self.network_rewards[1] += reward
+        ix = 1 if self.num_networks > 1 else 0
+        self.network_rewards[ix] += reward
         return reward
 
-class ConsequentialPickAndPlace(DualPickAndPlace):
+class TwoStagePnPBgrip(TwoStagePnP):
+
+    def gripper_reached_object(self, gripper, object):
+        self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
+        #if self.current_network == 0:
+        #    self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+        if "gripper" in self.env.robot_action:
+            if self.task.calc_distance(gripper, object) <= 0.08:
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+                return True
+            else:
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[255, 0, 0, 1])
+                return False
+        else:
+            if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+                return True
+        return False
+
+
+class ThreeStagePnP(TwoStagePnP):
     """
-    Pick and place with three neural networks, gripper is NOT operated by neural network (grasping automatic)
+    Pick and place with three rewarded stages - find, move and place, gripper is operated automatically.
+    Applicable for 1, 2 or 3 networks.
 
     Parameters:
         :param env: (object) Environment, where the training takes place
         :param task: (object) Task that is being trained, instance of a class TaskModule
     """
     def __init__(self, env, task):
-        super(ConsequentialPickAndPlace, self).__init__(env, task)
+        super(ThreeStagePnP, self).__init__(env, task)
+        self.was_above = False
 
-        self.object_before_lift = [None]*3
-        self.countdown = None
-        self.gripped      = None
-        self.lifted    = False
-        self.last_owner = None
-        self.last_find_dist  = None
-        self.last_lift_dist  = None
-        self.last_move_dist  = None
-        self.last_place_dist = None
-        self.current_network = 0
-        self.network_rewards = [0,0,0]
+    def check_num_networks(self):
+        assert self.num_networks <= 3, "TwosStagePnP reward can work with maximum 3 networks"
 
     def reset(self):
-        """
-        Reset stored value of distance between 2 objects. Call this after the end of an episode.
-        """
-
-        self.object_before_lift = [None]*3
-        self.gripped      = None
-        self.lifted    = False
-        self.last_owner = None
-        self.last_find_dist  = None
-        self.last_lift_dist  = None
-        self.last_move_dist  = None
-        self.last_place_dist = None
-        self.current_network = 0
-        self.network_rewards = [0,0,0]
+        super(ThreeStagePnP, self).reset()
+        self.was_above = False
 
     def compute(self, observation=None):
         """
@@ -1299,63 +1367,56 @@ class ConsequentialPickAndPlace(DualPickAndPlace):
         """
         owner = self.decide(observation)
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        reward = [self.find_compute(gripper_position, object_position),self.move_compute(object_position, goal_position),
-                  self.place_compute(object_position, goal_position)][owner]
+        target = [[gripper_position,object_position], [object_position, goal_position], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute, self.place_compute][owner](*target)
         self.last_owner = owner
-        self.task.check_pnp_threshold(observation)
+        self.task.check_goal()
         self.rewards_history.append(reward)
         return reward
 
-    def find_compute(self, gripper, object):
-        # initial reach
-        self.env.p.addUserDebugText("find", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
-        dist = self.task.calc_distance(gripper, object)
-        if self.last_find_dist is None:
-            self.last_find_dist = dist
-        if self.last_owner != 0:
-            self.last_find_dist = dist
-        reward = self.last_find_dist - dist
-        self.last_find_dist = dist
-        if self.task.check_object_moved(self.env.task_objects["actual_state"], threshold=1.2):
-            self.env.episode_over   = True
-            self.env.episode_failed = True
-        self.network_rewards[0] += reward
-        return reward
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_above_goal(object_position, goal_position) or self.was_above:
+            self.current_network = 2
+            self.was_above = True
+        return self.current_network
+
+    def object_above_goal(self, object, goal):
+        goal_XY   = [goal[0],   goal[1],   0]
+        object_XY = [object[0], object[1], 0]
+        distance  = self.task.calc_distance(goal_XY, object_XY)
+        if distance < 0.1:
+            return True
+        return False
 
     def move_compute(self, object, goal):
         # moving object above goal position (forced 2D reach)
         self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
-
         object_XY = object
         goal_XY   = [goal[0], goal[1], goal[2]+0.2]
-
         self.env.p.addUserDebugLine(object_XY, goal_XY, lifeTime=0.1)
-
         dist = self.task.calc_distance(object_XY, goal_XY)
-        if self.last_move_dist is None:
+        if self.last_move_dist is None or self.last_owner != 1:
            self.last_move_dist = dist
-        if self.last_owner != 1:
-           self.last_move_dist = dist
-
         reward = self.last_move_dist - dist
         self.last_move_dist = dist
-        self.network_rewards[1]  += reward
+        ix = 1 if self.num_networks > 1 else 0
+        self.network_rewards[ix] += reward
         return reward
+
 
     def place_compute(self, object, goal):
         # reach of goal position + task object height in Z axis and release
         self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        self.env.p.addUserDebugLine(object, goal, lifeTime=0.1)
         dist = self.task.calc_distance(object, goal)
-
-        if self.last_place_dist is None:
+        if self.last_place_dist is None or self.last_owner != 2:
             self.last_place_dist = dist
-        if self.last_owner != 2:
-            self.last_place_dist = dist
-
         reward = self.last_place_dist - dist
         reward = reward * 10
         self.last_place_dist = dist
-
         if self.last_owner == 2 and dist < 0.1:
             self.env.robot.release_all_objects()
             self.gripped = None
@@ -1363,34 +1424,24 @@ class ConsequentialPickAndPlace(DualPickAndPlace):
         if self.env.episode_steps <= 2:
             self.env.episode_info = "Task finished in initial configuration"
             self.env.episode_over = True
-
-        self.network_rewards[2]  += reward
+        self.network_rewards[-1] += reward
         return reward
-
-    def decide(self, observation=None):
-        goal_position, object_position, gripper_position = self.get_positions(observation)
-        self.current_network= 1
-        if not self.gripper_reached_object(gripper_position, object_position):
-            self.current_network= 0
-        if self.object_above_goal(object_position, goal_position):
-            self.current_network = 2
-        return self.current_network
-
-    def get_positions(self, observation):
-        goal_position    = observation["goal_state"]
-        object_position  = observation["actual_state"]
-        gripper_name = [x for x in observation["additional_obs"].keys() if "endeff" in x][0]
-        gripper_position = observation["additional_obs"][gripper_name][:3]
-
-        if self.object_before_lift[0] is None:
-            self.object_before_lift = object_position
-        return goal_position,object_position,gripper_position
 
     def gripper_reached_object(self, gripper, object):
         self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
-        self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
-        if len(self.env.robot.magnetized_objects) > 0:
-            return True
+        #if self.current_network == 0:
+        #    self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+        if "gripper" in self.env.robot_action:
+            if self.task.calc_distance(gripper, object) <= 0.08:
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+                return True
+            else:
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[255, 0, 0, 1])
+                return False
+        else:
+            if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+                return True
         return False
 
     def object_lifted(self, object, object_before_lift):
@@ -1412,7 +1463,7 @@ class ConsequentialPickAndPlace(DualPickAndPlace):
             return True
         return False
 
-class GripperPickAndPlace(ConsequentialPickAndPlace):
+class GripperPickAndPlace():
     """
     Pick and place with three neural networks, gripper is operated by one of these networks
 

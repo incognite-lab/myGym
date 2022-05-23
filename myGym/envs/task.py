@@ -190,7 +190,7 @@ class TaskModule():
         self.current_norm_distance = self.calc_distance(observation["goal_state"], observation["actual_state"])
         return self.current_norm_distance < threshold
 
-    def check_points_distance_threshold(self, threshold=0.12):
+    def check_points_distance_threshold(self, threshold=0.1):
         o1 = self.env.task_objects["actual_state"]
         if (self.task_type == 'pnp') and (self.env.robot_action != 'joints_gripper') and (len(self.env.robot.magnetized_objects) == 0):
             o2 = self.env.robot
@@ -210,7 +210,7 @@ class TaskModule():
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
         finished = None
-        if self.task_type in ['reach', 'poke', 'pnp']:
+        if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip']:
             finished = self.check_distance_threshold(self._observation)
         if self.task_type in ['push', 'throw']:
             finished = self.check_points_distance_threshold()
@@ -220,11 +220,11 @@ class TaskModule():
             finished = self.env.reward.get_angle() >= 1.71
         if self.task_type == "turn":
             finished = self.check_turn_threshold()
-        if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
-            if len(self.env.robot.magnetized_objects) == 0 and self.env.episode_steps > 5:
-                self.env.episode_over = False
-            else:
-                self.end_episode_success()
+        #if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
+        #    if len(self.env.robot.magnetized_objects) == 0 and self.env.episode_steps > 5:
+        #        self.end_episode_success()
+        #    else:
+        #        self.env.episode_over = False
         elif finished:
             self.end_episode_success()
         if self.check_time_exceeded() or self.env.episode_steps == self.env.max_steps:

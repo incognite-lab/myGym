@@ -9,24 +9,32 @@ import argparse
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-cfg", "--config", type=str, default="./configs/tester.json", help="config file for evaluation")
-parser.add_argument("-rob", "--robot",  default=["kuka"], nargs='*', help="what robots to test")
-parser.add_argument("-ra", "--robotaction",  default=["step"], nargs='*', help="what actions to test")
+parser.add_argument("-cfg", "--config", type=str, default="./configs/pnp_2n_mag.json", help="config file for evaluation")
+parser.add_argument("-b", "--robot",  default=["kuka_gripper","panda1"], nargs='*', help="what robots to test")
+parser.add_argument("-ba", "--robot_action",  default=["absolute","step"], nargs='*', help="what actions to test")
+parser.add_argument("-ar", "--action_repeat", default=[1], nargs='*', help="simuilation steps without env action")
+parser.add_argument("-mv", "--max_velocity", default=[1,20], nargs='*', help="arm speed")
+parser.add_argument("-mf", "--max_force", default=[1,50,100,300], nargs='*', help="arm force")
 parser.add_argument("-frame", "--framework", default=["tensorflow"], nargs='*', help="what algos to test")
-parser.add_argument("-algo", "--algorithms", default=["ppo", "ppo2", "sac", "acktr", "ddpg", "td3", "trpo", "a2c", "myalgo"], nargs='*', help="what algos to test")
+#parser.add_argument("-algo", "--algorithms", default=["ppo", "ppo2", "sac", "acktr", "ddpg", "td3", "trpo", "a2c", "myalgo","multi"], nargs='*', help="what algos to test")
+parser.add_argument("-algo", "--algorithms", default=["ppo2","acktr","multi"], nargs='*', help="what algos to test")
+parser.add_argument("-l", "--logdir",type=str, default="./trained_models/temp", help="where to save the results")
 parser.add_argument("-thread", "--threaded", type=bool, default="True", help="run in threads")
-parser.add_argument("-out", "--output", type=str, default="./trained_models/tester.json", help="output file")
+parser.add_argument("-out", "--output", type=str, default="./trained_models/testermag.json", help="output file")
 
 args = parser.parse_args()
 
 parameters = {
     "robot": args.robot,
-    "robot_action": args.robotaction,
+    "robot_action": args.robot_action,
     "algo": args.algorithms,
-    "train_framework": args.framework,
+    "max_velocity": args.max_velocity,
+    "max_force": args.max_force,
+    "action_repeat": args.action_repeat
 }
 parameter_grid = ParameterGrid(parameters)
 configfile = args.config
+logdirfile = args.logdir
 evaluation_results_paths = [None] * len(parameter_grid)
 threaded = args.threaded
 last_eval_results = {}
@@ -34,7 +42,7 @@ last_eval_results = {}
 
 def train(params, i):
     print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
-    command = 'python train.py --config {configfile} '.format(configfile=configfile) + " ".join(f"--{key} {value}" for key, value in params.items())
+    command = 'python train.py --config {configfile} --logdir {logdirfile} '.format(configfile=configfile, logdirfile=logdirfile) + " ".join(f"--{key} {value}" for key, value in params.items())
     output = subprocess.check_output(command.split())
     evaluation_results_paths[i] = output.splitlines()[-1].decode('UTF-8') + "/evaluation_results.json"
     with open(evaluation_results_paths[i]) as f:

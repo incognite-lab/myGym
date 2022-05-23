@@ -221,7 +221,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
                  env="None",
                  stats_every=50,
                  save_success_graph_every_steps=40_000,
-                 save_model_every_steps=50_000,
+                 save_model_every_steps=500_000,
                  success_graph_mean_past_episodes=30,
                  multiprocessing=0):
         super(SaveOnBestTrainingRewardCallback, self).__init__(verbose)

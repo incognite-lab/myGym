@@ -215,8 +215,9 @@ class MultiPPO2(ActorCriticRLModel):
 
                 # Unpack
                 i = 0
-                for rollout in rollouts:
-                    obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward = rollout
+                steps_used = rollouts[-1]
+                for rollout in rollouts[0]:
+                    obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward, success_stages = rollout
                     model = self.models[i]
                     # calc = len(true_reward)
                     # model.n_batch = calc
@@ -228,15 +229,18 @@ class MultiPPO2(ActorCriticRLModel):
                         mb_loss_vals = []
                         if states is None:  # nonrecurrent version
                             update_fac = max(model.n_batch // self.nminibatches // self.noptepochs, 1)
-                            inds = np.arange(model.n_batch)
+                            inds = np.arange(len(obs))#np.arange(model.n_batch)
                             for epoch_num in range(self.noptepochs):
                                 np.random.shuffle(inds)
                                 for start in range(0, model.n_batch, batch_size):
                                     timestep = self.num_timesteps // update_fac + ((epoch_num * model.n_batch + start) // batch_size)
                                     end      = start + batch_size
                                     mbinds   = inds[start:end]
-                                    slices   = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                                    mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, model=self.models[i], writer=writer, update=timestep, cliprange_vf=cliprange_vf_now))
+                                    if len(obs) > 1:
+                                        slices   = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
+                                        mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, model=self.models[i], writer=writer, update=timestep, cliprange_vf=cliprange_vf_now))
+                                    else:
+                                        mb_loss_vals.append((0,0,0,0,0))
                             i+=1
                         else:
                             exit("does not support recurrent version")
@@ -247,7 +251,18 @@ class MultiPPO2(ActorCriticRLModel):
 
                         if writer is not None:
                             n_steps = model.n_batch
-                            total_episode_reward_logger(self.episode_reward, true_reward.reshape((self.n_envs, n_steps)), masks.reshape((self.n_envs, n_steps)), writer, self.num_timesteps)
+                            try:
+                                total_episode_reward_logger(self.episode_reward, true_reward.reshape((self.n_envs, n_steps)), masks.reshape((self.n_envs, n_steps)), writer, self.num_timesteps)
+                            except:
+                                print("Failed to log episode reward of shape {}".format(true_reward.shape))
+                            summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/Successful stages',
+                                                                         simple_value=success_stages)])
+                            writer.add_summary(summary, self.num_timesteps)
+                            #@TODO plot in one graph:
+                            for i, val in enumerate(steps_used):
+                                summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/Used steps net {}'.format(i),
+                                                                              simple_value=val)])
+                                writer.add_summary(summary, self.num_timesteps)
 
                         if self.verbose >= 1 and (update % log_interval == 0 or update == 1):
                             explained_var = explained_variance(values, returns)
@@ -395,6 +410,7 @@ class MultiPPO2(ActorCriticRLModel):
 class SubModel(MultiPPO2):
     def __init__(self, parent, i):
         self.episode_reward  = 0
+        self.model_num = i
         self._param_load_ops = None
         self.path = parent.tensorboard_log + "/submodel_" + str(i)
         try:
@@ -430,7 +446,7 @@ class SubModel(MultiPPO2):
                 with tf.variable_scope("train_model", reuse=True, custom_getter=tf_util.outer_scope_getter("train_model")):
                     train_model = parent.policy(self.sess, self.observation_space, parent.action_space, parent.n_envs // parent.nminibatches, parent.n_steps, n_batch_train, reuse=True, **parent.policy_kwargs)
 
-                with tf.variable_scope("loss", reuse=False):
+                with tf.variable_scope("loss_network_{}".format(self.model_num), reuse=False):
                     self.action_ph          = train_model.pdtype.sample_placeholder([None], name="action_ph")
                     self.advs_ph            = tf.placeholder(tf.float32, [None], name="advs_ph")
                     self.rewards_ph         = tf.placeholder(tf.float32, [None], name="rewards_ph")
@@ -483,7 +499,7 @@ class SubModel(MultiPPO2):
                     tf.summary.scalar('value_function_loss'         , self.vf_loss)
                     tf.summary.scalar('approximate_kullback-leibler', self.approxkl)
                     tf.summary.scalar('clip_factor'                 , self.clipfrac)
-                    tf.summary.scalar('loss'                        , loss)
+                    tf.summary.scalar('loss', loss)
 
                     with tf.variable_scope('model'):
                         self.params = tf.trainable_variables()
@@ -633,7 +649,9 @@ class Runner(AbstractEnvRunner):
 
             model = self.models[owner]
             actions, values, self.states, neglogpacs = model.step(self.obs, self.states, self.dones)
-
+            successful_stages = self.env.envs[0].env.env.reward.current_network
+            if self.states:
+                successful_stages += 1
             minibatch = minibatches[owner]
             mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = minibatch
 
@@ -701,12 +719,13 @@ class Runner(AbstractEnvRunner):
             except:
               print("first model took all the steps")
 
-            finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward
+            finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
             finished_minibatches.append(finished_minibatch)
             i+=1
-        return finished_minibatches
+        steps_taken = [finished_minibatches[x][0].shape[0] for x in range(len(finished_minibatches))]
+        return finished_minibatches, steps_taken
 
-        return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward
+        return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
 
 def swap_and_flatten(arr):
     """

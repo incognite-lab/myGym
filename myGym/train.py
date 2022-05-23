@@ -71,7 +71,9 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
 def configure_env(arg_dict, model_logdir=None, for_train=True):
     env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                      "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
-                     "robot_action": arg_dict["robot_action"], "task_type": arg_dict["task_type"],
+                     "robot_action": arg_dict["robot_action"],"max_velocity": arg_dict["max_velocity"], 
+                     "max_force": arg_dict["max_force"],"task_type": arg_dict["task_type"],
+                     "action_repeat": arg_dict["action_repeat"],
                      "task_objects":arg_dict["task_objects"], "observation":arg_dict["observation"], "distractors":arg_dict["distractors"],
                      "num_networks":arg_dict.get("num_networks", 1), "network_switcher":arg_dict.get("network_switcher", "gt"),
                      "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
@@ -187,7 +189,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     #Envinronment
-    parser.add_argument("-cfg", "--config", default="configs/train.json", help="Can be passed instead of all arguments")
+    parser.add_argument("-cfg", "--config", default="configs/train_pnp_3n.json", help="Can be passed instead of all arguments")
     parser.add_argument("-n", "--env_name", type=str, help="The name of environment")
     parser.add_argument("-ws", "--workspace", type=str, help="The name of workspace")
     parser.add_argument("-p", "--engine", type=str,  help="Name of the simulation engine you want to use")
@@ -200,6 +202,9 @@ def get_parser():
     parser.add_argument("-b", "--robot", type=str, help="Robot to train: kuka, panda, jaco ...")
     parser.add_argument("-bi", "--robot_init", nargs="*", type=float, help="Initial robot's end-effector position")
     parser.add_argument("-ba", "--robot_action", type=str, help="Robot's action control: step - end-effector relative position, absolute - end-effector absolute position, joints - joints' coordinates")
+    parser.add_argument("-mv", "--max_velocity", type=float, help="Maximum velocity of robotic arm")
+    parser.add_argument("-mf", "--max_force", type=float, help="Maximum force of robotic arm")
+    parser.add_argument("-ar", "--action_repeat", type=int, help="Substeps of simulation without action from env")
     #Task
     parser.add_argument("-tt", "--task_type", type=str,  help="Type of task to learn: reach, push, throw, pick_and_place")
     parser.add_argument("-to", "--task_objects", nargs="*", type=str, help="Object (for reach) or a pair of objects (for other tasks) to manipulate with")
@@ -259,7 +264,7 @@ def main():
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
     if not os.path.isabs(arg_dict["logdir"]):
-        arg_dict["logdir"] = pkg_resources.resource_filename("myGym", arg_dict["logdir"])
+        arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
     model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["task_type"],arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["algo"])))
     model_logdir = model_logdir_ori

@@ -53,6 +53,8 @@ class GymEnv(CameraEnv):
                  color_dict={},
                  robot='kuka',
                  robot_action="step",
+                 max_velocity = 1,
+                 max_force = 30,
                  robot_init_joint_poses=[],
                  task_type='reach',
                  num_networks=1,
@@ -78,6 +80,9 @@ class GymEnv(CameraEnv):
         self.network_switcher       = network_switcher
         self.robot_init_joint_poses = robot_init_joint_poses
         self.robot_action           = robot_action
+        self.max_velocity           = max_velocity
+        self.max_force              = max_force
+        self.action_repeat          = action_repeat
         self.dimension_velocity     = dimension_velocity
         self.active_cameras         = active_cameras
         self.used_objects           = used_objects
@@ -109,11 +114,13 @@ class GymEnv(CameraEnv):
             self.has_distractor = True
             self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
 
-        reward_classes = {"single network":   {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
+        reward_classes = {"1-network":   {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
                                               "distractor": VectorReward, "poke": PokeReachReward, "switch": SwitchReward,
-                                              "btn": ButtonReward, "turn": TurnReward, "pnp":DualPickAndPlace},
-                          "multinetwork":     {"poke": DualPoke, "pnp":GripperPickAndPlace, "distance": DistanceReward,  "complex_distance": ComplexDistanceReward}}
-        scheme = "multinetwork" if self.num_networks > 1 else "single network"
+                                              "btn": ButtonReward, "turn": TurnReward, "pnp":SingleStagePnP},
+                          "2-network":     {"poke": DualPoke, "pnp":TwoStagePnP,"pnpbgrip":TwoStagePnPBgrip},
+                          "3-network":     {"pnp":ThreeStagePnP}}
+        print(self.num_networks)
+        scheme = "{}-network".format(str(self.num_networks))
         assert reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
         self.reward = reward_classes[scheme][reward](env=self, task=self.task)
         self.dataset   = dataset
@@ -131,6 +138,7 @@ class GymEnv(CameraEnv):
         self._add_scene_object_uid(self._load_urdf(path="rooms/plane.urdf"), "floor")
         if self.visgym:
             self._add_scene_object_uid(self._load_urdf(path="rooms/room.urdf"), "gym")
+            #self._change_texture("gym", self._load_texture("verticalmaze.jpg"))
             [self._add_scene_object_uid(self._load_urdf(path="rooms/visual/" + self.workspace_dict[w]['urdf']), w)
              for w in self.workspace_dict if w != self.workspace]
         self._add_scene_object_uid(self._load_urdf(path="rooms/collision/"+self.workspace_dict[self.workspace]['urdf']), self.workspace)
@@ -140,9 +148,10 @@ class GymEnv(CameraEnv):
         self.objects_area_borders = self.workspace_dict[self.workspace]['borders']
         kwargs = {"position": self.workspace_dict[self.workspace]['robot']['position'],
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
-                  "init_joint_poses":self.robot_init_joint_poses, "dimension_velocity":self.dimension_velocity,
+                  "init_joint_poses":self.robot_init_joint_poses, "max_velocity":self.max_velocity,
+                    "max_force":self.max_force,"dimension_velocity":self.dimension_velocity,
                   "pybullet_client":self.p}
-        self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, **kwargs)
+        self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action,task_type=self.task_type, **kwargs)
         if self.workspace == 'collabtable':  self.human = robot.Robot('human', robot_action='joints', **kwargs)
 
     def _load_urdf(self, path, fixedbase=True, maxcoords=True):
@@ -178,10 +187,15 @@ class GymEnv(CameraEnv):
         Set action space dimensions and range
         """
         action_dim = self.robot.get_action_dimension()
-        if self.robot_action in ["step", "joints_step"]:
+        if "step" in self.robot_action:
             self.action_low = np.array([-1] * action_dim)
             self.action_high = np.array([1] * action_dim)
-        elif self.robot_action == "absolute":
+            #if "gripper" in self.robot_action:
+            #    self.action_low = np.insert(self.action_low, action_dim, self.robot.gjoints_limits[0][1])
+            #    self.action_high = np.insert(self.action_high, action_dim,self.robot.gjoints_limits[1][1])
+                
+
+        elif "absolute" in self.robot_action:
             if any(isinstance(i, list) for i in self.objects_area_borders):
                 borders_max = np.max(self.objects_area_borders,0)
                 borders_min = np.min(self.objects_area_borders,0)
@@ -190,15 +204,18 @@ class GymEnv(CameraEnv):
             else:
                 self.action_low = np.array(self.objects_area_borders[0:7:2])
                 self.action_high = np.array(self.objects_area_borders[1:7:2])
-        elif self.robot_action in ["joints", "joints_gripper"]:
+            
+
+        elif "joints" in self.robot_action:
             self.action_low = np.array(self.robot.joints_limits[0])
             self.action_high = np.array(self.robot.joints_limits[1])
-        if "gripper" in self.robot_action:
-            self.action_low = np.insert(self.action_low, action_dim, 0)
-            self.action_high = np.insert(self.action_high, action_dim, 1)
-            action_dim += 1
 
-        self.action_space = spaces.Box(np.array([-1]*action_dim), np.array([1]*action_dim))
+        if "gripper" in self.robot_action:
+            self.action_low = np.append(self.action_low, np.array(self.robot.gjoints_limits[0]))
+            self.action_high = np.append(self.action_high, np.array(self.robot.gjoints_limits[1]))
+
+
+        self.action_space = spaces.Box(self.action_low, self.action_high)
 
     def _rescale_action(self, action):
         """
@@ -287,7 +304,7 @@ class GymEnv(CameraEnv):
             :return done: (bool) Whether this stop is episode's final
             :return info: (dict) Additional information about step
         """
-        self._apply_action_robot(self._rescale_action(action))
+        self._apply_action_robot(action)
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
         if self.dataset: reward, done, info = 0, False, {}
@@ -296,9 +313,10 @@ class GymEnv(CameraEnv):
             self.episode_reward += reward
             self.task.check_goal()
             done = self.episode_over
-            info = {'d': self.task.last_distance / self.task.init_distance, 'f': int(self.episode_failed)}
+            info = {'d': self.task.last_distance / self.task.init_distance, 'f': int(self.episode_failed), 'o': self._observation}
         if done: self.successful_finish(info)
         if self.task.subtask_over: self.reset(only_subtask=True)
+        #return self._observation, reward, done, info
         return self.flatten_obs(self._observation.copy()), reward, done, info
 
     def compute_reward(self, achieved_goal, desired_goal, info):
@@ -325,12 +343,13 @@ class GymEnv(CameraEnv):
             :param action: (list) Action data returned by trained model
         """
         for i in range(self.action_repeat):
-            objects = self.env_objects if "gripper" in self.robot_action else None
+            objects = self.env_objects
             self.robot.apply_action(action, env_objects=objects)
             if hasattr(self, 'human'):
                 self.human.apply_action(np.random.uniform(self.human.joints_limits[0], self.human.joints_limits[1]))
             self.p.stepSimulation()
-            self.episode_steps += 1
+        #print(f"Substeps:{i}")
+        self.episode_steps += 1
 
     def draw_bounding_boxes(self):
         """

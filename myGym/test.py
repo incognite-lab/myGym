@@ -1,3 +1,4 @@
+from ast import arg
 import gym
 from myGym import envs
 import cv2
@@ -5,20 +6,278 @@ from myGym.train import get_parser, get_arguments, configure_implemented_combos,
 import os, imageio
 import numpy as np
 import time
+from numpy import matrix
+import pybullet as p
+import pybullet_data
+import pkg_resources
+import random
+import getkey
+
+
+
+clear = lambda: os.system('clear')
 
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
+def visualize_sampling_area(arg_dict):
+    rx = (arg_dict["task_objects"][0]["goal"]["sampling_area"][0] - arg_dict["task_objects"][0]["goal"]["sampling_area"][1])/2
+    ry = (arg_dict["task_objects"][0]["goal"]["sampling_area"][2] - arg_dict["task_objects"][0]["goal"]["sampling_area"][3])/2
+    rz = (arg_dict["task_objects"][0]["goal"]["sampling_area"][4] - arg_dict["task_objects"][0]["goal"]["sampling_area"][5])/2
+
+    visual = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[rx,ry,rz], rgbaColor=[1,0,0,.2])
+    collision = -1
+    
+    sampling = p.createMultiBody(
+        baseVisualShapeIndex=visual,
+        baseCollisionShapeIndex=collision,
+        baseMass=0,
+        basePosition=[arg_dict["task_objects"][0]["goal"]["sampling_area"][0]-rx, arg_dict["task_objects"][0]["goal"]["sampling_area"][2]-ry,arg_dict["task_objects"][0]["goal"]["sampling_area"][4]-rz],
+    )
+
+def visualize_trajectories (info,action):
+        
+                visualo = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[0,0,1,.3])
+                collision = -1
+                p.createMultiBody(
+                        baseVisualShapeIndex=visualo,
+                        baseCollisionShapeIndex=collision,
+                        baseMass=0,
+                        basePosition=info['o']['actual_state'],
+                )
+
+                visualr = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[0,1,0,.5])
+                p.createMultiBody(
+                        baseVisualShapeIndex=visualr,
+                        baseCollisionShapeIndex=collision,
+                        baseMass=0,
+                        basePosition=info['o']['additional_obs']['endeff_xyz'],
+                )
+
+                visuala = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[1,0,0,.3])
+                p.createMultiBody(
+                        baseVisualShapeIndex=visuala,
+                        baseCollisionShapeIndex=collision,
+                        baseMass=0,
+                        basePosition=action[:3],
+                )  
+
+def visualize_goal(info):
+                    visualg = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[1,0,0,.5])
+                    collision = -1
+                    p.createMultiBody(
+                        baseVisualShapeIndex=visualg,
+                        baseCollisionShapeIndex=collision,
+                        baseMass=0,
+                        basePosition=info['o']['goal_state'],
+                    )
+def change_dynamics(cubex,lfriction,rfriction,ldamping,adamping):
+                    p.changeDynamics(cubex, -1, lateralFriction=p.readUserDebugParameter(lfriction))
+                    p.changeDynamics(cubex,-1,rollingFriction=p.readUserDebugParameter(rfriction))
+                    p.changeDynamics(cubex, -1, linearDamping=p.readUserDebugParameter(ldamping))
+                    p.changeDynamics(cubex, -1, angularDamping=p.readUserDebugParameter(adamping))
+
+    #visualrobot = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=1, rgbaColor=[0,1,0,.2])
+    #collisionrobot = -1
+    #sampling = p.createMultiBody(
+    #    baseVisualShapeIndex=visualrobot,
+    #    baseCollisionShapeIndex=collisionrobot,
+    #    baseMass=0,
+    #    basePosition=[0,0,0.3],
+    #)
+
+
 def test_env(env, arg_dict):
+    #arg_dict["gui"] == 1
+    debug_mode = True
+    spawn_objects = False
+    action_control = "keyboard" #"observation", "random", "keyboard" or "slider"
+    visualize_sampling = True
+    visualize_traj = False
     env.render("human")
-    env.reset()
+    #env.reset()
+    joints = ['Joint1','Joint2','Joint3','Joint4','Joint5','Joint6','Joint7','Joint 8','Joint 9', 'Joint10', 'Joint11','Joint12','Joint13','Joint14','Joint15','Joint16','Joint17','Joint 18','Joint 19']
+    jointparams = ['Jnt1','Jnt2','Jnt3','Jnt4','Jnt5','Jnt6','Jnt7','Jnt 8','Jnt 9', 'Jnt10', 'Jnt11','Jnt12','Jnt13','Jnt14','Jnt15','Jnt16','Jnt17','Jnt 18','Jnt 19']
+    cube = ['Cube1','Cube2','Cube3','Cube4','Cube5','Cube6','Cube7','Cube8','Cube9','Cube10','Cube11','Cube12','Cube13','Cube14','Cube15','Cube16','Cube17','Cube18','Cube19']
+    cubecount = 0
+    if debug_mode:
+            if arg_dict["gui"] == 0:
+                print ("Add --gui 1 parameter to visualize environment")        
+            
+            p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+            p.resetDebugVisualizerCamera(1.3, 200, -20, [-0.1, .0, 0.05])
+            p.setAdditionalSearchPath(pybullet_data.getDataPath())
+            #newobject = p.loadURDF("cube.urdf", [3.1,3.7,0.1])
+            #p.changeDynamics(newobject, -1, lateralFriction=1.00)
+            #p.setRealTimeSimulation(1)
+            if action_control == "slider":
+                if "joints" in arg_dict["robot_action"]:
+                    if 'gripper' in arg_dict["robot_action"]:
+                        print ("gripper is present")
+                        for i in range (env.action_space.shape[0]):
+                            if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
+                                joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
+                            else:
+                                joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], .02)
+                    else:
+                        for i in range (env.action_space.shape[0]):
+                            joints[i] = p.addUserDebugParameter(joints[i],env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
+                elif "absolute" in arg_dict["robot_action"]:
+                    if 'gripper' in arg_dict["robot_action"]:
+                        print ("gripper is present")
+                        for i in range (env.action_space.shape[0]):
+                            if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
+                                joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
+                            else:
+                                joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
+                    else:
+                        for i in range (env.action_space.shape[0]):
+                            joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
+                elif "step" in arg_dict["robot_action"]:
+                    if 'gripper' in arg_dict["robot_action"]:
+                        print ("gripper is present")
+                        for i in range (env.action_space.shape[0]):
+                            if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
+                                joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
+                            else:
+                                joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
+                    else:
+                        for i in range (env.action_space.shape[0]):
+                            joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
+            
+            
+            #maxvelo = p.addUserDebugParameter("Max Velocity", 0.1, 50, env.env.robot.joints_max_velo[0]) 
+            #maxforce = p.addUserDebugParameter("Max Force", 0.1, 300, env.env.robot.joints_max_force[0])
+            lfriction = p.addUserDebugParameter("Lateral Friction", 0, 100, 0)   
+            rfriction = p.addUserDebugParameter("Spinning Friction", 0, 100, 0)
+            ldamping = p.addUserDebugParameter("Linear Damping", 0, 100, 0)
+            adamping = p.addUserDebugParameter("Angular Damping", 0, 100, 0)
+                    #action.append(jointparams[i])
+    if visualize_sampling:
+        visualize_sampling_area(arg_dict)
+
+    #visualgr = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=.005, rgbaColor=[0,0,1,.1])
+
+    if action_control == "random":
+            action = env.action_space.sample()
+    if action_control == "keyboard":
+        action = arg_dict["robot_init"]
+        if "gripper" in arg_dict["robot_action"]:
+            action.append(.1)
+            action.append(.1)
+    if action_control == "slider":
+        action = [] 
+        for i in range (env.action_space.shape[0]):
+            jointparams[i] = p.readUserDebugParameter(joints[i])
+            action.append(jointparams[i])
+
     for e in range(10000):
         env.reset()
-        for t in range(100):
-            action = env.action_space.sample()
-            observation, reward, done, info = env.step(action)
-            # print("Reward is {}, observation is {}".format(reward, observation))
+        #if spawn_objects:
+        #    cube[e] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [0, 0.5, .1])
+        
+        #if visualize_traj:
+        #    visualize_goal(info)
 
+        for t in range(arg_dict["max_episode_steps"]):
+
+
+            if action_control == "slider":
+                action = []
+                for i in range (env.action_space.shape[0]):
+                    jointparams[i] = p.readUserDebugParameter(joints[i])
+                    action.append(jointparams[i])
+                    #env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
+                    #env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
+            
+
+            if action_control == "observation":
+                if arg_dict["robot_action"] == "joints":
+                    action = info['o']["additional_obs"]["joints_angles"] #n
+                else:
+                    action = info['o']["additional_obs"]["endeff_xyz"]
+                    #action[0] +=.3
+
+
+            elif action_control == "keyboard":
+                keypress = p.getKeyboardEvents()
+                #print(action)    
+                if 97 in keypress.keys() and keypress[97] == 1:
+                    action[2] += .01
+                    print(action)
+                if 122 in keypress.keys() and keypress[122] == 1:
+                    action[2] -= .01
+                    print(action)
+                if 65297 in keypress.keys() and keypress[65297] == 1:
+                    action[1] -= .01
+                    print(action)
+                if 65298 in keypress.keys() and keypress[65298] == 1:
+                    action[1] += .01
+                    print(action)
+                if 65295 in keypress.keys() and keypress[65295] == 1:
+                    action[0] += .01
+                    print(action)
+                if 65296 in keypress.keys() and keypress[65296] == 1:
+                    action[0] -= .01
+                    print(action)
+                if 120 in keypress.keys() and keypress[120] == 1:
+                    action[3] -= .01
+                    action[4] -= .01
+                    print(action)
+                if 99 in keypress.keys() and keypress[99] == 1:
+                    action[3] += .01
+                    action[4] += .01
+                    print(action)
+                if 100 in keypress.keys() and keypress[100] == 1:
+                    cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
+                    change_dynamics(cube[cubecount],lfriction,rfriction,ldamping,adamping)
+                    cubecount +=1
+                if "step" in arg_dict["robot_action"]:
+                    action[:3] = np.multiply(action [:3],10)
+                #for i in range (env.action_space.shape[0]):
+                #    env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
+                #    env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
+            elif action_control == "random":
+                action = env.action_space.sample()
+
+            
+
+            #print (f"Action:{action}")
+            observation, reward, done, info = env.step(action)
+            
+            if visualize_traj:
+                visualize_trajectories(info,action)
+                p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),5))}",
+                    [.8, .5, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
+                p.addUserDebugText(f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']),5))}",
+                    [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
+                p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
+                    [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+
+                
+                #visualize_goal(info)
+            #if debug_mode:
+                #print("Reward is {}, observation is {}".format(reward, observation))
+                #if t>=1:
+                    #action = matrix(np.around(np.array(action),5))
+                    #oaction = env.env.robot.get_joints_states()
+                    #oaction = matrix(np.around(np.array(oaction[0:action.shape[0]]),5))
+                    #diff = matrix(np.around(np.array(action-oaction),5))
+                    #print(env.env.robot.get_joints_states())
+                    #print(f"Step:{t}")
+                    #print (f"RAction:{action}")
+                    #print(f"OAction:{oaction}")
+                    #print(f"DAction:{diff}")
+                    #p.addUserDebugText(f"DAction:{diff}",
+                    #                    [1, 1, 0.1], textSize=1.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
+                    #time.sleep(.5)
+                    #clear()
+                    
+            #if action_control == "slider":
+            #    action=[]
+            if "step" in arg_dict["robot_action"]:
+                action[:3] = [0,0,0] 
+            
             if arg_dict["visualize"]:
                 visualizations = [[],[]]
                 env.render("human")
@@ -72,6 +331,9 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     success_episodes_num = 0
     distance_error_sum = 0
     steps_sum = 0
+    p.resetDebugVisualizerCamera(1.0, 210, -20, [-1.0, .1, 0.1])
+    #p.setRealTimeSimulation(1)
+    #p.setTimeStep(0.01)
 
     for e in range(arg_dict["eval_episodes"]):
         done = False
@@ -84,6 +346,8 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
             obs, reward, done, info = env.step(action)
             is_successful = not info['f']
             distance_error = info['d']
+            p.addUserDebugText(f"Step:{steps_sum}",
+                    [-.5, .0, 0.3], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
 
             if (arg_dict["record"] > 0) and (len(images) < 250):
                 render_info = env.render(mode="rgb_array", camera_id = arg_dict["camera"])
