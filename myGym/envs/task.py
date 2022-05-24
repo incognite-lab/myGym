@@ -206,9 +206,7 @@ class TaskModule():
         """
         Check if goal of the task was completed successfully
         """
-        self.last_distance = self.current_norm_distance
-        if self.init_distance is None:
-            self.init_distance = self.current_norm_distance
+        
         finished = None
         if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip']:
             finished = self.check_distance_threshold(self._observation)
@@ -220,12 +218,15 @@ class TaskModule():
             finished = self.env.reward.get_angle() >= 1.71
         if self.task_type == "turn":
             finished = self.check_turn_threshold()
+        self.last_distance = self.current_norm_distance
+        if self.init_distance is None:
+            self.init_distance = self.current_norm_distance
         #if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
         #    if len(self.env.robot.magnetized_objects) == 0 and self.env.episode_steps > 5:
         #        self.end_episode_success()
         #    else:
         #        self.env.episode_over = False
-        elif finished:
+        if finished:
             self.end_episode_success()
         if self.check_time_exceeded() or self.env.episode_steps == self.env.max_steps:
             self.end_episode_fail("Max amount of steps reached")
@@ -251,6 +252,7 @@ class TaskModule():
                 self.env.episode_info = "Task completed successfully"
         else:
             self.env.episode_over = False
+            #self.env.robot.release_all_objects()
             self.subtask_over = True
             self.current_task += 1
 

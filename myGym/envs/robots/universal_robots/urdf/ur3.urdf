@@ -209,11 +209,32 @@
       <origin rpy="0 0 0" xyz="-0.01 0 0"/>
     </collision>
   </link>
-  <link name="gripper"/>
+  <link name="gripper">
+    <visual>
+      <geometry>
+        <box size="0.01 0.01 0.01"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="-0.01 0 0"/>
+    </visual>
+  </link>
   <joint name="gripper_dummy" type="fixed">
     <parent link="ee_link"/>
     <child link="gripper"/>
   </joint>
+  <joint name="endeffector_joint" type="fixed">
+    <parent link="gripper"/>
+    <child link="endeffector"/>
+    <origin rpy="0 0 0" xyz="0.05 0.0 0.0"/>
+  </joint>
+  <link name="endeffector">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.01"/>
+      </geometry>
+      <material name="panda_white"/>
+    </visual>
+  </link>
   <transmission name="shoulder_pan_trans">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="shoulder_pan_joint">

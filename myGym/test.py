@@ -203,30 +203,30 @@ def test_env(env, arg_dict):
                 keypress = p.getKeyboardEvents()
                 #print(action)    
                 if 97 in keypress.keys() and keypress[97] == 1:
-                    action[2] += .01
+                    action[2] += .03
                     print(action)
                 if 122 in keypress.keys() and keypress[122] == 1:
-                    action[2] -= .01
+                    action[2] -= .03
                     print(action)
                 if 65297 in keypress.keys() and keypress[65297] == 1:
-                    action[1] -= .01
+                    action[1] -= .03
                     print(action)
                 if 65298 in keypress.keys() and keypress[65298] == 1:
-                    action[1] += .01
+                    action[1] += .03
                     print(action)
                 if 65295 in keypress.keys() and keypress[65295] == 1:
-                    action[0] += .01
+                    action[0] += .03
                     print(action)
                 if 65296 in keypress.keys() and keypress[65296] == 1:
-                    action[0] -= .01
+                    action[0] -= .03
                     print(action)
                 if 120 in keypress.keys() and keypress[120] == 1:
-                    action[3] -= .01
-                    action[4] -= .01
+                    action[3] -= .03
+                    action[4] -= .03
                     print(action)
                 if 99 in keypress.keys() and keypress[99] == 1:
-                    action[3] += .01
-                    action[4] += .01
+                    action[3] += .03
+                    action[4] += .03
                     print(action)
                 if 100 in keypress.keys() and keypress[100] == 1:
                     cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])

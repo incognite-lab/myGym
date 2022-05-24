@@ -1350,7 +1350,7 @@ class ThreeStagePnP(TwoStagePnP):
         self.was_above = False
 
     def check_num_networks(self):
-        assert self.num_networks <= 3, "TwosStagePnP reward can work with maximum 3 networks"
+        assert self.num_networks <= 3, "ThreeStagePnP reward can work with maximum 3 networks"
 
     def reset(self):
         super(ThreeStagePnP, self).reset()
@@ -1462,6 +1462,41 @@ class ThreeStagePnP(TwoStagePnP):
         if distance < 0.1:
             return True
         return False
+
+
+class FourStagePnP(ThreeStagePnP):
+
+    def check_num_networks(self):
+        assert self.num_networks <= 4, "ThreeStagePnP reward can work with maximum 3 networks"
+    
+    def compute(self, observation=None):
+        """
+        Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
+
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position],[gripper_position,object_position], [object_position, goal_position], [object_position, goal_position]][owner]
+        reward = [self.move_compute,self.find_compute,self.move_compute, self.place_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.object_above_goal(gripper_position, object_position) or self.was_above:
+            self.current_network = 1
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 2
+        if self.object_above_goal(object_position, goal_position) or self.was_above:
+            self.current_network = 3
+            self.was_above = True
+        return self.current_network
 
 class GripperPickAndPlace():
     """

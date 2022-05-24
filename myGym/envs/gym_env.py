@@ -118,7 +118,8 @@ class GymEnv(CameraEnv):
                                               "distractor": VectorReward, "poke": PokeReachReward, "switch": SwitchReward,
                                               "btn": ButtonReward, "turn": TurnReward, "pnp":SingleStagePnP},
                           "2-network":     {"poke": DualPoke, "pnp":TwoStagePnP,"pnpbgrip":TwoStagePnPBgrip},
-                          "3-network":     {"pnp":ThreeStagePnP}}
+                          "3-network":     {"pnp":ThreeStagePnP},
+                          "4-network":     {"pnp":FourStagePnP}}
         print(self.num_networks)
         scheme = "{}-network".format(str(self.num_networks))
         assert reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
@@ -311,11 +312,12 @@ class GymEnv(CameraEnv):
         else:
             reward = self.reward.compute(observation=self._observation)
             self.episode_reward += reward
-            self.task.check_goal()
+            #self.task.check_goal()
             done = self.episode_over
             info = {'d': self.task.last_distance / self.task.init_distance, 'f': int(self.episode_failed), 'o': self._observation}
         if done: self.successful_finish(info)
-        if self.task.subtask_over: self.reset(only_subtask=True)
+        if self.task.subtask_over: 
+            self.reset(only_subtask=True)
         #return self._observation, reward, done, info
         return self.flatten_obs(self._observation.copy()), reward, done, info
 
