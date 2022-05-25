@@ -213,10 +213,13 @@ class TaskModule():
         if self.task_type in ['push', 'throw']:
             finished = self.check_points_distance_threshold()
         if self.task_type == "switch":
+            self.check_distance_threshold(self._observation)
             finished = abs(self.env.reward.get_angle()) >= 18
         if self.task_type == "press":
+            self.check_distance_threshold(self._observation)
             finished = self.env.reward.get_angle() >= 1.71
         if self.task_type == "turn":
+            self.check_distance_threshold(self._observation)
             finished = self.check_turn_threshold()
         self.last_distance = self.current_norm_distance
         if self.init_distance is None:

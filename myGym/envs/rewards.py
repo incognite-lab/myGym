@@ -94,7 +94,8 @@ class DistanceReward(Reward):
         o1 = observation["actual_state"]
         o2 = observation["goal_state"]
         reward = self.calc_dist_diff(o1, o2)
-        self.task.check_distance_threshold(observation)
+        #self.task.check_distance_threshold(observation)
+        self.task.check_goal()
         self.rewards_history.append(reward)
         return reward
 
@@ -152,7 +153,8 @@ class ComplexDistanceReward(DistanceReward):
         """
         gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
         reward = self.calc_dist_diff(observation["actual_state"], observation["goal_state"], observation["additional_obs"][gripper_name])
-        self.task.check_distance_threshold(observation=observation)
+        #self.task.check_distance_threshold(observation=observation)
+        self.task.check_goal()
         self.rewards_history.append(reward)
         return reward
 
@@ -222,7 +224,7 @@ class SparseReward(Reward):
         """
         reward = -1
 
-        if self.task.check_distance_threshold(observation):
+        if self.task.check_goal():
             reward += 1.0
 
         self.rewards_history.append(reward)
@@ -476,7 +478,8 @@ class SwitchReward(DistanceReward):
         a = self.calc_angle_reward()
 
         reward = - self.k_w * w - self.k_d * d + self.k_a * a
-        self.task.check_distance_threshold(observation=observation)
+        #self.task.check_distance_threshold(observation=observation)
+        self.task.check_goal()
         self.rewards_history.append(reward)
         if self.debug:
             self.env.p.addUserDebugLine([self.x_obj, self.y_obj, self.z_obj], gripper_position,
@@ -731,7 +734,8 @@ class ButtonReward(SwitchReward):
                                         f" a:{a * self.k_a:.3f}",
                                         [1, 1, 1], textSize=2.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
 
-        self.task.check_distance_threshold(observation=observation)
+        #self.task.check_distance_threshold(observation=observation)
+        self.task.check_goal()
         self.rewards_history.append(reward)
         return reward
 
@@ -813,7 +817,8 @@ class TurnReward(SwitchReward):
             self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
                                         [1, 1, 1], textSize=2.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
 
-        self.task.check_distance_threshold(observation=observation)
+        #self.task.check_distance_threshold(observation=observation)
+        self.task.check_goal()
         self.rewards_history.append(reward)
         return reward
 
@@ -1039,7 +1044,8 @@ class DualPoke(PokeReachReward):
         """
         self.network_switch_control(observation)
         reward = [self.aimer_compute(observation), self.poker_compute(observation)][self.current_network]
-        self.task.check_distance_threshold(observation, threshold=0.05)
+        #self.task.check_distance_threshold(observation, threshold=0.05)
+        self.task.check_goal()
         self.rewards_history.append(reward)
         return reward
 
