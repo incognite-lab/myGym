@@ -346,8 +346,8 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
             obs, reward, done, info = env.step(action)
             is_successful = not info['f']
             distance_error = info['d']
-            p.addUserDebugText(f"Step:{steps_sum}",
-                    [-.5, .0, 0.3], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+            #p.addUserDebugText(f"Step:{steps_sum}",
+            #        [-.5, .0, 0.3], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
 
             if (arg_dict["record"] > 0) and (len(images) < 250):
                 render_info = env.render(mode="rgb_array", camera_id = arg_dict["camera"])
