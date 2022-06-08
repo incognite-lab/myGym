@@ -93,7 +93,7 @@ def test_env(env, arg_dict):
     spawn_objects = False
     action_control = "keyboard" #"observation", "random", "keyboard" or "slider"
     visualize_sampling = True
-    visualize_traj = False
+    visualize_traj = True
     env.render("human")
     #env.reset()
     joints = ['Joint1','Joint2','Joint3','Joint4','Joint5','Joint6','Joint7','Joint 8','Joint 9', 'Joint10', 'Joint11','Joint12','Joint13','Joint14','Joint15','Joint16','Joint17','Joint 18','Joint 19']
@@ -105,7 +105,7 @@ def test_env(env, arg_dict):
                 print ("Add --gui 1 parameter to visualize environment")        
             
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-            p.resetDebugVisualizerCamera(1.3, 200, -20, [-0.1, .0, 0.05])
+            p.resetDebugVisualizerCamera(1.7, 200, -20, [-0.1, .0, 0.05])
             p.setAdditionalSearchPath(pybullet_data.getDataPath())
             #newobject = p.loadURDF("cube.urdf", [3.1,3.7,0.1])
             #p.changeDynamics(newobject, -1, lateralFriction=1.00)
@@ -253,6 +253,8 @@ def test_env(env, arg_dict):
                     [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
                 p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
                     [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+                p.addUserDebugText(f"Network:{env.env.reward.current_network}",
+                    [.8, .5, 0.25], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
 
                 
                 #visualize_goal(info)

@@ -1,0 +1,52 @@
+{
+    #Environment
+    "env_name"  :"Gym-v0",
+    "workspace" :"table",
+    "engine"    :"pybullet",
+    "render"    :"opengl",
+    "camera"    :1,
+    "gui"       :1,
+    "visualize" :1,
+    "visgym"    :1,
+    #Robot
+    "robot"         :"kuka",
+    "robot_action"  :"step",
+    "robot_init"    :[0.0, 0.4, 0.4],
+    "max_velocity"  :1,
+    "max_force"     :70,
+    "action_repeat" :1,
+    #Task
+    "task_type"             :"reach",
+    "task_objects"          :[{"init":{"obj_name":"null"},
+                               "goal":{"obj_name":"cube_holes","fixed":1,"rand_rot":0, "sampling_area":[0.1, -0.1, 0.6, 0.7, 0.2, 0.1]}}],
+    "used_objects"          :{"num_range":[0,0], "obj_list":[]},
+    // Observation
+    // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
+    // goal_state options (pick one): "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
+    // additional_obs options (pick none/one/more): "joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"
+    "observation"           : {"actual_state":"obj_xyz", "goal_state":"obj_xyz", "additional_obs":["endeff_6D"]},
+    #Distractor
+    "distractors"           : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
+                                           "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
+    #Reward
+    "reward"        :"distance",
+    "distance_type" :"euclidean",
+    "vae_path"      :null,
+    "yolact_path"   :null,
+    "yolact_config" :null,
+    #Train
+    "train_framework"   :"tensorflow",
+    "algo"              :"ppo2",
+    "num_networks" : 1,
+    "max_episode_steps" :1024,
+    "algo_steps"        :1024,
+    "steps"             :200000,
+    "pretrained_model"  :null,
+    "multiprocessing"   :false,
+    #Evaluation
+    "eval_freq"     :10000,
+    "eval_episodes" :10,
+    #Saving and logging
+    "logdir"    :"trained_models/test",
+    "record"    :0
+    }
