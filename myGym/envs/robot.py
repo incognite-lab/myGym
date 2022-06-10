@@ -617,6 +617,7 @@ class Robot:
         for x in self.magnetized_objects:
             self.p.removeConstraint(self.magnetized_objects[x])
             #self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())
+            #self.p.changeVisualShape(object.uid, -1, rgbaColor=[255, 0, 0, 1])
         self.magnetized_objects = {}
         self.gripper_active = False
 

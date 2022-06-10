@@ -92,8 +92,8 @@ def test_env(env, arg_dict):
     debug_mode = True
     spawn_objects = False
     action_control = "keyboard" #"observation", "random", "keyboard" or "slider"
-    visualize_sampling = True
-    visualize_traj = True
+    visualize_sampling = False
+    visualize_traj = False
     env.render("human")
     #env.reset()
     joints = ['Joint1','Joint2','Joint3','Joint4','Joint5','Joint6','Joint7','Joint 8','Joint 9', 'Joint10', 'Joint11','Joint12','Joint13','Joint14','Joint15','Joint16','Joint17','Joint 18','Joint 19']
@@ -333,7 +333,7 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     success_episodes_num = 0
     distance_error_sum = 0
     steps_sum = 0
-    p.resetDebugVisualizerCamera(1.0, 210, -20, [-1.0, .1, 0.1])
+    p.resetDebugVisualizerCamera(1.8, 200, -30, [-1.0, .1, 0.1])
     #p.setRealTimeSimulation(1)
     #p.setTimeStep(0.01)
 
@@ -350,6 +350,16 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
             distance_error = info['d']
             #p.addUserDebugText(f"Step:{steps_sum}",
             #        [-.5, .0, 0.3], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+            p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),5))}",
+                    [1.5, .5, 0.5], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
+            p.addUserDebugText(f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']),5))}",
+                    [1.5, .5, 0.4], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
+            p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
+                    [1.5, .5, 0.3], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+            p.addUserDebugText(f"Network:{env.env.reward.current_network}",
+                    [1.5, .5, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.5, 1])
+            p.addUserDebugText(f"Subtask:{env.env.task.current_task}",
+                    [1.5, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
 
             if (arg_dict["record"] > 0) and (len(images) < 250):
                 render_info = env.render(mode="rgb_array", camera_id = arg_dict["camera"])

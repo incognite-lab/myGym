@@ -241,7 +241,9 @@ class GymEnv(CameraEnv):
         Returns:
             :return self._observation: (list) Observation data of the environment
         """
-        super().reset(hard=hard)
+        if not only_subtask:
+            self.robot.reset(random_robot=random_robot)
+            super().reset(hard=hard)
         self.env_objects = {"env_objects":self._randomly_place_objects(self.used_objects)}
         self.task_objects = self._randomly_place_objects(self.task_objects_dict[self.task.current_task])
         self.task_objects = dict(ChainMap(*self.task_objects))
@@ -254,8 +256,7 @@ class GymEnv(CameraEnv):
 
         self.env_objects = {**self.task_objects, **self.env_objects}
         self.task.reset_task()
-        if not only_subtask:
-            self.robot.reset(random_robot=random_robot)
+        
         self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()

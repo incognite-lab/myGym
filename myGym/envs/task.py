@@ -23,7 +23,7 @@ class TaskModule():
     """
     def __init__(self, task_type='reach', task_objects='cube_holes', observation={},
                  vae_path=None, yolact_path=None, yolact_config=None, distance_type='euclidean',
-                 logdir=currentdir, env=None, number_tasks=1):
+                 logdir=currentdir, env=None, number_tasks=None):
         self.task_type = task_type
         self.distance_type = distance_type
         self.number_tasks = number_tasks
@@ -248,14 +248,14 @@ class TaskModule():
         if self.current_task == (self.number_tasks-1):
             self.env.episode_over = True
             self.env.robot.release_all_objects()
-            self.current_task = 0
+            #self.current_task = 0
             if self.env.episode_steps == 1:
                 self.env.episode_info = "Task completed in initial configuration"
             else:
                 self.env.episode_info = "Task completed successfully"
         else:
             self.env.episode_over = False
-            #self.env.robot.release_all_objects()
+            self.env.robot.release_all_objects()
             self.subtask_over = True
             self.current_task += 1
 
