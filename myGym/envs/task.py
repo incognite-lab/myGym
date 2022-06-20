@@ -244,11 +244,11 @@ class TaskModule():
         self.env.robot.release_all_objects()
 
     def end_episode_success(self):
-        print("Finished task {}".format(self.current_task))
+        print("Finished subtask {}".format(self.current_task))
         if self.current_task == (self.number_tasks-1):
             self.env.episode_over = True
             self.env.robot.release_all_objects()
-            #self.current_task = 0
+            self.current_task = 0
             if self.env.episode_steps == 1:
                 self.env.episode_info = "Task completed in initial configuration"
             else:

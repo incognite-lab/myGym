@@ -5,11 +5,11 @@
     "engine"    :"pybullet",
     "render"    :"opengl",
     "camera"    :0,
-    "gui"       :0,
+    "gui"       :1,
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"panda1",
+    "robot"         :"kuka",
     "robot_action"  :"step",
     "robot_init"    :[-0.4, 0.4, 0.4],
     "max_velocity"  :10,
