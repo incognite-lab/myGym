@@ -246,6 +246,9 @@ class GymEnv(CameraEnv):
             super().reset(hard=hard)
             #super()._remove_all_objects()
         self.env_objects = {"env_objects":self._randomly_place_objects(self.used_objects)}
+        if only_subtask:
+            self.env_objects["env_objects"].append(self.task_objects["actual_state"])
+            self.env_objects["env_objects"].append(self.task_objects["goal_state"])
         self.task_objects = self._randomly_place_objects(self.task_objects_dict[self.task.current_task])
         self.task_objects = dict(ChainMap(*self.task_objects))
 
