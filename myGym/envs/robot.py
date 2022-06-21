@@ -596,7 +596,7 @@ class Robot:
     def magnetize_object(self, object, distance_threshold=.05):
         if len(self.magnetized_objects) == 0 :
             if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
-                self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 255, 0, 1])
+                self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 1 , 1, 1])
                 #self.end_effector_prev_pos = self.end_effector_pos
                 #self.end_effector_prev_ori = self.end_effector_ori
                 self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())

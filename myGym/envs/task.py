@@ -181,7 +181,7 @@ class TaskModule():
             return -1
         return False
 
-    def check_distance_threshold(self, observation, threshold=0.1):
+    def check_distance_threshold(self, observation, threshold=0.04):
         """
         Check if the distance between relevant task objects is under threshold for successful task completion
         Returns:

@@ -1270,14 +1270,14 @@ class TwoStagePnP(DualPoke):
         #    self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
         if "gripper" in self.env.robot_action:
             if self.task.calc_distance(gripper, object) <= 0.05:
-                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, .2, 0, 1])
                 return True
             else:
                 self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[255, 0, 0, 1])
                 return False
         else:
             if self.env.env_objects["actual_state"] in self.env.robot.magnetized_objects.keys():
-                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 255, 0, 1])
+                self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[0, 1, 0, 1])
                 return True
         return False
 

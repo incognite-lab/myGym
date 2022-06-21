@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<robot name="towertarget">
+  <link name="baseLink">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.00 0.0 0.0"/>
+      <geometry>
+       <box size=".02 .02 .02"/>
+      </geometry>
+       <material name="red">
+        <color rgba="1 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+</robot>

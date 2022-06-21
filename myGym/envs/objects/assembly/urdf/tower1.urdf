@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<robot name="tower1">
+  <link name="baseLink">
+    <contact>
+            <lateral_friction value="100"/>
+            <rolling_friction value="100"/>
+            <spinning_friction value="100"/>
+            <linear_damping value="0"/>
+            <angular_damping value="0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+       <mass value="1"/>
+       <inertia ixx="0.0053" ixy="9e-05" ixz="0.00014" iyy="0.00534" iyz="0.0003" izz="0.00155"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.00 0.0 0.0"/>
+      <geometry>
+       <box size=".2 .2 .05"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.000 0.0 0.0"/>
+      <geometry>
+	 	    <box size=".2 .2 .05"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>
