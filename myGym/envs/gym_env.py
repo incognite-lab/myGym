@@ -248,8 +248,7 @@ class GymEnv(CameraEnv):
             all_subtask_objects = [x for i,x in enumerate(self.task_objects_dict) if i!=self.task.current_task]
             subtasks_processed = [list(x.values()) for x in all_subtask_objects]
             subtask_objects = self._randomly_place_objects({"obj_list": list(chain.from_iterable(subtasks_processed))})
-            self.env_objects = {"env_objects": subtask_objects.copy()}
-            self.env_objects["env_objects"].extend(self._randomly_place_objects(self.used_objects))
+            self.env_objects = {"env_objects": self._randomly_place_objects(self.used_objects)}
             self.task_objects = self._randomly_place_objects(self.task_objects_dict[self.task.current_task])
             self.task_objects = dict(ChainMap(*self.task_objects))
             if subtask_objects:
@@ -257,7 +256,6 @@ class GymEnv(CameraEnv):
         if only_subtask:
             if self.task.current_task < (len(self.task_objects_dict)):
                 self.shift_next_subtask()
-
         if self.has_distractor:
             distrs = []
             if self.distractors["list"]:
@@ -267,10 +265,8 @@ class GymEnv(CameraEnv):
                 self.task_objects["distractor"].extend(distrs)
             else:
                 self.task_objects["distractor"] = distrs
-
         self.env_objects = {**self.task_objects, **self.env_objects}
         self.task.reset_task()
-        
         self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
