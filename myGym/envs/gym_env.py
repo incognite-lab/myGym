@@ -5,6 +5,7 @@ from myGym.envs.base_env import CameraEnv
 from collections import ChainMap
 from myGym.envs.rewards import *
 import numpy as np
+from itertools import chain
 from gym import spaces
 import random
 from myGym.utils.helpers import get_workspace_dict
@@ -244,23 +245,28 @@ class GymEnv(CameraEnv):
         if not only_subtask:
             self.robot.reset(random_robot=random_robot)
             super().reset(hard=hard)
-            #super()._remove_all_objects()
-        else:
-            objects_old = self.env_objects["env_objects"].copy()
-        self.env_objects = {"env_objects":self._randomly_place_objects(self.used_objects)}
+            all_subtask_objects = [x for i,x in enumerate(self.task_objects_dict) if i!=self.task.current_task]
+            subtasks_processed = [list(x.values()) for x in all_subtask_objects]
+            subtask_objects = self._randomly_place_objects({"obj_list": list(chain.from_iterable(subtasks_processed))})
+            self.env_objects = {"env_objects": subtask_objects.copy()}
+            self.env_objects["env_objects"].extend(self._randomly_place_objects(self.used_objects))
+            self.task_objects = self._randomly_place_objects(self.task_objects_dict[self.task.current_task])
+            self.task_objects = dict(ChainMap(*self.task_objects))
+            if subtask_objects:
+                self.task_objects["distractor"] = subtask_objects
         if only_subtask:
-            for o in objects_old:
-                self.env_objects["env_objects"].append(o)
-            self.env_objects["env_objects"].append(self.task_objects["actual_state"])
-            self.env_objects["env_objects"].append(self.task_objects["goal_state"])
-        self.task_objects = self._randomly_place_objects(self.task_objects_dict[self.task.current_task])
-        self.task_objects = dict(ChainMap(*self.task_objects))
+            if self.task.current_task < (len(self.task_objects_dict)):
+                self.shift_next_subtask()
 
         if self.has_distractor:
             distrs = []
-            for distractor in self.distractors["list"]:
-                distrs.append(self.dist.place_distractor(distractor, self.p, self.task_objects["goal_state"].get_position()))
-            self.task_objects["distractor"] = distrs
+            if self.distractors["list"]:
+                for distractor in self.distractors["list"]:
+                    distrs.append(self.dist.place_distractor(distractor, self.p, self.task_objects["goal_state"].get_position()))
+            if self.task_objects["distractor"]:
+                self.task_objects["distractor"].extend(distrs)
+            else:
+                self.task_objects["distractor"] = distrs
 
         self.env_objects = {**self.task_objects, **self.env_objects}
         self.task.reset_task()
@@ -270,6 +276,22 @@ class GymEnv(CameraEnv):
         self._observation = self.get_observation()
         return self.flatten_obs(self._observation.copy())
 
+    def shift_next_subtask(self):
+        # put current init and goal back in env_objects
+        self.env_objects["env_objects"].extend([self.env_objects["actual_state"], self.env_objects["goal_state"]])
+        self.task_objects["distractor"].extend([self.env_objects["actual_state"], self.env_objects["goal_state"]])
+        # set the next subtask objects as the actual and goal state and remove them from env_objects
+        self.env_objects["actual_state"] = self.env_objects["env_objects"][0]
+        self.env_objects["goal_state"] = self.env_objects["env_objects"][1]
+        del self.env_objects["env_objects"][:2]
+        del self.task_objects["distractor"][:2]
+        # copy the state to task_objects and change colors
+        self.task_objects["actual_state"] = self.env_objects["actual_state"]
+        self.task_objects["goal_state"] = self.env_objects["goal_state"]
+        self.highlight_active_object(self.env_objects["actual_state"], "init")
+        self.highlight_active_object(self.env_objects["goal_state"], "goal")
+        for o in self.env_objects["env_objects"][-2:]:
+            self.highlight_active_object(o, "done")
 
     def flatten_obs(self, obs):
         """ Returns the input obs dict as flattened list """
@@ -389,25 +411,45 @@ class GymEnv(CameraEnv):
             :return env_objects: (list of objects) Objects that are present in the current scene
         """
         env_objects = []
-        if "num_range" in object_dict.keys():  # solves used_objects
+        if not "init" in object_dict.keys():  # solves used_objects
             for idx, o in enumerate(object_dict["obj_list"]):
                   urdf = self._get_urdf_filename(o["obj_name"])
                   if urdf:
                     object_dict["obj_list"][idx]["urdf"] = urdf
                   else:
                     del object_dict["obj_list"][idx]
-            for x in range(random.randint(object_dict["num_range"][0], object_dict["num_range"][1])):
-                    env_objects.append(self._place_object(random.choice(object_dict["obj_list"])))
+            if "num_range" in object_dict.keys():
+                for x in range(random.randint(object_dict["num_range"][0], object_dict["num_range"][1])):
+                        env_o = self._place_object(random.choice(object_dict["obj_list"]))
+                        self.highlight_active_object(env_o, "other")
+                        env_objects.append(env_o)
+            else:
+                for o in object_dict["obj_list"]:
+                    env_o = self._place_object(o)
+                    self.highlight_active_object(env_o, "other")
+                    env_objects.append(env_o)
         else:  # solves task_objects
             for o in ['init','goal']:
                 d = object_dict[o]
                 if d["obj_name"] != "null":
                     d["urdf"] = self._get_urdf_filename(d["obj_name"])
                     n = "actual_state" if o == "init" else "goal_state"
-                    env_objects.append({n:self._place_object(d)})
+                    env_o = self._place_object(d)
+                    self.highlight_active_object(env_o, o)
+                    env_objects.append({n:env_o})
                 elif d["obj_name"] == "null" and o == "init":
                     env_objects.append({"actual_state":self.robot})
         return env_objects
+
+    def highlight_active_object(self, env_o, obj_role):
+        if obj_role == "goal":
+            env_o.set_color([0, 0.4, 0, 0.5])
+        elif obj_role == "init":
+            env_o.set_color([0, 0.8, 0, 1])
+        elif obj_role == "done":
+            env_o.set_color([0.5, 0.8, 1, 1])
+        else:
+            env_o.set_color([0.2, 0.2, 0.2, 1])
 
     def color_of_object(self, object):
         """
