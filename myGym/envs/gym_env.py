@@ -274,19 +274,18 @@ class GymEnv(CameraEnv):
 
     def shift_next_subtask(self):
         # put current init and goal back in env_objects
-        self.env_objects["env_objects"].extend([self.env_objects["actual_state"], self.env_objects["goal_state"]])
-        self.task_objects["distractor"].extend([self.env_objects["actual_state"], self.env_objects["goal_state"]])
+        self.env_objects["distractor"].extend([self.env_objects["actual_state"], self.env_objects["goal_state"]])
         # set the next subtask objects as the actual and goal state and remove them from env_objects
-        self.env_objects["actual_state"] = self.env_objects["env_objects"][0]
-        self.env_objects["goal_state"] = self.env_objects["env_objects"][1]
-        del self.env_objects["env_objects"][:2]
-        del self.task_objects["distractor"][:2]
+        self.env_objects["actual_state"] = self.env_objects["distractor"][0]
+        self.env_objects["goal_state"] = self.env_objects["distractor"][1]
+        del self.env_objects["distractor"][:2]
+        self.task_objects["distractor"] = self.env_objects["distractor"].copy()
         # copy the state to task_objects and change colors
         self.task_objects["actual_state"] = self.env_objects["actual_state"]
         self.task_objects["goal_state"] = self.env_objects["goal_state"]
         self.highlight_active_object(self.env_objects["actual_state"], "init")
         self.highlight_active_object(self.env_objects["goal_state"], "goal")
-        for o in self.env_objects["env_objects"][-2:]:
+        for o in self.env_objects["distractor"][-2:]:
             self.highlight_active_object(o, "done")
 
     def flatten_obs(self, obs):
