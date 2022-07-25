@@ -338,6 +338,8 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     images = []  # Empty list for gif images
     success_episodes_num = 0
     distance_error_sum = 0
+    vel= arg_dict["max_velocity"]
+    force = arg_dict["max_force"]
     steps_sum = 0
     p.resetDebugVisualizerCamera(1.8, 200, -30, [-1.0, .1, 0.1])
     #p.setRealTimeSimulation(1)
@@ -358,9 +360,9 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
             #p.addUserDebugText(f"Step:{steps_sum}",
             #        [-.5, .0, 0.3], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
             p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),5))}",
-                    [.8, .5, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
+                    [.8, .5, 0.05], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
             p.addUserDebugText(f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']),5))}",
-                    [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
+                    [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
                 #p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
                 #    [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
             p.addUserDebugText(f"Network:{env.env.reward.current_network}",
@@ -371,14 +373,16 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
                     [.8, .5, 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
             p.addUserDebugText(f"Step:{steps_sum}",
                     [.8, .5, 0.55], textSize=1.0, lifeTime=0.5, textColorRGB=[0.2, 0.8, 1])
+            p.addUserDebugText(f"Velocity:{vel}",
+                    [.8, .5, 0.85], textSize=1.0, lifeTime=0.5, textColorRGB=[0.6, 0.8, .3])
+            p.addUserDebugText(f"Force:{force}",
+                    [.8, .5, 0.95], textSize=1.0, lifeTime=0.5, textColorRGB=[0.3, 0.2, .4])
 
-            if (arg_dict["record"] > 0) and (len(images) < 250):
+            if (arg_dict["record"] > 0) and (len(images) < 800):
                 render_info = env.render(mode="rgb_array", camera_id = arg_dict["camera"])
                 image = render_info[arg_dict["camera"]]["image"]
                 images.append(image)
                 print(f"appending image: total size: {len(images)}]")
-            else:
-                time.sleep(0.02)
 
         success_episodes_num += is_successful
         distance_error_sum += distance_error
@@ -391,7 +395,6 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     print("Mean distance error is {:.2f}%".format(mean_distance_error * 100))
     print("Mean number of steps {}".format(mean_steps_num))
     print("#------------------------------------#")
-
     model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
     file = open(os.path.join(model_logdir, "train_" + model_name + ".txt"), 'a')
     file.write("\n")

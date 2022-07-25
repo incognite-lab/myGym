@@ -104,7 +104,7 @@ class BaseEnv(gym.Env):
         self.p.setTimeStep(self.time_step)
         self.p.setRealTimeSimulation(0)
         self.p.setPhysicsEngineParameter(enableConeFriction=1)
-        print(self.p.getPhysicsEngineParameters())
+        #print(self.p.getPhysicsEngineParameters())
 
     def _setup_scene(self):
         """
@@ -239,8 +239,8 @@ class BaseEnv(gym.Env):
         print("Last step reward: " + str(self.reward.rewards_history[-1]))
         print("#---------------------------------#")
 
-        for key, value in info_dict.items():
-            print(key + ": " + str(value))
+        #for key, value in info_dict.items():
+        #    print(key + ": " + str(value))
 
     def _get_urdf_filename(self, obj_name):
         """

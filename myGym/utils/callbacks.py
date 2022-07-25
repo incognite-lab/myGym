@@ -13,12 +13,14 @@ from tqdm.auto import tqdm
 import numpy as np
 import tensorflow as tf
 import gym
-
+import pybullet as p
+from numpy import matrix
 import warnings
 
 from stable_baselines.common.vec_env import VecEnv, sync_envs_normalization, DummyVecEnv
 from stable_baselines.common.evaluation import evaluate_policy
 
+#tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 class CustomEvalCallback(EvalCallback):
     """
@@ -110,6 +112,21 @@ class CustomEvalCallback(EvalCallback):
                 steps_sum += 1
                 action, state = model.predict(obs, deterministic=deterministic)
                 obs, reward, done, info = self.eval_env.step(action)
+                p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),5))}",
+                    [.8, .5, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
+                p.addUserDebugText(f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']),5))}",
+                    [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
+                p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
+                    [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+                p.addUserDebugText(f"Network:{self.eval_env.env.reward.current_network}",
+                    [.8, .5, 0.25], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+                p.addUserDebugText(f"Subtask:{self.eval_env.env.task.current_task}",
+                    [.8, .5, 0.35], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
+                p.addUserDebugText(f"Episode:{e}",
+                    [.8, .5, 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
+                p.addUserDebugText(f"Step:{steps_sum}",
+                    [.8, .5, 0.55], textSize=1.0, lifeTime=0.5, textColorRGB=[0.2, 0.8, 1])
+                #print(f"Network:{self.eval_env.env.reward.current_network})
                 episode_reward += reward
                 # Info is list with dict inside
                 #info = info[0]
@@ -147,6 +164,7 @@ class CustomEvalCallback(EvalCallback):
             "mean_reward": "{:.2f}".format(np.mean(episode_rewards)),
             "std_reward": "{:.2f}".format(np.std(episode_rewards))
         }
+        print(results)
         #if not self.is_tb_set:
         #    with self.model.graph.as_default():
         #        tf.summary.scalar('value_target', tf.reduce_mean(self.model.value_target))

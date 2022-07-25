@@ -6,6 +6,7 @@ import numpy as np
 from numpy.lib.function_base import append
 from myGym.utils.callbacks import SaveOnTopRewardCallback
 import tensorflow as tf
+tf.get_logger().setLevel('ERROR')
 
 from collections import OrderedDict, deque
 
@@ -55,7 +56,7 @@ class MultiPPO2(ActorCriticRLModel):
     :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
         If None, the number of cpu of the current machine will be used.
     """
-    def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
+    def __init__(self, policy, env, gamma=0.99, n_steps=128,n_models=None, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
                  full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
@@ -73,7 +74,7 @@ class MultiPPO2(ActorCriticRLModel):
         self.noptepochs             = noptepochs
         self.tensorboard_log        = tensorboard_log
         self.full_tensorboard_log   = full_tensorboard_log
-        self.models_num             = env.num_networks
+        self.models_num             = n_models
 
         self.action_ph          = None
         self.advs_ph            = None
@@ -270,6 +271,7 @@ class MultiPPO2(ActorCriticRLModel):
                             logger.logkv("n_updates", update)
                             logger.logkv("total_timesteps", self.num_timesteps)
                             logger.logkv("fps", fps)
+                            logger.logkv("Steps", steps_used)
                             logger.logkv("explained_variance", float(explained_var))
                             if len(self.ep_info_buf) > 0 and len(self.ep_info_buf[0]) > 0:
                                 logger.logkv('ep_reward_mean', safe_mean([ep_info['r'] for ep_info in self.ep_info_buf]))
@@ -347,7 +349,7 @@ class MultiPPO2(ActorCriticRLModel):
         with open(path + "/train.json", "r") as f:
             json = commentjson.load(f)
 
-        models = len(json["diagram"])
+        models = json["num_networks"]
         load = [] # data, params
         for i in range(models):
             # load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
@@ -717,7 +719,7 @@ class Runner(AbstractEnvRunner):
             try:
                 mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward = map(swap_and_flatten, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward))
             except:
-              print("first model took all the steps")
+              print("model {} took all the steps".format(owner))
 
             finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
             finished_minibatches.append(finished_minibatch)

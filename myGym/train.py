@@ -7,6 +7,7 @@ import json, commentjson
 import gym
 from myGym import envs
 import myGym.utils.cfg_comparator as cfg
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common import make_vec_env
 from stable_baselines.common.vec_env import DummyVecEnv
@@ -115,7 +116,7 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                           "torchppo": {"tensorflow": [TorchPPO, (TorchMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "ref":   {"tensorflow": [REFER,  (MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
-                          "multi":  {"tensorflow": [MultiPPO2,   (MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]}}
+                          "multi":  {"tensorflow": [MultiPPO2,   (MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"],"n_models": arg_dict["num_networks"], "verbose": 1, "tensorboard_log": model_logdir}]}}
 
     if "PPO_P" in sys.modules:
         implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env), {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir}]
@@ -189,7 +190,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     #Envinronment
-    parser.add_argument("-cfg", "--config", default="configs/train_pnp_2n_multitask3.json", help="Can be passed instead of all arguments")
+    parser.add_argument("-cfg", "--config", default="./configs/debug.json", help="Can be passed instead of all arguments")
     parser.add_argument("-n", "--env_name", type=str, help="The name of environment")
     parser.add_argument("-ws", "--workspace", type=str, help="The name of workspace")
     parser.add_argument("-p", "--engine", type=str,  help="Name of the simulation engine you want to use")

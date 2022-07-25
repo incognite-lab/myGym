@@ -120,7 +120,6 @@ class GymEnv(CameraEnv):
                           "2-network":     {"poke": DualPoke, "pnp":TwoStagePnP,"pnpbgrip":TwoStagePnPBgrip},
                           "3-network":     {"pnp":ThreeStagePnP},
                           "4-network":     {"pnp":FourStagePnP}}
-        print(self.num_networks)
         scheme = "{}-network".format(str(self.num_networks))
         assert reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
         self.reward = reward_classes[scheme][reward](env=self, task=self.task)
