@@ -501,6 +501,7 @@ class SubModel(MultiPPO2):
                     tf.summary.scalar('value_function_loss'         , self.vf_loss)
                     tf.summary.scalar('approximate_kullback-leibler', self.approxkl)
                     tf.summary.scalar('clip_factor'                 , self.clipfrac)
+                    tf.summary.scalar('network_reward'                 , self.env.envs[0].env.reward.network_rewards[self.model_num])
                     tf.summary.scalar('loss', loss)
 
                     with tf.variable_scope('model'):

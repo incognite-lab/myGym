@@ -22,7 +22,7 @@ class Reward:
         self.current_network = 0
 
     def network_switch_control(self, observation):
-        if self.env.num_networks == 0:
+        if self.env.num_networks <= 1:
             print("Cannot switch networks in a single-network scenario")
         else:
            if self.env.network_switcher == "gt":
