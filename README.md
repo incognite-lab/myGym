@@ -5,9 +5,15 @@
 
 We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks  with increasing complexity and test your network on them. We also included an automatic evaluation and benchmark tool for your developed model. We have pretained the Yolact network for visual recognition of all objects in the simulator, so that you can reward your networks based on visual sensors only. We keep training the current state-of-the-art algorithms to provide baselines for the tasks in the toolbox. There is also a leaderboard showing algorithms with the best generalization capability, tested on the tasks in our basic curriculum. From version 2.0 it is possible to train multiple networks within one task and switch between them based on reward or adaptively. The number of neteworks is specified in config file.
 
-## Why to use it?
+## Advantages
 
-(*) Separate modules for fast prototyping (task.py, reward.py, env.py)
+* Separate modules for fast prototyping (task.py, reward.py, env.py)
+
+* Pretrained vision module for instance wise semantic segmentation
+
+* Compositional environments
+
+
 
 
 
