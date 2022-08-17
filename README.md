@@ -7,12 +7,12 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 
 
 [![Generic badge](https://img.shields.io/badge/OS-Linux-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Platform-CPU,GPU-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Computation-CPU,GPU-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Language-Python-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Physics-Bullet-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Env-Gym-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Framework-Tensorflow,Torch-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Documentation-Readthedocs-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Learning-TF,Torch-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Documentation-Yes-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://shields.io/)
 
 
@@ -165,7 +165,7 @@ For details see [documentation](https://mygym.readthedocs.io/en/latest/user_guid
 
 ``python train.py --config ./configs/train_pnp.json``
 
-##Multi-step tasks
+## Multi-step tasks
 
 ### [Multi reach](myGym/images/workspaces/multireach_jaco.gif)
 
@@ -175,7 +175,7 @@ For details see [documentation](https://mygym.readthedocs.io/en/latest/user_guid
 
 ``python train.py --config ./configs/train_pnp_3n_multitask2.json``
 
-### [Build a tower](myGym/images/workspaces/pnp/pnp3n3x_kuka.gif))
+### [Build a tower](myGym/images/workspaces/pnp/pnp3n3x_kuka.gif)
 
 ``python train.py --config ./configs/train_pnp_3n_multitask4.json``
 
