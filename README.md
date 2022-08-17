@@ -5,70 +5,52 @@
 
 We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks  with increasing complexity and test your network on them. We also included an automatic evaluation and benchmark tool for your developed model. We have pretained the Yolact network for visual recognition of all objects in the simulator, so that you can reward your networks based on visual sensors only. We keep training the current state-of-the-art algorithms to provide baselines for the tasks in the toolbox. There is also a leaderboard showing algorithms with the best generalization capability, tested on the tasks in our basic curriculum. From version 2.0 it is possible to train multiple networks within one task and switch between them based on reward or adaptively. The number of neteworks is specified in config file.
 
+
+[![Generic badge](https://img.shields.io/badge/OS-Linux-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Platform-CPU,GPU-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Language-Python-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Physics-Bullet-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Env-Gym-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Framework-Tensorflow,Torch-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Documentation-Readthedocs-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://shields.io/)
+
+
 ## Advantages
 
-* Separate modules for fast prototyping (task.py, reward.py, env.py)
+* [Separate modules](https://mygym.readthedocs.io/en/latest/index.html) for fast prototyping (task.py, reward.py, env.py)
 
-* Pretrained vision module for instance wise semantic segmentation
+![alt text](myGym/images/schemas/mygym_scheme.png "scheme")
 
-* Compositional environments
+* [Pretrained vision](https://mygym.readthedocs.io/en/latest/user_guide/train_camera.html) for instance wise semantic segmentation
 
+![alt text](myGym/images/results/kuka_reach_yolact_fast.gif "yolact")
 
+* [Customizable distractors](https://mygym.readthedocs.io/en/latest/user_guide/train_with_distractors.html) for real enviroment simulation.
 
+![alt text](myGym/images/workspaces/small_chaotic_distractors.gif "training")
 
+* Human-robot collaboration environments (WIP)
 
-
-
-## Overview
-
-
-| Environment  | Gym-v0 is suitable for manipulation, navigation and planning tasks|
-|---|---|
-| Workspaces | Table, Collaborative table, Maze, Vertical maze, Drawer, Darts, Football, Fridge, Stairs, Baskets |
-| Vision  | Cartesians, RGB, Depth, Class, Centroid, Bounding Box, Semantic Mask, Latent Vector |
-| Robots  | 8 robotic arms, 2 dualarms, humanoid |
-| Robot actions  | Absolute, Relative, Joints |
-| Objects  | 54 objects in 5 categories |
-| Tasks  | Reach, Press, Switch, Turn, Push, Pick, Place, PicknPlace, Poke,|
-| Randomizers  | Light, Texture, Size, Camera position |
-| Baselines  | Tensorflow, Pytorch |
+![alt text](myGym/images/workspaces/panda_push.gif "training")
 
 
 
-Learn more about the toolbox in our [documentation](https://mygym.readthedocs.io/en/latest/)
+From version 2.1:
 
-## Leaderboard
+* Multi-step tasks defined inside [config file](myGym/configs/train_pnp_2n_multitask4.json#L20) 
 
-Learnability is represented as a single value metric that evaluates algorithms under various conditions, allowing us to compare different RL algorithms. The number of conditions is limited for practical reasons, as the number of training configurations grows exponentially with each new condition, and each configuration requires standalone training and evaluation. Therefore, we limited the total number of combinations to $3^3$ = 27, which can be evaluated in few hours with a standard computer infrastructure.
+![alt text](myGym/images/workspaces/multireach_jaco.gif "Multistep")
 
-| Pos. | Algorhitm | Score |
-|---|---|---|
-|1.| PPO2 | 30.11  |
-|2.| TRPO | 28.75  |
-|3.| ACKTR | 27.5  |
-|4.| SAC | 27.43 |
-|5.| PPO | 27.21 |
-|5.| myAlgo | 15.00  |
+* Multi-goal rewards for training of long horizon [tasks](myGym/envs/rewards.py#L1365)
 
+![alt text](myGym/images/workspaces/pnp/pnp3n3x_kuka.gif "Multireward")
 
+* REAL robotic gripping based on [friction](myGym/envs/robots/franka_emika/panda/urdf/panda1.urdf) or [containment](myGym/envs/robots/franka_emika/panda/urdf/panda_cgripper.urdf)
 
-## Modular Structure
+![alt text](myGym/images/workspaces/pnp/pnp3n3x_panda_boxgripper.gif "Realgrip")
 
-We have developed a fully modular toolbox where the user can easily combine the predefined elements into a custom environment. There are specific modules for each component of the simulation, as depicted in the following scheme. 
-
-
-![alt text](myGym/images/schemas/mygym_scheme.png "myGymscheme")
-
-
-## Supported systems
-
-Ubuntu 18.04, 20.04
-
-Python 3
-
-GPU acceleration strongly recommended
-
-
+* Multi-network training (WIP)
 
 ## Installation
 
@@ -98,13 +80,34 @@ If you want to use the pretrained baseline models, download them here:
 `cd myGym`
 `sh download_baselines.sh`
 
-## Visualization
+## Overview
 
-You can visualize the virtual gym env prior to the training.
+
+| Environment  | Gym-v0 is suitable both single-step and multi-step manipulation and navigation|
+|---|---|
+| Workspaces | Table, Collaborative table, Maze, Vertical maze, Drawer, Darts, Football, Fridge, Stairs, Baskets |
+| Vision  | Cartesians, RGB, Depth, Class, Centroid, Bounding Box, Semantic Mask, Latent Vector |
+| Robots  | 8 robotic arms, 2 dualarms, humanoid |
+| Robot actions  | Absolute, Relative, Joints |
+| Objects  | 54 objects in 5 categories |
+| Tasks  | Reach, Press, Switch, Turn, Push, Pick, Place, PicknPlace, Poke,MultiReach, MultiPNP|
+| Randomizers  | Light, Texture, Size, Camera position |
+| Baselines  | Tensorflow, Pytorch |
+
+
+
+Learn more about the toolbox in our [documentation](https://mygym.readthedocs.io/en/latest/)
+
+
+## Test the environments prior training
+
+You can visualize the virtual gym env prior to the training. 
 
 `python test.py`
 
-There will be the default workspace activated. The commands to the robot joints are random. 
+There will be the default workspace activated. The commands to the robot joints are random.  
+
+You can manipulate the robot and gripper, spawn object to test the task (WIP)
 
 ![alt text](myGym/images/workspaces/gym_table_test2.png "test_work")
 
@@ -114,7 +117,7 @@ There are also visual outputs from the active cameras (both RGB and Depth):
 
 Find more details about this function in the [documentation](https://mygym.readthedocs.io/en/latest/user_guide/visualization.html)
 
-## Basic Training
+## Training
 
 Run the default training without specifying the parameters:
 
@@ -122,42 +125,33 @@ Run the default training without specifying the parameters:
 
 The training will start with the GUI window and a standstill visualization. Wait until the first evaluation to check the progress: 
 
-![alt text](myGym/images/workspaces/kuka100000.gif "training")
-
 There are more training tutorials in the [documentation](https://mygym.readthedocs.io/en/latest/user_guide/basic_training.html)
 
 
-## Tasks
+### Single-step tasks
 
-
-### Reach
+### [Reach](myGym/images/workspaces/kuka100000.gif "training")
 
 ``python train.py --config ./configs/train_reach.json``
 
-### Press
+### [Press](myGym/images/workspaces/press/kuka500000.gif "training")
 
 ``python train.py --config ./configs/train_press.json``
-
-![alt text](myGym/images/workspaces/press/kuka500000.gif "training")
 
 For details see [documentation](https://mygym.readthedocs.io/en/latest/user_guide/train_press.html)
 
 
-### Switch
+### [Switch](myGym/images/workspaces/switch/kuka250000.gif)
 
 ``python train.py --config ./configs/train_switch.json``
 
-![alt text](myGym/images/workspaces/switch/kuka250000.gif "training")
-
 For details see [documentation](https://mygym.readthedocs.io/en/latest/user_guide/train_switch.html)
 
-### Turn
+### [Turn](myGym/images/workspaces/turn/kuka500000.gif)
 
 ``python train.py --config ./configs/train_turn.json``
 
-![alt text](myGym/images/workspaces/turn/kuka500000.gif "training")
-
-For details see [documentation(https://mygym.readthedocs.io/en/latest/user_guide/train_turn.html)
+For details see [documentation](https://mygym.readthedocs.io/en/latest/user_guide/train_turn.html)
 
 ### Push
 
@@ -171,12 +165,20 @@ For details see [documentation(https://mygym.readthedocs.io/en/latest/user_guide
 
 ``python train.py --config ./configs/train_pnp.json``
 
+##Multi-step tasks
 
-### Multi-step tasks
+### [Multi reach](myGym/images/workspaces/multireach_jaco.gif)
 
-Fropm myGym 2.0 you can define multi-step tasks easily in config file and adopt multiple networks and swich among them within taks (Documentationm in preparation)
+``python train.py --config ./configs/train_reach_multitask.json``
 
-![alt text](myGym/images/workspaces/pnp/train_ppo2_3000000.gif "training")
+### [Multi PNP](myGym/images/workspaces/pnp/pnp3n2m_panda1.gif)
+
+``python train.py --config ./configs/train_pnp_3n_multitask2.json``
+
+### [Build a tower](myGym/images/workspaces/pnp/pnp3n3x_kuka.gif))
+
+``python train.py --config ./configs/train_pnp_3n_multitask4.json``
+
 
 
 ##  Parametric Training
@@ -189,24 +191,8 @@ You can also change the workspace within the gym, the task or the goal object. I
 
 `python train.py  --workspace collabtable --robot panda --task push --task_objects wrench --record 1`
 
-![alt text](myGym/images/workspaces/panda_push.gif "training")
-
-You can fully control the environment, robot, object, task, reward, learning parameters and logging from the command line:
-
-`python train.py --env_name Gym-v0  --workspace table --engine=pybullet --render=opengl --camera=8 --gui=1 --visualize=1 --robot=kuka --robot_action=joints --robot_init=[0.5, 0.5, 2.0] --task_type=reach --task_objects=[hammer] --used_objects=None --object_sampling_area=[-0.2, 0.7, 0.3, 0.9, 0.65, 0.65] --reward_type=gt --reward=distance --distance_type=euclidean --train=1 --train_framework=tensorflow --algo=ppo2 --max_episode_steps=1024 --algo_steps=1024 --steps=500000 --eval_freq=5000 --eval_episodes=100 --test_after_train=0 --logdir=trained_models --model_path=./trained_models/test/best_model.zip --record=0`
-
-![alt text](myGym/images/results/kuka_reach_yolact_fast.gif "yolact")
-
 Learn more about the simulation parameters in the [documentation](https://mygym.readthedocs.io/en/latest/user_guide/tutorial_parametric.html)
 
-
-## Config Training
-
-As the parametric definition is problematic in more complex projects, we present config files that will help with the reproducibility of results. The example of basic config file is [here(myGym/configs/train_example.conf)]. You can edit and clone this file according to your needs and run the training just by typing:
-
-`python train.py --config ./configs/train_example.json`
-
-![alt text](myGym/images/workspaces/jaco_config.gif "training")
 
 ## Parallel Training
 
@@ -214,9 +200,6 @@ We have developed scripts for parallel training to speed up this process. You ca
 
 `python train_parallel.py`
 
-The default config will train 4 parallel simulations with different RL algorithms under the same conditions. After several training steps, you can see the difference in performace among algorithms. For better performance, the background visualization is turned off:
-
-![alt text](myGym/images/workspaces/4kuka_trained.gif "training")
 
 ## Pretrained models
 
@@ -253,7 +236,7 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 | UR-3  | arm  | no gripper  |  6 | ur3  |
 | UR-5  | arm  | no gripper  |  6 | ur5  |
 | UR-10  | arm  | no gripper  |  6 | ur10  |
-| Kuka IIWA | arm  | magnetic  |  6 |  kuka |
+| Kuka IIWA | arm  | magnetic, gripper  |  6 |  kuka |
 | Reachy  | arm  | passive palm  |  7 | reachy  |
 | Leachy  | arm  | passive palm  |  7 | leachy  |
 |  Franka-Emica | arm  | gripper  | 7  |  panda |
@@ -294,6 +277,18 @@ The new global evaluation metric, which we call \textit{learnability}, allows th
 
 ![alt text](myGym/images/schemas/multieval_visualization.png "learnability")
 
+## Leaderboard
+
+Learnability is represented as a single value metric that evaluates algorithms under various conditions, allowing us to compare different RL algorithms. The number of conditions is limited for practical reasons, as the number of training configurations grows exponentially with each new condition, and each configuration requires standalone training and evaluation. Therefore, we limited the total number of combinations to $3^3$ = 27, which can be evaluated in few hours with a standard computer infrastructure.
+
+| Pos. | Algorhitm | Score |
+|---|---|---|
+|1.| PPO2 | 30.11  |
+|2.| TRPO | 28.75  |
+|3.| ACKTR | 27.5  |
+|4.| SAC | 27.43 |
+|5.| PPO | 27.21 |
+|5.| myAlgo | 15.00  |
 
 ## Authors
 
