@@ -12,7 +12,7 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 [![Generic badge](https://img.shields.io/badge/Physics-Bullet-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Env-Gym-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Learning-TF,Torch-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Documentation-Yes-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Docs-Yes-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://shields.io/)
 
 
