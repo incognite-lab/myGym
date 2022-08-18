@@ -162,8 +162,7 @@ class CustomEvalCallback(EvalCallback):
             "mean_distance_error": "{:.2f}".format(distance_error_sum / n_eval_episodes),
             "mean_steps_num": "{}".format(steps_sum // n_eval_episodes),
             "mean_reward": "{:.2f}".format(np.mean(episode_rewards)),
-            "std_reward": "{:.2f}".format(np.std(episode_rewards)),
-            "episode_rewards":"{}".format()
+            "std_reward": "{:.2f}".format(np.std(episode_rewards))
         }
         print(results)
         #if not self.is_tb_set:

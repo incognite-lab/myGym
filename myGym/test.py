@@ -361,8 +361,8 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
             #        [-.5, .0, 0.3], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
             p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),5))}",
                     [.8, .5, 0.05], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
-            p.addUserDebugText(f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']),5))}",
-                    [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
+            #p.addUserDebugText(f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']),5))}",
+            #        [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
                 #p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
                 #    [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
             p.addUserDebugText(f"Network:{env.env.reward.current_network}",

@@ -38,7 +38,7 @@ We introduce myGym, a toolkit suitable for fast prototyping of neural networks i
 
 From version 2.1:
 
-* Multi-step tasks defined inside [config file](myGym/configs/train_pnp_2n_multitask4.json#L20) 
+* Multi-step tasks defined inside [config file](myGym/configs/train_pnp_2n_multitask4.json#L20)  with customizable [observations](myGym/configs/train_pnp_2n_multitask4.json#L30) 
 
 ![alt text](myGym/images/workspaces/multireach_jaco.gif "Multistep")
 
@@ -79,6 +79,12 @@ If you want to use the pretrained baseline models, download them here:
 
 `cd myGym`
 `sh download_baselines.sh`
+
+Check, whether the toolbox works:
+
+`sh ./speed_checker.sh`
+
+If everything is correct, the toolbox will train for two minutes without GUI and then shows the test results (at least 30% success rate)
 
 ## Overview
 
@@ -155,17 +161,17 @@ For details see [documentation](https://mygym.readthedocs.io/en/latest/user_guid
 
 For details see [documentation](https://mygym.readthedocs.io/en/latest/user_guide/train_turn.html)
 
-### Push
+### Push (WIP)
 
 ``python train.py --config ./configs/train_push.json``
 
-### Poke
+### Poke (WIP)
 
 ``python train.py --config ./configs/train_poke.json``
 
 ### Pick and Place
 
-``python train.py --config ./configs/train_pnp.json``
+``python train.py --config ./configs/train_pnp_1n.json``
 
 ## Multi-step tasks
 
