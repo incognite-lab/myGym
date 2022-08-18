@@ -42,7 +42,7 @@ From version 2.1:
 
 ![alt text](myGym/images/workspaces/multireach_jaco.gif "Multistep")
 
-* Multi-goal rewards for training of long horizon [tasks](myGym/envs/rewards.py#L1365)
+* Multi-goal rewards for training long horizon [tasks](myGym/envs/rewards.py#L1365)
 
 ![alt text](myGym/images/workspaces/pnp/pnp3n3x_kuka.gif "Multireward")
 
@@ -93,6 +93,8 @@ If you want to use the pretrained baseline models, download them here:
 | Tasks  | Reach, Press, Switch, Turn, Push, Pick, Place, PicknPlace, Poke,MultiReach, MultiPNP|
 | Randomizers  | Light, Texture, Size, Camera position |
 | Baselines  | Tensorflow, Pytorch |
+| Physics  | Bullet, Mujoco deprecated from version 2.0 |
+
 
 
 
@@ -105,9 +107,9 @@ You can visualize the virtual gym env prior to the training.
 
 `python test.py`
 
-There will be the default workspace activated. The commands to the robot joints are random.  
+There will be the default workspace activated.  
 
-You can manipulate the robot and gripper, spawn object to test the task (WIP)
+EXPERIMENTAL - You can control the robot and gripper from keyboard (arrows and A and Z for third axis in caartesian), spawn object to test the task (WIP)
 
 ![alt text](myGym/images/workspaces/gym_table_test2.png "test_work")
 
