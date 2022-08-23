@@ -83,7 +83,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"]}
     if for_train:
-        env_arguments["gui_on"] = False
+        env_arguments["gui_on"] = arg_dict["gui"]
     else:
         env_arguments["gui_on"] = arg_dict["gui"]
 
@@ -167,7 +167,8 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env, engine=arg_dict["engine"], multiprocessing=arg_dict["multiprocessing"])
     callbacks_list.append(auto_save_callback)
     if arg_dict["eval_freq"]:
-        eval_env = configure_env(arg_dict, model_logdir, for_train=False)
+        #eval_env = configure_env(arg_dict, model_logdir, for_train=False)
+        eval_env = env
         eval_callback = CustomEvalCallback(eval_env, log_path=model_logdir,
                                            eval_freq=arg_dict["eval_freq"],
                                            n_eval_episodes=arg_dict["eval_episodes"],
@@ -190,7 +191,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     #Envinronment
-    parser.add_argument("-cfg", "--config", default="./configs/train_reach_multitask.json", help="Can be passed instead of all arguments")
+    parser.add_argument("-cfg", "--config", default="./configs/debug.json", help="Can be passed instead of all arguments")
     parser.add_argument("-n", "--env_name", type=str, help="The name of environment")
     parser.add_argument("-ws", "--workspace", type=str, help="The name of workspace")
     parser.add_argument("-p", "--engine", type=str,  help="Name of the simulation engine you want to use")

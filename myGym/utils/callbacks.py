@@ -100,7 +100,10 @@ class CustomEvalCallback(EvalCallback):
 
         episode_rewards = []
         images = []
+        subrewards = []
+        subrewsteps = []
         for e in range(n_eval_episodes):
+
             # Avoid double reset, as VecEnv are reset automatically
             if not isinstance(self.eval_env, VecEnv) or e == 0:
                 obs = self.eval_env.reset()
@@ -108,6 +111,12 @@ class CustomEvalCallback(EvalCallback):
             is_successful = 0
             distance_error = 0
             episode_reward = 0.0
+            steps=0
+            last_network = 0
+            last_steps = 0
+            srewardsteps = np.zeros(self.eval_env.env.reward.num_networks)
+
+
             while not done:
                 steps_sum += 1
                 action, state = model.predict(obs, deterministic=deterministic)
@@ -124,14 +133,19 @@ class CustomEvalCallback(EvalCallback):
                     [.8, .5, 0.35], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
                 p.addUserDebugText(f"Episode:{e}",
                     [.8, .5, 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
-                p.addUserDebugText(f"Step:{steps_sum}",
+                p.addUserDebugText(f"Step:{steps}",
                     [.8, .5, 0.55], textSize=1.0, lifeTime=0.5, textColorRGB=[0.2, 0.8, 1])
                 #print(f"Network:{self.eval_env.env.reward.current_network})
                 episode_reward += reward
                 # Info is list with dict inside
                 #info = info[0]
                 is_successful = not info['f']
+                if self.eval_env.env.reward.current_network != last_network:
+                    srewardsteps.put([last_network], steps-last_steps)
+                    last_network = self.eval_env.env.reward.current_network
+                    last_steps = steps
                 distance_error = info['d']
+
 
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
@@ -142,7 +156,10 @@ class CustomEvalCallback(EvalCallback):
 
                 if self.physics_engine == "mujoco" and self.gui_on: # Rendering for mujoco engine
                     self.eval_env.render()
-
+                steps +=1      
+            srewardsteps.put([last_network], steps-last_steps)
+            subrewards.append(self.eval_env.env.reward.network_rewards)            
+            subrewsteps.append(srewardsteps)
             episode_rewards.append(episode_reward)
             success_episodes_num += is_successful
             distance_error_sum += distance_error
@@ -154,6 +171,8 @@ class CustomEvalCallback(EvalCallback):
             os.system('./utils/gifopt -O3 --lossy=5 -o {dest} {source}'.format(source=gif_path, dest=gif_path)) 
             print("Record saved to " + gif_path)
 
+        
+
         results = {
             "episode": "{}".format(self.n_calls),
             "n_eval_episodes": "{}".format(n_eval_episodes),
@@ -162,9 +181,21 @@ class CustomEvalCallback(EvalCallback):
             "mean_distance_error": "{:.2f}".format(distance_error_sum / n_eval_episodes),
             "mean_steps_num": "{}".format(steps_sum // n_eval_episodes),
             "mean_reward": "{:.2f}".format(np.mean(episode_rewards)),
-            "std_reward": "{:.2f}".format(np.std(episode_rewards))
+            "std_reward": "{:.2f}".format(np.std(episode_rewards)),
+            "number of tasks":"{}".format(self.eval_env.env.task.number_tasks),
+            "number of networks":"{}".format(self.eval_env.env.reward.num_networks)             
         }
-        print(results)
+        
+        for k, v in results.items():
+            print (k, ':', v)
+
+        print ("mean subtasks finished:{}".format(1))
+        meansr = np.mean(subrewards, axis=0)
+        meansrs = np.mean(subrewsteps, axis=0)
+        
+        
+
+
         #if not self.is_tb_set:
         #    with self.model.graph.as_default():
         #        tf.summary.scalar('value_target', tf.reduce_mean(self.model.value_target))
@@ -177,10 +208,20 @@ class CustomEvalCallback(EvalCallback):
         summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/4.Mean_step_num', simple_value=(steps_sum // n_eval_episodes))])
         self.locals['writer'].add_summary(summary, self.num_timesteps)
         summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/2.Mean_reward', simple_value=np.mean(episode_rewards))])
-
         self.locals['writer'].add_summary(summary, self.num_timesteps)
+        
+        for i in range (self.eval_env.env.task.number_tasks):
+            print("Subtask: {}".format(i)) 
+            for j, (k,l) in enumerate(zip(meansr,meansrs)):  
+                print("Subreward {}: {} , steps: {}".format(j, k, l)) 
+                summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/Subtask{}/Subreward{}/Reward'.format(i,j),
+                                                                              simple_value=k)])
+                self.locals['writer'].add_summary(summary, self.num_timesteps)
+                summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/Subtask{}/Subreward{}/Steps'.format(i,j),
+                                                                              simple_value=l)])
+                self.locals['writer'].add_summary(summary, self.num_timesteps)
 
-
+        self.eval_env.reset()
         return results
 
 
