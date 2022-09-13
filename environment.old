@@ -1,4 +1,4 @@
-name: mygym
+name: mygym2
 channels:
   - defaults
   - pytorch
