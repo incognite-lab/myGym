@@ -929,6 +929,7 @@ class PokeReachReward(SwitchReward):
 
     def compute(self, observation=None):
         poker_position, distance, gripper_distance = self.init(observation)
+        self.task.check_goal()
         reward = self.count_reward(poker_position, distance, gripper_distance)
         self.finish(observation, poker_position, distance, gripper_distance, reward)
         return reward

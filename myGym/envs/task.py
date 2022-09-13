@@ -211,6 +211,7 @@ class TaskModule():
         if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip']:
             finished = self.check_distance_threshold(self._observation)
         if self.task_type in ['push', 'throw']:
+            self.check_distance_threshold(self._observation)
             finished = self.check_points_distance_threshold()
         if self.task_type == "switch":
             self.check_distance_threshold(self._observation)
