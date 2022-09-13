@@ -10,9 +10,9 @@ We keep training the current state-of-the-art algorithms to provide baselines fo
 
 [![Generic badge](https://img.shields.io/badge/OS-Linux-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Computation-CPU,GPU-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Language-Python 3.7 -green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Language-Python:3.7-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Physics-Bullet-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Env-Gym 0.17.0-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Env-Gym-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Learning-TF,Torch-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Docs-Yes-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://shields.io/)
