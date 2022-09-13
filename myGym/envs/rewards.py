@@ -20,6 +20,9 @@ class Reward:
         self.task = task
         self.rewards_history = []
         self.current_network = 0
+        self.num_networks = env.num_networks
+        #self.check_num_networks()
+        self.network_rewards = [0] * self.num_networks
 
     def network_switch_control(self, observation):
         if self.env.num_networks <= 1:
@@ -1012,7 +1015,6 @@ class DualPoke(PokeReachReward):
         self.touched = False
         self.last_aimer_dist = 0
         self.last_poker_dist = 0
-        self.network_rewards = [0,0]
 
     def reset(self):
         """
