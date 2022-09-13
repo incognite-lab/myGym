@@ -122,9 +122,12 @@ class Robot:
 
         print("Robot summary")
         print("--------------")
-        print(f"Robot links:{self.link_names}")
-        print(f"Robot joints:{self.motor_names}")
-        print(f"Gripper joints:{self.gripper_names}")
+        print("Links:")
+        print("\n".join(map(str,self.link_names)))
+        print("Joints:")
+        print("\n".join(map(str,self.motor_names)))
+        print("Gripper joints:")
+        print("\n".join(map(str,self.gripper_names)))
         print("Gripper index is: " + str(self.gripper_index))
         print("End effector index is: " + str(self.end_effector_index))
 

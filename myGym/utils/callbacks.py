@@ -102,6 +102,7 @@ class CustomEvalCallback(EvalCallback):
         images = []
         subrewards = []
         subrewsteps = []
+        subrewsuccess = []
         for e in range(n_eval_episodes):
 
             # Avoid double reset, as VecEnv are reset automatically
@@ -115,6 +116,7 @@ class CustomEvalCallback(EvalCallback):
             last_network = 0
             last_steps = 0
             srewardsteps = np.zeros(self.eval_env.env.reward.num_networks)
+            srewardsuccess = np.zeros(self.eval_env.env.reward.num_networks)
 
 
             while not done:
@@ -142,6 +144,7 @@ class CustomEvalCallback(EvalCallback):
                 is_successful = not info['f']
                 if self.eval_env.env.reward.current_network != last_network:
                     srewardsteps.put([last_network], steps-last_steps)
+                    srewardsuccess.put([last_network], 1)
                     last_network = self.eval_env.env.reward.current_network
                     last_steps = steps
                 distance_error = info['d']
@@ -158,8 +161,11 @@ class CustomEvalCallback(EvalCallback):
                     self.eval_env.render()
                 steps +=1      
             srewardsteps.put([last_network], steps-last_steps)
+            if is_successful:
+                srewardsuccess.put([last_network], 1)
             subrewards.append(self.eval_env.env.reward.network_rewards)            
             subrewsteps.append(srewardsteps)
+            subrewsuccess.append(srewardsuccess)
             episode_rewards.append(episode_reward)
             success_episodes_num += is_successful
             distance_error_sum += distance_error
@@ -173,6 +179,11 @@ class CustomEvalCallback(EvalCallback):
 
         
 
+        meansr = np.mean(subrewards, axis=0)
+        meansrs = np.mean(subrewsteps, axis=0)
+        srsu = np.array(subrewsuccess)
+        meansgoals=np.count_nonzero(srsu)/self.eval_env.env.reward.num_networks/n_eval_episodes*100
+
         results = {
             "episode": "{}".format(self.n_calls),
             "n_eval_episodes": "{}".format(n_eval_episodes),
@@ -183,18 +194,18 @@ class CustomEvalCallback(EvalCallback):
             "mean_reward": "{:.2f}".format(np.mean(episode_rewards)),
             "std_reward": "{:.2f}".format(np.std(episode_rewards)),
             "number of tasks":"{}".format(self.eval_env.env.task.number_tasks),
-            "number of networks":"{}".format(self.eval_env.env.reward.num_networks)             
+            "number of networks":"{}".format(self.eval_env.env.reward.num_networks),
+            "mean subgoals finished":"{}".format(str(meansgoals)),
+            "mean subgoal reward":"{}".format(str(meansr)),
+            "mean subgoal steps":"{}".format(str(meansrs)),
         }
         
         for k, v in results.items():
             print (k, ':', v)
 
-        print ("mean subtasks finished:{}".format(1))
-        meansr = np.mean(subrewards, axis=0)
-        meansrs = np.mean(subrewsteps, axis=0)
-        
         
 
+        print ("mean subtasks finished:{}".format(meansgoals))
 
         #if not self.is_tb_set:
         #    with self.model.graph.as_default():
@@ -209,16 +220,22 @@ class CustomEvalCallback(EvalCallback):
         self.locals['writer'].add_summary(summary, self.num_timesteps)
         summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/2.Mean_reward', simple_value=np.mean(episode_rewards))])
         self.locals['writer'].add_summary(summary, self.num_timesteps)
+        summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/2.Mean_sgoals', simple_value=meansgoals)])
+        self.locals['writer'].add_summary(summary, self.num_timesteps)
         
         for i in range (self.eval_env.env.task.number_tasks):
-            print("Subtask: {}".format(i)) 
+            #print("Task: {}".format(i)) 
             for j, (k,l) in enumerate(zip(meansr,meansrs)):  
-                print("Subreward {}: {} , steps: {}".format(j, k, l)) 
-                summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/Subtask{}/Subreward{}/Reward'.format(i,j),
+                m = np.count_nonzero(srsu[:,j])/n_eval_episodes*100
+                #print("Reward {}: {} , steps: {} , Success: {}".format(j, k, l, m )) 
+                summary = tf.Summary(value=[tf.Summary.Value(tag='Task{}/Subgoal{}/Reward'.format(i,j),
                                                                               simple_value=k)])
                 self.locals['writer'].add_summary(summary, self.num_timesteps)
-                summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/Subtask{}/Subreward{}/Steps'.format(i,j),
+                summary = tf.Summary(value=[tf.Summary.Value(tag='Task{}/Subgoal{}/Steps'.format(i,j),
                                                                               simple_value=l)])
+                self.locals['writer'].add_summary(summary, self.num_timesteps)
+                summary = tf.Summary(value=[tf.Summary.Value(tag='Task{}/Subgoal{}/Success'.format(i,j),
+                                                                              simple_value=m)])
                 self.locals['writer'].add_summary(summary, self.num_timesteps)
 
         self.eval_env.reset()

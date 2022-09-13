@@ -3,14 +3,16 @@
 
 
 
-We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks  with increasing complexity and test your network on them. We also included an automatic evaluation and benchmark tool for your developed model. We have pretained the Yolact network for visual recognition of all objects in the simulator, so that you can reward your networks based on visual sensors only. We keep training the current state-of-the-art algorithms to provide baselines for the tasks in the toolbox. There is also a leaderboard showing algorithms with the best generalization capability, tested on the tasks in our basic curriculum. From version 2.0 it is possible to train multiple networks within one task and switch between them based on reward or adaptively. The number of neteworks is specified in config file.
+We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks  with increasing complexity and test your network on them. We also included an automatic evaluation and benchmark tool for your developed model. We have pretained the Yolact network for visual recognition of all objects in the simulator, so that you can reward your networks based on visual sensors only. 
+
+We keep training the current state-of-the-art algorithms to provide baselines for the tasks in the toolbox. There is also a leaderboard showing algorithms with the best generalization capability, tested on the tasks in our basic curriculum. From version 2.0 it is possible to train multiple networks within one task and switch between them based on reward or adaptively. The number of neteworks is specified in config file.
 
 
 [![Generic badge](https://img.shields.io/badge/OS-Linux-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Computation-CPU,GPU-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Language-Python-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Language-Python 3.7 -green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Physics-Bullet-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Env-Gym-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Env-Gym 0.17.0-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Learning-TF,Torch-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Docs-Yes-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://shields.io/)
@@ -60,15 +62,19 @@ Clone the repository:
 
 `cd mygym`
 
-We recommend to create a conda environment:
+Create Python 3.7 conda env (later Python versions does not support TF 0.15.5 neccesary for Stable baselines ):
 
-`conda env create -f environment.yml`
+`conda create -n  mygym Python=3.7`
 
 `conda activate mygym`
 
 Install myGym:
 
 `python setup.py develop`
+
+If you face troubles with mpi4py dependency install the lib:
+
+`sudo apt install libopenmpi-dev`
 
 If you want to use the pretrained visual modules, please download them first:
 

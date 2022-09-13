@@ -6,7 +6,7 @@ import numpy as np
 from numpy.lib.function_base import append
 from myGym.utils.callbacks import SaveOnTopRewardCallback
 import tensorflow as tf
-tf.get_logger().setLevel('ERROR')
+#tf.get_logger().setLevel('ERROR')
 
 from collections import OrderedDict, deque
 
