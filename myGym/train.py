@@ -191,7 +191,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     #Envinronment
-    parser.add_argument("-cfg", "--config", default="./configs/train_push.json", help="Can be passed instead of all arguments")
+    parser.add_argument("-cfg", "--config", default="./configs/debug.json", help="Can be passed instead of all arguments")
     parser.add_argument("-n", "--env_name", type=str, help="The name of environment")
     parser.add_argument("-ws", "--workspace", type=str, help="The name of workspace")
     parser.add_argument("-p", "--engine", type=str,  help="Name of the simulation engine you want to use")

@@ -1268,7 +1268,7 @@ class TwoStagePnP(DualPoke):
         return self.current_network
 
     def gripper_reached_object(self, gripper, object):
-        self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
+        #self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
         #if self.current_network == 0:
         #    self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
         if "gripper" in self.env.robot_action:
@@ -1315,6 +1315,7 @@ class TwoStagePnP(DualPoke):
             self.last_place_dist = dist
         reward = self.last_place_dist - dist
         reward = reward * 10
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.2], lifeTime=0.1, textColorRGB=[0,125,0])
         self.last_place_dist = dist
         if self.last_owner == 1 and dist < 0.1:
             self.env.robot.release_all_objects()
@@ -1326,6 +1327,7 @@ class TwoStagePnP(DualPoke):
             self.env.episode_over = True
         ix = 1 if self.num_networks > 1 else 0
         self.network_rewards[ix] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.7,0.7,1.1], lifeTime=0.1, textColorRGB=[0,0,125])
         return reward
 
 class TwoStagePnPBgrip(TwoStagePnP):
@@ -1395,14 +1397,6 @@ class ThreeStagePnP(TwoStagePnP):
             self.was_above = True
         self.env.p.addUserDebugText(f"Network:{self.current_network}", [0.7,0.7,1.0], lifeTime=0.1, textColorRGB=[55,125,0])
         return self.current_network
-
-    def object_above_goal(self, object, goal):
-        goal_XY   = [goal[0],   goal[1],   0]
-        object_XY = [object[0], object[1], 0]
-        distance  = self.task.calc_distance(goal_XY, object_XY)
-        if distance < 0.1:
-            return True
-        return False
 
     def move_compute(self, object, goal):
         # moving object above goal position (forced 2D reach)
@@ -1479,7 +1473,6 @@ class ThreeStagePnP(TwoStagePnP):
         if distance < 0.1:
             return True
         return False
-
 
 class FourStagePnP(ThreeStagePnP):
 

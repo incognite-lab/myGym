@@ -370,7 +370,7 @@ class MultiPPO2(ActorCriticRLModel):
             model.env = env
         # model.set_env(env)
         model.tensorboard_log = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
-
+        model.models_num = models
         model.setup_model()
 
         i = 0
@@ -406,7 +406,10 @@ class MultiPPO2(ActorCriticRLModel):
 
     def approved(self, observation):
         # based on obs, decide which model should be used
-        submodel_id = self.env.envs[0].env.env.reward.network_switch_control(self.env.envs[0].env.env.observation["task_objects"])
+        if hasattr(self.env, 'envs'):
+            submodel_id = self.env.envs[0].env.env.reward.network_switch_control(self.env.envs[0].env.env.observation["task_objects"])
+        else:
+            submodel_id = self.env.reward.network_switch_control(self.env.observation["task_objects"])
         return submodel_id
 
 class SubModel(MultiPPO2):
@@ -501,7 +504,10 @@ class SubModel(MultiPPO2):
                     tf.summary.scalar('value_function_loss'         , self.vf_loss)
                     tf.summary.scalar('approximate_kullback-leibler', self.approxkl)
                     tf.summary.scalar('clip_factor'                 , self.clipfrac)
-                    tf.summary.scalar('network_reward'                 , self.env.envs[0].env.reward.network_rewards[self.model_num])
+                    if hasattr(self.env, 'envs'):
+                        tf.summary.scalar('network_reward'          , self.env.envs[0].env.reward.network_rewards[self.model_num])
+                    else:
+                        tf.summary.scalar('network_reward'          , self.env.reward.network_rewards[self.model_num])
                     tf.summary.scalar('loss', loss)
 
                     with tf.variable_scope('model'):
