@@ -1290,6 +1290,7 @@ class TwoStagePnP(DualPoke):
         self.env.p.addUserDebugText("find object", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
         dist = self.task.calc_distance(gripper, object)
         self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.5,0.5,0.7], lifeTime=0.1, textColorRGB=[0, 125, 0])
         if self.last_find_dist is None:
             self.last_find_dist = dist
         if self.last_owner != 0:
@@ -1308,6 +1309,7 @@ class TwoStagePnP(DualPoke):
         # reach of goal position + task object height in Z axis and release
         self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
         dist = self.task.calc_distance(object, goal)
+        self.env.p.addUserDebugLine(object, goal, lifeTime=0.1)
         self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.5,0.5,0.7], lifeTime=0.1, textColorRGB=[0, 125, 0])
         if self.last_place_dist is None:
             self.last_place_dist = dist
@@ -1329,6 +1331,125 @@ class TwoStagePnP(DualPoke):
         self.network_rewards[ix] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.7,0.7,1.1], lifeTime=0.1, textColorRGB=[0,0,125])
         return reward
+
+class ThreeStagePnP2(TwoStagePnP):
+
+    def __init__(self, env, task):
+        super(TwoStagePnP, self).__init__(env, task)
+        self.last_owner = None
+        self.last_find_dist  = None
+        self.last_lift_dist  = None
+        self.last_move_dist  = None
+        self.last_place_dist = None
+        self.current_network = 0
+        self.num_networks = env.num_networks
+        self.check_num_networks()
+        self.network_rewards = [0] * self.num_networks
+        self.was_above = False
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+        self.last_owner = None
+        self.last_find_dist  = None
+        self.last_lift_dist  = None
+        self.last_move_dist  = None
+        self.last_place_dist = None
+        self.current_network = 0
+        self.network_rewards = [0] * self.num_networks
+        self.was_above = False
+
+    
+    def check_num_networks(self):
+        assert self.num_networks <= 3, "TwosStagePnP reward can work with maximum 3 networks"
+
+    def compute(self, observation=None):
+        """
+        Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if owner   == 0: reward = self.find_compute(gripper_position, object_position)
+        elif owner == 1: reward = self.move_compute(object_position, goal_position)
+        elif owner == 2: reward = self.place_compute(object_position, goal_position)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+    
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network= 1
+        if self.object_above_goal(object_position, goal_position) or self.was_above:
+            self.current_network = 2
+            self.was_above = True
+        return self.current_network
+
+    def move_compute(self, object, goal):
+        # reach of goal position + task object height in Z axis and release
+        self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        object_XY = object
+        goal_XY   = [goal[0], goal[1], goal[2]+0.1]
+        self.env.p.addUserDebugLine(object_XY, goal_XY, lifeTime=0.1)
+        dist = self.task.calc_distance(object_XY, goal_XY)
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.5,0.5,0.7], lifeTime=0.1, textColorRGB=[0, 125, 0])
+        if self.last_place_dist is None:
+            self.last_place_dist = dist
+        if self.last_owner != 1:
+            self.last_place_dist = dist
+        reward = self.last_place_dist - dist
+        reward = reward * 10
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.2], lifeTime=0.1, textColorRGB=[0,125,0])
+        self.last_place_dist = dist
+        if self.last_owner == 1 and dist < 0.1:
+            self.env.robot.release_all_objects()
+            self.gripped = None
+            self.env.episode_info = "Object was placed to desired position"
+        if self.env.episode_steps <= 2:
+            self.env.episode_info = "Task finished in initial configuration"
+            self.env.robot.release_all_objects()
+            self.env.episode_over = True
+        ix = 1 if self.num_networks > 1 else 0
+        self.network_rewards[ix] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.7,0.7,1.1], lifeTime=0.1, textColorRGB=[0,0,125])
+        return reward
+
+    def place_compute(self, object, goal):
+        # reach of goal position + task object height in Z axis and release
+        self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        self.env.p.addUserDebugLine(object, goal, lifeTime=0.1)
+        dist = self.task.calc_distance(object, goal)
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.5,0.5,0.7], lifeTime=0.1, textColorRGB=[0, 125, 0])
+        if self.last_place_dist is None or self.last_owner != 2:
+            self.last_place_dist = dist
+        reward = self.last_place_dist - dist
+        reward = reward * 10
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.2], lifeTime=0.1, textColorRGB=[0,125,0])
+        self.last_place_dist = dist
+        if self.last_owner == 2 and dist < 0.1:
+            self.env.robot.release_all_objects()
+            self.gripped = None
+            self.env.episode_info = "Object was placed to desired position"
+        if self.env.episode_steps <= 2:
+            self.env.episode_info = "Task finished in initial configuration"
+            self.env.episode_over = True
+        self.network_rewards[-1] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.7,0.7,1.1], lifeTime=0.1, textColorRGB=[0,0,125])
+        return reward
+
+    def object_above_goal(self, object, goal):
+        goal_XY   = [goal[0], goal[1], goal[2]+0.1]
+        object_XY = object
+        distance  = self.task.calc_distance(goal_XY, object_XY)
+        if distance < 0.1:
+            return True
+        return False
 
 class TwoStagePnPBgrip(TwoStagePnP):
 
@@ -1402,9 +1523,10 @@ class ThreeStagePnP(TwoStagePnP):
         # moving object above goal position (forced 2D reach)
         self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
         object_XY = object
-        goal_XY   = [goal[0]-0.15, goal[1], goal[2]+0.1]
+        goal_XY   = [goal[0], goal[1], goal[2]+0.1]
         self.env.p.addUserDebugLine(object_XY, goal_XY, lifeTime=0.1)
         dist = self.task.calc_distance(object_XY, goal_XY)
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.5,0.5,0.7], lifeTime=0.1, textColorRGB=[0, 125, 0])
         if self.last_move_dist is None or self.last_owner != 1:
            self.last_move_dist = dist
         reward = self.last_move_dist - dist
@@ -1421,6 +1543,7 @@ class ThreeStagePnP(TwoStagePnP):
         self.env.p.addUserDebugText("place", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
         self.env.p.addUserDebugLine(object, goal, lifeTime=0.1)
         dist = self.task.calc_distance(object, goal)
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.5,0.5,0.7], lifeTime=0.1, textColorRGB=[0, 125, 0])
         if self.last_place_dist is None or self.last_owner != 2:
             self.last_place_dist = dist
         reward = self.last_place_dist - dist
@@ -1467,8 +1590,8 @@ class ThreeStagePnP(TwoStagePnP):
         return False
 
     def object_above_goal(self, object, goal):
-        goal_XY   = [goal[0],   goal[1],   0]
-        object_XY = [object[0], object[1], 0]
+        goal_XY   = [goal[0], goal[1], goal[2]+0.1]
+        object_XY = object
         distance  = self.task.calc_distance(goal_XY, object_XY)
         if distance < 0.1:
             return True

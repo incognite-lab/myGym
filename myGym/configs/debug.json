@@ -17,8 +17,8 @@
     "action_repeat" :1,
     #Task
     "task_type"             :"pnp",
-    "task_objects"          :[{"init":{"obj_name":"cube_holes","fixed":0,"rand_rot":0, "sampling_area":[-0.6,-0.3,0.4,0.8,0.1,0.1]},
-                           "goal":{"obj_name":"cube_target","fixed":1,"rand_rot":0, "sampling_area":[0.0,0.6,0.4,0.8,0.1,0.1]}}],
+    "task_objects"          :[{"init":{"obj_name":"cube_holes","fixed":0,"rand_rot":0, "sampling_area":[-0.5,-0.3,0.5,0.3,0.1,0.1]},
+                           "goal":{"obj_name":"cube_target","fixed":1,"rand_rot":0, "sampling_area":[0.0,0.2,0.5,0.3,0.1,0.1]}}],
     "color_dict"            : {"cube_holes":[[0.2,0.5,0.2,1]], "target":[[0.3,0.3,0.3,1]]},
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
     // Observation
@@ -38,7 +38,7 @@
     #Train
     "train_framework"   :"tensorflow",
     "algo"              :"multi",
-    "num_networks"      :2,
+    "num_networks"      :3,
     "max_episode_steps" :512,
     "algo_steps"        :512,
     "steps"             :2000000,
