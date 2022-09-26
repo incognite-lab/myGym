@@ -1296,7 +1296,7 @@ class TwoStagePnP(DualPoke):
         if self.last_owner != 0:
             self.last_find_dist = dist
         reward = self.last_find_dist - dist
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.2], lifeTime=0.1, textColorRGB=[0,125,0])
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.0], lifeTime=0.1, textColorRGB=[0,125,0])
         self.last_find_dist = dist
         if self.task.check_object_moved(self.env.task_objects["actual_state"], threshold=1.2):
             self.env.episode_over   = True
@@ -1317,7 +1317,7 @@ class TwoStagePnP(DualPoke):
             self.last_place_dist = dist
         reward = self.last_place_dist - dist
         reward = reward * 10
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.2], lifeTime=0.1, textColorRGB=[0,125,0])
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.0], lifeTime=0.1, textColorRGB=[0,125,0])
         self.last_place_dist = dist
         if self.last_owner == 1 and dist < 0.1:
             self.env.robot.release_all_objects()
@@ -1335,7 +1335,7 @@ class TwoStagePnP(DualPoke):
 class ThreeStagePnP2(TwoStagePnP):
 
     def __init__(self, env, task):
-        super(TwoStagePnP, self).__init__(env, task)
+        super(ThreeStagePnP2, self).__init__(env, task)
         self.last_owner = None
         self.last_find_dist  = None
         self.last_lift_dist  = None
@@ -1399,22 +1399,22 @@ class ThreeStagePnP2(TwoStagePnP):
         self.env.p.addUserDebugLine(object_XY, goal_XY, lifeTime=0.1)
         dist = self.task.calc_distance(object_XY, goal_XY)
         self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.5,0.5,0.7], lifeTime=0.1, textColorRGB=[0, 125, 0])
-        if self.last_place_dist is None:
-            self.last_place_dist = dist
+        if self.last_move_dist is None:
+            self.last_move_dist = dist
         if self.last_owner != 1:
-            self.last_place_dist = dist
-        reward = self.last_place_dist - dist
+            self.last_move_dist = dist
+        reward = self.last_move_dist - dist
         reward = reward * 10
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.2], lifeTime=0.1, textColorRGB=[0,125,0])
-        self.last_place_dist = dist
-        if self.last_owner == 1 and dist < 0.1:
-            self.env.robot.release_all_objects()
-            self.gripped = None
-            self.env.episode_info = "Object was placed to desired position"
-        if self.env.episode_steps <= 2:
-            self.env.episode_info = "Task finished in initial configuration"
-            self.env.robot.release_all_objects()
-            self.env.episode_over = True
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.0], lifeTime=0.1, textColorRGB=[0,125,0])
+        self.last_move_dist = dist
+        #if self.last_owner == 1 and dist < 0.1:
+        #    self.env.robot.release_all_objects()
+        #    self.gripped = None
+        #    self.env.episode_info = "Object was placed to desired position"
+        #if self.env.episode_steps <= 2:
+        #    self.env.episode_info = "Task finished in initial configuration"
+        #    self.env.robot.release_all_objects()
+        #    self.env.episode_over = True
         ix = 1 if self.num_networks > 1 else 0
         self.network_rewards[ix] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.7,0.7,1.1], lifeTime=0.1, textColorRGB=[0,0,125])
@@ -1430,7 +1430,7 @@ class ThreeStagePnP2(TwoStagePnP):
             self.last_place_dist = dist
         reward = self.last_place_dist - dist
         reward = reward * 10
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.2], lifeTime=0.1, textColorRGB=[0,125,0])
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.0], lifeTime=0.1, textColorRGB=[0,125,0])
         self.last_place_dist = dist
         if self.last_owner == 2 and dist < 0.1:
             self.env.robot.release_all_objects()

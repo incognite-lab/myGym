@@ -223,7 +223,8 @@ class MultiPPO2(ActorCriticRLModel):
                     # calc = len(true_reward)
                     # model.n_batch = calc
 
-                    if model.n_batch == 0:
+                    if steps_used[i] == 0:
+                    #if model.n_batch == 0:
                         b = 0
                     else:
                         self.ep_info_buf.extend(ep_infos)   
@@ -242,7 +243,7 @@ class MultiPPO2(ActorCriticRLModel):
                                         mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, model=self.models[i], writer=writer, update=timestep, cliprange_vf=cliprange_vf_now))
                                     else:
                                         mb_loss_vals.append((0,0,0,0,0))
-                            i+=1
+                            
                         else:
                             exit("does not support recurrent version")
 
@@ -253,15 +254,17 @@ class MultiPPO2(ActorCriticRLModel):
                         if writer is not None:
                             n_steps = model.n_batch
                             try:
+                                print("true reward:{}".format(true_reward.shape))
                                 total_episode_reward_logger(self.episode_reward, true_reward.reshape((self.n_envs, n_steps)), masks.reshape((self.n_envs, n_steps)), writer, self.num_timesteps)
+
                             except:
-                                print("Failed to log episode reward of shape {}".format(true_reward.shape))
+                               print("Failed to log episode reward of shape {}".format(true_reward.shape))
                             summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/Successful stages',
                                                                          simple_value=success_stages)])
                             writer.add_summary(summary, self.num_timesteps)
                             #@TODO plot in one graph:
-                            for i, val in enumerate(steps_used):
-                                summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/Used steps net {}'.format(i),
+                            for j, val in enumerate(steps_used):
+                                summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/Used steps net {}'.format(j),
                                                                               simple_value=val)])
                                 writer.add_summary(summary, self.num_timesteps)
 
@@ -280,7 +283,7 @@ class MultiPPO2(ActorCriticRLModel):
                             for (loss_val, loss_name) in zip(loss_vals, model.loss_names):
                                 logger.logkv(loss_name, loss_val)
                             logger.dumpkvs()
-
+                    i+=1
             callback.on_training_end()
             return self
 
@@ -652,6 +655,8 @@ class Runner(AbstractEnvRunner):
         ep_infos = []        
         for model in self.models:
             model.n_batch = 0
+        last_success = 0
+        print("Net 0 activated at beginning")
         for _ in range(self.n_steps):
 
             owner = self.model.approved(self.obs)
@@ -661,6 +666,10 @@ class Runner(AbstractEnvRunner):
             successful_stages = self.env.envs[0].env.env.reward.current_network
             if self.states:
                 successful_stages += 1
+                print ("Episode successfully finished at step {}".format(_))
+            if last_success != successful_stages:
+                print("Changed to Net {} at step {}".format(successful_stages,_))
+                last_success = successful_stages
             minibatch = minibatches[owner]
             mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = minibatch
 
@@ -697,8 +706,9 @@ class Runner(AbstractEnvRunner):
         last_values          = model.value(self.obs, self.states, self.dones) # last observation, last state, last done
         finished_minibatches = []
         # discount/bootstrap off value fn
-        i = 0
-        for minibatch in minibatches:
+        #print("Minibatches: {}".format(len(minibatches)))
+        for i, minibatch in enumerate(minibatches):
+            print("Step:{}".format(i))
             mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = minibatch
             
             mb_obs        = np.asarray(mb_obs,        dtype=self.obs.dtype)
@@ -726,15 +736,14 @@ class Runner(AbstractEnvRunner):
             try:
                 mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward = map(swap_and_flatten, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward))
             except:
-              print("model {} took all the steps".format(owner))
+              print("model {} had no data".format(i))
 
             finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
             finished_minibatches.append(finished_minibatch)
-            i+=1
         steps_taken = [finished_minibatches[x][0].shape[0] for x in range(len(finished_minibatches))]
         return finished_minibatches, steps_taken
 
-        return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
+        #return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
 
 def swap_and_flatten(arr):
     """
