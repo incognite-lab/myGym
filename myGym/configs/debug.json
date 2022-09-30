@@ -38,7 +38,7 @@
     #Train
     "train_framework"   :"tensorflow",
     "algo"              :"multi",
-    "num_networks"      :2,
+    "num_networks"      :4,
     "max_episode_steps" :512,
     "algo_steps"        :512,
     "steps"             :2000000,

@@ -119,7 +119,7 @@ class GymEnv(CameraEnv):
                                               "distractor": VectorReward, "poke": PokeReachReward, "switch": SwitchReward,
                                               "btn": ButtonReward, "turn": TurnReward, "pnp":SingleStagePnP},
                           "2-network":     {"poke": DualPoke, "pnp":TwoStagePnP,"pnpbgrip":TwoStagePnPBgrip},
-                          "3-network":     {"pnp":ThreeStagePnP2},
+                          "3-network":     {"pnp":ThreeStagePnP},
                           "4-network":     {"pnp":FourStagePnP}}
         scheme = "{}-network".format(str(self.num_networks))
         assert reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"

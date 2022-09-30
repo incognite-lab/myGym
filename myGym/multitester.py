@@ -18,9 +18,9 @@ parser.add_argument("-mf", "--max_force", default=[100], nargs='*', help="arm fo
 parser.add_argument("-frame", "--framework", default=["tensorflow"], nargs='*', help="what algos to test")
 parser.add_argument("-algo", "--algorithms", default=["ppo2", "acktr","multi"], nargs='*', help="what algos to test")
 #parser.add_argument("-algo", "--algorithms", default=["ppo2","acktr","multi"], nargs='*', help="what algos to test")
-parser.add_argument("-l", "--logdir",type=str, default="./trained_models/refactor2", help="where to save the results")
+parser.add_argument("-l", "--logdir",type=str, default="./trained_models/refactor4a", help="where to save the results")
 parser.add_argument("-thread", "--threaded", type=bool, default="True", help="run in threads")
-parser.add_argument("-out", "--output", type=str, default="./trained_models/refactor2.json", help="output file")
+parser.add_argument("-out", "--output", type=str, default="./trained_models/refactor4a.json", help="output file")
 
 args = parser.parse_args()
 
