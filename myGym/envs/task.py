@@ -181,7 +181,7 @@ class TaskModule():
             return -1
         return False
 
-    def check_distance_threshold(self, observation, threshold=0.04):
+    def check_distance_threshold(self, observation, threshold=0.1):
         """
         Check if the distance between relevant task objects is under threshold for successful task completion
         Returns:
@@ -270,6 +270,9 @@ class TaskModule():
         Returns: 
             :return dist: (float) Distance between 2 float arrays
         """
+        #TODO
+w        if len(obj1) != len(obj2):
+            obj2 = obj2[:len(obj1)]
         if self.distance_type == "euclidean":
             dist = np.linalg.norm(np.asarray(obj1) - np.asarray(obj2))
         elif self.distance_type == "manhattan":
