@@ -91,7 +91,7 @@ def test_env(env, arg_dict):
     #arg_dict["gui"] == 1
     debug_mode = True
     spawn_objects = False
-    action_control = "slider" #"observation", "random", "keyboard" or "slider"
+    action_control = "keyboard" #"observation", "random", "keyboard" or "slider"
     visualize_sampling = False
     visualize_traj = True
     env.render("human")
