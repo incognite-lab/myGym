@@ -7,6 +7,7 @@ import pkg_resources
 import cv2
 import random
 from scipy.spatial.distance import cityblock
+from pyquaternion import Quaternion
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
 
@@ -37,6 +38,7 @@ class TaskModule():
         self.last_distance = None
         self.init_distance = None
         self.current_norm_distance = None
+        self.current_norm_rotation = None
         self.stored_observation = []
         self.obs_template = observation
         self.vision_module = VisionModule(observation=observation, env=env, vae_path=vae_path, yolact_path=yolact_path, yolact_config=yolact_config)
@@ -189,6 +191,21 @@ class TaskModule():
         """
         self.current_norm_distance = self.calc_distance(observation["goal_state"], observation["actual_state"])
         return self.current_norm_distance < threshold
+    
+    def check_distrot_threshold(self, observation, threshold=0.1):
+        """
+        Check if the distance between relevant task objects is under threshold for successful task completion
+        Returns:
+            :return: (bool)
+        """
+        self.current_norm_distance = self.calc_distance(observation["goal_state"], observation["actual_state"])
+        self.current_norm_rotation = self.calc_rot_quat(observation["goal_state"], observation["actual_state"])
+        
+
+        if self.current_norm_distance < threshold and self.current_norm_rotation < .9:
+            return True
+        return False
+
 
     def check_points_distance_threshold(self, threshold=0.1):
         o1 = self.env.task_objects["actual_state"]
@@ -209,7 +226,9 @@ class TaskModule():
         
         finished = None
         if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip']:
-            finished = self.check_distance_threshold(self._observation)
+            finished = self.check_distance_threshold(self._observation)  
+        if self.task_type in ['pnprot']:
+            finished = self.check_distrot_threshold(self._observation)  
         if self.task_type in ['push', 'throw']:
             self.check_distance_threshold(self._observation)
             finished = self.check_points_distance_threshold()
@@ -271,13 +290,29 @@ class TaskModule():
             :return dist: (float) Distance between 2 float arrays
         """
         #TODO
-w        if len(obj1) != len(obj2):
-            obj2 = obj2[:len(obj1)]
         if self.distance_type == "euclidean":
-            dist = np.linalg.norm(np.asarray(obj1) - np.asarray(obj2))
+            dist = np.linalg.norm(np.asarray(obj1[:3]) - np.asarray(obj2[:3]))
         elif self.distance_type == "manhattan":
             dist = cityblock(obj1, obj2)
         return dist
+    
+    def calc_rot_quat(self, obj1, obj2):
+        """
+        Calculate difference between two quaternions
+
+        Parameters:
+            :param obj1: (float array) First object quaternion
+            :param obj2: (float array) Second object object quaternion
+        Returns: 
+            :return dist: (float) Distance between 2 float arrays
+        """
+        #TODO
+        #tran = np.linalg.norm(np.asarray(obj1[:3]) - np.asarray(obj2[:3]))
+        rot = Quaternion.distance(Quaternion(obj1[3:]), Quaternion(obj2[3:]))  
+        #print(obj1[3:])
+        #print(obj2[3:])
+        #print(rot)
+        return rot
 
     def calc_rotation_diff(self, obj1, obj2):
         """

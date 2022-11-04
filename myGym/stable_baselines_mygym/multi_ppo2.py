@@ -656,20 +656,24 @@ class Runner(AbstractEnvRunner):
         for model in self.models:
             model.n_batch = 0
         last_success = 0
-        print("Net 0 activated at beginning")
+        last_owner = -1
         for _ in range(self.n_steps):
 
             owner = self.model.approved(self.obs)
 
             model = self.models[owner]
             actions, values, self.states, neglogpacs = model.step(self.obs, self.states, self.dones)
-            successful_stages = self.env.envs[0].env.env.reward.current_network
+            successful_stages = owner
             if self.states:
                 successful_stages += 1
                 print ("Episode successfully finished at step {}".format(_))
-            if last_success != successful_stages:
-                print("Changed to Net {} at step {}".format(successful_stages,_))
-                last_success = successful_stages
+            if owner > last_owner: 
+                print("Changed to Net {} at step {}".format(owner,_))
+                last_owner = owner
+            #print(_)
+            #if last_success != successful_stages:
+            #    print("Changed to Net {} at step {}".format(successful_stages,_))
+            #    last_success = successful_stages
             minibatch = minibatches[owner]
             mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = minibatch
 
@@ -702,6 +706,9 @@ class Runner(AbstractEnvRunner):
                     ep_infos.append(maybe_ep_info)
             mb_rewards.append(rewards)
             model.n_batch += 1
+            if self.dones:
+                print('Finished batch training')
+                break
         # batch of steps to batch of rollouts
         last_values          = model.value(self.obs, self.states, self.dones) # last observation, last state, last done
         finished_minibatches = []

@@ -91,7 +91,7 @@ def test_env(env, arg_dict):
     #arg_dict["gui"] == 1
     debug_mode = True
     spawn_objects = False
-    action_control = "keyboard" #"observation", "random", "keyboard" or "slider"
+    action_control = "slider" #"observation", "random", "keyboard" or "slider"
     visualize_sampling = False
     visualize_traj = True
     env.render("human")
@@ -104,7 +104,7 @@ def test_env(env, arg_dict):
             if arg_dict["gui"] == 0:
                 print ("Add --gui 1 parameter to visualize environment")        
             
-            p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+            p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
             p.resetDebugVisualizerCamera(1.7, 200, -20, [-0.1, .0, 0.05])
             p.setAdditionalSearchPath(pybullet_data.getDataPath())
             #newobject = p.loadURDF("cube.urdf", [3.1,3.7,0.1])

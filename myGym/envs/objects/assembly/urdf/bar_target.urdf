@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<robot name="cube_holes">
+  <link name="baseLink">
+    <contact>
+            <restitution value="0.5" />
+	          <rolling_friction value="0.03"/>
+            <spinning_friction value="0.03"/>
+            <rolling_friction value="0.53"/>
+            <spinning_friction value="0.53"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0001 0.0 0.0"/>
+       <mass value="10.084"/>
+       <inertia ixx="0.0053" ixy="9e-05" ixz="0.00014" iyy="0.00534" iyz="0.0003" izz="0.00155"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0001 0.0 0.0"/>
+      <geometry>
+        <mesh filename="../obj/cube_holes.obj" scale=".003 .001 .001"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+</robot>
