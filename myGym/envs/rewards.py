@@ -1502,66 +1502,66 @@ class ThreeStagePnPRot(ThreeStagePnP):
         if self.object_near_goal(object_position, goal_position) or self.was_near:
             self.current_network = 2
             self.was_near = True
-        self.env.p.addUserDebugText(f"Network:{self.current_network}", [0.7,0.7,1.0], lifeTime=0.1, textColorRGB=[55,125,0])
+        #self.env.p.addUserDebugText(f"Network:{self.current_network}", [0.7,0.7,1.0], lifeTime=0.1, textColorRGB=[55,125,0])
         return self.current_network
     
     def find_compute(self, gripper, object):
         # initial reach
-        self.env.p.addUserDebugText("find object", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,0,0])
+        self.env.p.addUserDebugText("find object", [0.63,1,0.5], lifeTime=0.5, textColorRGB=[125,0,0])
         dist = self.task.calc_distance(gripper[:3], object[:3])
         self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
-        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.5,0.5,0.7], lifeTime=0.1, textColorRGB=[0, 125, 0])
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.59,1,0.65], lifeTime=0.5, textColorRGB=[0, 125, 0])
         if self.last_find_dist is None:
             self.last_find_dist = dist
         if self.last_owner != 0:
             self.last_find_dist = dist
         reward = self.last_find_dist - dist
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.0], lifeTime=0.1, textColorRGB=[0,125,0])
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
         self.last_find_dist = dist
         #if self.task.check_object_moved(self.env.task_objects["actual_state"], threshold=1.2):
         #    self.env.episode_over   = True
         #    self.env.episode_failed = True
         self.network_rewards[0] += reward
-        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.7,0.7,1.1], lifeTime=0.1, textColorRGB=[0,0,125])
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.59,1,0.6], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
     
     def move_compute(self, object, goal):
         # moving object above goal position (forced 2D reach)
-        self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
+        self.env.p.addUserDebugText("move", [0.63,1,0.5], lifeTime=0.5, textColorRGB=[0,0,125])
         object_XY = object[:3]
         goal_XY   = goal[:3]
         self.env.p.addUserDebugLine(object_XY, goal_XY, lifeTime=0.1)
         dist = self.task.calc_distance(object_XY, goal_XY)
-        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.5,0.5,0.7], lifeTime=0.1, textColorRGB=[0, 125, 0])
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.59,1,0.65], lifeTime=0.5, textColorRGB=[0, 125, 0])
         if self.last_move_dist is None or self.last_owner != 1:
            self.last_move_dist = dist
         reward = self.last_move_dist - dist
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.2], lifeTime=0.1, textColorRGB=[0,125,0])
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
         self.last_move_dist = dist
         ix = 1 if self.num_networks > 1 else 0
         self.network_rewards[ix] += reward
-        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.7,0.7,1.1], lifeTime=0.1, textColorRGB=[0,0,125])
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.59,1,0.6], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
     
     
     def rotate_compute(self, object, goal):
         # reach of goal position + task object height in Z axis and release
-        self.env.p.addUserDebugText("rotate", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        self.env.p.addUserDebugText("rotate", [0.63,1,0.5], lifeTime=0.1, textColorRGB=[125,125,0])
         self.env.p.addUserDebugLine(object[:3], goal[:3], lifeTime=0.1)
         dist = self.task.calc_distance(object, goal)
-        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.5,0.5,0.7], lifeTime=0.1, textColorRGB=[0, 125, 0])
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.59,1,0.65], lifeTime=0.5, textColorRGB=[0, 125, 0])
         if self.last_place_dist is None or self.last_owner != 2:
             self.last_place_dist = dist
         reward = self.last_place_dist - dist
 
         rot = self.task.calc_rot_quat(object, goal)
-        self.env.p.addUserDebugText("Rotation: {}".format(round(rot,3)), [0.5,0.5,0.8], lifeTime=0.1, textColorRGB=[0, 222, 100])
+        self.env.p.addUserDebugText("Rotation: {}".format(round(rot,3)), [0.57,1,0.7], lifeTime=0.5, textColorRGB=[0, 222, 100])
         if self.last_rot_dist is None or self.last_owner != 2:
             self.last_rot_dist = rot
         rewardrot = self.last_rot_dist - rot
         reward = reward + rewardrot
 
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.7,0.7,1.2], lifeTime=0.1, textColorRGB=[0,125,0])
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
         self.last_place_dist = dist
         self.last_rot_dist = rot
         #if self.last_owner == 2 and dist < 0.1:
@@ -1574,7 +1574,7 @@ class ThreeStagePnPRot(ThreeStagePnP):
         #    self.env.episode_info = "Task finished in initial configuration"
         #    self.env.episode_over = True
         self.network_rewards[-1] += reward
-        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.7,0.7,1.1], lifeTime=0.1, textColorRGB=[0,0,125])
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.59,1,0.6], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
 
     def object_near_goal(self, object, goal):
