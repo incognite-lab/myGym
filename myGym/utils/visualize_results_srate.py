@@ -12,9 +12,9 @@ import re
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-pth", default='./trained_models/')
-    parser.add_argument("-task", default='reach')
-    parser.add_argument("-common", default='table_kuka_step_gt')
-    parser.add_argument("-algos", default=["ppo", "ppo2", "sac", "acktr", "ddpg", "td3", "trpo", "a2c", "myalgo"], nargs='*')
+    parser.add_argument("-task", default='pnrmulti')
+    parser.add_argument("-common", default='table_kuka_joints')
+    parser.add_argument("-algos", default=["multi"], nargs='*')
     parser.add_argument("-xlabel", type=int, default=1)
     args = parser.parse_args()
 

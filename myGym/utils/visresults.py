@@ -11,12 +11,11 @@ import re
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pths", default=['./trained_models/cluster/reach_kuka_absolute_gt_ppo2/',
-                                          './trained_models/cluster/reach_kuka_absolute_gt_ppo/',
-                                          './trained_models/cluster/reach_kuka_absolute_gt_a2c/',
-                                          './trained_models/cluster/reach_kuka_absolute_gt_acktr/',
-                                          './trained_models/cluster/reach_kuka_joints_gt_trpo/'], nargs='*')
-    parser.add_argument("-pth", default=['./trained_models/pnrppo2'])
+    parser.add_argument("-pth", default='./trained_models/')
+    parser.add_argument("-task", default='pnr')
+    parser.add_argument("-common", default='pnprot_table_panda_joints')
+    parser.add_argument("-algos", default=["multi","acktr","ppo2"], nargs='*')
+    parser.add_argument("-xlabel", type=int, default=1)
     args = parser.parse_args()
 
     return args
@@ -152,34 +151,33 @@ def main():
     #subdirs = [x[0] for x in os.walk(str(args.pth[0]))][1:]
     root, dirs, files = next(os.walk(str(args.pth[0])))
     plt.rcParams.update({'font.size': 12})
-    fig, axs = plt.subplots(4, sharex=True, sharey=False, gridspec_kw={'hspace': 0})
+    plt.figure(figsize=(8,3))
+    #fig, axs = plt.subplots(4, sharex=True, sharey=False, gridspec_kw={'hspace': 0})
     colors = ['red','green','blue','yellow','magenta','cyan','black','grey','brown','gold','limegreen','silver','aquamarine','olive','hotpink','salmon']
     configs=[]
-    for idx,model in enumerate(dirs):
-        with open(os.path.join(root+"/"+model,"evaluation_results.json")) as f:
+    for idx, algo in enumerate(args.algos):
+        with open(os.path.join(args.pth, args.task, "{}_{}".format(args.common, algo), "evaluation_results.json")) as f:
             data = json.load(f)
         df = pd.DataFrame(data)
         x = df.to_numpy()
-        x = x.astype(np.float)
+        x = np.delete(x, [10,11,12], axis=0)
+        x = x.astype(float)
 
 
-        with open(os.path.join(root+"/"+model,"train.conf"), "r") as f:
+        with open(os.path.join(args.pth, args.task, "{}_{}".format(args.common, algo), "train.json"), "r") as f:
             # load individual configs
             cfg_raw = yaml.full_load(f)
             #cfg_crop = (cfg_raw.split(" model_path")[0])
             # and convert them to dictionary
-            configs.append(cfgString2Dict(cfg_raw))
+            configs.append(cfg_raw)
         #fig.suptitle(cfg)
 
 
-        axs[0].plot(x[0],x[3], color=colors[idx], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[idx], markersize=6)
-        axs[1].plot(x[0],(x[4]*100), color=colors[idx], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[idx], markersize=6)
-        axs[2].plot(x[0],x[5], color=colors[idx], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[idx], markersize=6)
-        axs[3].plot(x[0],x[6], color=colors[idx], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[idx], markersize=6)
+        plt.plot(x[0],x[3], color=colors[idx], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[idx], markersize=6)
 
     # get differences between configs
     diff, same = multiDictDiff_bykey(configs)
-    fig.text(0.1,0.94,same, ha="left", va="bottom", size="medium",color="black", wrap=True)
+    #plt.text(0.1,0.94,same, ha="left", va="bottom", size="medium",color="black", wrap=True)
     #l = []
     #for key, value in diff.items():
     #    l.append(value)
@@ -189,18 +187,17 @@ def main():
     s = list(diff.values())
     leg = []
     for ix, x in enumerate(s[0]):
-        leg.append(" ".join((x, s[0][ix])))
+        leg.append(x)
 
-
-    plt.legend(leg,loc=8)
-
-    ylabels = ['Successful episodes (%)', 'Goal distance (%)', "Mean episode steps","Mean reward"]
-    for idx, ax in enumerate(axs):
-        ax.label_outer()
-        ax.set(ylabel=ylabels[idx])
-
-    plt.xlabel('Training steps')
-    plt.show()
+    # plt.label_outer()
+    plt.ylabel('Successful episodes {}(%)'.format(args.task))
+    
+    if args.xlabel:
+    	plt.xlabel('Training steps')
+    	plt.legend(leg,loc=8)
+    plt.ylim(-3, 103)
+    plt.tight_layout()
+    plt.savefig('./trained_models/{}_{}_success_rates.png'.format(args.task, args.common))
 
 if __name__ == "__main__":
     main()
