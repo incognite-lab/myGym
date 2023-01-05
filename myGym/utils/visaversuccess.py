@@ -246,6 +246,7 @@ def main():
     #plt.ylim(-3, 103)
     plt.tight_layout()
     plt.savefig(root+"-averaged.png")
-    plt.show()
+    print(root)
+    #plt.show()
 if __name__ == "__main__":
     main()

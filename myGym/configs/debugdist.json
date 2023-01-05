@@ -1,11 +1,11 @@
 {
     #Environment
     "env_name"  :"Gym-v0",
-    "workspace" :"table",
+    "workspace" :"collabtable",
     "engine"    :"pybullet",
     "render"    :"opengl",
     "camera"    :0,
-    "gui"       :0,
+    "gui"       :1,
     "visualize" :0,
     "visgym"    :0,
     #Robot
