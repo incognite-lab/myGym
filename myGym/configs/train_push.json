@@ -10,7 +10,7 @@
 "visgym"    :0,
 #Robot
 "robot"         :"kuka_push",
-"robot_action"  :"joints",
+"robot_action"  :"step",
 "robot_init"    :[0, 0.42, 0.17],
 "robot_init"    :[0.0, 0.4, 0.6],
 "max_velocity"  :40,
