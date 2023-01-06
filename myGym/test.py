@@ -86,6 +86,28 @@ def change_dynamics(cubex,lfriction,rfriction,ldamping,adamping):
     #    basePosition=[0,0,0.3],
     #)
 
+def visualize_infotext(action, env):
+    p.addUserDebugText(f"Episode:{env.env.episode_number}",
+        [.65, 1., 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
+    p.addUserDebugText(f"Step:{env.env.episode_steps}",
+        [.67, 1, .40], textSize=1.0, lifeTime=0.5, textColorRGB=[0.2, 0.8, 1])   
+    p.addUserDebugText(f"Subtask:{env.env.task.current_task}",
+        [.69, 1, 0.35], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
+    p.addUserDebugText(f"Network:{env.env.reward.current_network}",
+        [.71, 1, 0.3], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+    p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),2))}",
+        [.73, 1, 0.25], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
+    p.addUserDebugText(f"Actual_state:{matrix(np.around(np.array(env.env.observation['task_objects']['actual_state'][:3]),2))}",
+        [.75, 1, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
+    p.addUserDebugText(f"End_effector:{matrix(np.around(np.array(env.env.robot.end_effector_pos),2))}",
+        [.77, 1, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
+    #p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
+    #    [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+    p.addUserDebugText(f"Velocity:{env.env.max_velocity}",
+        [.79, 1, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.6, 0.8, .3])
+    p.addUserDebugText(f"Force:{env.env.max_force}",
+        [.81, 1, 0.05], textSize=1.0, lifeTime=0.5, textColorRGB=[0.3, 0.2, .4])
+
 
 def test_env(env, arg_dict):
     #arg_dict["gui"] == 1
@@ -93,7 +115,8 @@ def test_env(env, arg_dict):
     spawn_objects = False
     action_control = "keyboard" #"observation", "random", "keyboard" or "slider"
     visualize_sampling = False
-    visualize_traj = True
+    visualize_traj = False
+    visualize_info = True
     env.render("human")
     #env.reset()
     joints = ['Joint1','Joint2','Joint3','Joint4','Joint5','Joint6','Joint7','Joint 8','Joint 9', 'Joint10', 'Joint11','Joint12','Joint13','Joint14','Joint15','Joint16','Joint17','Joint 18','Joint 19']
@@ -105,7 +128,7 @@ def test_env(env, arg_dict):
                 print ("Add --gui 1 parameter to visualize environment")        
             
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-            p.resetDebugVisualizerCamera(1.7, 200, -20, [-0.1, .0, 0.05])
+            p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
             p.setAdditionalSearchPath(pybullet_data.getDataPath())
             #newobject = p.loadURDF("cube.urdf", [3.1,3.7,0.1])
             #p.changeDynamics(newobject, -1, lateralFriction=1.00)
@@ -246,21 +269,9 @@ def test_env(env, arg_dict):
             observation, reward, done, info = env.step(action)
             
             if visualize_traj:
-                #visualize_trajectories(info,action)
-                p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),5))}",
-                    [.8, .5, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
-                p.addUserDebugText(f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']),5))}",
-                    [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
-                #p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
-                #    [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-                p.addUserDebugText(f"Network:{env.env.reward.current_network}",
-                    [.8, .5, 0.25], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-                p.addUserDebugText(f"Subtask:{env.env.task.current_task}",
-                    [.8, .5, 0.35], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
-                p.addUserDebugText(f"Episode:{e}",
-                    [.8, .5, 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
-                p.addUserDebugText(f"Step:{t}",
-                    [.8, .5, 0.55], textSize=1.0, lifeTime=0.5, textColorRGB=[0.2, 0.8, 1])
+                visualize_trajectories(info,action)
+            if visualize_info:
+                visualize_infotext(action, env)
 
                 
                 #visualize_goal(info)
@@ -341,7 +352,7 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     vel= arg_dict["max_velocity"]
     force = arg_dict["max_force"]
     steps_sum = 0
-    p.resetDebugVisualizerCamera(1.8, 200, -30, [-1.0, .1, 0.1])
+    p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
     #p.setRealTimeSimulation(1)
     #p.setTimeStep(0.01)
 
@@ -357,26 +368,8 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
             obs, reward, done, info = env.step(action)
             is_successful = not info['f']
             distance_error = info['d']
-            #p.addUserDebugText(f"Step:{steps_sum}",
-            #        [-.5, .0, 0.3], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-            p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),5))}",
-                    [.8, .5, 0.05], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
-            #p.addUserDebugText(f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']),5))}",
-            #        [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
-                #p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
-                #    [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-            p.addUserDebugText(f"Network:{env.env.reward.current_network}",
-                    [.8, .5, 0.25], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-            p.addUserDebugText(f"Subtask:{env.env.task.current_task}",
-                    [.8, .5, 0.35], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
-            p.addUserDebugText(f"Episode:{e}",
-                    [.8, .5, 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
-            p.addUserDebugText(f"Step:{steps_sum}",
-                    [.8, .5, 0.55], textSize=1.0, lifeTime=0.5, textColorRGB=[0.2, 0.8, 1])
-            p.addUserDebugText(f"Velocity:{vel}",
-                    [.8, .5, 0.85], textSize=1.0, lifeTime=0.5, textColorRGB=[0.6, 0.8, .3])
-            p.addUserDebugText(f"Force:{force}",
-                    [.8, .5, 0.95], textSize=1.0, lifeTime=0.5, textColorRGB=[0.3, 0.2, .4])
+            visualize_infotext(action, env)
+
 
             if (arg_dict["record"] > 0) and (len(images) < 800):
                 render_info = env.render(mode="rgb_array", camera_id = arg_dict["camera"])

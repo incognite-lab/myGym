@@ -9,18 +9,16 @@ import difflib
 from difflib import SequenceMatcher
 import re
 
-def get_arguments():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-pths", default=['./trained_models/cluster/reach_kuka_absolute_gt_ppo2/',
-                                          './trained_models/cluster/reach_kuka_absolute_gt_ppo/',
-                                          './trained_models/cluster/reach_kuka_absolute_gt_a2c/',
-                                          './trained_models/cluster/reach_kuka_absolute_gt_acktr/',
-                                          './trained_models/cluster/reach_kuka_joints_gt_trpo/'], nargs='*')
-    parser.add_argument("-pth", default=['./trained_models/pnrppo2'])
-    args = parser.parse_args()
+def atoi(text):
+    return int(text) if text.isdigit() else text
 
-    return args
-
+def natural_keys(text):
+    '''
+    alist.sort(key=natural_keys) sorts in human order
+    http://nedbatchelder.com/blog/200712/human_sorting.html
+    (See Toothy's implementation in the comments)
+    '''
+    return [ atoi(c) for c in re.split(r'(\d+)', text) ]
 
 def cfgString2Dict(cfg_raw):
     """
@@ -147,60 +145,108 @@ def multiDictDiff_bykey(dict_list):
     diff_dict, all_same = multiDictDiff_scary(dict_list)
     return {k: v for i, (k, v) in enumerate(diff_dict.items()) if not all_same[i]}, {k: v for i, (k, v) in enumerate(diff_dict.items()) if all_same[i]}
 
+
+def get_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-pth", default='./trained_models/pnp4nd')
+    parser.add_argument("-task", default='pnrmulti')
+    parser.add_argument("-robot", default=["kuka"], nargs='*')
+    parser.add_argument("-common", default='pnprot_table_kuka_joints')
+    parser.add_argument("-algo", default=["multi","ppo2","ppo","acktr","sac","ddpg","a2c","acer","trpo"], nargs='*')
+    parser.add_argument("-xlabel", type=int, default=1)
+    args = parser.parse_args()
+
+    return args
+
+
 def main():
     args = get_arguments()
     #subdirs = [x[0] for x in os.walk(str(args.pth[0]))][1:]
-    root, dirs, files = next(os.walk(str(args.pth[0])))
+    root, dirs, files = next(os.walk(str(args.pth)))
+    dirs.sort(key=natural_keys)
     plt.rcParams.update({'font.size': 12})
-    fig, axs = plt.subplots(4, sharex=True, sharey=False, gridspec_kw={'hspace': 0})
+    plt.figure(figsize=(8,3))
+    #fig, axs = plt.subplots(4, sharex=True, sharey=False, gridspec_kw={'hspace': 0})
     colors = ['red','green','blue','yellow','magenta','cyan','black','grey','brown','gold','limegreen','silver','aquamarine','olive','hotpink','salmon']
     configs=[]
-    for idx,model in enumerate(dirs):
-        with open(os.path.join(root+"/"+model,"evaluation_results.json")) as f:
-            data = json.load(f)
-        df = pd.DataFrame(data)
-        x = df.to_numpy()
-        x = x.astype(np.float)
+    success = []
+    min_steps = 100
+    for idx, file in enumerate(dirs):
+        evaluation_exists = False
+        try:
+            with open(os.path.join(args.pth,file, "evaluation_results.json")) as f:
+                data = json.load(f)
+            df = pd.DataFrame(data)
+            x = df.to_numpy()
+            
+            try:
+                x = np.delete(x, [10,11,12], axis=0)
+            except:
+                print("No multistep reward data")
+            
+            x = x.astype(float)
+            with open(os.path.join(args.pth,file, "train.json"), "r") as f:
+                # load individual configs
+                cfg_raw = yaml.full_load(f)
+                
+            
+            success.append(x[3])
+            configs.append(cfg_raw)
+            if len(x[0])< min_steps:
+                min_steps = len(x[0])
 
-
-        with open(os.path.join(root+"/"+model,"train.conf"), "r") as f:
-            # load individual configs
-            cfg_raw = yaml.full_load(f)
-            #cfg_crop = (cfg_raw.split(" model_path")[0])
-            # and convert them to dictionary
-            configs.append(cfgString2Dict(cfg_raw))
-        #fig.suptitle(cfg)
-
-
-        axs[0].plot(x[0],x[3], color=colors[idx], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[idx], markersize=6)
-        axs[1].plot(x[0],(x[4]*100), color=colors[idx], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[idx], markersize=6)
-        axs[2].plot(x[0],x[5], color=colors[idx], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[idx], markersize=6)
-        axs[3].plot(x[0],x[6], color=colors[idx], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[idx], markersize=6)
-
+            steps = x[0][:min_steps]
+            print("{} datapoints in folder {}".format(len(x[3]),file))
+            
+        except:
+            print("0 dataponits in folder:{} ".format(file))
+        
     # get differences between configs
     diff, same = multiDictDiff_bykey(configs)
-    fig.text(0.1,0.94,same, ha="left", va="bottom", size="medium",color="black", wrap=True)
-    #l = []
-    #for key, value in diff.items():
-    #    l.append(value)
-    #print(len(l))
-    #res = [a+" "+b for a,b in zip(l[0], l[1])]
-    #plt.legend(res)
-    s = list(diff.values())
     leg = []
-    for ix, x in enumerate(s[0]):
-        leg.append(" ".join((x, s[0][ix])))
+    for d in range(len(success)):
+        success[d] = np.delete(success[d],np.s_[min_steps:])
+    if 'algo' in diff.keys() and len(args.algo)>1:
+        index = [[] for _ in range(len(args.algo))]
+        for i, algo in enumerate(args.algo):
+            for j, diffalgo in enumerate(diff['algo']):
+                if algo == diffalgo:
+                    index[i].append(j)
+            if len(index[i])>0:
+                plt.plot(steps,np.mean(np.take(success,index[i],0),0), color=colors[i], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[i], markersize=4) 
+                plt.fill_between(steps, np.mean(np.take(success,index[i],0),0)-np.std(np.take(success,index[i],0),0),np.mean(np.take(success,index[i],0),0)+np.std(np.take(success,index[i],0),0), color=colors[i], alpha=0.2) 
+                #plt.show()
+                leg.append(algo)
+    elif 'robot' in diff.keys() and len(args.robot)>1:
+        index = [[] for _ in range(len(args.robot))]
+        for i, robot in enumerate(args.robot):
+            for j, diffrobot in enumerate(diff['robot']):
+                if robot == diffrobot:
+                    index[i].append(j)
+            if len(index[i])>0:
+                plt.plot(x[0],np.mean(np.take(success,index[i],0),0), color=colors[i], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[i], markersize=6) 
+                plt.fill_between(x[0], np.mean(np.take(success,index[i],0),0)-np.std(np.take(success,index[i],0),0),np.mean(np.take(success,index[i],0),0)+np.std(np.take(success,index[i],0),0), color=colors[i], alpha=0.2) 
+                #plt.show()
+                leg.append(robot)
+    else:
+        print("No data to visualize")        
+        
+    
+    #s = list(diff.values())
+    #leg = []
+    #for ix, x in enumerate(s[0]):
+    #    leg.append(x)
 
-
-    plt.legend(leg,loc=8)
-
-    ylabels = ['Successful episodes (%)', 'Goal distance (%)', "Mean episode steps","Mean reward"]
-    for idx, ax in enumerate(axs):
-        ax.label_outer()
-        ax.set(ylabel=ylabels[idx])
-
-    plt.xlabel('Training steps')
-    plt.show()
-
+    # plt.label_outer()
+    plt.ylabel('Successful episodes {}(%)'.format(args.task))
+    
+    if args.xlabel:
+    	plt.xlabel('Training steps')
+    	plt.legend(leg,loc=2)
+    #plt.ylim(-3, 103)
+    plt.tight_layout()
+    plt.savefig(root+"-averaged.png")
+    print(root)
+    #plt.show()
 if __name__ == "__main__":
     main()
