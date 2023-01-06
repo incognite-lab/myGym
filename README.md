@@ -52,7 +52,10 @@ From version 2.1:
 
 ![alt text](myGym/images/workspaces/pnp/pnp3n3x_panda_boxgripper.gif "Realgrip")
 
-* Multi-network training (WIP)
+* Multi-network training - three networks switching in Pick and rotate task
+
+![alt text](myGym/images/workspaces/train_multi_5000000.gif "Pnr")
+
 
 ## Installation
 
