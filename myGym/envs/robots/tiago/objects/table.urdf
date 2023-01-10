@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<robot name="table">
+  <link name="table_link">
+    <contact>
+      <rolling_friction value="1.0"/>
+      <spinning_friction value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+       <mass value="100.0"/>
+       <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.55 0.55 0.55"/>
+      </geometry>
+       <material name="white">
+        <color rgba="0.145 0.803 0.815 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+	 	<box size="0.55 0.55 0.55"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>
+

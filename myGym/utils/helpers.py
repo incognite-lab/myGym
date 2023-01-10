@@ -57,6 +57,14 @@ def get_workspace_dict():
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.80, 1.],
                                                                    [0.0, 1.3, 0.5], [-0.0, -0.0, 0.6], [0.6, 0.9, 0.4], [-0.6, 0.9, 0.5], [0.0, 0.898, 0.8]]},
                                             'borders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1]},
+                                'table_tiago': {'urdf': 'table_tiago.urdf', 'texture': 'table.jpg',
+                                            'transform': {'position':[-0.0, -0.0, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
+                                            'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.5, 1.0], [1.8, 0.9, 1.0], [-1.8, 0.9, 1.0], [0., 0.85, 1.4],
+                                                                    [0.0, 1.6, 0.8], [-0.0, -0.5, 0.8], [0.8, 0.9, 0.6], [-0.8, 0.9, 0.8], [0.0, 0.9, 1.]],
+                                                        'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.80, 1.],
+                                                                   [0.0, 1.3, 0.5], [-0.0, -0.0, 0.6], [0.6, 0.9, 0.4], [-0.6, 0.9, 0.5], [0.0, 0.898, 0.8]]},
+                                            'borders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1]},
                                 'verticalmaze': {'urdf': 'verticalmaze.urdf', 'texture': 'verticalmaze.jpg',
                                             'transform': {'position':[-5.7, -7.55, -1.05], 'orientation':[0.0, 0.0, 0.5*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
@@ -92,6 +100,7 @@ def get_robot_dict():
                              'ur10': {'path': '/envs/robots/universal_robots/urdf/ur10.urdf', 'position': np.array([0.0, -0.04, -0.041]), 'orientation': [0.0, 0.0, 0.0]},
                              'yumi': {'path': '/envs/robots/abb/yumi/urdf/yumi.urdf', 'position': np.array([0.0, 0.15, -0.042]), 'orientation': [0.0, 0.0, 0.0]},
                              'icub': {'path': '/envs/robots/iCub/robots/iCubGenova04_plus/model.urdf', 'position': np.array([0.0, 0.15, -0.042]), 'orientation': [0.0, 0.0, 0.0]},
-                             'human': {'path': '/envs/robots/real_hands/humanoid_with_hands_fixed.urdf', 'position': np.array([0.0, 1.5, 0.45]), 'orientation': [0.0, 0.0, 1.5*np.pi]}
+                             'human': {'path': '/envs/robots/real_hands/humanoid_with_hands_fixed.urdf', 'position': np.array([0.0, 1.5, 0.45]), 'orientation': [0.0, 0.0, 1.5*np.pi]},
+                             'tiago': {'path': '/envs/robots/tiago/tiago_pal_gripper.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]}
                             }
     return r_dict
