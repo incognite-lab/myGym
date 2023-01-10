@@ -117,7 +117,7 @@
       <material name="DarkGrey"/>
     </visual>
   </link>
-  <joint name="base_laser_joint" type="fixed">
+  <joint name="base_laser_gjoint" type="fixed">
     <axis xyz="0 1 0"/>
     <origin rpy="0 0 0" xyz="0.202 0.0 -0.004"/>
     <parent link="base_link"/>
@@ -169,7 +169,7 @@
       <material name="DarkGrey"/>
     </visual>
   </link>
-  <joint name="base_sonar_03_joint" type="fixed">
+  <joint name="base_sonar_03_rjoint" type="fixed">
     <origin rpy="0 0 2.35619449019" xyz="-0.183 0.183 0.173"/>
     <axis xyz="0 0 1"/>
     <parent link="base_link"/>
@@ -229,7 +229,7 @@
       <material name="DarkGrey"/>
     </visual>
   </link>
-  <joint name="base_sonar_02_joint" type="fixed">
+  <joint name="base_sonar_02_rjoint" type="fixed">
     <origin rpy="0 0 3.14159265359" xyz="-0.259 0.0 0.173"/>
     <axis xyz="0 0 1"/>
     <parent link="base_link"/>
@@ -289,7 +289,7 @@
       <material name="DarkGrey"/>
     </visual>
   </link>
-  <joint name="base_sonar_01_joint" type="fixed">
+  <joint name="base_sonar_01_rjoint" type="fixed">
     <origin rpy="0 0 3.92699081699" xyz="-0.183 -0.183 0.173"/>
     <axis xyz="0 0 1"/>
     <parent link="base_link"/>
@@ -368,7 +368,7 @@
        <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
     </inertial>1
   </link>
-  <joint name="base_footprint_joint" type="fixed">
+  <joint name="base_footprint_rjoint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.0985"/>
     <child link="base_link"/>
     <parent link="base_footprint"/>
@@ -398,7 +398,7 @@
       <material name="Orange"/>
     </visual>
   </link>
-  <joint name="cover_joint" type="fixed">
+  <joint name="cover_rjoint" type="fixed">
     <parent link="base_footprint"/>
     <child link="base_cover_link"/>
     <origin rpy="0 0 0" xyz="0 0 0.13"/>
@@ -430,7 +430,7 @@
   <gazebo reference="base_antenna_left_link">
     <material>Gazebo/Black</material>
   </gazebo>
-  <joint name="base_antenna_left_joint" type="fixed">
+  <joint name="base_antenna_left_rjoint" type="fixed">
     <parent link="base_link"/>
     <child link="base_antenna_left_link"/>
     <origin rpy="0 0 0" xyz="-0.201 0.1062 0.195"/>
@@ -459,7 +459,7 @@
   <gazebo reference="base_antenna_right_link">
     <material>Gazebo/Black</material>
   </gazebo>
-  <joint name="base_antenna_right_joint" type="fixed">
+  <joint name="base_antenna_right_rjoint" type="fixed">
     <parent link="base_link"/>
     <child link="base_antenna_right_link"/>
     <origin rpy="0 0 0" xyz="-0.201 -0.1062 0.195"/>
@@ -477,7 +477,7 @@
         </geometry>
       </visual-->
   </link>
-  <joint name="base_imu_joint" type="fixed">
+  <joint name="base_imu_rjoint" type="fixed">
     <parent link="base_link"/>
     <child link="base_imu_link"/>
     <origin rpy="0 0 -1.57079632679" xyz="0.10171 0 0.11282"/>
@@ -535,7 +535,7 @@
     <kinematic>0</kinematic>
     <gravity>1</gravity>
   </link>
-  <joint name="suspension_right_joint" type="prismatic">
+  <joint name="suspension_right_rjoint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1"/>
     <limit effort="100.0" lower="-0.005" upper="0.005" velocity="1.0"/>
@@ -545,7 +545,7 @@
     <dynamics damping="100"/>
     <safety_controller k_position="0" k_velocity="10" soft_lower_limit="-0.005" soft_upper_limit="0.005"/>
   </joint>
-  <joint name="wheel_right_joint" type="continuous">
+  <joint name="wheel_right_rjoint" type="fixed">
     <parent link="suspension_right_link"/>
     <child link="wheel_right_link"/>
     <origin rpy="-1.57079632679 0 0" xyz="0 -0.2022 0.0"/>
@@ -557,7 +557,7 @@
     <actuator name="wheel_right_motor">
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
-    <joint name="wheel_right_joint">
+    <joint name="wheel_right_rjoint">
       <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
     </joint>
@@ -577,7 +577,7 @@
     <minDepth>0.002</minDepth>
     <material>Gazebo/DarkGrey</material>
   </gazebo>
-  <gazebo reference="wheel_{side}_joint">
+  <gazebo reference="wheel_{side}_rjoint">
     <implicitSpringDamper>1</implicitSpringDamper>
   </gazebo>
   <link name="wheel_left_link">
@@ -610,7 +610,7 @@
     <kinematic>0</kinematic>
     <gravity>1</gravity>
   </link>
-  <joint name="suspension_left_joint" type="prismatic">
+  <joint name="suspension_left_rjoint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1"/>
     <limit effort="100.0" lower="-0.005" upper="0.005" velocity="1.0"/>
@@ -620,7 +620,7 @@
     <dynamics damping="100"/>
     <safety_controller k_position="0" k_velocity="10" soft_lower_limit="-0.005" soft_upper_limit="0.005"/>
   </joint>
-  <joint name="wheel_left_joint" type="continuous">
+  <joint name="wheel_left_rjoint" type="fixed">
     <parent link="suspension_left_link"/>
     <child link="wheel_left_link"/>
     <origin rpy="-1.57079632679 0 0" xyz="0 0.2022 0.0"/>
@@ -632,7 +632,7 @@
     <actuator name="wheel_left_motor">
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
-    <joint name="wheel_left_joint">
+    <joint name="wheel_left_rjoint">
       <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
     </joint>
@@ -652,7 +652,7 @@
     <minDepth>0.002</minDepth>
     <material>Gazebo/DarkGrey</material>
   </gazebo>
-  <gazebo reference="wheel_{side}_joint">
+  <gazebo reference="wheel_{side}_rjoint">
     <implicitSpringDamper>1</implicitSpringDamper>
   </gazebo>
   <link name="caster_front_right_1_link">
@@ -695,14 +695,14 @@
       </geometry>
     </collision>
   </link>
-  <joint name="caster_front_right_1_joint" type="continuous">
+  <joint name="caster_front_right_1_rjoint" type="fixed">
     <parent link="base_link"/>
     <child link="caster_front_right_1_link"/>
     <origin rpy="0 0 0" xyz="0.1695 -0.102 -0.0335"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.005" friction="0.0"/>
   </joint>
-  <joint name="caster_front_right_2_joint" type="continuous">
+  <joint name="caster_front_right_2_rjoint" type="fixed">
     <parent link="caster_front_right_1_link"/>
     <child link="caster_front_right_2_link"/>
     <origin rpy="-1.57079632679 0 0" xyz="-0.016 0.0000 -0.040"/>
@@ -729,10 +729,10 @@
     <minDepth>0.0005</minDepth>
     <material>Gazebo/DarkGrey</material>
   </gazebo>
-  <gazebo reference="caster_{side}_1_joint">
+  <gazebo reference="caster_{side}_1_rjoint">
     <implicitSpringDamper>0</implicitSpringDamper>
   </gazebo>
-  <gazebo reference="caster_{side}_2_joint">
+  <gazebo reference="caster_{side}_2_rjoint">
     <implicitSpringDamper>0</implicitSpringDamper>
   </gazebo>
   <link name="caster_front_left_1_link">
@@ -775,14 +775,14 @@
       </geometry>
     </collision>
   </link>
-  <joint name="caster_front_left_1_joint" type="continuous">
+  <joint name="caster_front_left_1_rjoint" type="fixed">
     <parent link="base_link"/>
     <child link="caster_front_left_1_link"/>
     <origin rpy="0 0 0" xyz="0.1695 0.102 -0.0335"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.005" friction="0.0"/>
   </joint>
-  <joint name="caster_front_left_2_joint" type="continuous">
+  <joint name="caster_front_left_2_rjoint" type="fixed">
     <parent link="caster_front_left_1_link"/>
     <child link="caster_front_left_2_link"/>
     <origin rpy="-1.57079632679 0 0" xyz="-0.016 0.0000 -0.040"/>
@@ -809,10 +809,10 @@
     <minDepth>0.0005</minDepth>
     <material>Gazebo/DarkGrey</material>
   </gazebo>
-  <gazebo reference="caster_{side}_1_joint">
+  <gazebo reference="caster_{side}_1_rjoint">
     <implicitSpringDamper>0</implicitSpringDamper>
   </gazebo>
-  <gazebo reference="caster_{side}_2_joint">
+  <gazebo reference="caster_{side}_2_rjoint">
     <implicitSpringDamper>0</implicitSpringDamper>
   </gazebo>
   <link name="caster_back_right_1_link">
@@ -855,14 +855,14 @@
       </geometry>
     </collision>
   </link>
-  <joint name="caster_back_right_1_joint" type="continuous">
+  <joint name="caster_back_right_1_rjoint" type="fixed">
     <parent link="base_link"/>
     <child link="caster_back_right_1_link"/>
     <origin rpy="0 0 0" xyz="-0.1735 -0.102 -0.0335"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.005" friction="0.0"/>
   </joint>
-  <joint name="caster_back_right_2_joint" type="continuous">
+  <joint name="caster_back_right_2_rjoint" type="fixed">
     <parent link="caster_back_right_1_link"/>
     <child link="caster_back_right_2_link"/>
     <origin rpy="-1.57079632679 0 0" xyz="-0.016 0.0000 -0.040"/>
@@ -889,10 +889,10 @@
     <minDepth>0.0005</minDepth>
     <material>Gazebo/DarkGrey</material>
   </gazebo>
-  <gazebo reference="caster_{side}_1_joint">
+  <gazebo reference="caster_{side}_1_rjoint">
     <implicitSpringDamper>0</implicitSpringDamper>
   </gazebo>
-  <gazebo reference="caster_{side}_2_joint">
+  <gazebo reference="caster_{side}_2_rjoint">
     <implicitSpringDamper>0</implicitSpringDamper>
   </gazebo>
   <link name="caster_back_left_1_link">
@@ -935,14 +935,14 @@
       </geometry>
     </collision>
   </link>
-  <joint name="caster_back_left_1_joint" type="continuous">
+  <joint name="caster_back_left_1_rjoint" type="fixed">
     <parent link="base_link"/>
     <child link="caster_back_left_1_link"/>
     <origin rpy="0 0 0" xyz="-0.1735 0.102 -0.0335"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.005" friction="0.0"/>
   </joint>
-  <joint name="caster_back_left_2_joint" type="continuous">
+  <joint name="caster_back_left_2_rjoint" type="fixed">
     <parent link="caster_back_left_1_link"/>
     <child link="caster_back_left_2_link"/>
     <origin rpy="-1.57079632679 0 0" xyz="-0.016 0.0000 -0.040"/>
@@ -969,10 +969,10 @@
     <minDepth>0.0005</minDepth>
     <material>Gazebo/DarkGrey</material>
   </gazebo>
-  <gazebo reference="caster_{side}_1_joint">
+  <gazebo reference="caster_{side}_1_rjoint">
     <implicitSpringDamper>0</implicitSpringDamper>
   </gazebo>
-  <gazebo reference="caster_{side}_2_joint">
+  <gazebo reference="caster_{side}_2_rjoint">
     <implicitSpringDamper>0</implicitSpringDamper>
   </gazebo>
   <!-- Bottom fixed part of column -->
@@ -1002,7 +1002,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="torso_fixed_joint" type="fixed">
+  <joint name="torso_fixed_rjoint" type="fixed">
     <origin rpy="0 0 0" xyz="-0.062 0.0 0.193"/>
     <parent link="base_link"/>
     <child link="torso_fixed_link"/>
@@ -1033,7 +1033,7 @@
   <gazebo reference="torso_fixed_column_link">
     <material>Gazebo/DarkGrey</material>
   </gazebo>
-  <joint name="torso_fixed_column_joint" type="fixed">
+  <joint name="torso_fixed_column_rjoint" type="fixed">
     <origin rpy="0 0 0" xyz="-0.062 0 0.195"/>
     <parent link="base_link"/>
     <child link="torso_fixed_column_link"/>
@@ -1075,7 +1075,7 @@
       <material name="LightGrey"/>
     </collision>
   </link>
-  <joint name="torso_lift_joint" type="prismatic">
+  <joint name="torso_lift_rjoint" type="fixed">
     <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.597"/>
     <parent link="torso_fixed_link"/>
     <child link="torso_lift_link"/>
@@ -1090,7 +1090,7 @@
     <actuator name="torso_lift_motor">
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
-    <joint name="torso_lift_joint">
+    <joint name="torso_lift_rjoint">
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
     </joint>
@@ -1116,7 +1116,7 @@
       <material name="White"/>
     </collision>
   </link>
-  <joint name="head_1_joint" type="revolute">
+  <joint name="head_1_rjoint" type="fixed">
     <parent link="torso_lift_link"/>
     <child link="head_1_link"/>
     <origin rpy="0 0 0" xyz="0.182 0.0 0.0"/>
@@ -1129,7 +1129,7 @@
     <mu1>0.9</mu1>
     <mu2>0.9</mu2>
   </gazebo>
-  <gazebo reference="head_1_joint">
+  <gazebo reference="head_1_rjoint">
     <implicitSpringDamper>1</implicitSpringDamper>
   </gazebo>
   <transmission name="head_1_trans">
@@ -1137,7 +1137,7 @@
     <actuator name="head_1_motor">
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
-    <joint name="head_1_joint">
+    <joint name="head_1_rjoint">
       <offset>0.02</offset>
       <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
@@ -1163,7 +1163,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="head_2_joint" type="revolute">
+  <joint name="head_2_rjoint" type="fixed">
     <parent link="head_1_link"/>
     <child link="head_2_link"/>
     <origin rpy="1.57079632679 0 0" xyz="0.005 0.0 0.098"/>
@@ -1177,14 +1177,14 @@
     <actuator name="head_2_motor">
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
-    <joint name="head_2_joint">
+    <joint name="head_2_rjoint">
       <offset>-0.000356197</offset>
       <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
     </joint>
   </transmission>
   <!-- frames in the center of the camera -->
-  <joint name="xtion_joint" type="fixed">
+  <joint name="xtion_rjoint" type="fixed">
     <origin rpy="-1.57629 0.0197082 -0.000892242" xyz="0.080815 0.0822042 0.00658015"/>
     <parent link="head_2_link"/>
     <child link="xtion_link"/>
@@ -1213,7 +1213,7 @@
       </collision>
       -->
   </link>
-  <joint name="xtion_optical_joint" type="fixed">
+  <joint name="xtion_optical_gjoint" type="fixed">
     <origin rpy="-1.57079632679 0.0 -1.57079632679" xyz="0 0 0"/>
     <parent link="xtion_link"/>
     <child link="xtion_optical_frame"/>
@@ -1227,16 +1227,16 @@
   </link>
   <!-- frame of camera origin provided by Orbbec, need this intermediate frame for backwards compatibility with xtion_pro_live
          to reuse same camera origin -->
-  <joint name="xtion_orbbec_aux_joint" type="fixed">
+  <joint name="xtion_orbbec_aux_rjoint" type="fixed">
     <!-- This is the real origin as in the robot solidworks, it must match: 0.1015 0.095 0.008 -->
     <!-- Assuming we have 0.0908 0.08 0.0 from default camera_position, and rotated -90 deg on x.-->
     <!-- Pending confirmation from Orbbec about the position of the frames, going with old defaults-->
     <!-- <origin xyz="0.0107 0.008 0.015" rpy="0 0 0" />-->
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="xtion_link"/>
-    <child link="xtion_orbbec_aux_joint_frame"/>
+    <child link="xtion_orbbec_aux_rjoint_frame"/>
   </joint>
-  <link name="xtion_orbbec_aux_joint_frame">
+  <link name="xtion_orbbec_aux_rjoint_frame">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="0.001"/>
@@ -1244,7 +1244,7 @@
     </inertial>
   </link>
   <!-- frames of the depth sensor -->
-  <joint name="xtion_depth_joint" type="fixed">
+  <joint name="xtion_depth_rjoint" type="fixed">
     <origin rpy="0 0 0" xyz="0.0 0.047 0.0"/>
     <parent link="xtion_rgb_frame"/>
     <child link="xtion_depth_frame"/>
@@ -1256,7 +1256,7 @@
       <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
     </inertial>
   </link>
-  <joint name="xtion_depth_optical_joint" type="fixed">
+  <joint name="xtion_depth_optical_rjoint" type="fixed">
     <origin rpy="-1.57079632679 0.0 -1.57079632679" xyz="0 0 0"/>
     <parent link="xtion_depth_frame"/>
     <child link="xtion_depth_optical_frame"/>
@@ -1269,9 +1269,9 @@
     </inertial>
   </link>
   <!-- frames of the rgb sensor -->
-  <joint name="xtion_rgb_joint" type="fixed">
+  <joint name="xtion_rgb_rjoint" type="fixed">
     <origin rpy="0 0 0" xyz="0.0 0.022 0.0"/>
-    <parent link="xtion_orbbec_aux_joint_frame"/>
+    <parent link="xtion_orbbec_aux_rjoint_frame"/>
     <child link="xtion_rgb_frame"/>
   </joint>
   <link name="xtion_rgb_frame">
@@ -1281,7 +1281,7 @@
       <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
     </inertial>
   </link>
-  <joint name="xtion_rgb_optical_joint" type="fixed">
+  <joint name="xtion_rgb_optical_rjoint" type="fixed">
     <origin rpy="-1.57079632679 0.0 -1.57079632679" xyz="0 0 0"/>
     <parent link="xtion_rgb_frame"/>
     <child link="xtion_rgb_optical_frame"/>
@@ -1354,7 +1354,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="arm_1_joint" type="revolute">
+  <joint name="arm_1_rjoint" type="revolute">
     <parent link="torso_lift_link"/>
     <child link="arm_1_link"/>
     <origin rpy="0 0 -1.57079632679" xyz="0.15505 0.014 -0.151"/>
@@ -1385,7 +1385,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="arm_2_joint" type="revolute">
+  <joint name="arm_2_rjoint" type="revolute">
     <parent link="arm_1_link"/>
     <child link="arm_2_link"/>
     <origin rpy="1.57079632679 0.0 0.0" xyz="0.125 0.0195 -0.031"/>
@@ -1414,7 +1414,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="arm_3_joint" type="revolute">
+  <joint name="arm_3_rjoint" type="revolute">
     <parent link="arm_2_link"/>
     <child link="arm_3_link"/>
     <origin rpy="-1.57079632679 0.0 1.57079632679" xyz="0.0895 0.0 -0.0015"/>
@@ -1446,7 +1446,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="arm_4_joint" type="revolute">
+  <joint name="arm_4_rjoint" type="revolute">
     <parent link="arm_3_link"/>
     <child link="arm_4_link"/>
     <origin rpy="-1.57079632679 -1.57079632679 0.0" xyz="-0.02 -0.027 -0.222"/>
@@ -1475,16 +1475,16 @@
     <mu2>0.9</mu2>
     <material>Gazebo/DarkGrey</material>
   </gazebo>
-  <gazebo reference="arm_1_joint">
+  <gazebo reference="arm_1_rjoint">
     <implicitSpringDamper>1</implicitSpringDamper>
   </gazebo>
-  <gazebo reference="arm_2_joint">
+  <gazebo reference="arm_2_rjoint">
     <implicitSpringDamper>1</implicitSpringDamper>
   </gazebo>
-  <gazebo reference="arm_3_joint">
+  <gazebo reference="arm_3_rjoint">
     <implicitSpringDamper>1</implicitSpringDamper>
   </gazebo>
-  <gazebo reference="arm_4_joint">
+  <gazebo reference="arm_4_rjoint">
     <implicitSpringDamper>1</implicitSpringDamper>
   </gazebo>
   <!--************************-->
@@ -1513,7 +1513,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="arm_5_joint" type="revolute">
+  <joint name="arm_5_rjoint" type="revolute">
     <parent link="arm_4_link"/>
     <child link="arm_5_link"/>
     <origin rpy="1.57079632679 -1.57079632679 -1.57079632679" xyz="-0.162 0.02 0.027"/>
@@ -1542,7 +1542,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="arm_6_joint" type="revolute">
+  <joint name="arm_6_rjoint" type="revolute">
     <parent link="arm_5_link"/>
     <child link="arm_6_link"/>
     <origin rpy="0.0 -1.57079632679 -1.57079632679" xyz="0 0 0.15"/>
@@ -1558,7 +1558,7 @@
       <inertia ixx="1.14959795E-05" ixy="-1.390727219E-07" ixz="5.930207406E-09" iyy="1.13594084240734E-05" iyz="-1.78396260812528E-08" izz="2.01898984804048E-05"/>
     </inertial>
   </link>
-  <joint name="arm_7_joint" type="revolute">
+  <joint name="arm_7_rjoint" type="revolute">
     <parent link="arm_6_link"/>
     <child link="arm_7_link"/>
     <origin rpy="1.57079632679 0.0 1.57079632679" xyz="0 0 0"/>
@@ -1579,13 +1579,13 @@
     <mu1>0.9</mu1>
     <mu2>0.9</mu2>
   </gazebo>
-  <gazebo reference="arm_5_joint">
+  <gazebo reference="arm_5_rjoint">
     <implicitSpringDamper>1</implicitSpringDamper>
   </gazebo>
-  <gazebo reference="arm_6_joint">
+  <gazebo reference="arm_6_rjoint">
     <implicitSpringDamper>1</implicitSpringDamper>
   </gazebo>
-  <gazebo reference="arm_7_joint">
+  <gazebo reference="arm_7_rjoint">
     <implicitSpringDamper>1</implicitSpringDamper>
     <provideFeedback>1</provideFeedback>
   </gazebo>
@@ -1594,7 +1594,7 @@
     <actuator name="arm_5_motor">
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
-    <joint name="arm_5_joint">
+    <joint name="arm_5_rjoint">
       <offset>0.00213631</offset>
       <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
@@ -1611,7 +1611,7 @@
       <role>actuator2</role>
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
-    <joint name="arm_6_joint">
+    <joint name="arm_6_rjoint">
       <role>joint1</role>
       <offset>0.02</offset>
       <mechanicalReduction>1.0</mechanicalReduction>
@@ -1620,7 +1620,7 @@
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       <ignoreTransmissionAbsoluteEncoder>1</ignoreTransmissionAbsoluteEncoder>
     </joint>
-    <joint name="arm_7_joint">
+    <joint name="arm_7_rjoint">
       <role>joint2</role>
       <offset>-0.019897</offset>
       <mechanicalReduction>-1</mechanicalReduction>
@@ -1652,7 +1652,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="arm_tool_joint" type="fixed">
+  <joint name="arm_tool_rjoint" type="fixed">
     <parent link="arm_7_link"/>
     <child link="arm_tool_link"/>
     <origin rpy="1.57079632679 -1.57079632679 3.14159265359" xyz="0 0 0.0573"/>
@@ -1662,7 +1662,7 @@
     <actuator name="arm_1_motor">
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
-    <joint name="arm_1_joint">
+    <joint name="arm_1_rjoint">
       <offset>0.00767034</offset>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
@@ -1674,7 +1674,7 @@
     <actuator name="arm_2_motor">
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
-    <joint name="arm_2_joint">
+    <joint name="arm_2_rjoint">
       <offset>-0.0116354</offset>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
@@ -1686,7 +1686,7 @@
     <actuator name="arm_3_motor">
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
-    <joint name="arm_3_joint">
+    <joint name="arm_3_rjoint">
       <offset>0.0115199</offset>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
@@ -1698,7 +1698,7 @@
     <actuator name="arm_4_motor">
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
-    <joint name="arm_4_joint">
+    <joint name="arm_4_rjoint">
       <offset>0.00917217</offset>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
@@ -1712,7 +1712,7 @@
       <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00001" iyz="0.0" izz="0.00001"/>
     </inertial>
   </link>
-  <joint name="gripper_tool_joint" type="fixed">
+  <joint name="gripper_tool_rjoint" type="fixed">
     <origin rpy="1.57079632679 1.57079632679 -1.57079632679" xyz="0.01 0 0"/>
     <parent link="arm_tool_link"/>
     <child link="gripper_tool_link"/>
@@ -1738,10 +1738,10 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="gripper_link">
+  <gazebo reference="gripper">
     <material>Gazebo/White</material>
   </gazebo>
-  <joint name="gripper_joint" type="fixed">
+  <joint name="gripper_rjoint" type="fixed">
     <origin rpy="1.57079632679 1.57079632679 -1.57079632679" xyz="0.01 0 0"/>
     <parent link="arm_tool_link"/>
     <child link="gripper"/>
@@ -1770,7 +1770,7 @@
   <gazebo reference="gripper_right_finger_link">
     <material>Gazebo/Grey</material>
   </gazebo>
-  <joint name="gripper_right_finger_joint" type="prismatic">
+  <joint name="gripper_right_finger_rjoint" type="prismatic">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
     <parent link="gripper"/>
     <child link="gripper_right_finger_link"/>
@@ -1803,7 +1803,7 @@
   <gazebo reference="gripper_left_finger_link">
     <material>Gazebo/Grey</material>
   </gazebo>
-  <joint name="gripper_left_finger_joint" type="prismatic">
+  <joint name="gripper_left_finger_rjoint" type="prismatic">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
     <parent link="gripper"/>
     <child link="gripper_left_finger_link"/>
@@ -1814,7 +1814,7 @@
     <safety_controller k_position="20" k_velocity="20" soft_lower_limit="0.001" soft_upper_limit="0.044"/>
   </joint>
   <!-- Grasping frame -->
-  <joint name="gripper_grasping_frame_joint" type="fixed">
+  <joint name="gripper_grasping_frame_rjoint" type="fixed">
     <parent link="gripper"/>
     <child link="gripper_grasping_frame"/>
     <origin rpy="-1.5708 1.5708 0" xyz="0 0 -0.12"/>
@@ -1831,7 +1831,7 @@
     <actuator name="gripper_left_finger_motor">
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
-    <joint name="gripper_left_finger_joint">
+    <joint name="gripper_left_finger_rjoint">
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
     </joint>
   </transmission>
@@ -1840,7 +1840,7 @@
     <actuator name="gripper_right_finger_motor">
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
-    <joint name="gripper_right_finger_joint">
+    <joint name="gripper_right_finger_rjoint">
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
     </joint>
   </transmission>
@@ -1854,7 +1854,7 @@
     <minDepth>0.1</minDepth>
     <material>Gazebo/Black</material>
   </gazebo>
-  <gazebo reference="gripper_left_finger_joint">
+  <gazebo reference="gripper_left_finger_rjoint">
     <implicitSpringDamper>1</implicitSpringDamper>
     <provideFeedback>1</provideFeedback>
   </gazebo>
@@ -1868,12 +1868,12 @@
     <minDepth>0.1</minDepth>
     <material>Gazebo/Black</material>
   </gazebo>
-  <gazebo reference="gripper_right_finger_joint">
+  <gazebo reference="gripper_right_finger_rjoint">
     <implicitSpringDamper>1</implicitSpringDamper>
     <provideFeedback>1</provideFeedback>
   </gazebo>
   <!-- RGBD Laser Link -->
-  <joint name="rgbd_laser_joint" type="fixed">
+  <joint name="rgbd_laser_rjoint" type="fixed">
     <parent link="base_footprint"/>
     <child link="rgbd_laser_link"/>
     <origin rpy="0 0 0" xyz="-0.9 0 0"/>
@@ -1885,7 +1885,7 @@
       <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
     </inertial>
   </link>
-         <joint name="endeffector_joint" type="fixed">
+         <joint name="endeffector_gjoint" type="fixed">
     <parent link="gripper"/>
     <child link="endeffector"/>
     <origin rpy="0 0 0" xyz="0 0.0 0.1"/>
@@ -1899,7 +1899,6 @@
       <material name="LightGrey"/>
     </visual>
   </link>
-
 </robot>
 
 
