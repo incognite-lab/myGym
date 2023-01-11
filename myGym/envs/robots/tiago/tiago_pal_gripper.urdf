@@ -1334,10 +1334,9 @@
   <!--************************-->
   <link name="arm_1_link">
     <inertial>
-      <!--<origin xyz="0.061191 ${reflect * -0.022397} -0.012835" rpy="0.00000 0.00000 0.00000"/>-->
-      <origin rpy="0.00000 0.00000 0.00000" xyz="0.061191 -0.022397 -0.012835"/>
-      <mass value="1.563428"/>
-      <inertia ixx="0.002471" ixy="-0.001809" ixz="-0.001202" iyy="0.006132" iyz="0.000494" izz="0.006704"/>
+      <origin rpy="0.00000 0.00000 0.00000" xyz="0.08169 0.01822 -0.01884"/>
+      <mass value="2.31325"/>
+      <inertia ixx="0.00269400000" ixy="0.00115700000" ixz="-0.00142300000" iyy="0.00704100000" iyz="-0.00031200000" izz="0.00731200000"/>
     </inertial>
     <!-- M90 module -->
     <visual>
@@ -1354,20 +1353,23 @@
       </geometry>
     </collision>
   </link>
+  <gazebo reference="arm_1_link">
+    <material>Gazebo/Orange</material>
+  </gazebo>
   <joint name="arm_1_rjoint" type="revolute">
     <parent link="torso_lift_link"/>
     <child link="arm_1_link"/>
     <origin rpy="0 0 -1.57079632679" xyz="0.15505 0.014 -0.151"/>
     <axis xyz="0 0 1"/>
-    <limit effort="43.0" lower="0.0" upper="2.74889357189" velocity="1.95"/>
+    <limit effort="39.0" lower="0.0" upper="2.74889357189" velocity="2.7"/>
     <dynamics damping="1.0" friction="1.0"/>
-    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="0.07" soft_upper_limit="2.67889357189"/>
+    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="0.02" soft_upper_limit="2.72889357189"/>
   </joint>
   <link name="arm_2_link">
     <inertial>
-      <origin rpy="0.00000 0.00000 0.00000" xyz="0.030432 0.000229 -0.005942"/>
-      <mass value="1.800397"/>
-      <inertia ixx="0.001809" ixy="1.5e-05" ixz="0.000254" iyy="0.004333" iyz="1.4e-05" izz="0.004341"/>
+      <origin rpy="0.00000 0.00000 0.00000" xyz="-0.03609 -0.00006 0.01649"/>
+      <mass value="1.10224"/>
+      <inertia ixx="0.00114600000" ixy="0.00000100000" ixz="0.00043500000" iyy="0.00218200000" iyz="-0.00000100000" izz="0.00237300000"/>
     </inertial>
     <visual>
       <!-- <origin xyz="0 0 0" rpy="${180 * deg_to_rad} ${0 * deg_to_rad} ${-90 * deg_to_rad}" /> -->
@@ -1388,17 +1390,17 @@
   <joint name="arm_2_rjoint" type="revolute">
     <parent link="arm_1_link"/>
     <child link="arm_2_link"/>
-    <origin rpy="1.57079632679 0.0 0.0" xyz="0.125 0.0195 -0.031"/>
+    <origin rpy="1.57079632679 0.0 0.0" xyz="0.125 0.0165 -0.031"/>
     <axis xyz="0 0 1"/>
-    <limit effort="43.0" lower="-1.57079632679" upper="1.0908307825" velocity="1.95"/>
+    <limit effort="39.0" lower="-1.57079632679" upper="1.0908307825" velocity="3.66"/>
     <dynamics damping="1.0" friction="1.0"/>
-    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-1.50079632679" soft_upper_limit="1.0208307825"/>
+    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-1.55079632679" soft_upper_limit="1.0708307825"/>
   </joint>
   <link name="arm_3_link">
     <inertial>
-      <origin rpy="0.00000 0.00000 0.00000" xyz="0.007418 -0.004361 -0.134194"/>
-      <mass value="2.343502"/>
-      <inertia ixx="0.019541" ixy="-0.000105" ixz="-0.001717" iyy="0.019936" iyz="0.000852" izz="0.002864"/>
+      <origin rpy="0.00000 0.00000 0.00000" xyz="0.00752 0.00244 0.12957"/>
+      <mass value="2.42460"/>
+      <inertia ixx="0.01441800000" ixy="0.00008400000" ixz="0.00114300000" iyy="0.01478800000" iyz="0.00064200000" izz="0.00256000000"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -1417,20 +1419,20 @@
   <joint name="arm_3_rjoint" type="revolute">
     <parent link="arm_2_link"/>
     <child link="arm_3_link"/>
-    <origin rpy="-1.57079632679 0.0 1.57079632679" xyz="0.0895 0.0 -0.0015"/>
+    <origin rpy="-1.57079632679 0.0 1.57079632679" xyz="0.0895 0.0 0.0015"/>
     <axis xyz="0 0 1"/>
-    <limit effort="26" lower="-3.53429173529" upper="1.57079632679" velocity="2.35"/>
+    <limit effort="17.86" lower="-3.53429173529" upper="1.57079632679" velocity="4.58"/>
     <dynamics damping="1.0" friction="1.0"/>
-    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-3.46429173529" soft_upper_limit="1.50079632679"/>
+    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-3.51429173529" soft_upper_limit="1.55079632679"/>
   </joint>
   <!--************************-->
   <!--        ELBOW           -->
   <!--************************-->
   <link name="arm_4_link">
     <inertial>
-      <origin rpy="0.00000 0.00000 0.00000" xyz="-0.095658 0.014666 0.018133"/>
-      <mass value="1.432697"/>
-      <inertia ixx="0.002040" ixy="0.000725" ixz="-0.00115" iyy="0.008424" iyz="-0.000204" izz="0.008686"/>
+      <origin rpy="0.00000 0.00000 0.00000" xyz="0.07426 -0.01306 0.01549"/>
+      <mass value="1.45429"/>
+      <inertia ixx="0.00195300000" ixy="-0.00059600000" ixz="0.00088000000" iyy="0.00709700000" iyz="-0.00017100000" izz="0.00740500000"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -1451,9 +1453,9 @@
     <child link="arm_4_link"/>
     <origin rpy="-1.57079632679 -1.57079632679 0.0" xyz="-0.02 -0.027 -0.222"/>
     <axis xyz="0 0 1"/>
-    <limit effort="26" lower="-0.392699081699" upper="2.35619449019" velocity="2.35"/>
+    <limit effort="17.86" lower="-0.392699081699" upper="2.35619449019" velocity="4.58"/>
     <dynamics damping="1.0" friction="1.0"/>
-    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-0.322699081699" soft_upper_limit="2.28619449019"/>
+    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-0.372699081699" soft_upper_limit="2.33619449019"/>
   </joint>
   <gazebo reference="arm_1_link">
     <mu1>0.9</mu1>
@@ -1490,33 +1492,30 @@
   <!--************************-->
   <!--        WRIST           -->
   <!--************************-->
-  <!--************************-->
-  <!--        WRIST           -->
-  <!--************************-->
   <link name="arm_5_link">
     <inertial>
-      <origin rpy="0.00000 0.00000 0.00000" xyz="0.001078 -0.000151 -0.077173"/>
-      <mass value="0.9359143689"/>
-      <inertia ixx="0.001036187977" ixy="1.0622321E-07" ixz="1.9920336E-06" iyy="0.000794527176366096" iyz="-2.56396106998404E-07" izz="0.000439831229979178"/>
+      <origin rpy="0.00000 0.00000 0.00000" xyz="0.00003 -0.00028 0.07831"/>
+      <mass value="1.07424"/>
+      <inertia ixx="0.00168000000" ixy="0.00000100000" ixz="-0.00001500000" iyy="0.00160300000" iyz="-0.00001900000" izz="0.00040400000"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/arm/arm_5-wrist-2017.stl" scale="1 1 1"/>
+        <mesh filename="meshes/arm/arm_5.stl" scale="1 1 1"/>
       </geometry>
       <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/arm/arm_5_collision-wrist-2017.dae" scale="1 1 1"/>
+        <mesh filename="meshes/arm/arm_5_collision.dae" scale="1 1 1"/>
       </geometry>
     </collision>
   </link>
   <joint name="arm_5_rjoint" type="revolute">
     <parent link="arm_4_link"/>
     <child link="arm_5_link"/>
-    <origin rpy="1.57079632679 -1.57079632679 -1.57079632679" xyz="-0.162 0.02 0.027"/>
+    <origin rpy="0.0 -1.57079632679 0.0" xyz="-0.162 0.02 0.027"/>
     <axis xyz="0 0 1"/>
     <limit effort="3" lower="-2.09439510239" upper="2.09439510239" velocity="1.95"/>
     <dynamics damping="1.0" friction="1.0"/>
@@ -1524,21 +1523,21 @@
   </joint>
   <link name="arm_6_link">
     <inertial>
-      <origin rpy="0.00000 0.00000 0.00000" xyz="-0.000153 -0.003122 0.000183"/>
-      <mass value="0.30275767222"/>
-      <inertia ixx="3.29233557E-05" ixy="6.31537395E-08" ixz="-4.567124912E-11" iyy="3.85334410118923E-05" iyz="-2.01613082836742E-07" izz="3.33282849168039E-05"/>
+      <origin rpy="0.00000 0.00000 0.00000" xyz="0.00531 0.00021 0.00002"/>
+      <mass value="0.28722"/>
+      <inertia ixx="0.00005900000" ixy="-0.00000000000" ixz="-0.00000000000" iyy="0.00010600000" iyz="0.00000000000" izz="0.00012600000"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/arm/arm_6-wrist-2017.stl" scale="1 1 1"/>
+        <mesh filename="meshes/arm/arm_6.stl" scale="1 1 1"/>
       </geometry>
       <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/arm/arm_6_collision-wrist-2017.dae" scale="1 1 1"/>
+        <mesh filename="meshes/arm/arm_6_collision.dae" scale="1 1 1"/>
       </geometry>
     </collision>
   </link>
@@ -1547,15 +1546,15 @@
     <child link="arm_6_link"/>
     <origin rpy="0.0 -1.57079632679 -1.57079632679" xyz="0 0 0.15"/>
     <axis xyz="0 0 1"/>
-    <limit effort="6.6" lower="-1.41371669412" upper="1.41371669412" velocity="1.76"/>
+    <limit effort="6.6" lower="-1.57079632679" upper="1.57079632679" velocity="1.76"/>
     <dynamics damping="1.0" friction="1.0"/>
-    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-1.39371669412" soft_upper_limit="1.39371669412"/>
+    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-1.55079632679" soft_upper_limit="1.55079632679"/>
   </joint>
   <link name="arm_7_link">
     <inertial>
-      <origin rpy="0.00000 0.00000 0.00000" xyz="0.000010 -0.000003 -0.007774"/>
-      <mass value="0.100"/>
-      <inertia ixx="1.14959795E-05" ixy="-1.390727219E-07" ixz="5.930207406E-09" iyy="1.13594084240734E-05" iyz="-1.78396260812528E-08" izz="2.01898984804048E-05"/>
+      <origin rpy="0.00000 0.00000 0.00000" xyz="0.00011 -0.00034 0.02405"/>
+      <mass value="0.05935"/>
+      <inertia ixx="0.00001400000" ixy="-0.00000000000" ixz="-0.00000000000" iyy="0.00001400000" iyz="0.00000000000" izz="0.00000400000"/>
     </inertial>
   </link>
   <joint name="arm_7_rjoint" type="revolute">
@@ -1595,13 +1594,10 @@
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
     <joint name="arm_5_rjoint">
-      <offset>0.00213631</offset>
-      <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
     </joint>
   </transmission>
-  <transmission name="arm_wrist_trans">
+  <transmission name="wrist_trans">
     <type>transmission_interface/DifferentialTransmission</type>
     <actuator name="arm_6_motor">
       <role>actuator1</role>
@@ -1613,21 +1609,15 @@
     </actuator>
     <joint name="arm_6_rjoint">
       <role>joint1</role>
-      <offset>0.02</offset>
+      <offset>0.0</offset>
       <mechanicalReduction>1.0</mechanicalReduction>
-      <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-      <ignoreTransmissionAbsoluteEncoder>1</ignoreTransmissionAbsoluteEncoder>
     </joint>
     <joint name="arm_7_rjoint">
       <role>joint2</role>
-      <offset>-0.019897</offset>
+      <offset>0.0</offset>
       <mechanicalReduction>-1</mechanicalReduction>
-      <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-      <ignoreTransmissionAbsoluteEncoder>1</ignoreTransmissionAbsoluteEncoder>
     </joint>
   </transmission>
   <!--***********************-->
@@ -1655,7 +1645,7 @@
   <joint name="arm_tool_rjoint" type="fixed">
     <parent link="arm_7_link"/>
     <child link="arm_tool_link"/>
-    <origin rpy="1.57079632679 -1.57079632679 3.14159265359" xyz="0 0 0.0573"/>
+    <origin rpy="1.57079632679 -1.57079632679 3.14159265359" xyz="0 0 0.046"/>
   </joint>
   <transmission name="arm_1_trans">
     <type>transmission_interface/SimpleTransmission</type>
@@ -1663,10 +1653,11 @@
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
     <joint name="arm_1_rjoint">
-      <offset>0.00767034</offset>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-      <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      <!--
+        <hardwareInterface>hardware_interface/JointModeInterface</hardwareInterface>
+-->
     </joint>
   </transmission>
   <transmission name="arm_2_trans">
@@ -1675,10 +1666,11 @@
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
     <joint name="arm_2_rjoint">
-      <offset>-0.0116354</offset>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-      <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      <!--
+        <hardwareInterface>hardware_interface/JointModeInterface</hardwareInterface>
+-->
     </joint>
   </transmission>
   <transmission name="arm_3_trans">
@@ -1687,10 +1679,11 @@
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
     <joint name="arm_3_rjoint">
-      <offset>0.0115199</offset>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-      <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      <!--
+        <hardwareInterface>hardware_interface/JointModeInterface</hardwareInterface>
+-->
     </joint>
   </transmission>
   <transmission name="arm_4_trans">
@@ -1699,10 +1692,11 @@
       <mechanicalReduction>1.0</mechanicalReduction>
     </actuator>
     <joint name="arm_4_rjoint">
-      <offset>0.00917217</offset>
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-      <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      <!--
+        <hardwareInterface>hardware_interface/JointModeInterface</hardwareInterface>
+-->
     </joint>
   </transmission>
   <link name="gripper_tool_link">
@@ -1718,7 +1712,7 @@
     <child link="gripper_tool_link"/>
     <axis xyz="0 0 0"/>
   </joint>
-  <link name="gripper">
+  <link name="gripper_link">
     <inertial>
       <origin rpy="0.0 0.0 0.0" xyz="-0.000294 0.000291 -0.033086"/>
       <mass value="0.602660"/>
@@ -1738,13 +1732,13 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="gripper">
+  <gazebo reference="gripper_link">
     <material>Gazebo/White</material>
   </gazebo>
   <joint name="gripper_rjoint" type="fixed">
     <origin rpy="1.57079632679 1.57079632679 -1.57079632679" xyz="0.01 0 0"/>
     <parent link="arm_tool_link"/>
-    <child link="gripper"/>
+    <child link="gripper_link"/>
     <axis xyz="0 0 0"/>
   </joint>
   <link name="gripper_right_finger_link">
@@ -1758,7 +1752,7 @@
       <geometry>
         <mesh filename="meshes/gripper/gripper_finger_link.stl" scale="-1 -1 1"/>
       </geometry>
-      <material name="Grey"/>
+      <material name="White"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.1415" xyz="0.005 0 -0.165"/>
@@ -1768,11 +1762,11 @@
     </collision>
   </link>
   <gazebo reference="gripper_right_finger_link">
-    <material>Gazebo/Grey</material>
+    <material>Gazebo/White</material>
   </gazebo>
   <joint name="gripper_right_finger_rjoint" type="prismatic">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
-    <parent link="gripper"/>
+    <parent link="gripper_link"/>
     <child link="gripper_right_finger_link"/>
     <axis xyz="1 0 0"/>
     <limit effort="16" lower="0.0" upper="0.045" velocity="0.05"/>
@@ -1791,7 +1785,7 @@
       <geometry>
         <mesh filename="meshes/gripper/gripper_finger_link.stl"/>
       </geometry>
-      <material name="Grey"/>
+      <material name="White"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.1415" xyz="-0.005 0 -0.165"/>
@@ -1800,12 +1794,12 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="gripper_left_finger_link">
-    <material>Gazebo/Grey</material>
+  <gazebo reference="gripper">
+    <material>Gazebo/White</material>
   </gazebo>
   <joint name="gripper_left_finger_rjoint" type="prismatic">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
-    <parent link="gripper"/>
+    <parent link="gripper_link"/>
     <child link="gripper_left_finger_link"/>
     <axis xyz="-1 0 0"/>
     <limit effort="16" lower="0" upper="0.045" velocity="0.05"/>
@@ -1815,11 +1809,11 @@
   </joint>
   <!-- Grasping frame -->
   <joint name="gripper_grasping_frame_rjoint" type="fixed">
-    <parent link="gripper"/>
-    <child link="gripper_grasping_frame"/>
+    <parent link="gripper_link"/>
+    <child link="gripper"/>
     <origin rpy="-1.5708 1.5708 0" xyz="0 0 -0.12"/>
   </joint>
-  <link name="gripper_grasping_frame">
+  <link name="gripper">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="0.0001"/>
@@ -1844,51 +1838,10 @@
       <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
     </joint>
   </transmission>
-  <gazebo reference="gripper_left_finger_link">
-    <kp>1000000.0</kp>
-    <kd>1.0</kd>
-    <mu1>1.0</mu1>
-    <mu2>1.0</mu2>
-    <fdir1>0 0 0</fdir1>
-    <maxVel>1.0</maxVel>
-    <minDepth>0.1</minDepth>
-    <material>Gazebo/Black</material>
-  </gazebo>
-  <gazebo reference="gripper_left_finger_rjoint">
-    <implicitSpringDamper>1</implicitSpringDamper>
-    <provideFeedback>1</provideFeedback>
-  </gazebo>
-  <gazebo reference="gripper_right_finger_link">
-    <kp>1000000.0</kp>
-    <kd>1.0</kd>
-    <mu1>1.0</mu1>
-    <mu2>1.0</mu2>
-    <fdir1>0 0 0</fdir1>
-    <maxVel>1.0</maxVel>
-    <minDepth>0.1</minDepth>
-    <material>Gazebo/Black</material>
-  </gazebo>
-  <gazebo reference="gripper_right_finger_rjoint">
-    <implicitSpringDamper>1</implicitSpringDamper>
-    <provideFeedback>1</provideFeedback>
-  </gazebo>
-  <!-- RGBD Laser Link -->
-  <joint name="rgbd_laser_rjoint" type="fixed">
-    <parent link="base_footprint"/>
-    <child link="rgbd_laser_link"/>
-    <origin rpy="0 0 0" xyz="-0.9 0 0"/>
-  </joint>
-  <link name="rgbd_laser_link">
-    <inertial>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <mass value="0.0001"/>
-      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
-    </inertial>
-  </link>
          <joint name="endeffector_gjoint" type="fixed">
     <parent link="gripper"/>
     <child link="endeffector"/>
-    <origin rpy="0 0 0" xyz="0 0.0 0.1"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
   </joint>
   <link name="endeffector">
     <visual>

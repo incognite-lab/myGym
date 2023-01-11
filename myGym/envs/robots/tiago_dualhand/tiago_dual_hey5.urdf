@@ -4970,7 +4970,7 @@
   <joint name="endeffector_gjoint" type="fixed">
     <parent link="gripper"/>
     <child link="endeffector"/>
-    <origin rpy="0 0 0" xyz="0.12 0.03 0.0"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
   </joint>
   <link name="endeffector">
     <visual>

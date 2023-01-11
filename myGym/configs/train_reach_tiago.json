@@ -9,8 +9,8 @@
 "visualize" :0,
 "visgym"    :0,
 #Robot
-"robot"         :"tiago",
-"robot_action"  :"joints",
+"robot"         :"tiago_dual",
+"robot_action"  :"step",
 "robot_init"    :[0.0, 0.4, 0.6],
 "max_velocity"  :10,
 "max_force"     :200,

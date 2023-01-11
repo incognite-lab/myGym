@@ -34,7 +34,7 @@ class Robot:
                  init_joint_poses=None,
                  robot_action="step",
                  task_type="reach",
-                 use_fixed_gripper_orn=True,
+                 use_fixed_gripper_orn=False,
                  gripper_orn=[0, -math.pi, 0],
                  dimension_velocity = 0.5,
                  max_velocity = None, #1.,
@@ -322,7 +322,6 @@ class Robot:
         """
         joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
         self.joints_state = []
-        joint_poses[0] = 2
         for i in range(len(self.motor_indices)):
             self.p.setJointMotorControl2(bodyUniqueId=self.robot_uid,
                                     jointIndex=self.motor_indices[i],
