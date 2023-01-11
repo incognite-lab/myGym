@@ -71,9 +71,10 @@ class Robot:
         self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)       
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
-        joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
-        self.init_joint_poses = joint_poses
-        #self.init_joint_poses = np.zeros((len(self.motor_names)))
+        if self.robot_action != "joints":
+            self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
+        else:
+            self.init_joint_poses = np.zeros((len(self.motor_names)))
         #self.reset()
 
     def _load_robot(self):
@@ -321,6 +322,7 @@ class Robot:
         """
         joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
         self.joints_state = []
+        joint_poses[0] = 2
         for i in range(len(self.motor_indices)):
             self.p.setJointMotorControl2(bodyUniqueId=self.robot_uid,
                                     jointIndex=self.motor_indices[i],
