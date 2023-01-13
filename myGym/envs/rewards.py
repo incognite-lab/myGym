@@ -1583,6 +1583,187 @@ class ThreeStagePnPRot(ThreeStagePnP):
             return True
         return False
     
+class ThreeStageSwipeRot(ThreeStagePnP):
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+        self.last_owner = None
+        self.last_find_dist  = None
+        self.last_lift_dist  = None
+        self.last_move_dist  = None
+        self.last_place_dist = None
+        self.last_rot_dist = None
+        self.was_near = False
+        self.current_network = 0
+        self.network_rewards = [0] * self.num_networks
+    
+    def subgoal_offset(self, goal_position):
+        
+        offset=[0.2,0.0,0.0]
+        subgoal = [goal_position[0]-offset[0],goal_position[1]-offset[1],goal_position[2]-offset[2],goal_position[3],goal_position[4],goal_position[5],goal_position[6]]
+        return subgoal
+
+    
+    def compute(self, observation=None):
+        """
+        Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
+
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        pregoal = self.subgoal_offset(goal_position)
+        target = [[gripper_position,object_position], [object_position, pregoal], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute, self.rotate_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        pregoal = self.subgoal_offset(goal_position)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_ready_swipe(object_position, pregoal) or self.was_near:
+            self.current_network = 2
+            self.was_near = True
+        #self.env.p.addUserDebugText(f"Network:{self.current_network}", [0.7,0.7,1.0], lifeTime=0.1, textColorRGB=[55,125,0])
+        return self.current_network
+    
+    def find_compute(self, gripper, object):
+        # initial reach
+        self.env.p.addUserDebugText("find sponge", [0.63,1,0.5], lifeTime=0.5, textColorRGB=[125,0,0])
+        dist = self.task.calc_distance(gripper[:3], object[:3])
+        self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.59,1,0.65], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        if self.last_find_dist is None:
+            self.last_find_dist = dist
+        if self.last_owner != 0:
+            self.last_find_dist = dist
+        reward = self.last_find_dist - dist
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
+        self.last_find_dist = dist
+        #if self.task.check_object_moved(self.env.task_objects["actual_state"], threshold=1.2):
+        #    self.env.episode_over   = True
+        #    self.env.episode_failed = True
+        self.network_rewards[0] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.59,1,0.6], lifeTime=0.5, textColorRGB=[0,0,125])
+        return reward
+    
+    def move_compute(self, object, pregoal):
+        # moving object above goal position (forced 2D reach)
+        self.env.p.addUserDebugText("prepare swipe", [0.63,1,0.5], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.env.p.addUserDebugLine(object[:3], pregoal[:3], lifeTime=0.1)
+        
+        dist = self.task.calc_distance(object, pregoal)
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.59,1,0.65], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        if self.last_place_dist is None or self.last_owner != 1:
+            self.last_place_dist = dist
+        reward = self.last_place_dist - dist
+
+        rot = self.task.calc_rot_quat(object, pregoal)
+        self.env.p.addUserDebugText("Rotation: {}".format(round(rot,3)), [0.57,1,0.7], lifeTime=0.5, textColorRGB=[0, 222, 100])
+        if self.last_rot_dist is None or self.last_owner != 1:
+            self.last_rot_dist = rot
+        rewardrot = self.last_rot_dist - rot
+        
+        reward = reward + rewardrot
+
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
+        self.last_place_dist = dist
+        self.last_rot_dist = rot
+        ix = 1 if self.num_networks > 1 else 0
+        self.network_rewards[ix] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.59,1,0.6], lifeTime=0.5, textColorRGB=[0,0,125])
+        return reward
+    
+    
+    def rotate_compute(self, object, goal):
+        # reach of goal position + task object height in Z axis and release
+        self.env.p.addUserDebugText("swiping", [0.63,1,0.5], lifeTime=0.1, textColorRGB=[125,125,0])
+        self.env.p.addUserDebugLine(object[:3], goal[:3], lifeTime=0.1)
+        
+        dist = self.task.calc_distance(object, goal)
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.59,1,0.65], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        if self.last_place_dist is None or self.last_owner != 2:
+            self.last_place_dist = dist
+        rewarddist = self.last_place_dist - dist
+
+        rot = self.task.calc_rot_quat(object, goal)
+        self.env.p.addUserDebugText("Rotation: {}".format(round(rot,3)), [0.57,1,0.7], lifeTime=0.5, textColorRGB=[0, 222, 100])
+        if self.last_rot_dist is None or self.last_owner != 2:
+            self.last_rot_dist = rot
+        rewardrot = self.last_rot_dist - rot
+        
+        z_difference = self.task.calc_height_diff (object, goal)
+        self.env.p.addUserDebugText("Heightdiff: {}".format(round(z_difference,3)), [0.55,1,0.73], lifeTime=0.5, textColorRGB=[45, 222, 100])
+        rewardheight = 0.05 - z_difference
+        reward = rewarddist + rewardrot + rewardheight
+
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
+        self.last_place_dist = dist
+        self.last_rot_dist = rot
+        #if self.last_owner == 2 and dist < 0.1:
+        #    self.env.robot.release_all_objects()
+        #    self.gripped = None
+        #    self.env.episode_info = "Object was placed to desired position"
+        #    if self.task.number_tasks == self.task.current_task + 1:
+        #        self.env.episode_over = True
+        #if self.env.episode_steps <= 2:
+        #    self.env.episode_info = "Task finished in initial configuration"
+        #    self.env.episode_over = True
+        self.network_rewards[-1] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.59,1,0.6], lifeTime=0.5, textColorRGB=[0,0,125])
+        return reward
+
+    def object_ready_swipe(self, object, goal):
+        distance  = self.task.calc_distance(goal[:3], object[:3])
+        if distance < 0.1:
+            return True
+        return False
+
+class ThreeStageSwipe(ThreeStageSwipeRot):
+
+    def object_ready_swipe(self, object, goal):
+        distance  = self.task.calc_distance(goal[:3], object[:3])
+        rot = self.task.calc_rot_quat(object, goal)
+        if distance < 0.1 and rot < 0.1:
+            return True
+        return False
+    
+    def move_compute(self, object, pregoal):
+        # moving object above goal position (forced 2D reach)
+        self.env.p.addUserDebugText("prepare swipe", [0.63,1,0.5], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.env.p.addUserDebugLine(object[:3], pregoal[:3], lifeTime=0.1)
+        
+        dist = self.task.calc_distance(object, pregoal)
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.59,1,0.65], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        if self.last_place_dist is None or self.last_owner != 1:
+            self.last_place_dist = dist
+        reward = self.last_place_dist - dist
+
+        rot = self.task.calc_rot_quat(object, pregoal)
+        self.env.p.addUserDebugText("Rotation: {}".format(round(rot,3)), [0.57,1,0.7], lifeTime=0.5, textColorRGB=[0, 222, 100])
+        if self.last_rot_dist is None or self.last_owner != 1:
+            self.last_rot_dist = rot
+        rewardrot = self.last_rot_dist - rot
+        
+        reward = reward + rewardrot
+
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
+        self.last_place_dist = dist
+        self.last_rot_dist = rot
+        ix = 1 if self.num_networks > 1 else 0
+        self.network_rewards[ix] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.59,1,0.6], lifeTime=0.5, textColorRGB=[0,0,125])
+        return reward
+
 
 class FourStagePnP(ThreeStagePnP):
 

@@ -227,7 +227,7 @@ class TaskModule():
         finished = None
         if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip']:
             finished = self.check_distance_threshold(self._observation)  
-        if self.task_type in ['pnprot']:
+        if self.task_type in ['pnprot','pnpswipe']:
             finished = self.check_distrot_threshold(self._observation)  
         if self.task_type in ['push', 'throw']:
             self.check_distance_threshold(self._observation)
@@ -294,6 +294,20 @@ class TaskModule():
             dist = np.linalg.norm(np.asarray(obj1[:3]) - np.asarray(obj2[:3]))
         elif self.distance_type == "manhattan":
             dist = cityblock(obj1, obj2)
+        return dist
+    
+    def calc_height_diff(self, obj1, obj2):
+        """
+        Calculate height difference between objects
+
+        Parameters:
+            :param obj1: (float array) First object position representation
+            :param obj2: (float array) Second object position representation
+        Returns: 
+            :return dist: (float) Distance iz Z axis
+        """
+        #TODO
+        dist = abs(obj1[2] - obj2[2])
         return dist
     
     def calc_rot_quat(self, obj1, obj2):
