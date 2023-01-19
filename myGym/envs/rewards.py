@@ -1667,17 +1667,8 @@ class ThreeStageSwipeRot(ThreeStagePnP):
             self.last_place_dist = dist
         reward = self.last_place_dist - dist
 
-        rot = self.task.calc_rot_quat(object, pregoal)
-        self.env.p.addUserDebugText("Rotation: {}".format(round(rot,3)), [0.57,1,0.7], lifeTime=0.5, textColorRGB=[0, 222, 100])
-        if self.last_rot_dist is None or self.last_owner != 1:
-            self.last_rot_dist = rot
-        rewardrot = self.last_rot_dist - rot
-        
-        reward = reward + rewardrot
-
         self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
         self.last_place_dist = dist
-        self.last_rot_dist = rot
         ix = 1 if self.num_networks > 1 else 0
         self.network_rewards[ix] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.59,1,0.6], lifeTime=0.5, textColorRGB=[0,0,125])
@@ -1718,7 +1709,7 @@ class ThreeStageSwipeRot(ThreeStagePnP):
         #if self.env.episode_steps <= 2:
         #    self.env.episode_info = "Task finished in initial configuration"
         #    self.env.episode_over = True
-        self.network_rewards[-1] += reward
+        self.network_rewards[2] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.59,1,0.6], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
 
