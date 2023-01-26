@@ -373,7 +373,7 @@ class MultiACKTR(ActorCriticRLModel):
                 i = 0
                 steps_used = rollouts[-1]
                 for rollout in rollouts[0]:
-                    bs, states, returns, masks, actions, values, ep_infos, true_reward, success_stages = rollout
+                    obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward, success_stages = rollout
                     model = self.models[i]
                     # calc = len(true_reward)
                     # model.n_batch = calc
