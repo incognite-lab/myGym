@@ -262,7 +262,7 @@ class MultiACKTR(ActorCriticRLModel):
         # the stepsize was automatically tuned computing the kl div
         # and comparing it to the desired one
         for _ in range(len(obs)):
-            current_lr = model.learning_rate_schedule.value()
+            current_lr = self.learning_rate_schedule.value()
 
         td_map = {
             model.train_model.obs_ph: obs,
@@ -278,7 +278,7 @@ class MultiACKTR(ActorCriticRLModel):
 
         if writer is not None:
             # run loss backprop with summary, but once every 10 runs save the metadata (memory, compute time, ...)
-            if model.full_tensorboard_log and (1 + update) % 10 == 0:
+            if self.full_tensorboard_log and (1 + update) % 10 == 0:
                 run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 run_metadata = tf.RunMetadata()
                 summary, policy_loss, value_loss, policy_entropy, _ = model.sess.run(
