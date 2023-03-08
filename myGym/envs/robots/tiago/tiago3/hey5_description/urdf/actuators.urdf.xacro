@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<!--
+  Copyright (c) 2014, PAL Robotics, S.L.
+  All rights reserved.
+
+  This work is licensed under the Creative Commons Attribution 4.0 International License.
+  To view a copy of this license, visit http://creativecommons.org/licenses/by/4.0 or send a letter to
+  Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+-->
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- Thumb actuator -->
+  <xacro:macro name="thumb_actuator" params="name parent *origin">
+    <xacro:actuator_impl parent="${parent}" name="${name}">
+      <xacro:insert_block name="origin" />
+      <limit lower="${-150 * deg_to_rad}" upper="${360 * deg_to_rad}" effort="2.0" velocity="3.35" /> <!-- TODO: Tune effort -->
+      <safety_controller k_position="20"
+                         k_velocity="20"
+                         soft_lower_limit="${-150.0 * deg_to_rad}"
+                         soft_upper_limit="${ 360.0 * deg_to_rad}" />
+    </xacro:actuator_impl>
+  </xacro:macro>
+
+  <!-- Index actuator -->
+  <xacro:macro name="index_actuator" params="name parent *origin">
+    <xacro:actuator_impl parent="${parent}" name="${name}">
+      <xacro:insert_block name="origin" />
+      <limit lower="${-175 * deg_to_rad}" upper="${390 * deg_to_rad}" effort="2.0" velocity="3.35" /> <!-- TODO: Tune effort -->
+      <safety_controller k_position="20"
+                         k_velocity="20"
+                         soft_lower_limit="${-175.0 * deg_to_rad}"
+                         soft_upper_limit="${ 390.0 * deg_to_rad}" />
+    </xacro:actuator_impl>
+  </xacro:macro>
+
+  <!-- Middle, ring, little (mrl) actuator -->
+  <xacro:macro name="mrl_actuator" params="name parent *origin">
+    <xacro:actuator_impl parent="${parent}" name="${name}">
+      <xacro:insert_block name="origin" />
+      <limit lower="${-145 * deg_to_rad}" upper="${530 * deg_to_rad}" effort="2.0" velocity="3.56" /> <!-- TODO: Tune effort -->
+      <safety_controller k_position="20"
+                         k_velocity="20"
+                         soft_lower_limit="${-145 * deg_to_rad}"
+                         soft_upper_limit="${ 530 * deg_to_rad}" />
+    </xacro:actuator_impl>
+  </xacro:macro>
+
+  <!--
+    Common actuator implementation. Create a joint/link pair representing an actuator.
+
+    Parameters:
+    - name: Actuator name. The created link and joint are prepended with 'name_'
+    - parent: Parent link
+    - origin: XML block containing the pose of the actuator joint with respect to its parent
+    - limit: XML block containing the joint limit specification
+    - safety_controller: XML block containing the soft joint limits specification
+  -->
+  <xacro:macro name="actuator_impl" params="name parent *origin *limit *safety_controller">
+    <joint name="${name}_joint" type="revolute">
+      <parent link="${parent}" />
+      <child link="${name}_link" />
+      <xacro:insert_block name="origin" />
+      <axis xyz="0 0 1" />
+      <xacro:insert_block name="limit" />
+      <dynamics friction="0.0" damping="0.5"/> <!-- TODO: Tune -->
+      <xacro:insert_block name="safety_controller" />
+    </joint>
+
+    <link name="${name}_link">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <mass value="0.05" /> 
+        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" /> <!--To stabilize simulation-->
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <sphere radius="0.001"/>
+        </geometry>
+        <material name="Hey5DarkGrey" />
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <sphere radius="0.001"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <xacro:position_reducer name="${name}" reduction="1.0"/>
+  </xacro:macro>
+
+ <!-- Position joint reducer -->
+  <xacro:macro name="position_reducer" params="name reduction" >
+    <transmission name="${name}_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <actuator name="${name}_motor" >
+        <mechanicalReduction>${reduction}</mechanicalReduction>
+      </actuator>
+      <joint name="${name}_joint" >
+        <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      </joint>
+    </transmission>
+  </xacro:macro>
+</robot>

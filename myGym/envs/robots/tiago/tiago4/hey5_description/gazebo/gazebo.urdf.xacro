@@ -1,0 +1,161 @@
+<?xml version="1.0"?>
+<!--
+
+  Copyright (c) 2011, PAL Robotics, S.L.
+  All rights reserved.
+
+  This work is licensed under the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 Unported License.
+  To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/3.0/ or send a letter to
+  Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+-->
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+   <xacro:arg name="multiple" default="false"/>
+   <xacro:arg name="namespace" default=""/>
+   <xacro:property name="is_multiple" value="$(arg multiple)" />
+   <xacro:property name="nsp" value="$(arg namespace)" />
+   <xacro:macro name="hey5_gazebo_simulation" params="side">
+   <gazebo>
+    <plugin filename="libgazebo_underactuated_finger.so" name="gazebo_${side}_thumb">
+      <actuatedJoint>${side}_thumb_joint</actuatedJoint>
+      <virtualJoint>
+        <name>${side}_thumb_abd_joint</name>
+        <scale_factor>2.0</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_thumb_flex_1_joint</name>
+        <scale_factor>2.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_thumb_virtual_1_joint</name>
+        <scale_factor>3.0</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_thumb_flex_2_joint</name>
+        <scale_factor>3.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_thumb_virtual_2_joint</name>
+        <scale_factor>3.0</scale_factor>
+      </virtualJoint>
+      <xacro:if value="${is_multiple}">
+          <robotNamespace>/${nsp}</robotNamespace>
+      </xacro:if>
+    </plugin>
+
+    <plugin filename="libgazebo_underactuated_finger.so" name="gazebo_${side}_index">
+      <actuatedJoint>${side}_index_joint</actuatedJoint>
+      <virtualJoint>
+        <name>${side}_index_abd_joint</name>
+        <scale_factor>5.0</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_index_flex_1_joint</name>
+        <scale_factor>2.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_index_virtual_1_joint</name>
+        <scale_factor>3.0</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_index_flex_2_joint</name>
+        <scale_factor>3.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_index_virtual_2_joint</name>
+        <scale_factor>3.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_index_flex_3_joint</name>
+        <scale_factor>4.0</scale_factor>
+      </virtualJoint>
+      <xacro:if value="${is_multiple}">
+          <robotNamespace>/${nsp}</robotNamespace>
+      </xacro:if>
+    </plugin>
+
+
+    <plugin filename="libgazebo_underactuated_finger.so" name="gazebo_${side}_middle">
+      <actuatedJoint>${side}_mrl_joint</actuatedJoint>
+      <virtualJoint>
+        <name>${side}_middle_flex_1_joint</name>
+        <scale_factor>2.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_middle_virtual_1_joint</name>
+        <scale_factor>3.0</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_middle_flex_2_joint</name>
+        <scale_factor>3.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_middle_virtual_2_joint</name>
+        <scale_factor>3.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_middle_flex_3_joint</name>
+        <scale_factor>4.0</scale_factor>
+      </virtualJoint>
+      <xacro:if value="${is_multiple}">
+          <robotNamespace>/${nsp}</robotNamespace>
+      </xacro:if>
+    </plugin>
+
+    <plugin filename="libgazebo_underactuated_finger.so" name="gazebo_${side}_ring">
+      <actuatedJoint>${side}_mrl_joint</actuatedJoint>
+      <virtualJoint>
+        <name>${side}_ring_flex_1_joint</name>
+        <scale_factor>2.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_ring_virtual_1_joint</name>
+        <scale_factor>3.0</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_ring_flex_2_joint</name>
+        <scale_factor>3.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_ring_virtual_2_joint</name>
+        <scale_factor>3.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_ring_flex_3_joint</name>
+        <scale_factor>4.0</scale_factor>
+      </virtualJoint>
+      <xacro:if value="${is_multiple}">
+          <robotNamespace>/${nsp}</robotNamespace>
+      </xacro:if>
+    </plugin>
+
+    <plugin filename="libgazebo_underactuated_finger.so" name="gazebo_${side}_little">
+      <actuatedJoint>${side}_mrl_joint</actuatedJoint>
+      <virtualJoint>
+        <name>${side}_little_flex_1_joint</name>
+        <scale_factor>2.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_little_virtual_1_joint</name>
+        <scale_factor>3.0</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_little_flex_2_joint</name>
+        <scale_factor>3.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_little_virtual_2_joint</name>
+        <scale_factor>3.5</scale_factor>
+      </virtualJoint>
+      <virtualJoint>
+        <name>${side}_little_flex_3_joint</name>
+        <scale_factor>4.0</scale_factor>
+      </virtualJoint>
+      <xacro:if value="${is_multiple}">
+          <robotNamespace>/${nsp}</robotNamespace>
+      </xacro:if>
+    </plugin>
+  </gazebo>
+ </xacro:macro>
+
+</robot>

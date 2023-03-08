@@ -1,0 +1,267 @@
+collision_model_parameters:
+  padding: 0
+  links_with_padding: []
+  blacklist:
+    default:
+      - first: arm_left_2_link
+        second: torso_lift_link
+      - first: arm_left_5_link
+        second: wrist_left_ft_link
+      - first: arm_left_6_link
+        second: wrist_left_ft_link
+      - first: arm_left_tool_link
+        second: wrist_left_ft_link
+      - first: arm_right_2_link
+        second: torso_lift_link
+      - first: arm_right_5_link
+        second: wrist_right_ft_link
+      - first: arm_right_6_link
+        second: wrist_right_ft_link
+      - first: arm_right_tool_link
+        second: wrist_right_ft_link
+      - first: ground_plane
+        second: base_link
+      - first: ground_plane
+        second: caster_back_left_1_link
+      - first: ground_plane
+        second: caster_back_left_1_link
+      - first: ground_plane
+        second: caster_back_left_2_link
+      - first: ground_plane
+        second: caster_back_right_1_link
+      - first: ground_plane
+        second: caster_back_right_2_link
+      - first: ground_plane
+        second: caster_front_left_1_link
+      - first: ground_plane
+        second: caster_front_left_2_link
+      - first: ground_plane
+        second: caster_front_right_1_link
+      - first: ground_plane
+        second: caster_front_right_2_link
+      - first: ground_plane
+        second: wheel_right_link
+      - first: ground_plane
+        second: wheel_left_link
+      - first: wrist_left_ft_link
+        second: wrist_left_ft_tool_link
+      - first: gripper_left_link # PAL and WSG gripper_left link
+        second: gripper_left_tool_link
+      - first: gripper_left_link # PAL and WSG gripper_left link
+        second: wrist_left_ft_tool_link
+      - first: gripper_left_link # PAL and WSG gripper_left link
+        second: wrist_left_ft_link
+      - first: gripper_left_tool_link
+        second: gripper_left_right_finger_link
+      - first: gripper_left_tool_link
+        second: gripper_left_left_finger_link
+      - first: gripper_left_tool_link
+        second: wrist_left_ft_tool_link
+      # Hey5 links
+      - first: hand_left_link
+        second: wrist_left_ft_tool_link
+      - first: hand_left_link
+        second: wrist_left_ft_link
+      - first: hand_left_tool_link
+        second: hand_left_safety_box
+      - first: hand_left_tool_link
+        second: hand_left_little_virtual_2_link
+      - first: hand_left_tool_link
+        second: hand_left_middle_abd_link
+      - first: hand_left_tool_link
+        second: hand_left_ring_virtual_3_link
+      - first: hand_left_tool_link
+        second: hand_left_little_virtual_1_link
+      - first: hand_left_tool_link
+        second: hand_left_index_flex_1_link
+      - first: hand_left_tool_link
+        second: hand_left_index_flex_1_link
+      - first: hand_left_tool_link
+        second: hand_left_middle_virtual_3_link
+      - first: hand_left_tool_link
+        second: hand_left_ring_virtual_1_link
+      - first: hand_left_tool_link
+        second: hand_left_middle_virtual_2_link
+      - first: hand_left_tool_link
+        second: hand_left_thumb_flex_2_link
+      - first: hand_left_tool_link
+        second: hand_left_index_abd_link
+      - first: hand_left_tool_link
+        second: hand_left_index_flex_1_link
+      - first: hand_left_tool_link
+        second: hand_left_index_flex_2_link
+      - first: hand_left_tool_link
+        second: hand_left_index_flex_3_link
+      - first: hand_left_tool_link
+        second: hand_left_index_virtual_1_link
+      - first: hand_left_tool_link
+        second: hand_left_index_virtual_2_link
+      - first: hand_left_tool_link
+        second: hand_left_index_virtual_3_link
+      - first: hand_left_tool_link
+        second: hand_left_little_abd_link
+      - first: hand_left_tool_link
+        second: hand_left_little_flex_1_link
+      - first: hand_left_tool_link
+        second: hand_left_little_flex_2_link
+      - first: hand_left_tool_link
+        second: hand_left_little_flex_3_link
+      - first: hand_left_tool_link
+        second: hand_left_little_virtual_1_link
+      - first: hand_left_tool_link
+        second: hand_left_little_virtual_2_link
+      - first: hand_left_tool_link
+        second: hand_left_little_virtual_3_link
+      - first: hand_left_tool_link
+        second: hand_left_middle_abd_link
+      - first: hand_left_tool_link
+        second: hand_left_middle_flex_1_link
+      - first: hand_left_tool_link
+        second: hand_left_middle_flex_2_link
+      - first: hand_left_tool_link
+        second: hand_left_middle_flex_3_link
+      - first: hand_left_tool_link
+        second: hand_left_middle_virtual_1_link
+      - first: hand_left_tool_link
+        second: hand_left_middle_virtual_2_link
+      - first: hand_left_tool_link
+        second: hand_left_middle_virtual_3_link
+      - first: hand_left_tool_link
+        second: hand_left_palm_link
+      - first: hand_left_tool_link
+        second: hand_left_ring_abd_link
+      - first: hand_left_tool_link
+        second: hand_left_ring_flex_1_link
+      - first: hand_left_tool_link
+        second: hand_left_ring_flex_2_link
+      - first: hand_left_tool_link
+        second: hand_left_ring_flex_3_link
+      - first: hand_left_tool_link
+        second: hand_left_ring_virtual_1_link
+      - first: hand_left_tool_link
+        second: hand_left_ring_virtual_2_link
+      - first: hand_left_tool_link
+        second: hand_left_ring_virtual_3_link
+      - first: hand_left_tool_link
+        second: hand_left_safety_box
+      - first: hand_left_tool_link
+        second: hand_left_thumb_abd_link
+      - first: hand_left_tool_link
+        second: hand_left_thumb_flex_1_link
+      - first: hand_left_tool_link
+        second: hand_left_thumb_flex_2_link
+      - first: hand_left_tool_link
+        second: hand_left_thumb_virtual_1_link
+      - first: hand_left_tool_link
+        second: hand_left_thumb_virtual_2_link
+      - first: wrist_right_ft_link
+        second: wrist_right_ft_tool_link
+      - first: gripper_right_link # PAL and WSG gripper_right link
+        second: gripper_right_tool_link
+      - first: gripper_right_link # PAL and WSG gripper_right link
+        second: wrist_right_ft_tool_link
+      - first: gripper_right_link # PAL and WSG gripper_right link
+        second: wrist_right_ft_link
+      - first: gripper_right_tool_link
+        second: gripper_right_right_finger_link
+      - first: gripper_right_tool_link
+        second: gripper_right_left_finger_link
+      - first: gripper_right_tool_link
+        second: wrist_right_ft_tool_link
+      # Hey5 links
+      - first: hand_right_link
+        second: wrist_right_ft_tool_link
+      - first: hand_right_link
+        second: wrist_right_ft_link
+      - first: hand_right_tool_link
+        second: hand_right_safety_box
+      - first: hand_right_tool_link
+        second: hand_right_little_virtual_2_link
+      - first: hand_right_tool_link
+        second: hand_right_middle_abd_link
+      - first: hand_right_tool_link
+        second: hand_right_ring_virtual_3_link
+      - first: hand_right_tool_link
+        second: hand_right_little_virtual_1_link
+      - first: hand_right_tool_link
+        second: hand_right_index_flex_1_link
+      - first: hand_right_tool_link
+        second: hand_right_index_flex_1_link
+      - first: hand_right_tool_link
+        second: hand_right_middle_virtual_3_link
+      - first: hand_right_tool_link
+        second: hand_right_ring_virtual_1_link
+      - first: hand_right_tool_link
+        second: hand_right_middle_virtual_2_link
+      - first: hand_right_tool_link
+        second: hand_right_thumb_flex_2_link
+      - first: hand_right_tool_link
+        second: hand_right_index_abd_link
+      - first: hand_right_tool_link
+        second: hand_right_index_flex_1_link
+      - first: hand_right_tool_link
+        second: hand_right_index_flex_2_link
+      - first: hand_right_tool_link
+        second: hand_right_index_flex_3_link
+      - first: hand_right_tool_link
+        second: hand_right_index_virtual_1_link
+      - first: hand_right_tool_link
+        second: hand_right_index_virtual_2_link
+      - first: hand_right_tool_link
+        second: hand_right_index_virtual_3_link
+      - first: hand_right_tool_link
+        second: hand_right_little_abd_link
+      - first: hand_right_tool_link
+        second: hand_right_little_flex_1_link
+      - first: hand_right_tool_link
+        second: hand_right_little_flex_2_link
+      - first: hand_right_tool_link
+        second: hand_right_little_flex_3_link
+      - first: hand_right_tool_link
+        second: hand_right_little_virtual_1_link
+      - first: hand_right_tool_link
+        second: hand_right_little_virtual_2_link
+      - first: hand_right_tool_link
+        second: hand_right_little_virtual_3_link
+      - first: hand_right_tool_link
+        second: hand_right_middle_abd_link
+      - first: hand_right_tool_link
+        second: hand_right_middle_flex_1_link
+      - first: hand_right_tool_link
+        second: hand_right_middle_flex_2_link
+      - first: hand_right_tool_link
+        second: hand_right_middle_flex_3_link
+      - first: hand_right_tool_link
+        second: hand_right_middle_virtual_1_link
+      - first: hand_right_tool_link
+        second: hand_right_middle_virtual_2_link
+      - first: hand_right_tool_link
+        second: hand_right_middle_virtual_3_link
+      - first: hand_right_tool_link
+        second: hand_right_palm_link
+      - first: hand_right_tool_link
+        second: hand_right_ring_abd_link
+      - first: hand_right_tool_link
+        second: hand_right_ring_flex_1_link
+      - first: hand_right_tool_link
+        second: hand_right_ring_flex_2_link
+      - first: hand_right_tool_link
+        second: hand_right_ring_flex_3_link
+      - first: hand_right_tool_link
+        second: hand_right_ring_virtual_1_link
+      - first: hand_right_tool_link
+        second: hand_right_ring_virtual_2_link
+      - first: hand_right_tool_link
+        second: hand_right_ring_virtual_3_link
+      - first: hand_right_tool_link
+        second: hand_right_safety_box
+      - first: hand_right_tool_link
+        second: hand_right_thumb_abd_link
+      - first: hand_right_tool_link
+        second: hand_right_thumb_flex_1_link
+      - first: hand_right_tool_link
+        second: hand_right_thumb_flex_2_link
+      - first: hand_right_tool_link
+        second: hand_right_thumb_virtual_1_link
+      - first: hand_right_tool_link
+        second: hand_right_thumb_virtual_2_link

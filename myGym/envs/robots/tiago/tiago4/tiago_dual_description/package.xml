@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package>
+
+  <name>tiago_dual_description</name>
+  <version>0.2.1</version>
+  <description>This package contains the description (mechanical, kinematic, visual,
+      etc.) of the TIAGO robot.  The files in this package are parsed and used by
+      a variety of other components.  Most users will not interact directly
+      with this package.</description>
+  <maintainer email="victor.lopez@pal-robotics.com">Victor Lopez</maintainer>
+  <author email="victor.lopez@pal-robotics.com">Victor Lopez</author>
+  <license>Creative Commons BY-NC-ND 3.0</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>xacro</run_depend>
+  <run_depend>pmb2_description</run_depend>
+  <run_depend>tiago_description</run_depend>
+  <run_depend>hey5_description</run_depend>
+  <run_depend>pal_gripper_description</run_depend>
+  <run_depend>pal_robotiq_85_description</run_depend>
+  <run_depend>pal_robotiq_140_description</run_depend>
+  <run_depend>pal_wsg_gripper_description</run_depend>
+  <run_depend>tiago_dual_description_calibration</run_depend>
+  <run_depend>custom_dual_ee_description</run_depend>
+
+  <test_depend>rostest</test_depend>
+  <test_depend>urdf_test</test_depend>
+
+</package>

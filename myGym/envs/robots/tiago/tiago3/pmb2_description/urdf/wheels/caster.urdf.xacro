@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+
+<!--
+  Copyright (c) 2014, PAL Robotics, S.L.
+  All rights reserved.
+
+  This work is licensed under the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 Unported License.
+  To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/3.0/ or send a letter to
+  Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+-->
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find pmb2_description)/urdf/wheels/caster.gazebo.xacro"/>
+  <xacro:macro name="caster" params="side radius width separation_x separation_y offset_x offset_y offset_z parent">
+    <link name="caster_${side}_1_link">
+      <inertial>
+        <origin xyz="-0.01108 0.00003 -0.030" rpy="0 0 0"/>
+        <mass value="0.101"/>
+        <inertia  ixx="0.00002779423" ixy="-0.00000001384" ixz="0.0000074479"
+                  iyy="0.00002767062" iyz="-0.00000002774"
+                  izz="0.00001727605"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://pmb2_description/meshes/wheels/caster_1.stl"/>
+        </geometry>
+        <material name="Grey"/>
+      </visual>
+      <!--collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="${radius}" length="${width}"/>
+        </geometry>
+      </collision-->
+    </link>
+
+    <link name="caster_${side}_2_link">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.03677"/>
+        <inertia  ixx="0.00000755221" ixy="0" ixz="0"
+                  iyy="0.00000755221" iyz="0"
+                  izz="0.00001281996"/>
+        </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://pmb2_description/meshes/wheels/caster_2.stl"/>
+        </geometry>
+        <material name="DarkGrey"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="${radius}" length="${width}"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="caster_${side}_1_joint" type="continuous">
+      <parent link="${parent}_link"/>
+      <child link="caster_${side}_1_link"/>
+      <origin xyz="${offset_x + separation_x / 2} ${offset_y - separation_y / 2} ${offset_z}" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    <joint name="caster_${side}_2_joint" type="continuous">
+      <parent link="caster_${side}_1_link"/>
+      <child link="caster_${side}_2_link"/>
+      <origin xyz="-0.016 0.0000 -0.040" rpy="${-90.0 * deg_to_rad} 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    <!-- Gazebo extensions -->
+    <xacro:caster_gazebo side="${side}"/>
+
+  </xacro:macro>
+</robot>

@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!--
+
+  Copyright (c) 2013, PAL Robotics, S.L.
+  All rights reserved.
+
+  This work is licensed under the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 Unported License.
+  To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/3.0/ or send a letter to
+  Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+
+-->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- Macro -->
+  <xacro:macro name="microphone" params="name parent *origin">
+
+    <link name="${name}_link"/>
+
+    <joint name="${name}_joint" type="fixed">
+      <xacro:insert_block name="origin"/>
+      <child link="${name}_link"/>
+      <parent link="${parent}_link"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>

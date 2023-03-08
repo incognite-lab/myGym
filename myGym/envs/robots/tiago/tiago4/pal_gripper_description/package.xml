@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package>
+  <name>pal_gripper_description</name>
+  <version>0.0.13</version>
+  <description>The pal_gripper_description package</description>
+
+  <author email="sam.pfeiffer@pal-robotics.com">Sam Pfeiffer</author>
+  <maintainer email="tiago-support@pal-robotics.com">TIAGo support team</maintainer>
+
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>xacro</build_depend>
+  <run_depend>xacro</run_depend>
+
+
+</package>

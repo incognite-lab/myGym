@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+
+<!--
+  Copyright (c) 2014, PAL Robotics, S.L.
+  All rights reserved.
+
+  This work is licensed under the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 Unported License.
+  To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/3.0/ or send a letter to
+  Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+-->
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:macro name="cover" params="name parent">
+    <link name="${name}_link">
+      <inertial>
+        <origin xyz="0.22414000000 0.00002000000 0.04681000000" rpy="0 0 0"/>
+        <mass value="0.25821000000"/>
+        <inertia ixx="0.00023719188" ixy="0.00000006119" ixz="-0.00000011799"
+                 iyy="0.00028335052" iyz="0.00000000774"
+                 izz="0.00038497063"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://pmb2_description/meshes/base/base_ring.stl"/>
+        </geometry>
+        <material name="Orange"/>
+      </visual>
+    </link>
+
+    <joint name="cover_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${name}_link"/>
+      <origin xyz="0 0 0.13" rpy="0 0 0"/>
+    </joint>
+
+    <gazebo reference="${name}_link">
+      <material>Gazebo/Orange</material>
+    </gazebo>
+  </xacro:macro>
+</robot>

@@ -1,0 +1,209 @@
+<?xml version="1.0"?>
+<!--
+  Copyright (c) 2014, PAL Robotics, S.L.
+  All rights reserved.
+
+  This work is licensed under the Creative Commons Attribution 4.0 International License.
+  To view a copy of this license, visit http://creativecommons.org/licenses/by/4.0 or send a letter to
+  Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+-->
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!--External resources-->
+  <xacro:include filename="$(find hey5_description)/urdf/deg_to_rad.urdf.xacro" />
+
+  <!--
+    Specify transmissions for the thumb finger.
+
+    Parameters:
+    - finger_name: Finger name. Finger transmissions are prepended with 'name_'
+    - act_name: Actuator name
+    - act_flex_start: Actuator position at which flexion starts
+    - jnt_abd_start: Joint position at which abduction/adduction starts (zero actuator position)
+    - jnt_abd_stop: Joint position at which abduction/adduction stops
+    - abd_reduction: Reduction for abduction/adduction motion
+    - flex_reduction: Reduction for flexion/extension motion
+  -->
+  <xacro:macro name="thumb_transmissions"
+               params="finger_name
+                       act_name
+                       act_flex_start
+                       jnt_abd_start
+                       jnt_abd_stop
+                       abd_reduction
+                       flex_reduction">
+    <!--Abductor-->
+    <transmission name="${finger_name}_abd_trans">
+      <type>hey5_transmissions/Hey5Reducer</type>
+      <joint name="${finger_name}_abd_joint">
+        <saturationLower>${jnt_abd_start}</saturationLower>
+        <saturationUpper>${jnt_abd_stop}</saturationUpper>
+        <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      </joint>
+      <actuator name="${act_name}">
+        <mechanicalReduction>${abd_reduction}</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <!--First flexor-->
+    <transmission name="${finger_name}_virtual_1_trans">
+      <type>hey5_transmissions/Hey5Reducer</type>
+      <joint name="${finger_name}_virtual_1_joint">
+        <saturationLower>0.0</saturationLower>
+        <deadBandUpper>${act_flex_start}</deadBandUpper>
+        <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      </joint>
+      <actuator name="${act_name}">
+        <mechanicalReduction>${flex_reduction}</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="${finger_name}_flex_1_trans">
+      <type>hey5_transmissions/Hey5Reducer</type>
+      <joint name="${finger_name}_flex_1_joint">
+        <saturationLower>0.0</saturationLower>
+        <deadBandUpper>${act_flex_start}</deadBandUpper>
+        <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      </joint>
+      <actuator name="${act_name}">
+        <mechanicalReduction>${flex_reduction}</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <!--Second flexor-->
+        <transmission name="${finger_name}_virtual_2_trans">
+      <type>hey5_transmissions/Hey5Reducer</type>
+      <joint name="${finger_name}_virtual_2_joint">
+        <saturationLower>0.0</saturationLower>
+        <deadBandUpper>${act_flex_start}</deadBandUpper>
+        <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      </joint>
+      <actuator name="${act_name}">
+        <mechanicalReduction>${flex_reduction}</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="${finger_name}_flex_2_trans">
+      <type>hey5_transmissions/Hey5Reducer</type>
+      <joint name="${finger_name}_flex_2_joint">
+        <saturationLower>0.0</saturationLower>
+        <deadBandUpper>${act_flex_start}</deadBandUpper>
+        <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      </joint>
+      <actuator name="${act_name}">
+        <mechanicalReduction>${flex_reduction}</mechanicalReduction>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+
+  <!--
+    Specify transmissions for non-thumb fingers.
+
+    Parameters:
+    - finger_name: Finger name. Finger transmissions are prepended with 'name_'
+    - act_name: Actuator name
+    - act_flex_start: Actuator position at which flexion starts
+    - jnt_abd_start: Joint position at which abduction/adduction starts (zero actuator position)
+    - jnt_abd_stop: Joint position at which abduction/adduction stops
+    - abd_reduction: Reduction for abduction/adduction motion
+    - flex_reduction: Reduction for flexion/extension motion
+  -->
+  <xacro:macro name="finger_transmissions"
+               params="finger_name
+                       act_name
+                       act_flex_start
+                       jnt_abd_start
+                       jnt_abd_stop
+                       abd_reduction
+                       flex_reduction">
+    <!--Abductor-->
+    <transmission name="${finger_name}_abd_trans">
+      <type>hey5_transmissions/Hey5Reducer</type>
+      <joint name="${finger_name}_abd_joint">
+        <saturationLower>${jnt_abd_start}</saturationLower>
+        <saturationUpper>${jnt_abd_stop}</saturationUpper>
+        <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      </joint>
+      <actuator name="${act_name}">
+        <mechanicalReduction>${abd_reduction}</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <!--First flexor-->
+    <transmission name="${finger_name}_virtual_1_trans">
+      <type>hey5_transmissions/Hey5Reducer</type>
+      <joint name="${finger_name}_virtual_1_joint">
+        <saturationLower>0.0</saturationLower>
+        <deadBandUpper>${act_flex_start}</deadBandUpper>
+        <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      </joint>
+      <actuator name="${act_name}">
+        <mechanicalReduction>${flex_reduction}</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="${finger_name}_flex_1_trans">
+      <type>hey5_transmissions/Hey5Reducer</type>
+      <joint name="${finger_name}_flex_1_joint">
+        <saturationLower>0.0</saturationLower>
+        <deadBandUpper>${act_flex_start}</deadBandUpper>
+        <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      </joint>
+      <actuator name="${act_name}">
+        <mechanicalReduction>${flex_reduction}</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <!--Second flexor-->
+    <transmission name="${finger_name}_virtual_2_trans">
+      <type>hey5_transmissions/Hey5Reducer</type>
+      <joint name="${finger_name}_virtual_2_joint">
+        <saturationLower>0.0</saturationLower>
+        <deadBandUpper>${act_flex_start}</deadBandUpper>
+        <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      </joint>
+      <actuator name="${act_name}">
+        <mechanicalReduction>${flex_reduction}</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="${finger_name}_flex_2_trans">
+      <type>hey5_transmissions/Hey5Reducer</type>
+      <joint name="${finger_name}_flex_2_joint">
+        <saturationLower>0.0</saturationLower>
+        <deadBandUpper>${act_flex_start}</deadBandUpper>
+        <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      </joint>
+      <actuator name="${act_name}">
+        <mechanicalReduction>${flex_reduction}</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <!--Third flexor-->
+    <transmission name="${finger_name}_virtual_3_trans">
+      <type>hey5_transmissions/Hey5Reducer</type>
+      <joint name="${finger_name}_virtual_3_joint">
+        <saturationLower>0.0</saturationLower>
+        <deadBandUpper>${act_flex_start}</deadBandUpper>
+        <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      </joint>
+      <actuator name="${act_name}">
+        <mechanicalReduction>${flex_reduction}</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="${finger_name}_flex_3_trans">
+      <type>hey5_transmissions/Hey5Reducer</type>
+      <joint name="${finger_name}_flex_3_joint">
+        <saturationLower>0.0</saturationLower>
+        <deadBandUpper>${act_flex_start}</deadBandUpper>
+        <hardwareInterface>hardware_interface/JointStateInterface</hardwareInterface>
+      </joint>
+      <actuator name="${act_name}">
+        <mechanicalReduction>${flex_reduction}</mechanicalReduction>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+
+</robot>

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package>
+  <name>hey5_description</name>
+  <version>1.0.3</version>
+  <description>This package contains the description (mechanical, kinematic, visual,
+    etc.) of the Hey5 hand.  The files in this package are parsed and used by
+    a variety of other components.  Most users will not interact directly
+    with this package.
+  </description>
+  <maintainer email="adolfo.rodriguez@pal-robotics.com">Adolfo Rodriguez Tsouroukdissian</maintainer>
+  <author email="adolfo.rodriguez@pal-robotics.com">Adolfo Rodriguez Tsouroukdissian</author>
+  <license>Creative Commons Attribution 4.0 International License</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <run_depend>xacro</run_depend>
+</package>
