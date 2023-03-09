@@ -213,10 +213,16 @@ def main():
                 if algo == diffalgo:
                     index[i].append(j)
             if len(index[i])>0:
-                plt.plot(steps,np.mean(np.take(success,index[i],0),0), color=colors[i], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[i], markersize=4) 
+                meanvalue = np.mean(np.take(success,index[i],0),0)
+                variance =  np.std(np.take(success,index[i],0),0)
+                plt.plot(steps,meanvalue, color=colors[i], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[i], markersize=4) 
                 plt.fill_between(steps, np.mean(np.take(success,index[i],0),0)-np.std(np.take(success,index[i],0),0),np.mean(np.take(success,index[i],0),0)+np.std(np.take(success,index[i],0),0), color=colors[i], alpha=0.2) 
                 #plt.show()
                 leg.append(algo)
+                print(algo)
+                print(meanvalue[-1])
+                print(variance[-1]) 
+           
     elif 'robot' in diff.keys() and len(args.robot)>1:
         index = [[] for _ in range(len(args.robot))]
         for i, robot in enumerate(args.robot):
