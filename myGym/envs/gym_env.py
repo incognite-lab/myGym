@@ -10,6 +10,7 @@ from gym import spaces
 import random
 from myGym.utils.helpers import get_workspace_dict
 import pkg_resources
+from myGym.envs.human import Human
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
 
@@ -153,7 +154,7 @@ class GymEnv(CameraEnv):
                     "max_force":self.max_force,"dimension_velocity":self.dimension_velocity,
                   "pybullet_client":self.p}
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action,task_type=self.task_type, **kwargs)
-        if self.workspace == 'collabtable':  self.human = robot.Robot('human', robot_action='joints', **kwargs)
+        if self.workspace == 'collabtable': self.human = Human('human', self.p)
 
     def _load_urdf(self, path, fixedbase=True, maxcoords=True):
         transform = self.workspace_dict[self.workspace]['transform']
@@ -373,7 +374,8 @@ class GymEnv(CameraEnv):
             objects = self.env_objects
             self.robot.apply_action(action, env_objects=objects)
             if hasattr(self, 'human'):
-                self.human.apply_action(np.random.uniform(self.human.joints_limits[0], self.human.joints_limits[1]))
+                if self.episode_steps >= 0:
+                    self.human.point_finger_at(self.get_observation()['goal_state'])
             self.p.stepSimulation()
         #print(f"Substeps:{i}")
         self.episode_steps += 1
