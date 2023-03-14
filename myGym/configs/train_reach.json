@@ -9,8 +9,8 @@
 "visualize" :0,
 "visgym"    :0,
 #Robot
-"robot"         :"kuka_push",
-"robot_action"  :"step",
+"robot"         :"kuka",
+"robot_action"  :"absolute",
 "robot_init"    :[0.0, 0.4, 0.6],
 "max_velocity"  :10,
 "max_force"     :200,

@@ -302,7 +302,9 @@ class Robot:
         """
         #return self.get_accurate_gripper_position()
         #print(self.p.getLinkState(self.robot_uid, self.end_effector_index)[0])
-        return self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
+        robpos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
+        print(robpos)
+        return robpos
         
     def get_orientation(self):
         """

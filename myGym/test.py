@@ -113,7 +113,7 @@ def test_env(env, arg_dict):
     #arg_dict["gui"] == 1
     debug_mode = True
     spawn_objects = False
-    action_control = "keyboard" #"observation", "random", "keyboard" or "slider"
+    action_control = "observation" #"keyboard","observation", "random", "keyboard" or "slider"
     visualize_sampling = False
     visualize_traj = False
     visualize_info = True
@@ -215,11 +215,15 @@ def test_env(env, arg_dict):
             
 
             if action_control == "observation":
-                if arg_dict["robot_action"] == "joints":
-                    action = info['o']["additional_obs"]["joints_angles"] #n
-                else:
-                    action = info['o']["additional_obs"]["endeff_xyz"]
-                    #action[0] +=.3
+                if t == 0:
+                    action = env.action_space.sample()
+                else:    
+
+                    if arg_dict["robot_action"] == "joints":
+                        action = info['o']["additional_obs"]["joints_angles"] #n
+                    else:
+                        action = info['o']["additional_obs"]["endeff_xyz"]
+                        #action[0] +=.3
 
 
             elif action_control == "keyboard":
@@ -289,7 +293,7 @@ def test_env(env, arg_dict):
                     #print(f"DAction:{diff}")
                     #p.addUserDebugText(f"DAction:{diff}",
                     #                    [1, 1, 0.1], textSize=1.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
-                    #time.sleep(.5)
+            time.sleep(.4)
                     #clear()
                     
             #if action_control == "slider":
