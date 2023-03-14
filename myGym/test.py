@@ -222,7 +222,7 @@ def test_env(env, arg_dict):
                     if arg_dict["robot_action"] == "joints":
                         action = info['o']["additional_obs"]["joints_angles"] #n
                     else:
-                        action = info['o']["additional_obs"]["endeff_xyz"]
+                        action = info['o']["actual_state"]
                         #action[0] +=.3
 
 

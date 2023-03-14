@@ -301,10 +301,8 @@ class Robot:
             :return position: (list) Position of end-effector link (center of mass)
         """
         #return self.get_accurate_gripper_position()
-        #print(self.p.getLinkState(self.robot_uid, self.end_effector_index)[0])
-        robpos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
-        print(robpos)
-        return robpos
+        print(self.p.getLinkState(self.robot_uid, self.end_effector_index)[0])
+        return self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
         
     def get_orientation(self):
         """
