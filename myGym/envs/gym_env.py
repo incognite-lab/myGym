@@ -375,7 +375,7 @@ class GymEnv(CameraEnv):
             self.robot.apply_action(action, env_objects=objects)
             if hasattr(self, 'human'):
                 if self.episode_steps >= 0:
-                    self.human.point_finger_at(self.get_observation()['goal_state'])
+                    self.human.point_finger_at(self.task_objects['goal_state'].get_position())
             self.p.stepSimulation()
         #print(f"Substeps:{i}")
         self.episode_steps += 1
