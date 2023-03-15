@@ -20,7 +20,7 @@ class Robot:
         :param gripper_index: (int) Index of the robot's gripper link. For myGym prepared robots this is assigned automatically.
         :param init_joint_poses: (list) Configuration in which robot will be initialized in the environment. Specified either in joint space as list of joint poses or in the end-effector space as [x,y,z] coordinates.
         :param robot_action: (string) Mechanism of robot control (absolute, step, joints)
-        :param use_fixed_gripper_orn: (bool) Whether to fix robot's end-effector orientation or not
+        :param use_fixed_end_effector_orn: (bool) Whether to fix robot's end-effector orientation or not
         :param gripper_orn: (list) Orientation of gripper in Euler angles for the fixed_gripper_orn option
         :param dimension_velocity: (float) Maximum allowed velocity for robot movements in individual x,y,z axis
         :param max_velocity: (float) Maximum allowed velocity for robot movements. Should be adjusted in case of sim2real scenario.
@@ -34,8 +34,8 @@ class Robot:
                  init_joint_poses=None,
                  robot_action="step",
                  task_type="reach",
-                 use_fixed_gripper_orn=False,
-                 gripper_orn=[0, -math.pi, 0],
+                 use_fixed_end_effector_orn=True,
+                 end_effector_orn=[0, -math.pi, 0],
                  dimension_velocity = 0.5,
                  max_velocity = None, #1.,
                  max_force = None, #50.,
@@ -52,8 +52,8 @@ class Robot:
         self.max_force = max_force
         self.end_effector_index = end_effector_index
         self.gripper_index = gripper_index
-        self.use_fixed_gripper_orn = use_fixed_gripper_orn
-        self.gripper_orn = self.p.getQuaternionFromEuler(gripper_orn)
+        self.use_fixed_end_effector_orn = use_fixed_end_effector_orn
+        self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(end_effector_orn)
         self.dimension_velocity = dimension_velocity
         self.motor_names = []
         self.motor_indices = []
@@ -71,10 +71,10 @@ class Robot:
         self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)       
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
-        if self.robot_action != "joints":
-            self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
-        else:
-            self.init_joint_poses = np.zeros((len(self.motor_names)))
+        #if self.robot_action != "joints":
+        self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
+        #else:
+        #self.init_joint_poses = np.zeros((len(self.motor_names)))
         #self.reset()
 
     def _load_robot(self):
@@ -301,7 +301,7 @@ class Robot:
             :return position: (list) Position of end-effector link (center of mass)
         """
         #return self.get_accurate_gripper_position()
-        print(self.p.getLinkState(self.robot_uid, self.end_effector_index)[0])
+        #print(self.p.getLinkState(self.robot_uid, self.end_effector_index)[0])
         return self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
         
     def get_orientation(self):
@@ -333,9 +333,9 @@ class Robot:
                                     velocityGain=0.3)
         
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
-        self.end_effector_ori = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
+        self.end_effector_orn = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
         self.gripper_pos = self.p.getLinkState(self.robot_uid, self.gripper_index)[0]  
-        self.gripper_ori = self.p.getLinkState(self.robot_uid, self.gripper_index)[1]  
+        self.gripper_orn = self.p.getLinkState(self.robot_uid, self.gripper_index)[1]  
     
     def _move_gripper(self, action):
         """
@@ -356,7 +356,7 @@ class Robot:
         
 
 
-    def _calculate_joint_poses(self, gripper_pos):
+    def _calculate_joint_poses(self, end_effector_pos):
         """
         Calculate joint poses corresponding to desired position of end-effector. Uses inverse kinematics.
 
@@ -365,23 +365,23 @@ class Robot:
         Returns:
             :return joint_poses: (list) Calculated joint poses corresponding to desired end-effector position
         """
-        if (self.use_fixed_gripper_orn):
+        if (self.use_fixed_end_effector_orn):
             joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
-                                                       self.gripper_index,
-                                                       gripper_pos,
-                                                       self.gripper_orn,
+                                                       self.end_effector_index,
+                                                       end_effector_pos,
+                                                       self.fixed_end_effector_orn,
                                                        lowerLimits=self.joints_limits[0],
                                                        upperLimits=self.joints_limits[1],
                                                        jointRanges=self.joints_ranges,
                                                        restPoses=self.joints_rest_poses)
         else:
             joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
-                                                       self.gripper_index,
-                                                       gripper_pos)
+                                                       self.end_effector_index,
+                                                       end_effector_pos)
         joint_poses = np.clip(joint_poses[:len(self.motor_indices)], self.joints_limits[0], self.joints_limits[1])
         return joint_poses
 
-    def _calculate_accurate_IK(self, gripper_pos):
+    def _calculate_accurate_IK(self, end_effector_pos):
         """
         Calculate joint poses corresponding to desired position of end-effector. Uses accurate inverse kinematics (iterative solution).
 
@@ -396,15 +396,15 @@ class Robot:
         closeEnough = False
         iter = 0
         while (not closeEnough and iter < maxIter):
-            if (self.use_fixed_gripper_orn):
+            if (self.use_fixed_end_effector_orn):
                 joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
-                                                            self.gripper_index,
-                                                            gripper_pos,
-                                                            self.gripper_orn)
+                                                            self.end_effector_index,
+                                                            end_effector_pos,
+                                                            self.fixed_end_effector_orn)
             else:
                 joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
-                                                            self.gripper_index,
-                                                            gripper_pos,
+                                                            self.end_effector_index,
+                                                            end_effector_pos,
                                                             lowerLimits=self.joints_limits[0],
                                                             upperLimits=self.joints_limits[1],
                                                             jointRanges=self.joints_ranges,
@@ -415,12 +415,12 @@ class Robot:
             for jid in range(len(self.motor_indices)):
                 self.p.resetJointState(self.robot_uid, self.motor_indices[jid], joint_poses[jid])
                    
-            ls = self.p.getLinkState(self.robot_uid, self.gripper_index)
+            ls = self.p.getLinkState(self.robot_uid, self.end_effector_index)
             newPos = ls[4] #world position of the URDF link frame
             newOrn = ls[5] #world orientation of the URDF link frame
-            diffPos = np.linalg.norm(np.asarray(gripper_pos)-np.asarray(newPos))
-            if (self.use_fixed_gripper_orn):
-                diffOrn = np.linalg.norm(np.asarray(self.gripper_orn)-np.asarray(newOrn))
+            diffPos = np.linalg.norm(np.asarray(end_effector_pos)-np.asarray(newPos))
+            if (self.use_fixed_end_effector_orn):
+                diffOrn = np.linalg.norm(np.asarray(self.fixed_end_effector_orn)-np.asarray(newOrn))
             else:
                 diffOrn = 0
             closeEnough = ((diffPos < thresholdPos) and (diffOrn < thresholdOrn)) 
@@ -520,8 +520,8 @@ class Robot:
             :param action: (list) Desired action data
         """
         action = [i * self.dimension_velocity for i in action[:3]]
-        des_gripper_pos = np.add(self.gripper_pos, action)
-        joint_poses = list(self._calculate_joint_poses(des_gripper_pos))
+        des_end_effector_pos = np.add(self.end_effector_pos, action)
+        joint_poses = self._calculate_joint_poses(des_end_effector_pos)
         self._run_motors(joint_poses)
     
 
@@ -532,8 +532,8 @@ class Robot:
         Parameters:
             :param action: (list) Desired action data
         """
-        des_gripper_pos = action[:3]
-        joint_poses = self._calculate_joint_poses(des_gripper_pos)
+        des_end_effector_pos = action[:3]
+        joint_poses = self._calculate_joint_poses(des_end_effector_pos)
         self._run_motors(joint_poses)
         
 

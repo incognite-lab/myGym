@@ -86,7 +86,7 @@ def change_dynamics(cubex,lfriction,rfriction,ldamping,adamping):
     #    basePosition=[0,0,0.3],
     #)
 
-def visualize_infotext(action, env):
+def visualize_infotext(action, env, info):
     p.addUserDebugText(f"Episode:{env.env.episode_number}",
         [.65, 1., 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
     p.addUserDebugText(f"Step:{env.env.episode_steps}",
@@ -101,19 +101,19 @@ def visualize_infotext(action, env):
         [.75, 1, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
     p.addUserDebugText(f"End_effector:{matrix(np.around(np.array(env.env.robot.end_effector_pos),2))}",
         [.77, 1, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
-    #p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
-    #    [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+    p.addUserDebugText(f"        Object:{matrix(np.around(np.array(info['o']['actual_state']),2))}",
+        [.8, 1, 0.10], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
     p.addUserDebugText(f"Velocity:{env.env.max_velocity}",
-        [.79, 1, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.6, 0.8, .3])
+        [.79, 1, 0.05], textSize=1.0, lifeTime=0.5, textColorRGB=[0.6, 0.8, .3])
     p.addUserDebugText(f"Force:{env.env.max_force}",
-        [.81, 1, 0.05], textSize=1.0, lifeTime=0.5, textColorRGB=[0.3, 0.2, .4])
+        [.81, 1, 0.00], textSize=1.0, lifeTime=0.5, textColorRGB=[0.3, 0.2, .4])
 
 
 def test_env(env, arg_dict):
     #arg_dict["gui"] == 1
     debug_mode = True
     spawn_objects = False
-    action_control = "observation" #"keyboard","observation", "random", "keyboard" or "slider"
+    action_control = "keyboard" #"keyboard","observation", "random", "keyboard" or "slider"
     visualize_sampling = False
     visualize_traj = False
     visualize_info = True
@@ -219,12 +219,12 @@ def test_env(env, arg_dict):
                     action = env.action_space.sample()
                 else:    
 
-                    if arg_dict["robot_action"] == "joints":
+                    if "joints" in arg_dict["robot_action"]:
                         action = info['o']["additional_obs"]["joints_angles"] #n
-                    else:
+                    elif "absolute" in arg_dict["robot_action"]:
                         action = info['o']["actual_state"]
-                        #action[0] +=.3
-
+                    else:
+                        action = [0,0,0]
 
             elif action_control == "keyboard":
                 keypress = p.getKeyboardEvents()
@@ -261,6 +261,9 @@ def test_env(env, arg_dict):
                     cubecount +=1
                 if "step" in arg_dict["robot_action"]:
                     action[:3] = np.multiply(action [:3],10)
+                elif "joints" in arg_dict["robot_action"]:
+                    print("Robot action: Joints - KEYBOARD CONTROL UNDER DEVELOPMENT")
+                    quit()
                 #for i in range (env.action_space.shape[0]):
                 #    env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
                 #    env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
@@ -275,7 +278,7 @@ def test_env(env, arg_dict):
             if visualize_traj:
                 visualize_trajectories(info,action)
             if visualize_info:
-                visualize_infotext(action, env)
+                visualize_infotext(action, env, info)
 
                 
                 #visualize_goal(info)
@@ -293,7 +296,7 @@ def test_env(env, arg_dict):
                     #print(f"DAction:{diff}")
                     #p.addUserDebugText(f"DAction:{diff}",
                     #                    [1, 1, 0.1], textSize=1.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
-            time.sleep(.4)
+            #time.sleep(.4)
                     #clear()
                     
             #if action_control == "slider":
