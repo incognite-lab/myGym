@@ -113,7 +113,7 @@ def test_env(env, arg_dict):
     #arg_dict["gui"] == 1
     debug_mode = True
     spawn_objects = False
-    action_control = "keyboard" #"keyboard","observation", "random", "keyboard" or "slider"
+    action_control = "keyboard" #"oraculum", "keyboard","observation", "random", "keyboard" or "slider"
     visualize_sampling = False
     visualize_traj = False
     visualize_info = True
@@ -375,7 +375,7 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
             obs, reward, done, info = env.step(action)
             is_successful = not info['f']
             distance_error = info['d']
-            visualize_infotext(action, env)
+            visualize_infotext(action, env, info)
 
 
             if (arg_dict["record"] > 0) and (len(images) < 800):
