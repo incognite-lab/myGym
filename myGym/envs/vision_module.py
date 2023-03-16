@@ -18,6 +18,21 @@ except:
 from myGym.vae.vis_helpers import load_checkpoint
 from myGym.vae import  sample
 
+
+def get_module_type(observation):
+    """
+    Get source of the information from environment (ground_truth, yolact, vae)
+
+    Returns:
+        :return source: (string) Source of information
+    """
+    if observation["actual_state"] not in ["vae", "yolact", "voxel", "dope"]:
+        src = "ground_truth_6D" if "6D" in observation["actual_state"] else "ground_truth"
+    else:
+        src = observation["actual_state"]
+    return src
+
+
 class VisionModule:
     """
     Vision class that retrieves information from environment based on a visual subsystem (YOLACT, VAE) or ground truth
@@ -30,7 +45,7 @@ class VisionModule:
         :param yolact_config: (string) Path to saved Yolact config obj or name of an existing one in the data/Config script or None for autodetection
     """
     def __init__(self, observation={}, env=None, vae_path=None, yolact_path=None, yolact_config=None):
-        self.src = self.get_module_type(observation)
+        self.src = get_module_type(observation)
         self.env = env
         self.vae_embedder = None
         self.vae_imsize = None
@@ -42,20 +57,6 @@ class VisionModule:
         self.mask = {}
         self.centroid = {}
         self.centroid_transformed = {}
-
-
-    def get_module_type(self, observation):
-        """
-        Get source of the information from environment (ground_truth, yolact, vae)
-
-        Returns:
-            :return source: (string) Source of information
-        """
-        if observation["actual_state"] not in ["vae", "yolact", "voxel", "dope"]:
-            src = "ground_truth_6D" if "6D" in observation["actual_state"] else "ground_truth"
-        else:
-            src = observation["actual_state"]
-        return src
 
     def crop_image(self, img):
         """

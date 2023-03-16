@@ -71,8 +71,9 @@ class BaseEnv(gym.Env):
         # Set env params and load models
         self._set_physics()
         self._setup_scene()
-        self._set_observation_space()
         self._set_action_space()
+        self._set_observation_space()
+
 
     def _connect_to_physics_server(self):
         """
