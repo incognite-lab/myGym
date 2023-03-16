@@ -19,7 +19,7 @@
 #Task
 "task_type"             :"reach",
 "task_objects"          :[{"init":{"obj_name":"null"},
-                           "goal":{"obj_name":"cube_holes","fixed":1,"rand_rot":0, "sampling_area":[0.2, 0.6, 0.3, 0.5, 0.1, 0.8]}}],
+                           "goal":{"obj_name":"cube_holes","fixed":1,"rand_rot":0, "sampling_area":[-0.6, 0.0, 0.3, 0.5, 0.5, 0.9]}}],
 "used_objects"          :{"num_range":[0,0], "obj_list":[]},
 // Observation
 // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
