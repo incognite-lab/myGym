@@ -102,6 +102,7 @@ def get_robot_dict():
                              'icub': {'path': '/envs/robots/iCub/robots/iCubGenova04_plus/model.urdf', 'position': np.array([0.0, 0.15, -0.042]), 'orientation': [0.0, 0.0, 0.0]},
                              'human': {'path': '/envs/robots/real_hands/humanoid_with_hands_fixed.urdf', 'position': np.array([0.0, 1.5, 0.45]), 'orientation': [0.0, 0.0, 1.5*np.pi]},
                              'tiago': {'path': '/envs/robots/tiago/tiago_pal_gripper.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
+                             'tiago_simple': {'path': '/envs/robots/tiago/tiago_simple.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual': {'path': '/envs/robots/tiago_dualhand/tiago_dual_hey5.urdf', 'position': np.array([0.0, -0.4, -0.2]),
                                       'orientation': [0.0, 0.0, 0 * np.pi]},
                              'tiago4': {'path': '/envs/robots/tiago/tiago4/tiago_dual_hand.urdf',

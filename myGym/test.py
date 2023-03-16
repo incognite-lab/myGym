@@ -113,7 +113,7 @@ def test_env(env, arg_dict):
     #arg_dict["gui"] == 1
     debug_mode = True
     spawn_objects = False
-    action_control = "keyboard" #"oraculum", "keyboard","observation", "random", "keyboard" or "slider"
+    action_control = "oraculum" #"oraculum", "keyboard","observation", "random", "keyboard" or "slider"
     visualize_sampling = False
     visualize_traj = False
     visualize_info = True
@@ -225,6 +225,18 @@ def test_env(env, arg_dict):
                         action = info['o']["actual_state"]
                     else:
                         action = [0,0,0]
+            
+            if action_control == "oraculum":
+                if t == 0:
+                    action = env.action_space.sample()
+                else:    
+
+                    if "absolute" in arg_dict["robot_action"]:
+                        action = info['o']["goal_state"]
+                    else:
+                        print("ERROR - Oraculum mode only works for absolute actions")
+                        quit()
+
 
             elif action_control == "keyboard":
                 keypress = p.getKeyboardEvents()

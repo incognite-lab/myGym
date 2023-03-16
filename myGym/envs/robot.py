@@ -34,7 +34,7 @@ class Robot:
                  init_joint_poses=None,
                  robot_action="step",
                  task_type="reach",
-                 use_fixed_end_effector_orn=True,
+                 use_fixed_end_effector_orn=False,
                  end_effector_orn=[0, -math.pi, 0],
                  dimension_velocity = 0.5,
                  max_velocity = None, #1.,
