@@ -1,0 +1,158 @@
+<?xml version="1.0"?>
+<!--
+  Copyright (c) 2014, PAL Robotics, S.L.
+  All rights reserved.
+
+  This work is licensed under the Creative Commons Attribution 4.0 International License.
+  To view a copy of this license, visit http://creativecommons.org/licenses/by/4.0 or send a letter to
+  Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+-->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <!--External resources-->
+  <xacro:include filename="$(find hey5_description)/urdf/actuators.urdf.xacro" />
+  <xacro:include filename="$(find hey5_description)/urdf/deg_to_rad.urdf.xacro" />
+  <xacro:include filename="$(find hey5_description)/urdf/fingers.urdf.xacro" />
+  <xacro:include filename="$(find hey5_description)/urdf/palm.urdf.xacro" />
+  <xacro:include filename="$(find hey5_description)/urdf/transmissions.urdf.xacro" />
+  <xacro:include filename="$(find hey5_description)/gazebo/gazebo.urdf.xacro" />
+
+  <!--Constants-->
+  <xacro:property name="thumb_act_flex_start"  value="2.0" />
+  <xacro:property name="index_act_flex_start"  value="0.7" />
+  <xacro:property name="middle_act_flex_start" value="0.0" />
+  <xacro:property name="ring_act_flex_start"   value="0.75" />
+  <xacro:property name="little_act_flex_start" value="0.75" />
+
+  <!--
+    Create a complete hey5 hand (right or left).
+
+    Parameters:
+    - name: Hand name. The created links and joints are prepended with 'name_'
+    - parent: Parent link
+    - reflect: Set to 1 for a right hand, or to -1 for a left hand
+    - origin: XML block containing the pose of the palm link with respect to its parent
+  -->
+  <xacro:macro name="hey5_hand" params="name parent reflect *origin">
+  <!-- Tool Link -->
+    <link name="${name}_tool_link">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <mass value="0.0001" />
+        <inertia ixx="0.00001" ixy="0.0" ixz="0.0"
+                 iyy="0.00001" iyz="0.0"
+                 izz="0.00001" />
+      </inertial>
+    </link>
+
+    <joint name="${name}_tool_joint" type="fixed">
+      <xacro:insert_block name="origin"/>
+      <parent link="${parent}" />
+      <child link="${name}_tool_link" />
+       <axis xyz="0 0 0" />
+    </joint>
+    <!--Palm-->
+    <xacro:palm parent="${parent}" name="${name}_palm" reflect="${reflect}" >
+      <xacro:insert_block name="origin" />
+    </xacro:palm>
+
+    <!--Actuators-->
+    <xacro:thumb_actuator parent="${name}_palm_link" name="${name}_thumb">
+      <origin xyz="0 0 0" rpy="0 0 0" /> <!-- TODO: Change! -->
+    </xacro:thumb_actuator>
+
+    <xacro:index_actuator parent="${name}_palm_link" name="${name}_index">
+      <origin xyz="0 0 0" rpy="0 0 0" /> <!-- TODO: Change! -->
+    </xacro:index_actuator>
+
+    <xacro:mrl_actuator parent="${name}_palm_link" name="${name}_mrl">
+      <origin xyz="0 0 0" rpy="0 0 0" /> <!-- TODO: Change! -->
+    </xacro:mrl_actuator>
+
+    <!--Fingers-->
+    <!-- TODO: Add grasp hack? -->
+    <xacro:thumb parent="${name}_palm_link" name="${name}_thumb" reflect="${reflect}">
+      <origin xyz="0.0901 0.0134 ${reflect * 0.038}" rpy="0 ${-reflect * 65 * deg_to_rad} 0" />
+    </xacro:thumb>
+
+    <xacro:finger parent="${name}_palm_link" name="${name}_index" reflect="${reflect}">
+      <origin xyz="0.1265 0.0042 ${reflect * 0.0265}" rpy="${-reflect * 90 * deg_to_rad} ${-reflect * 30 * deg_to_rad} 0" />
+    </xacro:finger>
+
+    <xacro:finger parent="${name}_palm_link" name="${name}_middle" reflect="${reflect}">
+      <origin xyz="0.1335 0.0042 ${reflect * 0.007}" rpy="${-reflect * 90 * deg_to_rad} 0 0" />
+    </xacro:finger>
+
+    <xacro:finger parent="${name}_palm_link" name="${name}_ring" reflect="${reflect}">
+      <origin xyz="0.1265 0.0042 ${reflect * -0.0125}" rpy="${-reflect * 90 * deg_to_rad} ${reflect * 15 * deg_to_rad} 0" />
+    </xacro:finger>
+
+    <xacro:finger parent="${name}_palm_link" name="${name}_little" reflect="${reflect}">
+      <origin xyz="0.1165 0.0042 ${reflect * -0.032}" rpy="${-reflect * 90 * deg_to_rad} ${reflect * 30 * deg_to_rad} 0" />
+    </xacro:finger>
+
+    <!--Transmissions-->
+    <xacro:thumb_transmissions
+      finger_name="${name}_thumb"
+      act_name="${name}_thumb_motor"
+      act_flex_start="${thumb_act_flex_start}"
+      jnt_abd_start="${0.0 * deg_to_rad}"
+      jnt_abd_stop="${90 * deg_to_rad}"
+      abd_reduction="${75 * deg_to_rad / thumb_act_flex_start}"
+      flex_reduction="${40 * deg_to_rad / (360 * deg_to_rad - thumb_act_flex_start)}"
+    />
+
+    <xacro:finger_transmissions
+      finger_name="${name}_index"
+      act_name="${name}_index_motor"
+      act_flex_start="${index_act_flex_start}"
+      jnt_abd_start="${0.0 * deg_to_rad}"
+      jnt_abd_stop="${30.0 * deg_to_rad}"
+      abd_reduction="${20.0 * deg_to_rad / index_act_flex_start}"
+      flex_reduction="${36 * deg_to_rad / (390 * deg_to_rad - index_act_flex_start)}"
+    />
+
+    <xacro:finger_transmissions
+      finger_name="${name}_middle"
+      act_name="${name}_mrl_motor"
+      act_flex_start="${middle_act_flex_start}"
+      jnt_abd_start="${0.0 * deg_to_rad}"
+      jnt_abd_stop="${0.0 * deg_to_rad}"
+      abd_reduction="1.0"
+      flex_reduction="${36 * deg_to_rad / (530 * deg_to_rad - middle_act_flex_start)}"
+    />
+
+    <xacro:finger_transmissions
+      finger_name="${name}_ring"
+      act_name="${name}_mrl_motor"
+      act_flex_start="${ring_act_flex_start}"
+      jnt_abd_start="${-15.0 * deg_to_rad}"
+      jnt_abd_stop="${0.0 * deg_to_rad}"
+      abd_reduction="${-10.0 * deg_to_rad / ring_act_flex_start}"
+      flex_reduction="${36 * deg_to_rad / (530 * deg_to_rad - ring_act_flex_start)}"
+    />
+
+    <xacro:finger_transmissions
+      finger_name="${name}_little"
+      act_name="${name}_mrl_motor"
+      act_flex_start="${little_act_flex_start}"
+      jnt_abd_start="${-30.0 * deg_to_rad}"
+      jnt_abd_stop="${0.0 * deg_to_rad}"
+      abd_reduction="${-20.0 * deg_to_rad / little_act_flex_start}"
+      flex_reduction="${36 * deg_to_rad / (530 * deg_to_rad - little_act_flex_start)}"
+    />
+
+    <link name="${name}_grasping_frame"/>
+
+    <joint name="${name}_grasping_fixed_joint" type="fixed">
+      <parent link="${name}_palm_link"/>
+      <child link="${name}_grasping_frame"/>
+      <axis xyz="0 0 1" />
+      <origin xyz="0.13 0.02 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- hey5 gazebo plugin -->
+    <xacro:hey5_gazebo_simulation side="${name}"/>
+
+  </xacro:macro>
+</robot>
+

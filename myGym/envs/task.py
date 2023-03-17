@@ -82,12 +82,18 @@ class TaskModule():
         cv2.imshow("Scene", fig)
         cv2.waitKey(1)
 
+    def get_linkstates_unpacked(self):
+        o = []
+        [[o.append(x) for x in z] for z in self.env.robot.observe_all_links()]
+        return o
+
     def get_additional_obs(self, d, robot):
         info = d.copy()
         info["additional_obs"] = {}
         for key in d["additional_obs"]:
             if key == "joints_xyz":
-                info["additional_obs"]["joints_xyz"] = self.env.robot.observe_all_links()
+                o = []
+                info["additional_obs"]["joints_xyz"] = self.get_linkstates_unpacked()
             elif key == "joints_angles":
                 info["additional_obs"]["joints_angles"] = self.env.robot.get_joints_states()
             elif key == "endeff_xyz":
@@ -96,7 +102,11 @@ class TaskModule():
                 info["additional_obs"]["endeff_6D"] = list(self.vision_module.get_obj_position(robot, self.image, self.depth)) \
                                                       + list(self.vision_module.get_obj_orientation(robot))
             elif key == "touch":
-                touch = self.env.robot.touch_sensors_active(self.env.env_objects["actual_state"]) or len(self.env.robot.magnetized_objects)>0
+                if hasattr(self.env.env_objects["actual_state"], "magnetized_objects"):
+                    obj_touch = self.env.env_objects["goal_state"]
+                else:
+                    obj_touch = self.env.env_objects["actual_state"]
+                touch = self.env.robot.touch_sensors_active(obj_touch) or len(self.env.robot.magnetized_objects)>0
                 info["additional_obs"]["touch"] = [1] if touch else [0]
             elif key == "distractor":
                 poses = [self.vision_module.get_obj_position(self.env.task_objects["distractor"][x],\
@@ -402,17 +412,14 @@ class TaskModule():
                 [self.obs_template["additional_obs"].remove(x) for x in t["additional_obs"] if "endeff" in x]
         obsdim = 0
         for x in [t["actual_state"], t["goal_state"]]:
-            if x in ["endeff_xyz", "obj_xyz", "yolact", "voxel"]:
-                obsdim += 3
-            elif x in ["dope", "obj_6D", "endeff_6D"]:
-                obsdim += 7
-            else:
-                obsdim += self.vision_module.obsdim
+            get_datalen = {"joints_xyz":len(self.get_linkstates_unpacked()),
+                           "joints_angles":len(self.env.robot.get_joints_states()),
+                           "endeff_xyz":len(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)[:3]),
+                           "endeff_6D":len(list(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)) \
+                                                      + list(self.vision_module.get_obj_orientation(self.env.robot))),
+                           "dope":7, "obj_6D":7, "distractor": 3, "touch":1, "yolact":3, "voxel":3, "obj_xyz":3,
+                           "vae":self.vision_module.obsdim}
+            obsdim += get_datalen[x]
         for x in t["additional_obs"]:
-            if x in ["joints_xyz", "joints_angles", "endeff_xyz", "distractor"]:
-                obsdim += 3
-            elif x == "endeff_6D":
-                obsdim += 7
-            else:
-                obsdim += 1
+            obsdim += get_datalen[x]
         return obsdim

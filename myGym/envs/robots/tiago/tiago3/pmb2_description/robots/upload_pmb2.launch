@@ -1,0 +1,8 @@
+<launch deprecated="Please use 'upload.lauch' instead.">
+  <arg name="robot" default="custom"/>
+
+  <include file="$(find pmb2_description)/robots/upload.launch">
+        <arg name="robot" value="$(arg robot)"/>
+  </include>
+
+</launch>

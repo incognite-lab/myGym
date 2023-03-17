@@ -1,0 +1,11 @@
+Creative Commons Attribution 4.0 International License
+http://creativecommons.org/licenses/by/4.0
+
+Attribution text:
+- The Hey5 hand has been developed by PAL Robotics S.L., with contributions from QBrobotics srl.
+
+- The Hey5 hand is a derivative of the "Pisa/IIT SoftHand" open source project by
+  M. G. Catalano, G. Grioli, E. Farnioli, A. Serio, C. Piazza and A. Bicchi
+
+- The "Pisa/IIT SoftHand" project is  distributed under Creative Commons Attribution 4.0 International License
+  and is available at  NaturalMachineMotionInitiative.com.

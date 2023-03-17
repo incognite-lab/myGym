@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!--
+
+  Copyright (c) 2015, PAL Robotics, S.L.
+  All rights reserved.
+
+  This work is licensed under the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 Unported License.
+  To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/3.0/ or send a letter to
+  Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+-->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:macro name="finger_gazebo" params="name">
+    <gazebo reference="${name}_link">
+      <kp>1000000.0</kp>
+      <kd>1.0</kd>
+      <mu1>1.0</mu1>
+      <mu2>1.0</mu2>
+      <fdir1>0 0 0</fdir1>
+      <maxVel>1.0</maxVel>
+      <minDepth>0.1</minDepth>
+      <material>Gazebo/Black</material>
+    </gazebo>
+    <gazebo reference="${name}_joint">
+      <implicitSpringDamper>1</implicitSpringDamper>
+      <provideFeedback>1</provideFeedback>
+    </gazebo>
+  </xacro:macro>
+
+</robot>

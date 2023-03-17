@@ -11,6 +11,7 @@ import random
 from myGym.utils.helpers import get_workspace_dict
 import pkg_resources
 from myGym.envs.human import Human
+from myGym.envs.vision_module import get_module_type
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
 
@@ -77,6 +78,7 @@ class GymEnv(CameraEnv):
                  ):
 
         self.workspace              = workspace
+        self.obs_type = observation
         self.robot_type             = robot
         self.num_networks           = num_networks
         self.network_switcher       = network_switcher
@@ -94,37 +96,16 @@ class GymEnv(CameraEnv):
         self.task_objects_dict     = task_objects
         self.task_objects = []
         self.env_objects = []
+        self.vae_path = vae_path
+        self.yolact_path = yolact_path
+        self.yolact_config = yolact_config
         self.has_distractor         = distractors["list"] != None
         self.distractors            = distractors
         self.distance_type          = distance_type
         self.objects_area_borders = None
-
-        self.task = t.TaskModule(task_type=self.task_type,
-                                 observation=observation,
-                                 task_objects=self.task_objects,
-                                 vae_path=vae_path,
-                                 yolact_path=yolact_path,
-                                 yolact_config=yolact_config,
-                                 distance_type=self.distance_type,
-                                 number_tasks=len(task_objects),
-                                 env=self)
-
+        self.reward = reward
         self.dist = d.DistractorModule(distractors["moveable"], distractors["movement_endpoints"],
                                        distractors["constant_speed"], distractors["movement_dims"], env=self)
-
-        if reward == 'distractor':
-            self.has_distractor = True
-            self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
-
-        reward_classes = {"1-network":   {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
-                                              "distractor": VectorReward, "poke": PokeReachReward, "switch": SwitchReward,
-                                              "btn": ButtonReward, "turn": TurnReward, "pnp":SingleStagePnP},
-                          "2-network":     {"poke": DualPoke, "pnp":TwoStagePnP,"pnpbgrip":TwoStagePnPBgrip},
-                          "3-network":     {"pnp":ThreeStagePnP, "pnprot":ThreeStagePnPRot, "pnpswipe":ThreeStageSwipe, "pnpswiperot":ThreeStageSwipeRot},
-                          "4-network":     {"pnp":FourStagePnP}}
-        scheme = "{}-network".format(str(self.num_networks))
-        assert reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
-        self.reward = reward_classes[scheme][reward](env=self, task=self.task)
         self.dataset   = dataset
         self.obs_space = obs_space
         self.visualize = visualize
@@ -132,6 +113,32 @@ class GymEnv(CameraEnv):
         self.logdir    = logdir
         self.workspace_dict = get_workspace_dict()
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
+        if not hasattr(self, "task"):
+          self.task = None
+
+
+    def _init_task_and_reward(self):
+        if self.reward == 'distractor':
+            self.has_distractor = True
+            self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
+        reward_classes = {"1-network":   {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
+                                              "distractor": VectorReward, "poke": PokeReachReward, "switch": SwitchReward,
+                                              "btn": ButtonReward, "turn": TurnReward, "pnp":SingleStagePnP},
+                          "2-network":     {"poke": DualPoke, "pnp":TwoStagePnP,"pnpbgrip":TwoStagePnPBgrip},
+                          "3-network":     {"pnp":ThreeStagePnP, "pnprot":ThreeStagePnPRot, "pnpswipe":ThreeStageSwipe, "pnpswiperot":ThreeStageSwipeRot},
+                          "4-network":     {"pnp":FourStagePnP}}
+        scheme = "{}-network".format(str(self.num_networks))
+        assert self.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
+        self.task = t.TaskModule(task_type=self.task_type,
+                                 observation=self.obs_type,
+                                 task_objects=self.task_objects,
+                                 vae_path=self.vae_path,
+                                 yolact_path=self.yolact_path,
+                                 yolact_config=self.yolact_config,
+                                 distance_type=self.distance_type,
+                                 number_tasks=len(self.task_objects),
+                                 env=self)
+        self.reward = reward_classes[scheme][self.reward](env=self, task=self.task)
 
     def _setup_scene(self):
         """
@@ -144,7 +151,7 @@ class GymEnv(CameraEnv):
             [self._add_scene_object_uid(self._load_urdf(path="rooms/visual/" + self.workspace_dict[w]['urdf']), w)
              for w in self.workspace_dict if w != self.workspace]
         self._add_scene_object_uid(self._load_urdf(path="rooms/collision/"+self.workspace_dict[self.workspace]['urdf']), self.workspace)
-        ws_texture = self.workspace_dict[self.workspace]['texture'] if self.task.vision_src != "vae" else "grey.png"
+        ws_texture = self.workspace_dict[self.workspace]['texture'] if get_module_type(self.obs_type) != "vae" else "grey.png"
         if ws_texture: self._change_texture(self.workspace, self._load_texture(ws_texture))
         self._change_texture("floor", self._load_texture("parquet1.jpg"))
         self.objects_area_borders = self.workspace_dict[self.workspace]['borders']
@@ -173,6 +180,7 @@ class GymEnv(CameraEnv):
         """
         Set observation space type, dimensions and range
         """
+        self._init_task_and_reward()
         if self.obs_space == "dict":
             goaldim = int(self.task.obsdim/2) if self.task.obsdim % 2 == 0 else int(self.task.obsdim / 3)
             self.observation_space = spaces.Dict({"observation": spaces.Box(low=-10, high=10, shape=(self.task.obsdim,)),

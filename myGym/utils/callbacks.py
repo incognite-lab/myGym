@@ -125,8 +125,8 @@ class CustomEvalCallback(EvalCallback):
                 obs, reward, done, info = self.eval_env.step(action)
                 p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),5))}",
                     [.8, .5, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
-                p.addUserDebugText(f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']),5))}",
-                    [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
+                #p.addUserDebugText(f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']),5))}",
+                #    [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
                 p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
                     [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
                 p.addUserDebugText(f"Network:{self.eval_env.env.reward.current_network}",

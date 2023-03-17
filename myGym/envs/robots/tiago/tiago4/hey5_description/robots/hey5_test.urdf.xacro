@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!--
+  Copyright (c) 2014, PAL Robotics, S.L.
+  All rights reserved.
+
+  This work is licensed under the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 Unported License.
+  To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/3.0/ or send a letter to
+  Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+-->
+<robot xmlns:xacro="http://ros.org/wiki/xacro"
+       name="hey5">
+  <!--External resources-->
+  <xacro:include filename="$(find hey5_description)/urdf/deg_to_rad.urdf.xacro" />
+  <xacro:include filename="$(find hey5_description)/urdf/hey5_hand.urdf.xacro" />
+
+  <!--Spawn hands-->
+  <link name="tool_flange"/>
+
+  <xacro:hey5_hand parent="tool_flange" name="hand_right" reflect="1" >
+    <origin xyz="0 0.13 0" rpy="0 ${-90 * deg_to_rad} ${90 * deg_to_rad}" />
+  </xacro:hey5_hand>
+
+  <xacro:hey5_hand parent="tool_flange" name="hand_left" reflect="-1" >
+    <origin xyz="0 -0.13 0" rpy="0 ${-90 * deg_to_rad} ${90 * deg_to_rad}" />
+  </xacro:hey5_hand>
+
+</robot>

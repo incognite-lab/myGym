@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<!--
+  Copyright (c) 2014, PAL Robotics, S.L.
+  All rights reserved.
+
+  This work is licensed under the Creative Commons Attribution 4.0 International License.
+  To view a copy of this license, visit http://creativecommons.org/licenses/by/4.0 or send a letter to
+  Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+-->
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!--
+    Create the palm link and fixed joint.
+
+    Parameters:
+    - name: The created link and joint are prepended with 'name_'
+    - parent: Parent link
+    - reflect: Set to 1 for a right hand, or to -1 for a left hand
+    - origin: XML block containing the pose of the link with respect to its parent
+  -->
+  <xacro:macro name="palm" params="name parent reflect *origin">
+    <joint name="${name}_joint" type="fixed">
+      <parent link="${parent}" />
+      <child link="${name}_link" />
+      <xacro:insert_block name="origin" />
+    </joint>
+
+    <link name="${name}_link">
+      <inertial>
+        <origin xyz="0.0641 -0.0022 0.0021" rpy="0 0 0" />
+        <!-- NOTE: Less than total palm mass of 0.598kg because actuator masses are specified separately -->
+        <mass value="0.4" />
+        <inertia ixx="0.000305100" ixy="0.000005037" ixz="0.000015302"
+                 iyy="0.000811920" iyz="0.000007622" izz="0.000655851" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://hey5_description/meshes/palm.stl" scale="1 1 ${reflect}" />
+        </geometry>
+        <material name="Hey5DarkGrey" />
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://hey5_description/meshes/palm_collision.stl" scale="1 1 ${reflect}" />
+        </geometry>
+      </collision>
+    </link>
+    <gazebo reference="${name}_link">
+      <material>Gazebo/Black</material>
+    </gazebo>
+  </xacro:macro>
+
+</robot>

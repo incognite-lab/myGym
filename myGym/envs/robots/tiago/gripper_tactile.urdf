@@ -1,0 +1,190 @@
+<?xml version="1.0" ?>
+<robot name="boxBot">
+    <material name="white">
+        <color rgba="1 1 1 1"/>
+    </material>
+    <material name="darkGrey">
+        <color rgba="0.3 0.3 0.3 1"/>
+    </material>
+    <material name="lightGrey">
+        <color rgba="0.7 0.7 0.7 1"/>
+    </material>
+
+    <link name="base">
+        <contact>
+            <lateral_friction value="1.0"/>
+            <rolling_friction value="10.0"/>
+            <contact_cfm value="0.0"/>
+            <contact_erp value="1.0"/>
+        </contact>
+        <inertial>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <mass value="10000.0"/>
+            <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+        </inertial>
+        <visual>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+           <geometry>
+	 	    <box size="0.55 0.55 0.55"/>
+            </geometry>
+           <material name="darkGrey" />
+        </visual>
+        <collision>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+          <geometry>
+	 	    <box size="0.55 0.55 0.55"/>
+            </geometry>
+        </collision>
+    </link>
+
+    <link name="torso">
+        <inertial>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <mass value="1.0"/>
+            <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+        </inertial>
+        <visual>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+          <geometry>
+              <cylinder length="0.43" radius="0.025" />
+          </geometry>
+        <material name="darkGrey" />
+        </visual>
+    </link>
+
+    <link name="arm">
+        <inertial>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <mass value="1.0"/>
+            <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+        </inertial>
+        <visual>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+          <geometry>
+            <box size="0.1 0.03 0.03"/>
+          </geometry>
+        <material name="darkGrey" />
+        </visual>
+    </link>
+
+    <link name="gripper">
+        <inertial>
+          <origin rpy="0.0 0.0 0.0" xyz="-0.000294 0.000291 -0.033086"/>
+          <mass value="0.602660"/>
+          <inertia ixx="0.000693" ixy="0.000045" ixz="-0.000000" iyy="0.001024" iyz="0.000000" izz="0.000672"/>
+        </inertial>
+        <visual>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+          <geometry>
+            <mesh filename="meshes/gripper/gripper_link.stl"/>
+          </geometry>
+          <material name="white"/>
+        </visual>
+        <collision>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+          <geometry>
+            <mesh filename="meshes/gripper/gripper_link_collision.stl"/>
+          </geometry>
+        </collision>
+    </link>
+
+    <link name="gripper_right_finger_link">
+        <inertial>
+          <origin rpy="0 0 0" xyz="-0.004470 0.010766 -0.121013"/>
+          <mass value="0.109980"/>
+          <inertia ixx="0.000232" ixy="-0.000005" ixz="-0.000032" iyy="0.000224" iyz="0.000036" izz="0.000029"/>
+        </inertial>
+        <visual>
+          <origin rpy="0 0 3.1415" xyz="0 0 0"/>
+          <geometry>
+            <mesh filename="meshes/gripper/gripper_finger_ta11_link.stl" scale="-1 -1 1"/>
+          </geometry>
+          <material name="lightGrey"/>
+        </visual>
+        <collision>
+          <origin rpy="0 0 3.1415" xyz="0.005 0 -0.165"/>
+          <geometry>
+            <box size="0.01 0.05 0.11"/>
+          </geometry>
+        </collision>
+    </link>
+
+    <link name="gripper_left_finger_link">
+        <inertial>
+          <origin rpy="0 0 0" xyz="-0.004470 0.010766 -0.121013"/>
+          <mass value="0.109980"/>
+          <inertia ixx="0.000232" ixy="-0.000005" ixz="-0.000032" iyy="0.000224" iyz="0.000036" izz="0.000029"/>
+        </inertial>
+        <visual>
+          <origin rpy="0 0 3.1415" xyz="0 0 0"/>
+          <geometry>
+            <mesh filename="meshes/gripper/gripper_finger_ta11_link.stl"/>
+          </geometry>
+          <material name="lightGrey"/>
+        </visual>
+        <collision>
+          <origin rpy="0 0 3.1415" xyz="-0.005 0 -0.165"/>
+          <geometry>
+            <box size="0.01 0.05 0.11"/>
+          </geometry>
+        </collision>
+    </link>
+
+    <joint name="base_to_torso" type="fixed">
+        <parent link="base"/>
+        <child link="torso"/>
+        <origin xyz="-0.2 0 0.2"/>
+    </joint>
+
+    <joint name="torso_lift_joint" type="prismatic">
+        <parent link="torso"/>
+        <child link="arm"/>
+        <origin xyz="0.05 0 0.13"/>
+        <limit effort="1000.0" lower="0" upper="0.05" velocity="0.5"/>
+        <axis xyz="0 0 1"/>
+    </joint>
+
+    <joint name="arm_to_gripper" type="fixed">
+        <parent link="arm"/>
+        <child link="gripper"/>
+        <origin rpy="1.5707 0 -1.5707" xyz="0 0 0"/>
+    </joint>
+
+    <joint name="gripper_right_finger_joint" type="prismatic">
+        <origin rpy="0 0 0" xyz="0. 0 0"/>
+        <parent link="gripper"/>
+        <child link="gripper_right_finger_link"/>
+        <axis xyz="1 0 0"/>
+        <limit effort="16" lower="0.0" upper="0.045" velocity="0.05"/>
+        <calibration rising="0.0"/>
+        <dynamics damping="80"/>
+        <safety_controller k_position="20" k_velocity="20" soft_lower_limit="0.001" soft_upper_limit="0.044"/>
+    </joint>
+
+    <joint name="gripper_left_finger_joint" type="prismatic">
+        <origin rpy="0 0 0" xyz="0. 0 0"/>
+        <parent link="gripper"/>
+        <child link="gripper_left_finger_link"/>
+        <axis xyz="-1 0 0"/>
+        <limit effort="16" lower="0" upper="0.045" velocity="0.05"/>
+        <calibration rising="0.0"/>
+        <dynamics damping="80"/>
+        <safety_controller k_position="20" k_velocity="20" soft_lower_limit="0.001" soft_upper_limit="0.044"/>
+    </joint>
+       <joint name="endeffector_joint" type="fixed">
+    <parent link="gripper"/>
+    <child link="endeffector"/>
+    <origin rpy="0 0 0" xyz="0 0.0 0.1"/>
+  </joint>
+  <link name="endeffector">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.01"/>
+      </geometry>
+      <material name="LightGrey"/>
+    </visual>
+  </link>
+
+</robot>
+
