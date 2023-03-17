@@ -106,7 +106,6 @@ def get_robot_dict():
                              'tiago_dual': {'path': '/envs/robots/tiago_dualhand/tiago_dual_hey5.urdf', 'position': np.array([0.0, -0.4, -0.2]),
                                       'orientation': [0.0, 0.0, 0 * np.pi]},
                              'tiago4': {'path': '/envs/robots/tiago/tiago4/tiago_dual_hand.urdf',
-                               'position': np.array([0.0, -0.4, -0.2]),'orientation': [0.0, 0.0, 0 * np.pi]}
-                           , 'position': np.array([0.0, 2, 0.45]), 'orientation': [0.0, 0.0, 0.0]}
-                            }
+                               'position': np.array([0.0, -0.4, -0.2]),'orientation': [0.0, 0.0, 0 * np.pi]},
+                             }
     return r_dict
