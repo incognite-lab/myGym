@@ -32,3 +32,4 @@ torch==1.8.1
 torchvision==0.9.1
 tqdm==4.62.1
 typing_extensions==3.10.0.0
+webcolors~=1.12

@@ -8,6 +8,8 @@ import numpy as np
 from itertools import chain
 from gym import spaces
 import random
+
+from myGym.utils.colors import Colors
 from myGym.utils.helpers import get_workspace_dict
 import pkg_resources
 from myGym.envs.human import Human
@@ -115,6 +117,8 @@ class GymEnv(CameraEnv):
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
         if not hasattr(self, "task"):
           self.task = None
+        Colors.generate_colors()
+        self.colors = Colors()
 
 
     def _init_task_and_reward(self):
@@ -447,13 +451,13 @@ class GymEnv(CameraEnv):
 
     def highlight_active_object(self, env_o, obj_role):
         if obj_role == "goal":
-            env_o.set_color([0, 0.4, 0, 0.5])
+            env_o.set_color(self.colors.name_to_rgba('dark green'))
         elif obj_role == "init":
-            env_o.set_color([0, 0.8, 0, 1])
+            env_o.set_color(self.colors.name_to_rgba('green'))
         elif obj_role == "done":
-            env_o.set_color([0.5, 0.8, 1, 1])
+            env_o.set_color(self.colors.name_to_rgba('blue'))
         else:
-            env_o.set_color([0.2, 0.2, 0.2, 1])
+            env_o.set_color(self.colors.name_to_rgba('gray'))
 
     def color_of_object(self, object):
         """
@@ -465,9 +469,8 @@ class GymEnv(CameraEnv):
             :return color: (list) RGB color
         """
         if object.name not in self.color_dict:
-            return env_object.EnvObject.get_random_color()
+            return self.colors.get_random_rgba()
         else:
-            color = random.sample(self.color_dict[object.name], 1)[0]
-            color = [x / 255 for x in color] if any([x>1 for x in color]) else color
-            if len(color) < 4: color.append(1)
+            color_name = random.sample(self.color_dict[object.name], 1)[0]
+            color = self.colors.name_to_rgba(color_name)
         return color
