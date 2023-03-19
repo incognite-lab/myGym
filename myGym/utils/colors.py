@@ -17,7 +17,7 @@ class Colors:
     The class for manipulations with colors
 
     Parameters:
-        :param file_path: (string) Source file which to take colors from, the class has the special method for generating this file
+        :param file_path: (string) Source file to take colors from, the class has the special method for generating this file
         :param seed: (int) Seed for numpy generator
     """
     def __init__(self, file_path=COLOR_DICT_FILE_PATH, seed=0):
@@ -91,17 +91,24 @@ class Colors:
         """
         return self.rgba[self.names.index(name)]
 
-    def rgba_to_name(self, rgba) -> str:
+    def rgba_to_name(self, rgba, eps=1/MAX_COLOR_INTEGER_INTENSITY) -> str:
         """
-        Find the nearest color based on Euclidean distance
+        Find the nearest color based on Euclidean distance.
+        Function uses only the first 3 channels, i.e. not taking into account alpha channels (transparency)
 
         Parameters:
             :param rgba: (list) List of rgba channels of length 4
+            :param eps: (float) Upper bound for Euclidean distance to raise an exception (i.e. there is no the nearest color), can be whether float or None (don't check at all)
         Returns:
             :return name: (string) Color name
         """
         differences = self.rgba - np.expand_dims(np.array(rgba), 0)
-        distances = np.linalg.norm(differences, axis=1)
+        distances = np.linalg.norm(differences[:, :3], axis=1)  # use only the first 3 channels, i.e. ignoring transparency
+
+        if eps is not None and np.min(distances) > eps:
+            msg = f'There is no the nearest color for {rgba} within the epsilon {eps}. Control you source file'
+            raise Exception(msg)
+
         return self.names[np.argmin(distances)]
 
     def get_random_rgba(self):
