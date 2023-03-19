@@ -14,10 +14,10 @@ MAX_COLOR_INTEGER_INTENSITY = 255
 
 class Colors:
     """
-    The class for color manipulations
+    The class for manipulations with colors
 
     Parameters:
-        :param file_path: (string) The color source file
+        :param file_path: (string) Source file which to take colors from, the class has the special method for generating this file
         :param seed: (int) Seed for numpy generator
     """
     def __init__(self, file_path=COLOR_DICT_FILE_PATH, seed=0):
@@ -81,14 +81,36 @@ class Colors:
             json.dump(color_dict, file)
 
     def name_to_rgba(self, name: str) -> np.array:
+        """
+        Convert the color name to a rgba value
+
+        Parameters:
+            :param name: (string) Color name
+        Returns:
+            :return rgba: (list) List of rgba channels
+        """
         return self.rgba[self.names.index(name)]
 
     def rgba_to_name(self, rgba) -> str:
+        """
+        Find the nearest color based on Euclidean distance
+
+        Parameters:
+            :param rgba: (list) List of rgba channels of length 4
+        Returns:
+            :return name: (string) Color name
+        """
         differences = self.rgba - np.expand_dims(np.array(rgba), 0)
         distances = np.linalg.norm(differences, axis=1)
         return self.names[np.argmin(distances)]
 
     def get_random_rgba(self):
+        """
+        Return a random rgba value
+
+        Returns:
+            :return rgba: (list) List of rgba channels of length 4
+        """
         return self.rng.choice(self.rgba)
 
 
