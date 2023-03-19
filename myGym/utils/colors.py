@@ -51,7 +51,7 @@ class Colors:
         Generate the color source file
 
         Parameters:
-            :param only_if_file_doesnt_exist: (bool) Whether to override file it already exists
+            :param only_if_file_doesnt_exist: (bool) Whether to override the file it already exists
             :param file_path: (string) Path to the file
             :param source: (string) Which source to use to generate the base colors, may be: 'html4', 'css3' or None (use only additional dictionary)
             :param use_additional_colors_dict: (bool) Whether to use additional dictionary defined in the end of this module
