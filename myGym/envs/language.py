@@ -25,7 +25,7 @@ def concatenate_clauses(clauses, with_and=False):
 
 class Language:
     """
-    The class for generating a language description for a task
+    The class for generating a language description for a given environment task
     """
     @staticmethod
     def _extract_object_colors(env):
@@ -48,7 +48,7 @@ class Language:
     @staticmethod
     def generate_description(env) -> str:
         """
-        Generate description of the environment task in the natural language
+        Generate the description of the environment task in the natural language
 
         Parameters:
             :param env: (GymEnv) GymEnv instance to generate description from
