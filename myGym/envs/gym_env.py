@@ -9,10 +9,10 @@ from itertools import chain
 from gym import spaces
 import random
 
-from myGym.utils.colors import Colors
 from myGym.utils.helpers import get_workspace_dict
 import pkg_resources
 from myGym.envs.human import Human
+import myGym.utils.colors as cs
 from myGym.envs.vision_module import get_module_type
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
@@ -117,8 +117,6 @@ class GymEnv(CameraEnv):
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
         if not hasattr(self, "task"):
           self.task = None
-        Colors.generate_colors()
-        self.colors = Colors()
 
 
     def _init_task_and_reward(self):
@@ -451,13 +449,13 @@ class GymEnv(CameraEnv):
 
     def highlight_active_object(self, env_o, obj_role):
         if obj_role == "goal":
-            env_o.set_color(self.colors.name_to_rgba('dark green'))
+            env_o.set_color(cs.name_to_rgba('dark green'))
         elif obj_role == "init":
-            env_o.set_color(self.colors.name_to_rgba('green'))
+            env_o.set_color(cs.name_to_rgba('green'))
         elif obj_role == "done":
-            env_o.set_color(self.colors.name_to_rgba('blue'))
+            env_o.set_color(cs.name_to_rgba('blue'))
         else:
-            env_o.set_color(self.colors.name_to_rgba('gray'))
+            env_o.set_color(cs.name_to_rgba('gray'))
 
     def color_of_object(self, object):
         """
@@ -469,8 +467,8 @@ class GymEnv(CameraEnv):
             :return color: (list) RGB color
         """
         if object.name not in self.color_dict:
-            return self.colors.get_random_rgba()
+            return cs.get_random_rgba()
         else:
             color_name = random.sample(self.color_dict[object.name], 1)[0]
-            color = self.colors.name_to_rgba(color_name)
+            color = cs.name_to_rgba(color_name)
         return color

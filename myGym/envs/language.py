@@ -1,4 +1,5 @@
 from myGym.envs.env_object import EnvObject
+import myGym.utils.colors as cs
 
 
 def concatenate_clauses(clauses, with_and=False):
@@ -33,7 +34,7 @@ class Language:
                   (env.task_objects['distractor'] if 'distractor' in env.task_objects else [])
 
         # exclude objects other than EnvObject (e.g. Robot)
-        colors = [env.colors.rgba_to_name(o.get_color_rgba()) if isinstance(o, EnvObject) else None for o in objects]
+        colors = [cs.rgba_to_name(o.get_color_rgba()) if isinstance(o, EnvObject) else None for o in objects]
 
         # separate into init-goal tuples
         color_tuples = []
