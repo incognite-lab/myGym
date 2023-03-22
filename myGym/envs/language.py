@@ -1,5 +1,5 @@
 """
-Module for generating natural language description for a given environment task
+Module for generating a natural language description for a given environment task.
 """
 from myGym.envs.env_object import EnvObject
 import myGym.utils.colors as cs
@@ -69,7 +69,9 @@ def _to_clause(task, objects, properties):
 
 def generate_description(env) -> str:
     """
-    Generate natural language description for a given environment task
+    Generate a natural language description for a given environment task.
+    Warning: in multistep tasks must be called during the 1-st subtask
+    (due to the assumption about object's order in GymEnv.task_objects), otherwise the behaviour is undefined.
 
     Parameters:
         :param env: (GymEnv) GymEnv instance to generate description from
