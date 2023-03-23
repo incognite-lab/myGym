@@ -1,6 +1,10 @@
 """
 Module for generating a natural language description for a given environment task.
 """
+import re
+
+import numpy as np
+
 from myGym.envs.env_object import EnvObject
 import myGym.utils.colors as cs
 from myGym.envs.gym_env import GymEnv
@@ -52,6 +56,25 @@ def _to_clause(task, names, properties):
     return ' '.join(tokens)
 
 
+def _volume_to_str(v):
+    if v > 0.0015:
+        return 'big'
+    elif v > 0.0003:
+        return ''
+    elif v > 0.0001:
+        return 'small'
+    else:
+        return 'tiny'
+
+
+def _remove_extra_spaces(iterable):
+    return list(map(lambda s: re.sub(' +', ' ', s).strip(), iterable))
+
+
+def _get_tuple(lst, i):
+    return lst[i * 2], lst[i * 2 + 1]
+
+
 def generate_description(env: GymEnv) -> str:
     """
     Generate a natural language description for a given environment task.
@@ -64,11 +87,9 @@ def generate_description(env: GymEnv) -> str:
         :return description: (string) Natural language description
     """
     objects = [env.task_objects['actual_state'], env.task_objects['goal_state']] + (env.task_objects['distractor'] if 'distractor' in env.task_objects else [])
-    names = list(map(lambda o: o.get_name() if isinstance(o, EnvObject) else None, objects))
-    colors = list(map(lambda o: cs.rgba_to_name(o.get_color_rgba()) if isinstance(o, EnvObject) else None, objects))
-
-    def get_tuple(lst, i):
-        return lst[i * 2], lst[i * 2 + 1]
-    clauses = [_to_clause(env.task_type, get_tuple(names, i), get_tuple(colors, i)) for i in range(len(objects))]
-
+    names = list(map(lambda o: o.get_name() if isinstance(o, EnvObject) else '', objects))
+    colors = list(map(lambda o: cs.rgba_to_name(o.get_color_rgba()) if isinstance(o, EnvObject) else '', objects))
+    sizes = list(map(lambda o: _volume_to_str(np.prod(o.get_cuboid_dimensions())) if isinstance(o, EnvObject) else '', objects))
+    properties = _remove_extra_spaces(map(' '.join, zip(sizes, colors)))
+    clauses = [_to_clause(env.task_type, _get_tuple(names, i), _get_tuple(properties, i)) for i in range(len(objects) // 2)]
     return _concatenate_clauses(clauses)
