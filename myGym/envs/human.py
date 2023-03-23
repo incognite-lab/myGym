@@ -5,14 +5,15 @@ from myGym.utils.helpers import get_robot_dict
 
 class Human:
     """
-    Human class for control of human environment interaction
+    Class for control of human-environment interaction.
 
     Parameters:
-        :param model: (string) Model name in the get_robot_dict() dictionary
-        :param pybullet_client: Which pybullet client the environment should refere to in case of parallel existence of multiple instances of this environment
+        :param model_name: (string) Model name from the get_robot_dict() dictionary
+        :param pybullet_client: Which pybullet client the environment should refer to in case of parallel existence 
+        of multiple instances of this environment
     """
     def __init__(self,
-                 model='human',
+                 model_name='human',
                  pybullet_client=None,
                  ):
 
@@ -23,17 +24,17 @@ class Human:
         self.end_effector_idx = None
         self.p = pybullet_client
 
-        self._load_robot(model)
+        self._load_model(model_name)
         self._set_motors()
 
-    def _load_robot(self, model):
+    def _load_model(self, model_name):
         """
-        Load SDF or URDF model of specified model and place it in the environment to specified position and orientation
+        Load SDF or URDF model of specified model and place it in the environment to specified position and orientation.
 
         Parameters:
-            :param model: (string) Model name in the get_robot_dict() dictionary
+            :param model_name: (string) Model name in the get_robot_dict() dictionary
         """
-        path, position, orientation = get_robot_dict()[model].values()
+        path, position, orientation = get_robot_dict()[model_name].values()
         path = pkg_resources.resource_filename("myGym", path)
         orientation = self.p.getQuaternionFromEuler(orientation)
 
@@ -72,7 +73,7 @@ class Human:
 
     def __repr__(self):
         """
-        Get overall description of the human. Mainly for debug.
+        Get overall description of the human. Used mainly for debug.
 
         Returns:
             :return description: (string) Overall description
