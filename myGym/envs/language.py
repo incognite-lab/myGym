@@ -75,7 +75,7 @@ def _get_tuple(lst, i):
     return lst[i * 2], lst[i * 2 + 1]
 
 
-def generate_description(env: GymEnv) -> str:
+def generate_task_description(env: GymEnv) -> str:
     """
     Generate a natural language description for a given environment task.
     Warning: in multistep tasks must be called during the 1-st subtask
@@ -93,3 +93,7 @@ def generate_description(env: GymEnv) -> str:
     properties = _remove_extra_spaces(map(' '.join, zip(sizes, colors)))
     clauses = [_to_clause(env.task_type, _get_tuple(names, i), _get_tuple(properties, i)) for i in range(len(objects) // 2)]
     return _concatenate_clauses(clauses)
+
+
+def generate_new_tasks(env: GymEnv) -> str:
+    raise NotImplementedError()
