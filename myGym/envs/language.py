@@ -50,6 +50,8 @@ def _to_clause(task, objects, properties):
         tokens = ['pick the', p1, o1 + ',', 'place it to the', o2, 'and rotate it']
     elif task == 'pnpswipe':
         tokens = ['pick the', p1, o1, 'and swiping place it to the', o2]
+    elif task == 'pnpbgrip':
+        raise NotImplementedError()
     elif task == 'press':
         tokens = ['press the', p2, o2]
     elif task == 'poke':
