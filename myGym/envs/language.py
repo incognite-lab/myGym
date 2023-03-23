@@ -3,6 +3,7 @@ Module for generating a natural language description for a given environment tas
 """
 from myGym.envs.env_object import EnvObject
 import myGym.utils.colors as cs
+from myGym.envs.gym_env import GymEnv
 
 
 def _concatenate_clauses(clauses, with_and=False):
@@ -18,50 +19,32 @@ def _concatenate_clauses(clauses, with_and=False):
         raise Exception(exc)
 
 
-def _extract_object_colors(env):
-    objects = [env.task_objects['actual_state'], env.task_objects['goal_state']] + \
-              (env.task_objects['distractor'] if 'distractor' in env.task_objects else [])
-
-    # exclude objects other than EnvObject (e.g. Robot)
-    colors = [cs.rgba_to_name(o.get_color_rgba()) if isinstance(o, EnvObject) else None for o in objects]
-
-    # separate into init-goal tuples
-    color_tuples = []
-    for i, c in enumerate(colors):
-        if i % 2 == 0:
-            color_tuples.append((c, None))
-        else:
-            color_tuples[i // 2] = (color_tuples[i // 2][0], c)
-
-    return color_tuples
-
-
-def _to_clause(task, objects, properties):
-    o1, o2 = objects
-    po1, po2 = properties[0] + ' ' + o1, properties[1] + ' ' + o2
+def _to_clause(task, names, properties):
+    n1, n2 = names
+    pn1, pn2 = properties[0] + ' ' + n1, properties[1] + ' ' + n2
 
     if task == 'reach':
-        tokens = ['reach the', po2]
+        tokens = ['reach the', pn2]
     elif task == 'push':
-        tokens = ['push the', po1, 'to the', o2]
+        tokens = ['push the', pn1, 'to the', n2]
     elif task == 'pnp':
-        tokens = ['pick the', po1, 'and place it to the', o2]
+        tokens = ['pick the', pn1, 'and place it to the', n2]
     elif task == 'pnprot':
-        tokens = ['pick the', po1 + ',', 'place it to the', o2, 'and rotate it']
+        tokens = ['pick the', pn1 + ',', 'place it to the', n2, 'and rotate it']
     elif task == 'pnpswipe':
-        tokens = ['pick the', po1, 'and swiping place it to the', o2]
+        tokens = ['pick the', pn1, 'and swiping place it to the', n2]
     elif task == 'pnpbgrip':
         raise NotImplementedError()
     elif task == 'press':
-        tokens = ['press the', po2]
+        tokens = ['press the', pn2]
     elif task == 'poke':
-        tokens = ['poke the', po1, 'to the', o2]
+        tokens = ['poke the', pn1, 'to the', n2]
     elif task == 'switch':
-        tokens = ['switch the', po2]
+        tokens = ['switch the', pn2]
     elif task == 'throw':
-        tokens = ['throw the', po1, 'to the', o2]
+        tokens = ['throw the', pn1, 'to the', n2]
     elif task == 'turn':
-        tokens = ['turn the', po2]
+        tokens = ['turn the', pn2]
     else:
         exc = f'Unknown task type {task}'
         raise Exception(exc)
@@ -69,7 +52,7 @@ def _to_clause(task, objects, properties):
     return ' '.join(tokens)
 
 
-def generate_description(env) -> str:
+def generate_description(env: GymEnv) -> str:
     """
     Generate a natural language description for a given environment task.
     Warning: in multistep tasks must be called during the 1-st subtask
@@ -80,7 +63,12 @@ def generate_description(env) -> str:
     Returns:
         :return description: (string) Natural language description
     """
-    objects = [(d['init']['obj_name'], d['goal']['obj_name']) for d in env.task_objects_dict]
-    colors = _extract_object_colors(env)
-    clauses = [_to_clause(env.task_type, objects[i], colors[i]) for i in range(len(objects))]
+    objects = [env.task_objects['actual_state'], env.task_objects['goal_state']] + (env.task_objects['distractor'] if 'distractor' in env.task_objects else [])
+    names = list(map(lambda o: o.get_name() if isinstance(o, EnvObject) else None, objects))
+    colors = list(map(lambda o: cs.rgba_to_name(o.get_color_rgba()) if isinstance(o, EnvObject) else None, objects))
+
+    def get_tuple(lst, i):
+        return lst[i * 2], lst[i * 2 + 1]
+    clauses = [_to_clause(env.task_type, get_tuple(names, i), get_tuple(colors, i)) for i in range(len(objects))]
+
     return _concatenate_clauses(clauses)
