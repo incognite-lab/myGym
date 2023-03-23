@@ -38,30 +38,30 @@ def _extract_object_colors(env):
 
 def _to_clause(task, objects, properties):
     o1, o2 = objects
-    p1, p2 = properties
+    po1, po2 = properties[0] + ' ' + o1, properties[1] + ' ' + o2
 
     if task == 'reach':
-        tokens = ['reach the', p2, o2]
+        tokens = ['reach the', po2]
     elif task == 'push':
-        tokens = ['push the', p1, o1, 'to the', o2]
+        tokens = ['push the', po1, 'to the', o2]
     elif task == 'pnp':
-        tokens = ['pick the', p1, o1, 'and place it to the', o2]
+        tokens = ['pick the', po1, 'and place it to the', o2]
     elif task == 'pnprot':
-        tokens = ['pick the', p1, o1 + ',', 'place it to the', o2, 'and rotate it']
+        tokens = ['pick the', po1 + ',', 'place it to the', o2, 'and rotate it']
     elif task == 'pnpswipe':
-        tokens = ['pick the', p1, o1, 'and swiping place it to the', o2]
+        tokens = ['pick the', po1, 'and swiping place it to the', o2]
     elif task == 'pnpbgrip':
         raise NotImplementedError()
     elif task == 'press':
-        tokens = ['press the', p2, o2]
+        tokens = ['press the', po2]
     elif task == 'poke':
-        tokens = ['poke the', p1, o1, 'to the', o2]
+        tokens = ['poke the', po1, 'to the', o2]
     elif task == 'switch':
-        tokens = ['switch the', p2, o2]
+        tokens = ['switch the', po2]
     elif task == 'throw':
-        tokens = ['throw the', p1, o1, 'to the', o2]
+        tokens = ['throw the', po1, 'to the', o2]
     elif task == 'turn':
-        tokens = ['turn the', p2, o2]
+        tokens = ['turn the', po2]
     else:
         exc = f'Unknown task type {task}'
         raise Exception(exc)
