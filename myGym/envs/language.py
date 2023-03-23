@@ -2,6 +2,7 @@
 Module for generating a natural language description for a given environment task.
 """
 import re
+from typing import List
 
 import numpy as np
 
@@ -95,5 +96,5 @@ def generate_task_description(env: GymEnv) -> str:
     return _concatenate_clauses(clauses)
 
 
-def generate_new_tasks(env: GymEnv) -> str:
+def generate_new_tasks(env: GymEnv) -> List[str]:
     raise NotImplementedError()
