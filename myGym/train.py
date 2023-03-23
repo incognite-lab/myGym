@@ -7,6 +7,7 @@ import json, commentjson
 import gym
 from myGym import envs
 import myGym.utils.cfg_comparator as cfg
+from myGym.envs import language
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common import make_vec_env
@@ -244,6 +245,8 @@ def get_parser():
     parser.add_argument("-yp", "--yolact_path", type=str, help="Path to a trained Yolact in 3dvu reward type")
     parser.add_argument("-yc", "--yolact_config", type=str, help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
     parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
+    #Language
+    parser.add_argument('-ld', "--language_description", type=int, default=0, help="Whether instead of training to generate a language description, save it to the file and exit the program. Expected values are 0 and 1")
     return parser
 
 def get_arguments(parser):
@@ -258,6 +261,12 @@ def get_arguments(parser):
                 arg_dict[key] = value
     return arg_dict
 
+def generate_and_save_description(env, relative_path=os.path.join('envs', 'examples', 'description.txt')):
+    env.reset()
+    ds = language.generate_description(env)
+    file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), relative_path)
+    with open(file_path, "w") as file:
+        file.write(ds)
 
 def main():
     parser = get_parser()
@@ -282,6 +291,9 @@ def main():
             add += 1
 
     env = configure_env(arg_dict, model_logdir, for_train=1)
+    if arg_dict['language_description'] == 1:
+        generate_and_save_description(env.env.env)
+        return
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
     train(env, implemented_combos, model_logdir, arg_dict, arg_dict["pretrained_model"])
     print(model_logdir)
