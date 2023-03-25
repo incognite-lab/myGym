@@ -7,7 +7,7 @@ import json, commentjson
 import gym
 from myGym import envs
 import myGym.utils.cfg_comparator as cfg
-from myGym.envs import language
+from myGym.envs.language import Language
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common import make_vec_env
@@ -267,10 +267,11 @@ def get_arguments(parser):
 
 def process_natural_language_command(cmd, env, output_relative_path=os.path.join('envs', 'examples', 'language.txt')):
     env.reset()
+    l = Language(env)
 
     if cmd in ['description', 'new_tasks']:
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_relative_path), 'w') as file:
-            file.write(language.generate_task_description(env) if cmd == 'description' else language.generate_new_tasks(env))
+            file.write(l.generate_task_description() if cmd == 'description' else l.generate_new_tasks())
     else:
         msg = f'Unknown natural language command: {cmd}'
         raise Exception(msg)
