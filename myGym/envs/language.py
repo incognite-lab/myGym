@@ -24,7 +24,8 @@ def _concatenate_clauses(clauses, with_and=False):
         raise Exception(exc)
 
 
-def _to_clause(task, names, properties):
+def _to_clause(env, names, properties):
+    task = env.task_type
     n1, n2 = names
     pn1, pn2 = properties[0] + ' ' + n1, properties[1] + ' ' + n2
 
@@ -39,7 +40,8 @@ def _to_clause(task, names, properties):
     elif task == 'pnpswipe':
         tokens = ['pick the', pn1, 'and swiping place it to the', n2]
     elif task == 'pnpbgrip':
-        raise NotImplementedError()
+        bgrip = ' with mechanic gripper ' if 'bgrip' in env.robot.get_name() else ' '
+        return ['pick the', pn1, 'and place it' + bgrip + 'to the', n2]
     elif task == 'press':
         tokens = ['press the', pn2]
     elif task == 'poke':
@@ -92,7 +94,7 @@ def generate_task_description(env: GymEnv) -> str:
     colors = list(map(lambda o: cs.rgba_to_name(o.get_color_rgba()) if isinstance(o, EnvObject) else '', objects))
     sizes = list(map(lambda o: _volume_to_str(np.prod(o.get_cuboid_dimensions())) if isinstance(o, EnvObject) else '', objects))
     properties = _remove_extra_spaces(map(' '.join, zip(sizes, colors)))
-    clauses = [_to_clause(env.task_type, _get_tuple(names, i), _get_tuple(properties, i)) for i in range(len(objects) // 2)]
+    clauses = [_to_clause(env, _get_tuple(names, i), _get_tuple(properties, i)) for i in range(len(objects) // 2)]
     return _concatenate_clauses(clauses)
 
 
