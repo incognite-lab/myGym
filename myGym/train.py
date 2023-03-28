@@ -7,7 +7,6 @@ import json, commentjson
 import gym
 from myGym import envs
 import myGym.utils.cfg_comparator as cfg
-from myGym.envs.language import Language
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common import make_vec_env
@@ -39,6 +38,7 @@ from stable_baselines.td3.policies import MlpPolicy as MlpPolicyTD3
 
 # Import helper classes and functions for monitoring
 from myGym.utils.callbacks import ProgressBarManager, SaveOnBestTrainingRewardCallback,  PlottingCallback, CustomEvalCallback
+from myGym.envs.natural_language import NaturalLanguage
 
 # This is global variable for the type of engine we are working with
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
@@ -246,10 +246,10 @@ def get_parser():
     parser.add_argument("-yc", "--yolact_config", type=str, help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
     parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
     #Language
-    parser.add_argument('-nl', "--natural_language", type=str, default="",
+    parser.add_argument("-nl", "--natural_language", type=str, default="",
                         help="If passed, instead of training the script will produce a natural language output "
-                             "of a given type, save it to the predefined file (for communication with other scripts) "
-                             "and exit the program (without actual training). Expected values are \"description\" "
+                             "of the given type, save it to the predefined file (for communication with other scripts) "
+                             "and exit the program (without the actual training taking place). Expected values are \"description\" "
                              "(generate a task description) or \"new_tasks\" (generate new tasks)")
     return parser
 
@@ -265,15 +265,15 @@ def get_arguments(parser):
                 arg_dict[key] = value
     return arg_dict
 
-def process_natural_language_command(cmd, env, output_relative_path=os.path.join('envs', 'examples', 'language.txt')):
+def process_natural_language_command(cmd, env, output_relative_path=os.path.join("envs", "examples", "natural_language.txt")):
     env.reset()
-    l = Language(env)
+    l = NaturalLanguage(env)
 
-    if cmd in ['description', 'new_tasks']:
-        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_relative_path), 'w') as file:
-            file.write(l.generate_task_description() if cmd == 'description' else l.generate_new_tasks())
+    if cmd in ["description", "new_tasks"]:
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_relative_path), "w") as file:
+            file.write(l.generate_task_description() if cmd == "description" else l.generate_new_tasks())
     else:
-        msg = f'Unknown natural language command: {cmd}'
+        msg = f"Unknown natural language command: {cmd}"
         raise Exception(msg)
 
 def main():
