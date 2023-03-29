@@ -53,7 +53,7 @@ class VirtualObject:
     def __init__(self, obj: EnvObject):
         self.obj: EnvObject = obj
         self.name = obj.get_name()
-        self.properties = " ".join(_filter_out_none(["the", self._infer_size_property(), cs.rgba_to_name(obj.get_color_rgba())]))
+        self.properties = " ".join(_filter_out_none([self._infer_size_property(), cs.rgba_to_name(obj.get_color_rgba())]))
 
     def __deepcopy__(self, memo={}):
         cp = VirtualObject(self.obj)
@@ -121,15 +121,14 @@ class VirtualEnv:
 
 class NaturalLanguage:
     """
-    Class for generating a natural language description for a given environment task
-    and producing new natural language tasks based on a given environment.
+    Class for generating a natural language description and producing new natural language tasks based on the given environment.
     """
-    def __init__(self, env: GymEnv):
+    def __init__(self, env: GymEnv, seed=0):
         self.venv: VirtualEnv = VirtualEnv(env)
+        self.rng = np.random.default_rng(seed)
 
     @staticmethod
-    def _generate_subtask_description(venv: VirtualEnv, *place_clauses) -> str:
-        task = venv.get_task_type()
+    def _generate_subtask_description(venv: VirtualEnv, task: TaskType, *place_clauses) -> str:
         c1, c2 = place_clauses if len(place_clauses) == 2 else (place_clauses[0], None)
 
         # pattern 1
@@ -182,13 +181,11 @@ class NaturalLanguage:
             o1, o2 = objects if len(objects) == 2 else (objects[0], None)
 
             if task_type in TaskType.get_pattern_1_task_types():
-                subtasks.append(NaturalLanguage._generate_subtask_description(self.venv, o1.get_name_with_properties()))
+                subtasks.append(NaturalLanguage._generate_subtask_description(self.venv, self.venv.get_task_type(), o1.get_name_with_properties()))
             elif task_type in TaskType.get_pattern_2_task_types():
-                subtasks.append(NaturalLanguage._generate_subtask_description(self.venv, o1.get_name()))
+                subtasks.append(NaturalLanguage._generate_subtask_description(self.venv, self.venv.get_task_type(), o1.get_name()))
             else:
-                subtasks.append(NaturalLanguage._generate_subtask_description(
-                    self.venv, o1.get_name_with_properties(), "to " + o2.get_name_with_properties()
-                ))
+                subtasks.append(NaturalLanguage._generate_subtask_description(self.venv, self.venv.get_task_type(), o1.get_name_with_properties(), "to " + o2.get_name_with_properties()))
 
         return ", ".join(subtasks)
 
@@ -198,7 +195,7 @@ class NaturalLanguage:
         objects = venv.get_movable_objects()
 
         for obj in objects:
-            for preposition in ["left to", "right to", "close to"]:
+            for preposition in ["left to", "right to", "close to", "above"]:
                 clauses.append(preposition + " " + obj.get_name_with_properties())
 
         for i in range(len(objects) - 1):
@@ -208,15 +205,16 @@ class NaturalLanguage:
         return clauses
 
     @staticmethod
-    def _generate_new_subtasks_from_1_env(subtask: str, venv: VirtualEnv) -> List[Tuple[str, VirtualEnv]]:
+    def _generate_new_subtasks_from_1_env(task: str, venv: VirtualEnv) -> List[Tuple[str, VirtualEnv]]:
         tuples = []
         clauses = NaturalLanguage._get_movable_object_clauses(venv)
 
-        if subtask is not "":
-            subtask += ", "
+        if task is not "":
+            task += ", "
 
         for c in clauses:
-            tuples.append((subtask + "reach " + c, venv))
+            new_subtask = NaturalLanguage._generate_subtask_description(venv, TaskType.REACH, c)
+            tuples.append((task + new_subtask, venv))
 
         return tuples
 
@@ -224,10 +222,21 @@ class NaturalLanguage:
     def _generate_new_subtasks(tuples: List[Tuple[str, VirtualEnv]]) -> List[Tuple[str, VirtualEnv]]:
         return list(itertools.chain(*[NaturalLanguage._generate_new_subtasks_from_1_env(*t) for t in tuples]))
 
-    def generate_new_tasks(self, max_tasks=30, max_subtasks=2) -> List[str]:
+    def generate_new_tasks(self, max_tasks=30, max_subtasks=4) -> List[str]:
+        """
+        Generate new natural language tasks from the given environment.
+
+        Parameters:
+            :param max_tasks: (int) Maximum number of tasks. If it is possible to generate more tasks, the function will randomly pick max_tasks tasks
+            :param max_subtasks: (int) Maximum number of subtasks in one task
+        Returns:
+            :return new_tasks: (list) List of newly generated tasks
+        """
         tuples = [("", self.venv)]
 
         for i in range(max_subtasks):
             tuples = NaturalLanguage._generate_new_subtasks(tuples)
+            if len(tuples) > max_tasks:
+                tuples = self.rng.choice(tuples, max_tasks, replace=False)
 
         return [t[0] for t in tuples]
