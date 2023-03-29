@@ -1,3 +1,5 @@
+import copy
+import itertools
 from enum import Enum, auto
 from typing import Tuple, List
 
@@ -10,19 +12,6 @@ import myGym.utils.colors as cs
 
 def _filter_out_none(iterable):
     return [e for e in iterable if e is not None]
-
-
-def _concatenate_clauses(clauses, with_and=False):
-    n = len(clauses)
-    if n == 1:
-        return clauses[0]
-    elif n == 2:
-        return " and ".join(clauses) if with_and else ", ".join(clauses)
-    elif n > 2:
-        return _concatenate_clauses([", ".join(clauses[:-1]), clauses[-1]], with_and)
-    else:
-        exc = "No clauses to concatenate"
-        raise Exception(exc)
 
 
 class TaskType(Enum):
@@ -47,12 +36,29 @@ class TaskType(Enum):
         msg = f"Unknown task type: {task}"
         raise Exception(msg)
 
+    @staticmethod
+    def get_pattern_1_task_types() -> List:
+        return [TaskType.REACH]
+
+    @staticmethod
+    def get_pattern_2_task_types() -> List:
+        return [TaskType.PRESS, TaskType.TURN, TaskType.SWITCH]
+
+    @staticmethod
+    def get_pattern_3_task_types() -> List:
+        return [TaskType.PUSH, TaskType.PNP, TaskType.PNPROT, TaskType.PNPSWIPE, TaskType.PNPBGRIP, TaskType.THROW, TaskType.POKE]
+
 
 class VirtualObject:
     def __init__(self, obj: EnvObject):
         self.obj: EnvObject = obj
         self.name = obj.get_name()
-        self.properties = " ".join(_filter_out_none([self._infer_size_property(), cs.rgba_to_name(obj.get_color_rgba())]))
+        self.properties = " ".join(_filter_out_none(["the", self._infer_size_property(), cs.rgba_to_name(obj.get_color_rgba())]))
+
+    def __deepcopy__(self, memo={}):
+        cp = VirtualObject(self.obj)
+        cp.__dict__.update(self.__dict__)
+        return cp
 
     def _infer_size_property(self):
         v = np.prod(self.obj.get_cuboid_dimensions())
@@ -66,29 +72,35 @@ class VirtualObject:
         else:
             return "big"
 
-    def get_name(self):
-        return self.name
+    def get_name(self) -> str:
+        return "the " + self.name
 
-    def get_properties(self):
-        return self.properties
-
-    def get_name_with_properties(self):
-        return self.properties + " " + self.name
+    def get_name_with_properties(self) -> str:
+        return "the " + self.properties + " " + self.name
 
 
 class VirtualEnv:
     def __init__(self, env: GymEnv):
         self.env: GymEnv = env
         self.task_type: TaskType = TaskType.from_string(env.task_type)
-        all_task_objects = [
+        self.objects: List[VirtualObject] = [
             VirtualObject(o) if isinstance(o, EnvObject) else None for o in
             [env.task_objects["actual_state"], env.task_objects["goal_state"]] +
             (env.task_objects["distractor"] if "distractor" in env.task_objects else [])
         ]
-        self.subtask_objects: List[Tuple] = [
-            tuple(_filter_out_none([all_task_objects[i], all_task_objects[i + 1]]))
-            for i in range(0, len(all_task_objects), 2)
-        ]
+        self.movable_object_indices = list(
+            range(1, len(self.objects), 2) if self.get_task_type() in TaskType.get_pattern_1_task_types()
+            else (
+                range(0, len(self.objects), 2) if self.get_task_type() in TaskType.get_pattern_3_task_types()
+                else []
+            )
+        )
+
+    def __copy__(self):
+        cp = VirtualEnv(self.env)
+        cp.__dict__.update(self.__dict__)
+        cp.objects = copy.deepcopy(self.objects)
+        return cp
 
     def get_real_env(self) -> GymEnv:
         return self.env
@@ -97,7 +109,14 @@ class VirtualEnv:
         return self.task_type
 
     def get_subtask_objects(self) -> List[Tuple]:
-        return self.subtask_objects
+        return [tuple(_filter_out_none([self.objects[i], self.objects[i + 1]]))
+                for i in range(0, len(self.objects), 2)]
+
+    def _get_objects(self, indices) -> List[VirtualObject]:
+        return [self.objects[i] for i in indices]
+
+    def get_movable_objects(self) -> List[VirtualObject]:
+        return self._get_objects(self.movable_object_indices)
 
 
 class NaturalLanguage:
@@ -108,36 +127,38 @@ class NaturalLanguage:
     def __init__(self, env: GymEnv):
         self.venv: VirtualEnv = VirtualEnv(env)
 
-    def _get_subtask_description(self, task: TaskType, *place_clauses):
+    @staticmethod
+    def _generate_subtask_description(venv: VirtualEnv, *place_clauses) -> str:
+        task = venv.get_task_type()
         c1, c2 = place_clauses if len(place_clauses) == 2 else (place_clauses[0], None)
 
         # pattern 1
-        if task == TaskType.REACH:
+        if task is TaskType.REACH:
             tokens = ["reach", c1]
 
         # pattern 2
-        elif task == TaskType.PRESS:
+        elif task is TaskType.PRESS:
             tokens = ["press", c1]
-        elif task == TaskType.TURN:
+        elif task is TaskType.TURN:
             tokens = ["turn", c1]
-        elif task == TaskType.SWITCH:
+        elif task is TaskType.SWITCH:
             tokens = ["switch", c1]
 
         # pattern 3
-        elif task == TaskType.PUSH:
+        elif task is TaskType.PUSH:
             tokens = ["push", c1, c2]
-        elif task == TaskType.PNP:
+        elif task is TaskType.PNP:
             tokens = ["pick", c1, "and place it", c2]
-        elif task == TaskType.PNPROT:
+        elif task is TaskType.PNPROT:
             tokens = ["pick", c1, ", place it", c2, "and rotate it"]
-        elif task == TaskType.PNPSWIPE:
+        elif task is TaskType.PNPSWIPE:
             tokens = ["pick", c1, "and swiping place it", c2]
-        elif task == TaskType.PNPBGRIP:
-            bgrip = " with mechanic gripper" if "bgrip" in self.venv.get_real_env().robot.get_name() else ""
-            return ["pick", c1, "and place it" + bgrip, c2]
-        elif task == TaskType.THROW:
+        elif task is TaskType.PNPBGRIP:
+            bgrip = " with mechanic gripper" if "bgrip" in venv.get_real_env().robot.get_name() else ""
+            tokens = ["pick", c1, "and place it" + bgrip, c2]
+        elif task is TaskType.THROW:
             tokens = ["throw", c1, c2]
-        elif task == TaskType.POKE:
+        elif task is TaskType.POKE:
             tokens = ["poke", c1, c2]
         else:
             exc = f"Unknown task type {task}"
@@ -154,22 +175,59 @@ class NaturalLanguage:
         Returns:
             :return description: (string) Natural language description
         """
-        subtask_descriptions = []
+        subtasks = []
         task_type = self.venv.get_task_type()
 
         for objects in self.venv.get_subtask_objects():
             o1, o2 = objects if len(objects) == 2 else (objects[0], None)
 
-            if task_type is TaskType.REACH:
-                subtask_descriptions.append(self._get_subtask_description(task_type, "the " + o1.get_name_with_properties()))
-            elif task_type in [TaskType.PRESS, TaskType.TURN, TaskType.SWITCH]:
-                subtask_descriptions.append(self._get_subtask_description(task_type, "the " + o1.get_name()))
+            if task_type in TaskType.get_pattern_1_task_types():
+                subtasks.append(NaturalLanguage._generate_subtask_description(self.venv, o1.get_name_with_properties()))
+            elif task_type in TaskType.get_pattern_2_task_types():
+                subtasks.append(NaturalLanguage._generate_subtask_description(self.venv, o1.get_name()))
             else:
-                subtask_descriptions.append(self._get_subtask_description(
-                    task_type, "the " + o1.get_name_with_properties(), "to the " + o2.get_name_with_properties()
+                subtasks.append(NaturalLanguage._generate_subtask_description(
+                    self.venv, o1.get_name_with_properties(), "to " + o2.get_name_with_properties()
                 ))
 
-        return _concatenate_clauses(subtask_descriptions)
+        return ", ".join(subtasks)
 
-    def generate_new_tasks(self) -> List[str]:
-        raise NotImplementedError()
+    @staticmethod
+    def _get_movable_object_clauses(venv: VirtualEnv) -> List[str]:
+        clauses = []
+        objects = venv.get_movable_objects()
+
+        for obj in objects:
+            for preposition in ["left to", "right to", "close to"]:
+                clauses.append(preposition + " " + obj.get_name_with_properties())
+
+        for i in range(len(objects) - 1):
+            for j in range(i + 1, len(objects)):
+                clauses.append("between " + objects[i].get_name_with_properties() + " and " + objects[j].get_name_with_properties())
+
+        return clauses
+
+    @staticmethod
+    def _generate_new_subtasks_from_1_env(subtask: str, venv: VirtualEnv) -> List[Tuple[str, VirtualEnv]]:
+        tuples = []
+        clauses = NaturalLanguage._get_movable_object_clauses(venv)
+
+        if subtask is not "":
+            subtask += ", "
+
+        for c in clauses:
+            tuples.append((subtask + "reach " + c, venv))
+
+        return tuples
+
+    @staticmethod
+    def _generate_new_subtasks(tuples: List[Tuple[str, VirtualEnv]]) -> List[Tuple[str, VirtualEnv]]:
+        return list(itertools.chain(*[NaturalLanguage._generate_new_subtasks_from_1_env(*t) for t in tuples]))
+
+    def generate_new_tasks(self, max_tasks=30, max_subtasks=2) -> List[str]:
+        tuples = [("", self.venv)]
+
+        for i in range(max_subtasks):
+            tuples = NaturalLanguage._generate_new_subtasks(tuples)
+
+        return [t[0] for t in tuples]

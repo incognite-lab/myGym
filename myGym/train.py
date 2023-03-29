@@ -267,11 +267,11 @@ def get_arguments(parser):
 
 def process_natural_language_command(cmd, env, output_relative_path=os.path.join("envs", "examples", "natural_language.txt")):
     env.reset()
-    l = NaturalLanguage(env)
+    nl = NaturalLanguage(env)
 
     if cmd in ["description", "new_tasks"]:
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_relative_path), "w") as file:
-            file.write(l.generate_task_description() if cmd == "description" else l.generate_new_tasks())
+            file.write(nl.generate_task_description() if cmd == "description" else "\n".join(nl.generate_new_tasks()))
     else:
         msg = f"Unknown natural language command: {cmd}"
         raise Exception(msg)

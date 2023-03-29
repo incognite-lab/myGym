@@ -48,7 +48,7 @@ def get_new_tasks(launch_command, args):
         lines = file.readlines()
 
         if len(lines) == 0:
-            msg = f"File {LANGUAGE_FILE_PATH} doesn't contain any information"
+            msg = f"File {LANGUAGE_FILE_PATH} doesn't have any strings"
             raise Exception(msg)
 
         return lines
@@ -66,7 +66,7 @@ def main():
                 print(cmd + " -> " + get_description(cmd, args))
     elif args.type == "new_tasks":
         if args.command != '':
-            print('\n'.join(get_new_tasks(args.command, args)))
+            print("".join(get_new_tasks(args.command, args)))
         else:
             msg = f"Command hasn't been specified!"
             raise Exception(msg)
