@@ -37,15 +37,15 @@ class TaskType(Enum):
         raise Exception(msg)
 
     @staticmethod
-    def get_pattern_1_task_types() -> List:
+    def get_pattern_reach_task_types() -> List:
         return [TaskType.REACH]
 
     @staticmethod
-    def get_pattern_2_task_types() -> List:
+    def get_pattern_press_task_types() -> List:
         return [TaskType.PRESS, TaskType.TURN, TaskType.SWITCH]
 
     @staticmethod
-    def get_pattern_3_task_types() -> List:
+    def get_pattern_push_task_types() -> List:
         return [TaskType.PUSH, TaskType.PNP, TaskType.PNPROT, TaskType.PNPSWIPE, TaskType.PNPBGRIP, TaskType.THROW, TaskType.POKE]
 
 
@@ -89,9 +89,9 @@ class VirtualEnv:
             (env.task_objects["distractor"] if "distractor" in env.task_objects else [])
         ]
         self.movable_object_indices = list(
-            range(1, len(self.objects), 2) if self.get_task_type() in TaskType.get_pattern_1_task_types()
+            range(1, len(self.objects), 2) if self.get_task_type() in TaskType.get_pattern_reach_task_types()
             else (
-                range(0, len(self.objects), 2) if self.get_task_type() in TaskType.get_pattern_3_task_types()
+                range(0, len(self.objects), 2) if self.get_task_type() in TaskType.get_pattern_push_task_types()
                 else []
             )
         )
@@ -131,11 +131,11 @@ class NaturalLanguage:
     def _generate_subtask_description(venv: VirtualEnv, task: TaskType, *place_clauses) -> str:
         c1, c2 = place_clauses if len(place_clauses) == 2 else (place_clauses[0], None)
 
-        # pattern 1
+        # pattern reach
         if task is TaskType.REACH:
             tokens = ["reach", c1]
 
-        # pattern 2
+        # pattern press
         elif task is TaskType.PRESS:
             tokens = ["press", c1]
         elif task is TaskType.TURN:
@@ -143,7 +143,7 @@ class NaturalLanguage:
         elif task is TaskType.SWITCH:
             tokens = ["switch", c1]
 
-        # pattern 3
+        # pattern push
         elif task is TaskType.PUSH:
             tokens = ["push", c1, c2]
         elif task is TaskType.PNP:
@@ -180,9 +180,9 @@ class NaturalLanguage:
         for objects in self.venv.get_subtask_objects():
             o1, o2 = objects if len(objects) == 2 else (objects[0], None)
 
-            if task_type in TaskType.get_pattern_1_task_types():
+            if task_type in TaskType.get_pattern_reach_task_types():
                 subtasks.append(NaturalLanguage._generate_subtask_description(self.venv, self.venv.get_task_type(), o1.get_name_with_properties()))
-            elif task_type in TaskType.get_pattern_2_task_types():
+            elif task_type in TaskType.get_pattern_press_task_types():
                 subtasks.append(NaturalLanguage._generate_subtask_description(self.venv, self.venv.get_task_type(), o1.get_name()))
             else:
                 subtasks.append(NaturalLanguage._generate_subtask_description(self.venv, self.venv.get_task_type(), o1.get_name_with_properties(), "to " + o2.get_name_with_properties()))
@@ -190,39 +190,44 @@ class NaturalLanguage:
         return ", ".join(subtasks)
 
     @staticmethod
-    def _get_movable_object_clauses(venv: VirtualEnv) -> List[str]:
-        clauses = []
+    def _get_movable_object_clauses(venv: VirtualEnv) -> Tuple[List[str], List[str], List[str]]:
         objects = venv.get_movable_objects()
+        main_clauses = [o.get_name_with_properties() for o in objects]
+        place_preposition_clauses = []
 
         for obj in objects:
             for preposition in ["left to", "right to", "close to", "above"]:
-                clauses.append(preposition + " " + obj.get_name_with_properties())
+                place_preposition_clauses.append(preposition + " " + obj.get_name_with_properties())
 
         for i in range(len(objects) - 1):
             for j in range(i + 1, len(objects)):
-                clauses.append("between " + objects[i].get_name_with_properties() + " and " + objects[j].get_name_with_properties())
+                place_preposition_clauses.append("between " + objects[i].get_name_with_properties() + " and " + objects[j].get_name_with_properties())
 
-        return clauses
+        return main_clauses, ["to " + c for c in main_clauses], place_preposition_clauses
 
-    @staticmethod
-    def _generate_new_subtasks_from_1_env(task: str, venv: VirtualEnv) -> List[Tuple[str, VirtualEnv]]:
+    def _generate_new_subtasks_from_1_env(self, task_desc: str, venv: VirtualEnv) -> List[Tuple[str, VirtualEnv]]:
         tuples = []
-        clauses = NaturalLanguage._get_movable_object_clauses(venv)
+        main_clauses, main_clauses_with_to, place_preposition_clauses = NaturalLanguage._get_movable_object_clauses(venv)
 
-        if task is not "":
-            task += ", "
+        if task_desc is not "":
+            task_desc += ", "
 
-        for c in clauses:
-            new_subtask = NaturalLanguage._generate_subtask_description(venv, TaskType.REACH, c)
-            tuples.append((task + new_subtask, venv))
+        # pattern reach
+        for c in itertools.chain(main_clauses, place_preposition_clauses):
+            tuples.append((task_desc + NaturalLanguage._generate_subtask_description(venv, TaskType.REACH, c), venv))
+
+        # pattern push
+        task_types = [TaskType.PUSH, TaskType.PNP, TaskType.POKE, TaskType.THROW]
+        for c2 in itertools.chain(main_clauses_with_to, place_preposition_clauses):
+            for tt, c1 in zip(task_types, self.rng.choice(main_clauses, len(task_types), replace=True)):
+                tuples.append((task_desc + NaturalLanguage._generate_subtask_description(venv, tt, c1, c2), venv))
 
         return tuples
 
-    @staticmethod
-    def _generate_new_subtasks(tuples: List[Tuple[str, VirtualEnv]]) -> List[Tuple[str, VirtualEnv]]:
-        return list(itertools.chain(*[NaturalLanguage._generate_new_subtasks_from_1_env(*t) for t in tuples]))
+    def _generate_new_subtasks(self, tuples: List[Tuple[str, VirtualEnv]]) -> List[Tuple[str, VirtualEnv]]:
+        return list(itertools.chain(*[self._generate_new_subtasks_from_1_env(*t) for t in tuples]))
 
-    def generate_new_tasks(self, max_tasks=30, max_subtasks=4) -> List[str]:
+    def generate_new_tasks(self, max_tasks=10, max_subtasks=3) -> List[str]:
         """
         Generate new natural language tasks from the given environment.
 
@@ -232,10 +237,12 @@ class NaturalLanguage:
         Returns:
             :return new_tasks: (list) List of newly generated tasks
         """
-        tuples = [("", self.venv)]
+        if self.venv.get_task_type() in TaskType.get_pattern_press_task_types():
+            raise NotImplementedError()
 
+        tuples = [("", self.venv)]
         for i in range(max_subtasks):
-            tuples = NaturalLanguage._generate_new_subtasks(tuples)
+            tuples = self._generate_new_subtasks(tuples)
             if len(tuples) > max_tasks:
                 tuples = self.rng.choice(tuples, max_tasks, replace=False)
 
