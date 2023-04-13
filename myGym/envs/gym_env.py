@@ -416,11 +416,12 @@ class GymEnv(CameraEnv):
         env_objects = []
         if not "init" in object_dict.keys():  # solves used_objects
             for idx, o in enumerate(object_dict["obj_list"]):
-                  urdf = self._get_urdf_filename(o["obj_name"])
-                  if urdf:
-                    object_dict["obj_list"][idx]["urdf"] = urdf
-                  else:
-                    del object_dict["obj_list"][idx]
+                  if o["obj_name"] != "null":
+                      urdf = self._get_urdf_filename(o["obj_name"])
+                      if urdf:
+                        object_dict["obj_list"][idx]["urdf"] = urdf
+                      else:
+                        del object_dict["obj_list"][idx]
             if "num_range" in object_dict.keys():
                 for x in range(random.randint(object_dict["num_range"][0], object_dict["num_range"][1])):
                         env_o = self._place_object(random.choice(object_dict["obj_list"]))
@@ -428,9 +429,10 @@ class GymEnv(CameraEnv):
                         env_objects.append(env_o)
             else:
                 for o in object_dict["obj_list"]:
-                    env_o = self._place_object(o)
-                    self.highlight_active_object(env_o, "other")
-                    env_objects.append(env_o)
+                    if o["obj_name"] != "null":
+                        env_o = self._place_object(o)
+                        self.highlight_active_object(env_o, "other")
+                        env_objects.append(env_o)
         else:  # solves task_objects
             for o in ['init','goal']:
                 d = object_dict[o]
