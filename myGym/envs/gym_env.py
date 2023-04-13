@@ -131,12 +131,11 @@ class GymEnv(CameraEnv):
         assert self.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
         self.task = t.TaskModule(task_type=self.task_type,
                                  observation=self.obs_type,
-                                 task_objects=self.task_objects,
                                  vae_path=self.vae_path,
                                  yolact_path=self.yolact_path,
                                  yolact_config=self.yolact_config,
                                  distance_type=self.distance_type,
-                                 number_tasks=len(self.task_objects),
+                                 number_tasks=len(self.task_objects_dict),
                                  env=self)
         self.reward = reward_classes[scheme][self.reward](env=self, task=self.task)
 

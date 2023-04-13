@@ -22,7 +22,7 @@ class TaskModule():
         :param logdir: (string) Directory for logging
         :param env: (object) Environment, where the training takes place
     """
-    def __init__(self, task_type='reach', task_objects='cube_holes', observation={},
+    def __init__(self, task_type='reach', observation={},
                  vae_path=None, yolact_path=None, yolact_config=None, distance_type='euclidean',
                  logdir=currentdir, env=None, number_tasks=None):
         self.task_type = task_type
@@ -31,7 +31,6 @@ class TaskModule():
         self.current_task = 0
         self.subtask_over = False
         self.logdir = logdir
-        self.task_objects_names = task_objects
         self.env = env
         self.image = None
         self.depth = None
