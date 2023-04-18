@@ -393,7 +393,6 @@ class MultiACKTR(ActorCriticRLModel):
                         if writer is not None:
                             n_steps = model.n_batch
                             try:
-                                print("true reward:{}".format(true_reward.shape))
                                 total_episode_reward_logger(self.episode_reward,
                                                         true_reward.reshape((self.n_envs, n_steps)),
                                                         masks.reshape((self.n_envs, n_steps)),

@@ -152,7 +152,7 @@ def get_arguments():
     parser.add_argument("-task", default='pnrmulti')
     parser.add_argument("-robot", default=["kuka"], nargs='*')
     parser.add_argument("-common", default='pnprot_table_kuka_joints')
-    parser.add_argument("-algo", default=["multi","ppo2","ppo","acktr","sac","ddpg","a2c","acer","trpo"], nargs='*')
+    parser.add_argument("-algo", default=["multiacktr","multi","ppo2","ppo","acktr","sac","ddpg","a2c","acer","trpo"], nargs='*')
     parser.add_argument("-xlabel", type=int, default=1)
     args = parser.parse_args()
 
@@ -232,7 +232,7 @@ def main():
             if len(index[i])>0:
                 plt.plot(x[0],np.mean(np.take(success,index[i],0),0), color=colors[i], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[i], markersize=6) 
                 plt.fill_between(x[0], np.mean(np.take(success,index[i],0),0)-np.std(np.take(success,index[i],0),0),np.mean(np.take(success,index[i],0),0)+np.std(np.take(success,index[i],0),0), color=colors[i], alpha=0.2) 
-                #plt.show()
+                plt.show()
                 leg.append(robot)
     else:
         print("No data to visualize")        

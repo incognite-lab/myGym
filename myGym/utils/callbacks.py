@@ -331,8 +331,8 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
                 # Save the new best model (with best average reward)
                 if average_reward > self.best_average_reward:
                     self.best_average_reward = average_reward
-                    if self.verbose > 0:
-                        print("Saving new best model to {}".format(self.save_path))
+                    #if self.verbose > 0:
+                        #print("Saving new best model to {}".format(self.save_path))
                     self.model.save(self.save_path)
 
                 if self.engine == "mujoco":  # Mujoco has additional prints

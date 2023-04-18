@@ -178,9 +178,9 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
                                            camera_id=arg_dict["camera"])
         callbacks_list.append(eval_callback)
     #callbacks_list.append(PlottingCallback(model_logdir))
-    with ProgressBarManager(total_timesteps=arg_dict["steps"]) as progress_callback:
-        callbacks_list.append(progress_callback)
-        model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
+    #with ProgressBarManager(total_timesteps=arg_dict["steps"]) as progress_callback:
+        #callbacks_list.append(progress_callback)
+    model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
     model.save(os.path.join(model_logdir, model_name))
     print("Training time: {:.2f} s".format(time.time() - start_time))
 

@@ -254,7 +254,7 @@ class MultiPPO2(ActorCriticRLModel):
                         if writer is not None:
                             n_steps = model.n_batch
                             try:
-                                print("true reward:{}".format(true_reward.shape))
+                                #print("true reward:{}".format(true_reward.shape))
                                 total_episode_reward_logger(self.episode_reward, true_reward.reshape((self.n_envs, n_steps)), masks.reshape((self.n_envs, n_steps)), writer, self.num_timesteps)
 
                             except:
@@ -270,18 +270,7 @@ class MultiPPO2(ActorCriticRLModel):
 
                         if self.verbose >= 1 and (update % log_interval == 0 or update == 1):
                             explained_var = explained_variance(values, returns)
-                            logger.logkv("serial_timesteps", update * self.n_steps)
-                            logger.logkv("n_updates", update)
-                            logger.logkv("total_timesteps", self.num_timesteps)
-                            logger.logkv("fps", fps)
                             logger.logkv("Steps", steps_used)
-                            logger.logkv("explained_variance", float(explained_var))
-                            if len(self.ep_info_buf) > 0 and len(self.ep_info_buf[0]) > 0:
-                                logger.logkv('ep_reward_mean', safe_mean([ep_info['r'] for ep_info in self.ep_info_buf]))
-                                logger.logkv('ep_len_mean', safe_mean([ep_info['l'] for ep_info in self.ep_info_buf]))
-                            logger.logkv('time_elapsed', t_start - t_first_start)
-                            for (loss_val, loss_name) in zip(loss_vals, model.loss_names):
-                                logger.logkv(loss_name, loss_val)
                             logger.dumpkvs()
                     i+=1
             callback.on_training_end()
@@ -668,7 +657,7 @@ class Runner(AbstractEnvRunner):
                 successful_stages += 1
                 print ("Episode successfully finished at step {}".format(_))
             if owner > last_owner: 
-                print("Changed to Net {} at step {}".format(owner,_))
+                #print("Changed to Net {} at step {}".format(owner,_))
                 last_owner = owner
             #print(_)
             #if last_success != successful_stages:
@@ -707,7 +696,7 @@ class Runner(AbstractEnvRunner):
             mb_rewards.append(rewards)
             model.n_batch += 1
             if self.dones:
-                print('Finished batch training')
+                #print('Finished batch training')
                 break
         # batch of steps to batch of rollouts
         last_values          = model.value(self.obs, self.states, self.dones) # last observation, last state, last done
@@ -715,7 +704,7 @@ class Runner(AbstractEnvRunner):
         # discount/bootstrap off value fn
         #print("Minibatches: {}".format(len(minibatches)))
         for i, minibatch in enumerate(minibatches):
-            print("Step:{}".format(i))
+            #print("Step:{}".format(i))
             mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = minibatch
             
             mb_obs        = np.asarray(mb_obs,        dtype=self.obs.dtype)
@@ -743,8 +732,8 @@ class Runner(AbstractEnvRunner):
             try:
                 mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward = map(swap_and_flatten, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward))
             except:
-              print("model {} had no data".format(i))
-
+              #print("model {} had no data".format(i))
+              pass  
             finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
             finished_minibatches.append(finished_minibatch)
         steps_taken = [finished_minibatches[x][0].shape[0] for x in range(len(finished_minibatches))]
