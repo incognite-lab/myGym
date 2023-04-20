@@ -229,11 +229,11 @@ class BaseEnv(gym.Env):
         else:
             episode_status = "SUCCESS"
 
-        print("#---------Episode-Summary---------#")
-        print("Episode number: " + str(self.episode_number))
+        #print("#---------Episode-Summary---------#")
+        print("Episode number: " + str(self.episode_number) + " , " + str(episode_status) + " , " + str(self.episode_info))
         #print("Episode's number of steps: " + str(self.episode_steps))
-        print("Episode status: " + episode_status)
-        print("Episode info: " + self.episode_info)
+        #print("Episode status: " + episode_status)
+        #print("Episode info: " + self.episode_info)
         #print("Episode reward: " + str(self.episode_reward))
         #if hasattr(self.reward, "network_rewards"):
         #        [print("Reward network {}: {}".format(i, x)) for i, x in enumerate(self.reward.network_rewards)]
