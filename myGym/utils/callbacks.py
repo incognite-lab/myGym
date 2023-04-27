@@ -103,6 +103,7 @@ class CustomEvalCallback(EvalCallback):
         subrewards = []
         subrewsteps = []
         subrewsuccess = []
+        print("---Evaluation----")
         for e in range(n_eval_episodes):
 
             # Avoid double reset, as VecEnv are reset automatically
@@ -117,7 +118,6 @@ class CustomEvalCallback(EvalCallback):
             last_steps = 0
             srewardsteps = np.zeros(self.eval_env.env.reward.num_networks)
             srewardsuccess = np.zeros(self.eval_env.env.reward.num_networks)
-
 
             while not done:
                 steps_sum += 1
@@ -186,18 +186,18 @@ class CustomEvalCallback(EvalCallback):
 
         results = {
             "episode": "{}".format(self.n_calls),
-            "n_eval_episodes": "{}".format(n_eval_episodes),
-            "success_episodes_num": "{}".format(success_episodes_num),
+            #"n_eval_episodes": "{}".format(n_eval_episodes),
+            #"success_episodes_num": "{}".format(success_episodes_num),
             "success_rate": "{}".format(success_episodes_num/n_eval_episodes*100),
-            "mean_distance_error": "{:.2f}".format(distance_error_sum / n_eval_episodes),
-            "mean_steps_num": "{}".format(steps_sum // n_eval_episodes),
-            "mean_reward": "{:.2f}".format(np.mean(episode_rewards)),
-            "std_reward": "{:.2f}".format(np.std(episode_rewards)),
-            "number of tasks":"{}".format(self.eval_env.env.task.number_tasks),
-            "number of networks":"{}".format(self.eval_env.env.reward.num_networks),
-            "mean subgoals finished":"{}".format(str(meansgoals)),
-            "mean subgoal reward":"{}".format(str(meansr)),
-            "mean subgoal steps":"{}".format(str(meansrs)),
+            #"mean_distance_error": "{:.2f}".format(distance_error_sum / n_eval_episodes),
+            #"mean_steps_num": "{}".format(steps_sum // n_eval_episodes),
+            #"mean_reward": "{:.2f}".format(np.mean(episode_rewards)),
+            #"std_reward": "{:.2f}".format(np.std(episode_rewards)),
+            #"number of tasks":"{}".format(self.eval_env.env.task.number_tasks),
+            #"number of networks":"{}".format(self.eval_env.env.reward.num_networks),
+            #"mean subgoals finished":"{}".format(str(meansgoals)),
+            #"mean subgoal reward":"{}".format(str(meansr)),
+            #"mean subgoal steps":"{}".format(str(meansrs)),
         }
         
         for k, v in results.items():
@@ -205,7 +205,7 @@ class CustomEvalCallback(EvalCallback):
 
         
 
-        print ("mean subtasks finished:{}".format(meansgoals))
+        #print ("mean subtasks finished:{}".format(meansgoals))
 
         #if not self.is_tb_set:
         #    with self.model.graph.as_default():
@@ -239,6 +239,7 @@ class CustomEvalCallback(EvalCallback):
                 self.locals['writer'].add_summary(summary, self.num_timesteps)
 
         self.eval_env.reset()
+        print ("Evaluation finished successfully")
         return results
 
 
@@ -265,11 +266,10 @@ class CustomEvalCallback(EvalCallback):
 
             if self.log_path is not None:
                 self.evaluations_results["evaluation_after_{}_steps".format(self.n_calls)] = results
-                print("Storing evaluation results after {} calls.".format(self.n_calls))
                 filename = "evaluation_results.json"
                 with open(os.path.join(self.log_path, filename), 'w') as f:
                     json.dump(self.evaluations_results, f, indent=4)
-
+                print("Evaluation stored after {} calls.".format(self.n_calls))
         return True
 
 

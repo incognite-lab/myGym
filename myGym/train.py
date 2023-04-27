@@ -49,26 +49,26 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
         model_logdir = arg_dict["logdir"]
     print(f"model_logdir: {model_logdir}")
 
-    results_plotter.EPISODES_WINDOW = 100
-    results_plotter.plot_results([model_logdir], arg_dict["steps"], results_plotter.X_TIMESTEPS, arg_dict["algo"] + " " + arg_dict["env_name"] + " reward")
-    plt.gcf().set_size_inches(8, 6)
-    plt.savefig(os.path.join(model_logdir, model_name) + '_reward_results.png')
+    #results_plotter.EPISODES_WINDOW = 100
+    #results_plotter.plot_results([model_logdir], arg_dict["steps"], results_plotter.X_TIMESTEPS, arg_dict["algo"] + " " + arg_dict["env_name"] + " reward")
+    #plt.gcf().set_size_inches(8, 6)
+    #plt.savefig(os.path.join(model_logdir, model_name) + '_reward_results.png')
     #plot_extended_results(model_logdir, 'd', results_plotter.X_TIMESTEPS, arg_dict["algo"] + " " + arg_dict["env_name"] + " distance", "Episode Distances")
-    plt.gcf().set_size_inches(8, 6)
-    plt.savefig(os.path.join(model_logdir, model_name) + '_distance_results.png')
-    plt.close()
-    plt.close()
-    if isinstance(env, HERGoalEnvWrapper):
-        results_plotter.plot_curves([(np.arange(len(env.env.episode_final_distance)),np.asarray(env.env.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
-    else:
-        results_plotter.plot_curves([(np.arange(len(env.unwrapped.episode_final_distance)),np.asarray(env.unwrapped.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
-    plt.gcf().set_size_inches(8, 6)
-    plt.ylabel("Step Distances")
-    plt.savefig(os.path.join(model_logdir, model_name) + "_final_distance_results.png")
-    plt.close()
+    #plt.gcf().set_size_inches(8, 6)
+    #plt.savefig(os.path.join(model_logdir, model_name) + '_distance_results.png')
+    #plt.close()
+    #plt.close()
+    #if isinstance(env, HERGoalEnvWrapper):
+    #    results_plotter.plot_curves([(np.arange(len(env.env.episode_final_distance)),np.asarray(env.env.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
+    #else:
+    #    results_plotter.plot_curves([(np.arange(len(env.unwrapped.episode_final_distance)),np.asarray(env.unwrapped.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
+    #plt.gcf().set_size_inches(8, 6)
+    #plt.ylabel("Step Distances")
+    #plt.savefig(os.path.join(model_logdir, model_name) + "_final_distance_results.png")
+    #plt.close()
     print("Congratulations! Training with {} timesteps succeed!".format(arg_dict["steps"]))
-    if show:
-        plt.show()
+    #if show:
+    #    plt.show()
 
 def configure_env(arg_dict, model_logdir=None, for_train=True):
     env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
@@ -179,7 +179,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         callbacks_list.append(eval_callback)
     #callbacks_list.append(PlottingCallback(model_logdir))
     #with ProgressBarManager(total_timesteps=arg_dict["steps"]) as progress_callback:
-        #callbacks_list.append(progress_callback)
+    #    callbacks_list.append(progress_callback)
     model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
     model.save(os.path.join(model_logdir, model_name))
     print("Training time: {:.2f} s".format(time.time() - start_time))
