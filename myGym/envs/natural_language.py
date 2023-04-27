@@ -5,13 +5,16 @@ from typing import Tuple, List
 
 import numpy as np
 
-from myGym.envs.gym_env import GymEnv
 from myGym.envs.env_object import EnvObject
 import myGym.utils.colors as cs
 
 
 def _filter_out_none(iterable):
     return [e for e in iterable if e is not None]
+
+
+def _unpack_1_or_2_element_tuple(t):
+    return t if len(t) == 2 else (t[0], None)
 
 
 class TaskType(Enum):
@@ -80,8 +83,8 @@ class VirtualObject:
 
 
 class VirtualEnv:
-    def __init__(self, env: GymEnv):
-        self.env: GymEnv = env
+    def __init__(self, env):
+        self.env = env
         self.task_type: TaskType = TaskType.from_string(env.task_type)
         self.objects: List[VirtualObject] = [
             VirtualObject(o) if isinstance(o, EnvObject) else None for o in
@@ -102,7 +105,7 @@ class VirtualEnv:
         cp.objects = copy.deepcopy(self.objects)
         return cp
 
-    def get_real_env(self) -> GymEnv:
+    def get_real_env(self):
         return self.env
 
     def get_task_type(self) -> TaskType:
@@ -111,6 +114,9 @@ class VirtualEnv:
     def get_subtask_objects(self) -> List[Tuple]:
         return [tuple(_filter_out_none([self.objects[i], self.objects[i + 1]]))
                 for i in range(0, len(self.objects), 2)]
+
+    def get_current_subtask_idx(self) -> int:
+        return self.env.task.current_task
 
     def _get_objects(self, indices) -> List[VirtualObject]:
         return [self.objects[i] for i in indices]
@@ -123,13 +129,16 @@ class NaturalLanguage:
     """
     Class for generating a natural language description and producing new natural language tasks based on the given environment.
     """
-    def __init__(self, env: GymEnv, seed=0):
-        self.venv: VirtualEnv = VirtualEnv(env)
+    def __init__(self, seed=0):
+        self.venv = None
         self.rng = np.random.default_rng(seed)
 
+    def set_env(self, env):
+        self.venv = VirtualEnv(env)
+
     @staticmethod
-    def _generate_subtask_description(venv: VirtualEnv, task: TaskType, *place_clauses) -> str:
-        c1, c2 = place_clauses if len(place_clauses) == 2 else (place_clauses[0], None)
+    def _form_subtask_sentence(venv: VirtualEnv, task: TaskType, *clauses) -> str:
+        c1, c2 = _unpack_1_or_2_element_tuple(clauses)
 
         # pattern reach
         if task is TaskType.REACH:
@@ -165,30 +174,6 @@ class NaturalLanguage:
 
         return " ".join(tokens)
 
-    def generate_task_description(self) -> str:
-        """
-        Generate a natural language description for the environment task.
-        Warning: in multistep tasks must be called during the 1-st subtask
-        (due to the assumption about object's order in GymEnv.task_objects), otherwise the behaviour is undefined.
-
-        Returns:
-            :return description: (string) Natural language description
-        """
-        subtasks = []
-        task_type = self.venv.get_task_type()
-
-        for objects in self.venv.get_subtask_objects():
-            o1, o2 = objects if len(objects) == 2 else (objects[0], None)
-
-            if task_type in TaskType.get_pattern_reach_task_types():
-                subtasks.append(NaturalLanguage._generate_subtask_description(self.venv, self.venv.get_task_type(), o1.get_name_with_properties()))
-            elif task_type in TaskType.get_pattern_press_task_types():
-                subtasks.append(NaturalLanguage._generate_subtask_description(self.venv, self.venv.get_task_type(), o1.get_name()))
-            else:
-                subtasks.append(NaturalLanguage._generate_subtask_description(self.venv, self.venv.get_task_type(), o1.get_name_with_properties(), "to " + o2.get_name_with_properties()))
-
-        return ", ".join(subtasks)
-
     @staticmethod
     def _get_movable_object_clauses(venv: VirtualEnv) -> Tuple[List[str], List[str], List[str]]:
         objects = venv.get_movable_objects()
@@ -205,6 +190,51 @@ class NaturalLanguage:
 
         return main_clauses, ["to " + c for c in main_clauses], place_preposition_clauses
 
+    @staticmethod
+    def _get_object_descriptions(obj: VirtualObject, all_objects: List[VirtualObject], with_to=False):
+        prepositions = []
+        for o in all_objects:
+            for preposition in ["left to", "right to", "close to", "above"]:
+                prepositions.append("the object " + preposition + " " + o.get_name_with_properties())
+
+        return [("" if not with_to else "to ") + obj.get_name_with_properties()] + prepositions
+
+    def generate_current_subtask_description(self):
+        o1, o2 = _unpack_1_or_2_element_tuple(self.venv.get_subtask_objects()[self.venv.get_current_subtask_idx()])
+        task_type = self.venv.get_task_type()
+        assert task_type not in TaskType.get_pattern_press_task_types()  # TODO: Implement the press pattern (problem with a color/properties)
+        c1 = self.rng.choice(self._get_object_descriptions(o1, self.venv.get_movable_objects()))
+        c2 = self.rng.choice(self._get_object_descriptions(o2, self.venv.get_movable_objects(), with_to=True)) if o2 is not None else None
+
+        if task_type in TaskType.get_pattern_reach_task_types():
+            return self._form_subtask_sentence(self.venv, task_type, c1)
+        elif task_type in TaskType.get_pattern_push_task_types():
+            return self._form_subtask_sentence(self.venv, task_type, c1, c2)
+
+    def generate_task_description(self) -> str:
+        """
+        Generate a natural language description for the environment task.
+        Warning: in multistep tasks must be called during the 1-st subtask
+        (due to the assumption about object's order in GymEnv.task_objects), otherwise the behaviour is undefined.
+
+        Returns:
+            :return description: (string) Natural language description
+        """
+        subtasks = []
+        task_type = self.venv.get_task_type()
+
+        for objects in self.venv.get_subtask_objects():
+            o1, o2 = objects if len(objects) == 2 else (objects[0], None)
+
+            if task_type in TaskType.get_pattern_reach_task_types():
+                subtasks.append(NaturalLanguage._form_subtask_sentence(self.venv, self.venv.get_task_type(), o1.get_name_with_properties()))
+            elif task_type in TaskType.get_pattern_press_task_types():
+                subtasks.append(NaturalLanguage._form_subtask_sentence(self.venv, self.venv.get_task_type(), o1.get_name()))
+            else:
+                subtasks.append(NaturalLanguage._form_subtask_sentence(self.venv, self.venv.get_task_type(), o1.get_name_with_properties(), "to " + o2.get_name_with_properties()))
+
+        return ", ".join(subtasks)
+
     def _generate_new_subtasks_from_1_env(self, task_desc: str, venv: VirtualEnv) -> List[Tuple[str, VirtualEnv]]:
         tuples = []
         main_clauses, main_clauses_with_to, place_preposition_clauses = NaturalLanguage._get_movable_object_clauses(venv)
@@ -214,13 +244,13 @@ class NaturalLanguage:
 
         # pattern reach
         for c in itertools.chain(main_clauses, place_preposition_clauses):
-            tuples.append((task_desc + NaturalLanguage._generate_subtask_description(venv, TaskType.REACH, c), venv))
+            tuples.append((task_desc + NaturalLanguage._form_subtask_sentence(venv, TaskType.REACH, c), venv))
 
         # pattern push
         task_types = [TaskType.PUSH, TaskType.PNP, TaskType.POKE, TaskType.THROW]
         for c2 in itertools.chain(main_clauses_with_to, place_preposition_clauses):
             for tt, c1 in zip(task_types, self.rng.choice(main_clauses, len(task_types), replace=True)):
-                tuples.append((task_desc + NaturalLanguage._generate_subtask_description(venv, tt, c1, c2), venv))
+                tuples.append((task_desc + NaturalLanguage._form_subtask_sentence(venv, tt, c1, c2), venv))
 
         return tuples
 

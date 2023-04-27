@@ -14,6 +14,7 @@ import pkg_resources
 from myGym.envs.human import Human
 import myGym.utils.colors as cs
 from myGym.envs.vision_module import get_module_type
+from myGym.envs.natural_language import NaturalLanguage
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
 
@@ -117,7 +118,7 @@ class GymEnv(CameraEnv):
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
         if not hasattr(self, "task"):
           self.task = None
-
+        self.nl = NaturalLanguage()
 
     def _init_task_and_reward(self):
         if self.reward == 'distractor':
@@ -280,6 +281,7 @@ class GymEnv(CameraEnv):
         self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
+        self.nl.set_env(self)
         return self.flatten_obs(self._observation.copy())
 
     def shift_next_subtask(self):
@@ -341,6 +343,8 @@ class GymEnv(CameraEnv):
             :return done: (bool) Whether this stop is episode's final
             :return info: (dict) Additional information about step
         """
+        if self.episode_steps == 0:
+            self.p.addUserDebugText(self.nl.generate_current_subtask_description(), [0, 0, 1], textSize=1.2)
         self._apply_action_robot(action)
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
@@ -352,7 +356,7 @@ class GymEnv(CameraEnv):
             done = self.episode_over
             info = {'d': self.task.last_distance / self.task.init_distance, 'f': int(self.episode_failed), 'o': self._observation}
         if done: self.successful_finish(info)
-        if self.task.subtask_over: 
+        if self.task.subtask_over:
             self.reset(only_subtask=True)
         #return self._observation, reward, done, info
         return self.flatten_obs(self._observation.copy()), reward, done, info
@@ -449,13 +453,13 @@ class GymEnv(CameraEnv):
 
     def highlight_active_object(self, env_o, obj_role):
         if obj_role == "goal":
-            env_o.set_color(cs.name_to_rgba('dark green'))
+            env_o.set_color(cs.get_random_rgba())
         elif obj_role == "init":
-            env_o.set_color(cs.name_to_rgba('green'))
+            env_o.set_color(cs.get_random_rgba())
         elif obj_role == "done":
-            env_o.set_color(cs.name_to_rgba('blue'))
+            env_o.set_color(cs.get_random_rgba())
         else:
-            env_o.set_color(cs.name_to_rgba('gray'))
+            env_o.set_color(cs.get_random_rgba())
 
     def color_of_object(self, object):
         """
