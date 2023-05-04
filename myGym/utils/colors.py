@@ -6,46 +6,48 @@ from typing import List
 import numpy as np
 
 SEED = 0
+TRANSPARENCY_VALUE = 0.5
 NUMBER_OF_RGB_CHANNELS = 3
-COLOR_DICT = {
-    "dark green": (0, 0.4, 0, 0.5),
+OPAQUE_COLOR_DICT = {
     "green": (0, 0.8, 0, 1),
     "blue": (0.5, 0.8, 1, 1),
     "gray": (0.2, 0.2, 0.2, 1),
-    "transparent black": (0, 0, 0, 0.5),
     "cyan": (0.0, 1.0, 1.0, 1),
     "orange": (1.0, 0.65, 0.0, 1),
     "red": (1, 0, 0, 1),
     "pink": (1, 0.41, 0.7, 1),
 }
-
-COLOR_VALUE_LIST = list(COLOR_DICT.values())
+TRANSPARENT_COLOR_DICT = {"transparent " + k: (v[0], v[1], v[2], TRANSPARENCY_VALUE) for k, v in OPAQUE_COLOR_DICT.items()}
+COLOR_DICT = {**OPAQUE_COLOR_DICT, **TRANSPARENT_COLOR_DICT}
 REVERSED_COLOR_DICT = {v: k for k, v in COLOR_DICT.items()}
 rng = np.random.default_rng(SEED)
 
 
-def get_all_colors(excluding=None):
+def get_all_colors(transparent=False, excluding=None):
     """
-    Draw a random color from the color dictionary
+    Form a list of available colors.
 
     Parameters:
+        :param transparent: (list) Whether the colors should be transparent
         :param excluding: (list) List of colors to exclude
     Returns:
         :return rgba: (tuple) tuple of rgba channels
     """
-    return [v for k, v in COLOR_DICT.items() if k not in excluding]
+    excluding = [] if excluding is None else excluding
+    return [v for k, v in (OPAQUE_COLOR_DICT if not transparent else TRANSPARENT_COLOR_DICT).items() if k not in excluding]
 
 
-def get_random_rgba(excluding=None):
+def get_random_rgba(transparent=False, excluding=None):
     """
     Draw a random color from the color dictionary
 
     Parameters:
+        :param transparent: (bool) Whether the colors should be transparent
         :param excluding: (list) List of colors to exclude
     Returns:
         :return rgba: (tuple) tuple of rgba channels
     """
-    return tuple(rng.choice(COLOR_VALUE_LIST)) if excluding is None else tuple(rng.choice(get_all_colors(excluding)))
+    return tuple(rng.choice(get_all_colors(transparent, excluding)))
 
 
 def name_to_rgba(name: str) -> List:
