@@ -366,7 +366,7 @@ class GymEnv(CameraEnv):
             :return info: (dict) Additional information about step
         """
         if self.episode_steps == 0:
-            self.p.addUserDebugText(self.nl.generate_current_subtask_description(), [0, 0, 1], textSize=1)
+            self.p.addUserDebugText(self.nl.generate_current_subtask_description(), [1, 0, 1], textSize=1)
         self._apply_action_robot(action)
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
