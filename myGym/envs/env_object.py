@@ -58,7 +58,7 @@ class EnvObject:
         Parameters:
             :param color: (list) RGB color to set
         """
-        self.color_rgba =  color
+        self.color_rgba = color
         if not self.virtual:
             self.p.changeVisualShape(self.uid, -1, rgbaColor=self.color_rgba)
 
@@ -317,6 +317,9 @@ class EnvObject:
             :return self.uid: Object's unique ID
         """
         return self.uid
+
+    def is_dummy(self):
+        return "_dummy" in self.get_name()
 
     @staticmethod
     def get_random_object_position(boarders):

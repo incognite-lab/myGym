@@ -18,6 +18,10 @@ from myGym.envs.natural_language import NaturalLanguage
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
 
+# used to exclude these colors for other objects, in the order of goal, init, done, else
+COLORS_RESERVED_FOR_HIGHLIGHTING = ["dark green", "green", "blue", "gray"]
+
+
 class GymEnv(CameraEnv):
     """
     Environment class for particular environment based on myGym basic environment classes
@@ -118,7 +122,9 @@ class GymEnv(CameraEnv):
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
         if not hasattr(self, "task"):
           self.task = None
+
         self.nl = NaturalLanguage()
+        self.nl_mode = "init" not in self.task_objects_dict[0]
 
     def _init_task_and_reward(self):
         if self.reward == 'distractor':
@@ -256,14 +262,30 @@ class GymEnv(CameraEnv):
         if not only_subtask:
             self.robot.reset(random_robot=random_robot)
             super().reset(hard=hard)
-            all_subtask_objects = [x for i,x in enumerate(self.task_objects_dict) if i!=self.task.current_task]
-            subtasks_processed = [list(x.values()) for x in all_subtask_objects]
-            subtask_objects = self._randomly_place_objects({"obj_list": list(chain.from_iterable(subtasks_processed))})
-            self.env_objects = {"env_objects": self._randomly_place_objects(self.used_objects)}
-            self.task_objects = self._randomly_place_objects(self.task_objects_dict[self.task.current_task])
-            self.task_objects = dict(ChainMap(*self.task_objects))
-            if subtask_objects:
-                self.task_objects["distractor"] = subtask_objects
+            if not self.nl_mode:
+                all_subtask_objects = [x for i,x in enumerate(self.task_objects_dict) if i!=self.task.current_task]
+                subtasks_processed = [list(x.values()) for x in all_subtask_objects]
+                subtask_objects = self._randomly_place_objects({"obj_list": list(chain.from_iterable(subtasks_processed))})
+                self.env_objects = {"env_objects": self._randomly_place_objects(self.used_objects)}
+                self.task_objects = self._randomly_place_objects(self.task_objects_dict[self.task.current_task])
+                print(self.task_objects)
+                self.task_objects = dict(ChainMap(*self.task_objects))
+                if subtask_objects:
+                    self.task_objects["distractor"] = subtask_objects
+            else:
+                available_for_task_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict})
+                init, goal, other_objects = self.nl.create_subtask(self, available_for_task_objects)
+                self.task_objects = {"actual_state": init, "goal_state": goal}
+                self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
+
+                i = 0
+                colors = cs.get_all_colors(excluding=COLORS_RESERVED_FOR_HIGHLIGHTING + ["transparent black"])
+                for o in available_for_task_objects:
+                    if not o.is_dummy():
+                        o.set_color(colors[i % len(colors)])
+                        i += 1
+                    else:
+                        o.set_color(cs.name_to_rgba("transparent black"))
         if only_subtask:
             if self.task.current_task < (len(self.task_objects_dict)):
                 self.shift_next_subtask()
@@ -344,7 +366,7 @@ class GymEnv(CameraEnv):
             :return info: (dict) Additional information about step
         """
         if self.episode_steps == 0:
-            self.p.addUserDebugText(self.nl.generate_current_subtask_description(), [0, 0, 1], textSize=1.2)
+            self.p.addUserDebugText(self.nl.generate_current_subtask_description(), [0, 0, 1], textSize=1)
         self._apply_action_robot(action)
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
@@ -453,13 +475,13 @@ class GymEnv(CameraEnv):
 
     def highlight_active_object(self, env_o, obj_role):
         if obj_role == "goal":
-            env_o.set_color(cs.get_random_rgba())
+            env_o.set_color(cs.name_to_rgba(COLORS_RESERVED_FOR_HIGHLIGHTING[0]))
         elif obj_role == "init":
-            env_o.set_color(cs.get_random_rgba())
+            env_o.set_color(cs.name_to_rgba(COLORS_RESERVED_FOR_HIGHLIGHTING[1]))
         elif obj_role == "done":
-            env_o.set_color(cs.get_random_rgba())
+            env_o.set_color(cs.name_to_rgba(COLORS_RESERVED_FOR_HIGHLIGHTING[2]))
         else:
-            env_o.set_color(cs.get_random_rgba())
+            env_o.set_color(cs.name_to_rgba(COLORS_RESERVED_FOR_HIGHLIGHTING[3]))
 
     def color_of_object(self, object):
         """

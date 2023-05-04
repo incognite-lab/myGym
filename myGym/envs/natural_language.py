@@ -81,6 +81,10 @@ class VirtualObject:
     def get_name_with_properties(self) -> str:
         return "the " + self.properties + " " + self.name
 
+    def get_position(self) -> np.array:
+        # TODO: Replace with a virtual position that can be dynamically changed
+        return np.array(self.obj.get_position())
+
 
 class VirtualEnv:
     def __init__(self, env):
@@ -124,6 +128,26 @@ class VirtualEnv:
     def get_movable_objects(self) -> List[VirtualObject]:
         return self._get_objects(self.movable_object_indices)
 
+    def get_all_objects_in_relation(self, obj: VirtualObject, relation: str) -> List[VirtualObject]:
+        # TODO: Check whether the angle between objects isn't too large
+        # TODO: Add the relations above/below
+        objects = []
+        p1 = obj.get_position()
+
+        for o in self.get_movable_objects():
+            if o is not obj:
+                p2 = o.get_position()
+                if relation == "l" and p1[0] < p2[0] or relation == "r" and p2[0] < p1[0]:
+                    objects.append(o)
+
+        return objects
+
+    def get_all_objects_left_of(self, obj: VirtualObject) -> List[VirtualObject]:
+        return self.get_all_objects_in_relation(obj, "l")
+
+    def get_all_objects_right_of(self, obj: VirtualObject) -> List[VirtualObject]:
+        return self.get_all_objects_in_relation(obj, "r")
+
 
 class NaturalLanguage:
     """
@@ -135,6 +159,19 @@ class NaturalLanguage:
 
     def set_env(self, env):
         self.venv = VirtualEnv(env)
+
+    def create_subtask(self, env, objects: List[EnvObject]):
+        task_type = TaskType.from_string(env.task_type)
+        assert task_type in [TaskType.PNP, TaskType.PNPROT, TaskType.PNPSWIPE]  # TODO: Add the remaining tasks
+
+        real_objects = [o for o in objects if not o.is_dummy()]
+        dummy_objects = [o for o in objects if o.is_dummy()]
+        if len(real_objects) == 0 or len(dummy_objects) == 0:
+            raise Exception("Not enough real or dummy objects (at least one object must be present in every group)!")
+
+        init = self.rng.choice(real_objects)
+        goal = self.rng.choice(dummy_objects)
+        return init, goal, list(set(objects) - {init, goal})
 
     @staticmethod
     def _form_subtask_sentence(venv: VirtualEnv, task: TaskType, *clauses) -> str:
@@ -191,25 +228,23 @@ class NaturalLanguage:
         return main_clauses, ["to " + c for c in main_clauses], place_preposition_clauses
 
     @staticmethod
-    def _get_object_descriptions(obj: VirtualObject, all_objects: List[VirtualObject], with_to=False):
-        prepositions = []
-        for o in all_objects:
-            for preposition in ["left to", "right to", "close to", "above"]:
-                prepositions.append("the object " + preposition + " " + o.get_name_with_properties())
-
-        return [("" if not with_to else "to ") + obj.get_name_with_properties()] + prepositions
+    def _get_object_descriptions(venv: VirtualEnv, obj: VirtualObject, with_to=False):
+        return [("" if not with_to else "to ") + obj.get_name_with_properties()] + \
+            ["the object left to " + o.get_name_with_properties() for o in venv.get_all_objects_right_of(obj)] +\
+            ["the object right to " + o.get_name_with_properties() for o in venv.get_all_objects_left_of(obj)]
 
     def generate_current_subtask_description(self):
         o1, o2 = _unpack_1_or_2_element_tuple(self.venv.get_subtask_objects()[self.venv.get_current_subtask_idx()])
         task_type = self.venv.get_task_type()
-        assert task_type not in TaskType.get_pattern_press_task_types()  # TODO: Implement the press pattern (problem with a color/properties)
-        c1 = self.rng.choice(self._get_object_descriptions(o1, self.venv.get_movable_objects()))
-        c2 = self.rng.choice(self._get_object_descriptions(o2, self.venv.get_movable_objects(), with_to=True)) if o2 is not None else None
+        c1 = self.rng.choice(self._get_object_descriptions(self.venv, o1))
+        c2 = self.rng.choice(self._get_object_descriptions(self.venv, o2, with_to=True)) if o2 is not None else None
 
         if task_type in TaskType.get_pattern_reach_task_types():
             return self._form_subtask_sentence(self.venv, task_type, c1)
         elif task_type in TaskType.get_pattern_push_task_types():
             return self._form_subtask_sentence(self.venv, task_type, c1, c2)
+        else:
+            return self._form_subtask_sentence(self.venv, task_type, c1)
 
     def generate_task_description(self) -> str:
         """
