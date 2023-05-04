@@ -278,14 +278,18 @@ class GymEnv(CameraEnv):
                 self.task_objects = {"actual_state": init, "goal_state": goal}
                 self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
 
-                i = 0
-                colors = cs.get_all_colors(excluding=COLORS_RESERVED_FOR_HIGHLIGHTING + ["transparent black"])
+                not_dummy = sum(1 for o in available_for_task_objects if not o.is_dummy())
+                opaque_colors = cs.draw_random_rgba(size=not_dummy, excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)
+                transparent_colors = cs.draw_random_rgba(size=len(available_for_task_objects) - not_dummy, transparent=True, excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)
+                i, j = 0, 0
+
                 for o in available_for_task_objects:
                     if not o.is_dummy():
-                        o.set_color(colors[i % len(colors)])
+                        o.set_color(opaque_colors[i])
                         i += 1
                     else:
-                        o.set_color(cs.name_to_rgba("transparent black"))
+                        o.set_color(transparent_colors[j])
+                        j += 1
         if only_subtask:
             if self.task.current_task < (len(self.task_objects_dict)):
                 self.shift_next_subtask()
@@ -475,13 +479,13 @@ class GymEnv(CameraEnv):
 
     def highlight_active_object(self, env_o, obj_role):
         if obj_role == "goal":
-            env_o.set_color(cs.name_to_rgba(COLORS_RESERVED_FOR_HIGHLIGHTING[0]))
+            env_o.set_color(cs.name_to_rgba("transparent green"))
         elif obj_role == "init":
-            env_o.set_color(cs.name_to_rgba(COLORS_RESERVED_FOR_HIGHLIGHTING[1]))
+            env_o.set_color(cs.name_to_rgba("green"))
         elif obj_role == "done":
-            env_o.set_color(cs.name_to_rgba(COLORS_RESERVED_FOR_HIGHLIGHTING[2]))
+            env_o.set_color(cs.name_to_rgba("blue"))
         else:
-            env_o.set_color(cs.name_to_rgba(COLORS_RESERVED_FOR_HIGHLIGHTING[3]))
+            env_o.set_color(cs.name_to_rgba("gray"))
 
     def color_of_object(self, object):
         """
@@ -493,7 +497,7 @@ class GymEnv(CameraEnv):
             :return color: (list) RGB color
         """
         if object.name not in self.color_dict:
-            return cs.get_random_rgba()
+            return cs.draw_random_rgba()
         else:
             color_name = random.sample(self.color_dict[object.name], 1)[0]
             color = cs.name_to_rgba(color_name)

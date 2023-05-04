@@ -6,7 +6,7 @@ from typing import List
 import numpy as np
 
 SEED = 0
-TRANSPARENCY_VALUE = 0.5
+TRANSPARENCY_VALUE = 0.4
 NUMBER_OF_RGB_CHANNELS = 3
 OPAQUE_COLOR_DICT = {
     "green": (0, 0.8, 0, 1),
@@ -37,17 +37,23 @@ def get_all_colors(transparent=False, excluding=None):
     return [v for k, v in (OPAQUE_COLOR_DICT if not transparent else TRANSPARENT_COLOR_DICT).items() if k not in excluding]
 
 
-def get_random_rgba(transparent=False, excluding=None):
+def draw_random_rgba(size=None, replace=False, transparent=False, excluding=None):
     """
-    Draw a random color from the color dictionary
+    Draw a random color from the color dictionary.
 
     Parameters:
+        :param size: (int) If any other than None, then it defines the resulting list size
+        :param replace: (bool) Whether to draw with a replacement. It would raise an exception if the number of colors is not enough
         :param transparent: (bool) Whether the colors should be transparent
         :param excluding: (list) List of colors to exclude
     Returns:
         :return rgba: (tuple) tuple of rgba channels
     """
-    return tuple(rng.choice(get_all_colors(transparent, excluding)))
+    colors = get_all_colors(transparent, excluding)
+    if size is not None and len(colors) < size:
+        msg = f"The size argument ({size}) is greater than the actuaal number of available colors ({len(colors)})"
+        raise Exception(msg)
+    return [tuple(r) for r in rng.choice(colors, size=size, replace=replace)]
 
 
 def name_to_rgba(name: str) -> List:
