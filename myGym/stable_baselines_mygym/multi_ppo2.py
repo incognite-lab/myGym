@@ -270,7 +270,7 @@ class MultiPPO2(ActorCriticRLModel):
 
                         if self.verbose >= 1 and (update % log_interval == 0 or update == 1):
                             explained_var = explained_variance(values, returns)
-                            logger.logkv("Steps", steps_used)
+                            #logger.logkv("Steps", steps_used)
                             logger.dumpkvs()
                     i+=1
             callback.on_training_end()
