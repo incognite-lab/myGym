@@ -266,6 +266,9 @@ class CustomEvalCallback(EvalCallback):
 
             if self.log_path is not None:
                 self.evaluations_results["evaluation_after_{}_steps".format(self.n_calls)] = results
+                print(self.n_calls)
+                print(self.num_timesteps)
+                print (self.evaluations_results)
                 filename = "evaluation_results.json"
                 with open(os.path.join(self.log_path, filename), 'w') as f:
                     json.dump(self.evaluations_results, f, indent=4)

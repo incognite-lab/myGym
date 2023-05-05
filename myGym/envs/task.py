@@ -273,7 +273,7 @@ class TaskModule():
         self.env.robot.release_all_objects()
 
     def end_episode_success(self):
-        print("Finished subtask {}".format(self.current_task))
+        #print("Finished subtask {}".format(self.current_task))
         if self.current_task == (self.number_tasks-1):
             self.env.episode_over = True
             self.env.robot.release_all_objects()
