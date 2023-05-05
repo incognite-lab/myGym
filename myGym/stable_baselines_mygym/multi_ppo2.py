@@ -272,7 +272,10 @@ class MultiPPO2(ActorCriticRLModel):
                             explained_var = explained_variance(values, returns)
                             #logger.logkv("Steps", steps_used)
                             logger.dumpkvs()
+                    
                     i+=1
+                print("Steps: " + str(self.num_timesteps) + "/" + str(total_timesteps) + " - (" + str(round(self.num_timesteps/total_timesteps*100)) + "%)")
+
             callback.on_training_end()
             return self
 

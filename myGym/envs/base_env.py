@@ -230,7 +230,7 @@ class BaseEnv(gym.Env):
             episode_status = "SUCCESS"
 
         #print("#---------Episode-Summary---------#")
-        #print("Episode number: " + str(self.episode_number) + " , " + str(episode_status) + " , " + str(self.episode_info))
+        print("Episode number: " + str(self.episode_number) + " , " + str(episode_status) + " , " + str(self.episode_info))
         #print("Episode's number of steps: " + str(self.episode_steps))
         #print("Episode status: " + episode_status)
         #print("Episode info: " + self.episode_info)
