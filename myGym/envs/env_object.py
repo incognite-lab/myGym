@@ -318,9 +318,6 @@ class EnvObject:
         """
         return self.uid
 
-    def is_dummy(self):
-        return "_dummy" in self.get_name()
-
     @staticmethod
     def get_random_object_position(boarders):
         """

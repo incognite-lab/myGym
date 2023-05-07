@@ -47,13 +47,14 @@ def draw_random_rgba(size=None, replace=False, transparent=False, excluding=None
         :param transparent: (bool) Whether the colors should be transparent
         :param excluding: (list) List of colors to exclude
     Returns:
-        :return rgba: (tuple) tuple of rgba channels
+        :return rgba: (tuple or list) tuple(s) of rgba channels
     """
     colors = get_all_colors(transparent, excluding)
     if size is not None and len(colors) < size:
         msg = f"The size argument ({size}) is greater than the actuaal number of available colors ({len(colors)})"
         raise Exception(msg)
-    return [tuple(r) for r in rng.choice(colors, size=size, replace=replace)]
+    rgba = rng.choice(colors, size=size, replace=replace)
+    return tuple(rgba) if size is None else [tuple(r) for r in rgba]
 
 
 def name_to_rgba(name: str) -> List:

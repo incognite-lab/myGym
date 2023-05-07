@@ -124,7 +124,14 @@ class GymEnv(CameraEnv):
           self.task = None
 
         self.nl = NaturalLanguage()
-        self.nl_mode = "init" not in self.task_objects_dict[0]
+        self.nl_mode = not isinstance(self.task_objects_dict, list)
+        self.same_episode_as_task_initialization = True
+        self.current_subtask_description = None
+
+        if self.nl_mode:
+            super().reset(hard=False)
+            self.nl.set_env(self)
+            self._place_objects_and_generate_language_task_based_on_them()
 
     def _init_task_and_reward(self):
         if self.reward == 'distractor':
@@ -247,6 +254,24 @@ class GymEnv(CameraEnv):
         """
         return [(sub + 1) * (h - l) / 2 + l for sub, l, h in zip(action, self.action_low, self.action_high)]
 
+    def _place_objects_and_generate_language_task_based_on_them(self):
+        init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
+        goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
+        for i, c in enumerate(cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+            init_objects[i].set_color(c)
+        for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=True, excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+            goal_objects[i].set_color(c)
+
+        self.nl.set_env(self, init_goal_objects=(init_objects, goal_objects))
+        self.current_subtask_description = self.nl.generate_random_subtask_with_random_description()
+        self.task_type, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.current_subtask_description, init_objects + goal_objects)
+
+        self.task_objects = {"actual_state": init, "goal_state": goal}
+        other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
+        self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
+
+        self.nl.set_env(self)  # for internal update of task_objects
+
     def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False):
         """
         Environment reset called at the beginning of an episode. Reset state of objects, robot, task and reward.
@@ -261,8 +286,8 @@ class GymEnv(CameraEnv):
         """
         if not only_subtask:
             self.robot.reset(random_robot=random_robot)
-            super().reset(hard=hard)
             if not self.nl_mode:
+                super().reset(hard=hard)
                 all_subtask_objects = [x for i,x in enumerate(self.task_objects_dict) if i!=self.task.current_task]
                 subtasks_processed = [list(x.values()) for x in all_subtask_objects]
                 subtask_objects = self._randomly_place_objects({"obj_list": list(chain.from_iterable(subtasks_processed))})
@@ -273,25 +298,12 @@ class GymEnv(CameraEnv):
                 if subtask_objects:
                     self.task_objects["distractor"] = subtask_objects
             else:
-                available_for_task_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict})
-                init, goal, other_objects = self.nl.create_subtask(self, available_for_task_objects)
-                self.task_objects = {"actual_state": init, "goal_state": goal}
-                self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
-
-                not_dummy = sum(1 for o in available_for_task_objects if not o.is_dummy())
-                opaque_colors = cs.draw_random_rgba(size=not_dummy, excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)
-                transparent_colors = cs.draw_random_rgba(size=len(available_for_task_objects) - not_dummy, transparent=True, excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)
-                i, j = 0, 0
-
-                for o in available_for_task_objects:
-                    if not o.is_dummy():
-                        o.set_color(opaque_colors[i])
-                        i += 1
-                    else:
-                        o.set_color(transparent_colors[j])
-                        j += 1
+                if not self.same_episode_as_task_initialization:
+                    super().reset(hard=hard)
+                    self._place_objects_and_generate_language_task_based_on_them()
+                self.same_episode_as_task_initialization = False
         if only_subtask:
-            if self.task.current_task < (len(self.task_objects_dict)):
+            if self.task.current_task < (len(self.task_objects_dict)) and not self.nl_mode:
                 self.shift_next_subtask()
         if self.has_distractor:
             distrs = []
@@ -307,7 +319,6 @@ class GymEnv(CameraEnv):
         self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
-        self.nl.set_env(self)
         return self.flatten_obs(self._observation.copy())
 
     def shift_next_subtask(self):
@@ -369,8 +380,8 @@ class GymEnv(CameraEnv):
             :return done: (bool) Whether this stop is episode's final
             :return info: (dict) Additional information about step
         """
-        if self.episode_steps == 0:
-            self.p.addUserDebugText(self.nl.generate_current_subtask_description(), [1, 0, 1], textSize=1)
+        if self.nl_mode and self.episode_steps == 0:
+            self.p.addUserDebugText(self.current_subtask_description, [1, 0, 1], textSize=1)
         self._apply_action_robot(action)
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
