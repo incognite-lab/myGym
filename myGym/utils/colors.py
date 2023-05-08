@@ -6,7 +6,7 @@ from typing import List
 import numpy as np
 
 SEED = 0
-TRANSPARENCY_VALUE = 0.4
+TRANSPARENCY_VALUE = 0.25
 NUMBER_OF_RGB_CHANNELS = 3
 OPAQUE_COLOR_DICT = {
     "green": (0, 0.8, 0, 1),

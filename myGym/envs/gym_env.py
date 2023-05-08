@@ -262,9 +262,11 @@ class GymEnv(CameraEnv):
         for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=True, excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
             goal_objects[i].set_color(c)
 
-        self.nl.set_env(self, init_goal_objects=(init_objects, goal_objects))
+        self.nl.set_env(self, real_dummy_objects=(init_objects, goal_objects))
         self.current_subtask_description = self.nl.generate_random_subtask_with_random_description()
-        self.task_type, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.current_subtask_description, init_objects + goal_objects)
+
+        self.nl.set_env(self, all_objects=init_objects + goal_objects)
+        self.task_type, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.current_subtask_description)
 
         self.task_objects = {"actual_state": init, "goal_state": goal}
         other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
@@ -381,7 +383,7 @@ class GymEnv(CameraEnv):
             :return info: (dict) Additional information about step
         """
         if self.nl_mode and self.episode_steps == 0:
-            self.p.addUserDebugText(self.current_subtask_description, [1, 0, 1], textSize=1)
+            self.p.addUserDebugText(self.current_subtask_description, [2, 0, 1], textSize=1)
         self._apply_action_robot(action)
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()

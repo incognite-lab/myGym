@@ -73,11 +73,35 @@ class VirtualObject:
         cp.__dict__.update(self.__dict__)
         return cp
 
+    def get_env_object(self) -> EnvObject:
+        return self.obj
+
     def get_name(self) -> str:
         return "the " + self.name
 
     def get_name_with_properties(self) -> str:
         return "the " + self.properties + " " + self.name
+
+    @staticmethod
+    def extract_object_from_name_with_properties(desc: str, objects: List):
+        color_name = _remove_last_word(_remove_first_word(desc))
+        object_matches = [o for o in objects if o.properties == color_name]
+        if len(object_matches) != 1:
+            msg = f"Cannot uniquely determine object, there are {len(object_matches)} objects with description \"{desc}\""
+            raise Exception(msg)
+        return object_matches[0]
+
+    def get_name_as_unknown_object_with_properties(self) -> str:
+        return "the " + self.properties + " object"
+
+    @staticmethod
+    def extract_objects_from_unknown_object_with_properties(desc: str, objects: List):
+        color_name = _remove_last_word(_remove_first_word(desc))
+        object_matches = [o for o in objects if o.properties == color_name]
+        if len(object_matches) == 0:
+            msg = f"There are no objects with description \"{desc}\""
+            raise Exception(msg)
+        return object_matches
 
     def get_position(self) -> np.array:
         # TODO: Replace with a virtual position that can be dynamically changed
@@ -85,34 +109,43 @@ class VirtualObject:
 
 
 class VirtualEnv:
-    def __init__(self, env, init_goal_objects: Tuple[List[EnvObject], List[EnvObject]] = None):
+    def __init__(self,
+                 env,
+                 real_dummy_objects: Tuple[List[EnvObject], List[EnvObject]] = None,
+                 all_objects: List[EnvObject] = None
+    ):
         self.env = env
         self.task_type: TaskType = TaskType.from_string(env.task_type)
         assert self.task_type not in TaskType.get_pattern_press_task_types()  # not implemented yet
         self.objects: List[VirtualObject] = []
-        self.movable_object_indices: List[int] = []
-        self.goal_object_indices: List[int] = []
+        self.real_object_indices: List[int] = []
+        self.dummy_object_indices: List[int] = []
 
-        if init_goal_objects is None and self.env.task_objects:
+        if real_dummy_objects and all_objects:
+            raise Exception("The only one argument can be passed, real_dummy_objects or all_objects")
+
+        if real_dummy_objects:
+            init, goal = real_dummy_objects
+            if len(init) == 0 or len(goal) == 0:
+                raise Exception("Not enough real or dummy objects (every group must have at least 1 object)!")
+            self.objects = list(map(VirtualObject, init + goal))
+            self.real_object_indices = list(range(len(init)))
+            self.dummy_object_indices = list(range(len(init), len(init) + len(goal)))
+        elif all_objects:
+            self.objects = list(map(VirtualObject, all_objects))
+        elif self.env.task_objects:
             self.objects: List[VirtualObject] = [
                 VirtualObject(o) if isinstance(o, EnvObject) else None for o in
                 [self.env.task_objects["actual_state"], self.env.task_objects["goal_state"]] +
                 (self.env.task_objects["distractor"] if "distractor" in self.env.task_objects else [])
             ]
-            self.movable_object_indices = list(
+            self.real_object_indices = list(
                 range(1, len(self.objects), 2) if self.get_task_type() in TaskType.get_pattern_reach_task_types()
                 else (
                     range(0, len(self.objects), 2) if self.get_task_type() in TaskType.get_pattern_push_task_types()
                     else []
                 )
             )
-        elif init_goal_objects is not None:
-            init, goal = init_goal_objects
-            if len(init) == 0 or len(goal) == 0:
-                raise Exception("Not enough real or dummy objects (every group must have at least 1 object)!")
-            self.objects = list(map(VirtualObject, init + goal))
-            self.movable_object_indices = list(range(len(init)))
-            self.goal_object_indices = list(range(len(init), len(init) + len(goal)))
 
     def __copy__(self):
         cp = VirtualEnv(self.env)
@@ -129,14 +162,34 @@ class VirtualEnv:
     def _get_objects(self, indices) -> List[VirtualObject]:
         return [self.objects[i] for i in indices]
 
-    def get_movable_objects(self) -> List[VirtualObject]:
-        return self._get_objects(self.movable_object_indices)
+    def get_real_objects(self) -> List[VirtualObject]:
+        return self._get_objects(self.real_object_indices)
 
-    def get_goal_objects(self) -> List[VirtualObject]:
-        return self._get_objects(self.goal_object_indices)
+    def get_dummy_objects(self) -> List[VirtualObject]:
+        return self._get_objects(self.dummy_object_indices)
 
     def get_all_objects(self, excluding=None) -> List[VirtualObject]:
-        return list(filter(lambda o: o is not excluding, self._get_objects(self.movable_object_indices) + self._get_objects(self.goal_object_indices)))
+        return self.objects if not excluding else [o for o in self.objects if o not in excluding]
+
+    def _get_all_objects_in_relation(self, obj: VirtualObject, relation: str) -> List[VirtualObject]:
+        # TODO: Check whether the angle between objects isn't too large
+        # TODO: Add the relations above/below
+        objects = []
+        p1 = obj.get_position()
+
+        for o in self.get_all_objects(excluding=[obj]):
+            if o is not obj:
+                p2 = o.get_position()
+                if relation == "left" and p1[0] > p2[0] or relation == "right" and p1[0] < p2[0]:
+                    objects.append(o)
+
+        return objects
+
+    def get_all_objects_left_of(self, obj: VirtualObject) -> List[VirtualObject]:
+        return self._get_all_objects_in_relation(obj, "left")
+
+    def get_all_objects_right_of(self, obj: VirtualObject) -> List[VirtualObject]:
+        return self._get_all_objects_in_relation(obj, "right")
 
     def get_subtask_objects(self) -> List[Tuple]:
         return [tuple(_filter_out_none([self.objects[i], self.objects[i + 1]]))
@@ -144,26 +197,6 @@ class VirtualEnv:
 
     def get_current_subtask_idx(self) -> int:
         return self.env.task.current_task
-
-    def get_all_objects_in_relation(self, obj: VirtualObject, relation: str) -> List[VirtualObject]:
-        # TODO: Check whether the angle between objects isn't too large
-        # TODO: Add the relations above/below
-        objects = []
-        p1 = obj.get_position()
-
-        for o in self.get_movable_objects():
-            if o is not obj:
-                p2 = o.get_position()
-                if relation == "l" and p1[0] < p2[0] or relation == "r" and p2[0] < p1[0]:
-                    objects.append(o)
-
-        return objects
-
-    def get_all_objects_left_of(self, obj: VirtualObject) -> List[VirtualObject]:
-        return self.get_all_objects_in_relation(obj, "l")
-
-    def get_all_objects_right_of(self, obj: VirtualObject) -> List[VirtualObject]:
-        return self.get_all_objects_in_relation(obj, "r")
 
 
 class NaturalLanguage:
@@ -174,8 +207,8 @@ class NaturalLanguage:
         self.venv: VirtualEnv = None
         self.rng = np.random.default_rng(seed)
 
-    def set_env(self, env, init_goal_objects=None):
-        self.venv = VirtualEnv(env, init_goal_objects)
+    def set_env(self, env, real_dummy_objects=None, all_objects=None):
+        self.venv = VirtualEnv(env, real_dummy_objects, all_objects)
 
     @staticmethod
     def _form_subtask_description(venv: VirtualEnv, *objects_descriptions, task_type: TaskType = None) -> str:
@@ -219,57 +252,69 @@ class NaturalLanguage:
     @staticmethod
     def _decompose_subtask_description(desc: str):
         if desc.startswith("pick") and "rotate" not in desc:
-            return (TaskType.PNP, *_remove_first_word(desc).split(" and place it to the same position as "))
+            return TaskType.PNP, _remove_first_word(desc).split(" and place it to the same position as ")
         elif desc.startswith("pick") and "rotate" in desc:
-            return (TaskType.PNPROT, *_remove_first_word(desc).split(" and rotate it to the same position as "))
+            return TaskType.PNPROT, _remove_first_word(desc).split(" and rotate it to the same position as ")
         elif desc.startswith("swipe"):
-            return (TaskType.PNPSWIPE, *_remove_first_word(desc).split(" along the line to the position of "))
+            return TaskType.PNPSWIPE, _remove_first_word(desc).split(" along the line to the position of ")
         else:
-            msg = f"Can't determine the task type: {desc}"
+            msg = f"Cannot determine the task type: {desc}"
             raise Exception(msg)
 
     @staticmethod
-    def _get_object_descriptions(venv: VirtualEnv, obj: VirtualObject, task_type=None, as_goal=False):
-        task_type = venv.get_task_type() if task_type is None else task_type
-        other_objects = venv.get_all_objects(excluding=obj)
+    def _get_object_descriptions(venv: VirtualEnv, obj: VirtualObject):
         descs = [obj.get_name_with_properties()]
+        for o in venv.get_all_objects_left_of(obj):
+            descs.append(" ".join([obj.get_name_as_unknown_object_with_properties(), "right to", o.get_name_with_properties()]))
+        for o in venv.get_all_objects_right_of(obj):
+            descs.append(" ".join([obj.get_name_as_unknown_object_with_properties(), "left to", o.get_name_with_properties()]))
         return descs
 
     @staticmethod
-    def _extract_object_from_object_description(obj_desc: str, objects: List[EnvObject]):
-        color_name = _remove_last_word(_remove_first_word(obj_desc))
-        rgba = cs.name_to_rgba(color_name)
-        objects_with_same_color = [o for o in objects if o.get_color_rgba() == rgba]
-        if len(objects_with_same_color) != 1:
-            msg = f"Cannot uniquely determine object from color, there's {len(objects_with_same_color)} such objects"
-            raise Exception(msg)
-        return objects_with_same_color[0]
+    def _extract_object_from_object_description(venv: VirtualEnv, desc: str) -> VirtualObject:
+        all_objects = venv.get_all_objects()
+
+        if "left" in desc or "right" in desc:
+            is_left = "left" in desc
+            descs = desc.split(" left to " if is_left else " right to ")
+            d1, d2 = descs[0], descs[1]
+
+            objects_with_same_color = VirtualObject.extract_objects_from_unknown_object_with_properties(d1, all_objects)
+            o2 = VirtualObject.extract_object_from_name_with_properties(d2, all_objects)
+
+            if len(objects_with_same_color) == 1:
+                return objects_with_same_color[0]
+            else:
+                objects_in_relation = venv.get_all_objects_left_of(o2) if is_left else venv.get_all_objects_right_of(o2)
+                object_matches = list(set(objects_with_same_color) & set(objects_in_relation))
+
+                if len(object_matches) == 1:
+                    return object_matches[0]
+                else:
+                    msg = f"Error, there are {len(object_matches)} objects with description \"{desc}\""
+                    raise Exception(msg)
+        else:
+            return VirtualObject.extract_object_from_name_with_properties(desc, all_objects)
 
     def generate_random_subtask_with_random_description(self):
         task_type = self.venv.get_task_type()
         assert task_type in [TaskType.PNP, TaskType.PNPROT, TaskType.PNPSWIPE]  # TODO: Implement the remaining tasks
-        init = self.rng.choice(self.venv.get_movable_objects())
-        goal = self.rng.choice(self.venv.get_goal_objects())
-        d1s = self._get_object_descriptions(self.venv, init)
-        d2s = self._get_object_descriptions(self.venv, goal, as_goal=True)
-        # print(d1s)
-        # print(d2s)
-        d1 = self.rng.choice(d1s)
-        d2 = self.rng.choice(d2s)
-        desc = self._form_subtask_description(self.venv, d1, d2)
-        # print(desc)
-        return desc
+        init = self.rng.choice(self.venv.get_real_objects())
+        goal = self.rng.choice(self.venv.get_dummy_objects())
+        d1 = self.rng.choice(self._get_object_descriptions(self.venv, init))
+        d2 = self.rng.choice(self._get_object_descriptions(self.venv, goal))
+        return self._form_subtask_description(self.venv, d1, d2)
 
-    @staticmethod
-    def extract_subtask_info_from_description(desc: str, objects: List[EnvObject]):
-        task_type, d1, d2 = NaturalLanguage._decompose_subtask_description(desc)  # exception about unpacking is ok, there are always only 2 objects to unpack
-        init = NaturalLanguage._extract_object_from_object_description(d1, objects)
-        goal = NaturalLanguage._extract_object_from_object_description(d2, objects)
-        return task_type.to_string(), 3, init, goal
+    def extract_subtask_info_from_description(self, desc: str):
+        task_type, descs = self._decompose_subtask_description(desc)
+        d1, d2 = descs[0], descs[1]
+        init = self._extract_object_from_object_description(self.venv, d1)
+        goal = self._extract_object_from_object_description(self.venv, d2)
+        return task_type.to_string(), 3, init.get_env_object(), goal.get_env_object()
 
     @staticmethod
     def _get_movable_object_clauses(venv: VirtualEnv) -> Tuple[List[str], List[str], List[str]]:
-        objects = venv.get_movable_objects()
+        objects = venv.get_real_objects()
         main_clauses = [o.get_name_with_properties() for o in objects]
         place_preposition_clauses = []
 
