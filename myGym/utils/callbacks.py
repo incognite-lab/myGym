@@ -42,6 +42,7 @@ class CustomEvalCallback(EvalCallback):
     def __init__(self, eval_env: Union[gym.Env, VecEnv],
                  callback_on_new_best: Optional[BaseCallback] = None,
                  n_eval_episodes: int = 10,
+                 algo_steps: int = 256,
                  eval_freq: int = 10000,
                  log_path: str = None,
                  best_model_save_path: str = None,
@@ -55,6 +56,7 @@ class CustomEvalCallback(EvalCallback):
                  record_steps_limit=256): # pybullet or mujoco
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
+        self.algo_steps = algo_steps
         self.eval_freq = eval_freq
         self.best_mean_reward = -np.inf
         self.last_mean_reward = -np.inf
@@ -272,7 +274,7 @@ class CustomEvalCallback(EvalCallback):
                 filename = "evaluation_results.json"
                 with open(os.path.join(self.log_path, filename), 'w') as f:
                     json.dump(self.evaluations_results, f, indent=4)
-                print("Evaluation stored after {} calls.".format(self.n_calls))
+                print("Evaluation stored after {} calls.".format(self.n_calls))    
         return True
 
 

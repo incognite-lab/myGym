@@ -347,7 +347,11 @@ class MultiACKTR(ActorCriticRLModel):
 
             callback.on_training_start(locals(), globals())
 
-            for update in range(1, total_timesteps // self.n_batch + 1):
+            update = 0
+            done = False
+            n_updates = total_timesteps // self.n_batch
+
+            while not done:
 
                 callback.on_rollout_start()
 
@@ -426,6 +430,10 @@ class MultiACKTR(ActorCriticRLModel):
                     
                     i += 1
                 print("Steps: " + str(self.num_timesteps) + "/" + str(total_timesteps) + " - (" + str(round(self.num_timesteps/total_timesteps*100)) + "%)")    
+                print("Episodes: " + str(update) + "/" + str(n_updates) + " - (" + str(round(update/n_updates*100)) + "%)")
+                if self.num_timesteps >= total_timesteps:
+                    done = True
+                update +=1
             coord.request_stop()
             coord.join(enqueue_threads)
 

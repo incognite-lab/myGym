@@ -190,10 +190,13 @@ class MultiPPO2(ActorCriticRLModel):
 
             t_first_start = time.time()
             n_updates     = total_timesteps // (self.n_envs * self.n_steps)
+            update = 0
+            done = False
 
             callback.on_training_start(locals(), globals())
 
-            for update in range(1, n_updates + 1):
+
+            while not done:
                 assert (self.n_envs * self.n_steps) % self.nminibatches == 0, ("The number of minibatches (`nminibatches`) is not a factor of the total number of samples collected per rollout (`n_batch`), some samples won't be used.")
 
                 batch_size       = (self.n_envs * self.n_steps) // self.nminibatches
@@ -275,7 +278,10 @@ class MultiPPO2(ActorCriticRLModel):
                     
                     i+=1
                 print("Steps: " + str(self.num_timesteps) + "/" + str(total_timesteps) + " - (" + str(round(self.num_timesteps/total_timesteps*100)) + "%)")
-
+                print("Episodes: " + str(update) + "/" + str(n_updates) + " - (" + str(round(update/n_updates*100)) + "%)")
+                if self.num_timesteps >= total_timesteps:
+                    done = True
+                update +=1
             callback.on_training_end()
             return self
 
