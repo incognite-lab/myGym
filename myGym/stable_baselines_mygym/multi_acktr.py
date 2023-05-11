@@ -430,7 +430,7 @@ class MultiACKTR(ActorCriticRLModel):
                     
                     i += 1
                 print("Steps: " + str(self.num_timesteps) + "/" + str(total_timesteps) + " - (" + str(round(self.num_timesteps/total_timesteps*100)) + "%)")    
-                print("Episodes: " + str(update) + "/" + str(n_updates) + " - (" + str(round(update/n_updates*100)) + "%)")
+                print("Episodes: " + str(update+1) + "/" + str(n_updates) + " - (" + str(round((update+1)/n_updates*100)) + "%)")
                 if self.num_timesteps >= total_timesteps:
                     done = True
                 update +=1

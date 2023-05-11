@@ -184,6 +184,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
     model.save(os.path.join(model_logdir, model_name))
     print("Training time: {:.2f} s".format(time.time() - start_time))
+    print("Training steps: {:} s".format(model.num_timesteps))
 
     # info_keywords in monitor class above is neccessary for pybullet to save_results
     # when using the info_keywords for mujoco we get an error
