@@ -5,7 +5,7 @@
 "engine"    :"pybullet",
 "render"    :"opengl",
 "camera"    :0,
-"gui"       :1,
+"gui"       :0,
 "visualize" :0,
 "visgym"    :0,
 #Robot
@@ -45,16 +45,16 @@
 #Train
 "train_framework"   :"tensorflow",
 "algo"              :"multi",
-"num_networks"      :4,
+"num_networks"      :3,
 "max_episode_steps" :1024,
 "algo_steps"        :1024,
-"steps"             :5100000,
+"steps"             :1000000,
 "pretrained_model"  :null,
 "multiprocessing"   :false,
 #Evaluation
 "eval_freq"     :500000,
 "eval_episodes" :100,
 #Saving and logging
-"logdir"    :"trained_models/pnp4nmulti3",
+"logdir"    :"trained_models/pnp3nmulti3",
 "record"    :0
 }
