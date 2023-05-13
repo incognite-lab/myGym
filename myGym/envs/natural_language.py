@@ -109,31 +109,20 @@ class VirtualObject:
 
 
 class VirtualEnv:
-    def __init__(self,
-                 env,
-                 real_dummy_objects: Tuple[List[EnvObject], List[EnvObject]] = None,
-                 all_objects: List[EnvObject] = None
-    ):
+    def __init__(self, env):
         self.env = env
         self.task_type: TaskType = TaskType.from_string(env.task_type)
         assert self.task_type not in TaskType.get_pattern_press_task_types()  # not implemented yet
         self.objects: List[VirtualObject] = []
         self.real_object_indices: List[int] = []
         self.dummy_object_indices: List[int] = []
+        self.set_objects(task_objects=env.task_objects)
 
-        if real_dummy_objects and all_objects:
-            raise Exception("The only one argument can be passed, real_dummy_objects or all_objects")
+    def set_objects(self, task_objects=None, init_goal_objects=None, all_objects=None):
+        if bool(task_objects) + bool(init_goal_objects) + bool(all_objects) > 1:
+            raise Exception("The only one argument must be passed")
 
-        if real_dummy_objects:
-            init, goal = real_dummy_objects
-            if len(init) == 0 or len(goal) == 0:
-                raise Exception("Not enough real or dummy objects (every group must have at least 1 object)!")
-            self.objects = list(map(VirtualObject, init + goal))
-            self.real_object_indices = list(range(len(init)))
-            self.dummy_object_indices = list(range(len(init), len(init) + len(goal)))
-        elif all_objects:
-            self.objects = list(map(VirtualObject, all_objects))
-        elif self.env.task_objects:
+        if task_objects:
             self.objects: List[VirtualObject] = [
                 VirtualObject(o) if isinstance(o, EnvObject) else None for o in
                 [self.env.task_objects["actual_state"], self.env.task_objects["goal_state"]] +
@@ -146,6 +135,15 @@ class VirtualEnv:
                     else []
                 )
             )
+        elif init_goal_objects:
+            init, goal = init_goal_objects
+            if len(init) == 0 or len(goal) == 0:
+                raise Exception("Not enough real or dummy objects (every group must have at least 1 object)!")
+            self.objects = list(map(VirtualObject, init + goal))
+            self.real_object_indices = list(range(len(init)))
+            self.dummy_object_indices = list(range(len(init), len(init) + len(goal)))
+        elif all_objects:
+            self.objects = list(map(VirtualObject, all_objects))
 
     def __copy__(self):
         cp = VirtualEnv(self.env)
@@ -203,12 +201,16 @@ class NaturalLanguage:
     """
     Class for generating a natural language description and producing new natural language tasks based on the given environment.
     """
-    def __init__(self, seed=0):
-        self.venv: VirtualEnv = None
+    def __init__(self, env, seed=0):
+        self.venv: VirtualEnv = VirtualEnv(env)
+        self.current_subtask_description: str or None = None
         self.rng = np.random.default_rng(seed)
 
-    def set_env(self, env, real_dummy_objects=None, all_objects=None):
-        self.venv = VirtualEnv(env, real_dummy_objects, all_objects)
+    def get_venv(self) -> VirtualEnv:
+        return self.venv
+
+    def get_current_subtask_description(self) -> str:
+        return self.current_subtask_description
 
     @staticmethod
     def _form_subtask_description(venv: VirtualEnv, *objects_descriptions, task_type: TaskType = None) -> str:
@@ -303,7 +305,7 @@ class NaturalLanguage:
         goal = self.rng.choice(self.venv.get_dummy_objects())
         d1 = self.rng.choice(self._get_object_descriptions(self.venv, init))
         d2 = self.rng.choice(self._get_object_descriptions(self.venv, goal))
-        return self._form_subtask_description(self.venv, d1, d2)
+        self.current_subtask_description = self._form_subtask_description(self.venv, d1, d2)
 
     def extract_subtask_info_from_description(self, desc: str):
         task_type, descs = self._decompose_subtask_description(desc)
