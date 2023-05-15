@@ -126,9 +126,9 @@ class GymEnv(CameraEnv):
         self.nl = NaturalLanguage(self)
         self.nl_mode = not isinstance(self.task_objects_dict, list)
         if self.nl_mode:
-            super().reset(hard=False)
-            self._place_objects_and_generate_language_task_based_on_them()
-        self.objects_were_already_placed = True
+            # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
+            self.task_type = "pnp"
+            self.num_networks = 3
 
     def _init_task_and_reward(self):
         if self.reward == 'distractor':
@@ -251,26 +251,6 @@ class GymEnv(CameraEnv):
         """
         return [(sub + 1) * (h - l) / 2 + l for sub, l, h in zip(action, self.action_low, self.action_high)]
 
-    def _place_objects_and_generate_language_task_based_on_them(self):
-        init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
-        goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
-        for i, c in enumerate(cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
-            init_objects[i].set_color(c)
-        for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=True, excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
-            goal_objects[i].set_color(c)
-
-        # setting the objects and generating a description based on them
-        self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
-        self.nl.generate_random_subtask_with_random_description()
-
-        # resetting the objects to remove the knowledge about whether an object is an init or a goal
-        self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-        self.task_type, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_current_subtask_description())
-
-        self.task_objects = {"actual_state": init, "goal_state": goal}
-        other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
-        self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
-
     def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False):
         """
         Environment reset called at the beginning of an episode. Reset state of objects, robot, task and reward.
@@ -285,9 +265,9 @@ class GymEnv(CameraEnv):
         """
         if not only_subtask:
             self.robot.reset(random_robot=random_robot)
+            super().reset(hard=hard)
 
             if not self.nl_mode:
-                super().reset(hard=hard)
                 all_subtask_objects = [x for i,x in enumerate(self.task_objects_dict) if i!=self.task.current_task]
                 subtasks_processed = [list(x.values()) for x in all_subtask_objects]
                 subtask_objects = self._randomly_place_objects({"obj_list": list(chain.from_iterable(subtasks_processed))})
@@ -298,11 +278,28 @@ class GymEnv(CameraEnv):
                 if subtask_objects:
                     self.task_objects["distractor"] = subtask_objects
             else:
-                if not self.objects_were_already_placed:
-                    super().reset(hard=hard)
-                    self._place_objects_and_generate_language_task_based_on_them()
-                else:
-                    self.objects_were_already_placed = False
+                init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
+                goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
+                for i, c in enumerate(cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+                    init_objects[i].set_color(c)
+                for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=True, excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+                    goal_objects[i].set_color(c)
+
+                # setting the objects and generating a description based on them
+                self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
+                self.nl.generate_random_subtask_with_random_description()
+
+                # resetting the objects to remove the knowledge about whether an object is an init or a goal
+                self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
+                self.task_type, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_current_subtask_description())
+                self.reward = self.task_type
+
+                self.task_objects = {"actual_state": init, "goal_state": goal}
+                other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
+                self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
+
+                # will set reward
+                self._set_observation_space()
         if only_subtask:
             if self.task.current_task < (len(self.task_objects_dict)) and not self.nl_mode:
                 self.shift_next_subtask()
