@@ -351,7 +351,7 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
         test_env(env, arg_dict)
     else:
         try:
-            if arg_dict["algo"] == "multi":
+            if "multi" in arg_dict["algo"]:
                 model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
                 model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env=model_args[1].env)
             else:
