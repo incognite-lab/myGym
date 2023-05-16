@@ -575,7 +575,7 @@ class GymEnv(CameraEnv):
         objects = [self.task_objects["actual_state"], self.task_objects["goal_state"]]
         if "distractor" in self.task_objects:
             objects += self.task_objects["distractor"]
-        return objects
+        return [o for o in objects if isinstance(o, EnvObject)]
 
     def set_current_subtask_goal(self, goal) -> None:
         self.task_objects["actual_state"] = goal
