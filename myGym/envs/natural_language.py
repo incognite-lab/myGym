@@ -209,6 +209,9 @@ class NaturalLanguage:
     def get_venv(self) -> VirtualEnv:
         return self.venv
 
+    def set_current_subtask_description(self, desc: str):
+        self.current_subtask_description = desc
+
     def get_current_subtask_description(self) -> str:
         return self.current_subtask_description
 

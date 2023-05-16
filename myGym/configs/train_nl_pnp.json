@@ -17,6 +17,7 @@
 "action_repeat" :1,
 #Task
 "task_type"             :"pnp",
+"natural_language_mode" :1,
 "task_objects"          :{"init": [
                         {"obj_name": "cube_holes", "fixed": 0, "rand_rot": 0, "sampling_area":[-0.3, -0.3, 0.2, 0.2, 0.075, 0.075]},
                         {"obj_name": "cube_holes", "fixed": 0, "rand_rot": 0, "sampling_area":[-0.0, -0.0, 0.5, 0.5, 0.075, 0.075]},

@@ -52,6 +52,8 @@ class GymEnv(CameraEnv):
         :param vae_path: (string) Path to a trained VAE in 2dvu reward type
         :param yolact_path: (string) Path to a trained Yolact in 3dvu reward type
         :param yolact_config: (string) Path to saved Yolact config obj or name of an existing one in the data/Config script or None for autodetection
+        :param natural_language_mode: (bool) Whether the natural language mode should be turned on
+        :param training: (bool) Whether a training or a testing is taking place
     """
     def __init__(self,
                  task_objects,
@@ -81,6 +83,8 @@ class GymEnv(CameraEnv):
                  vae_path=None,
                  yolact_path=None,
                  yolact_config=None,
+                 natural_language_mode=False,
+                 training=True,
                  **kwargs
                  ):
 
@@ -124,7 +128,8 @@ class GymEnv(CameraEnv):
             self.task = None
 
         self.nl = NaturalLanguage(self)
-        self.nl_mode = not isinstance(self.task_objects_dict, list)
+        self.nl_mode = natural_language_mode
+        self.training = training
         if self.nl_mode:
             # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
             self.task_type = "pnp"
@@ -285,9 +290,12 @@ class GymEnv(CameraEnv):
                 for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=True, excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
                     goal_objects[i].set_color(c)
 
-                # setting the objects and generating a description based on them
-                self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
-                self.nl.generate_random_subtask_with_random_description()
+                if self.training:
+                    # setting the objects and generating a description based on them
+                    self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
+                    self.nl.generate_random_subtask_with_random_description()
+                else:
+                    self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
 
                 # resetting the objects to remove the knowledge about whether an object is an init or a goal
                 self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
@@ -298,7 +306,7 @@ class GymEnv(CameraEnv):
                 other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
                 self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
 
-                # will set reward
+                # will set the task and the reward
                 self._set_observation_space()
         if only_subtask:
             if self.task.current_task < (len(self.task_objects_dict)) and not self.nl_mode:
