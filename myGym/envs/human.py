@@ -1,6 +1,9 @@
+from typing import List
+
 import numpy as np
 import pkg_resources
 
+from myGym.envs.env_object import EnvObject
 from myGym.utils.helpers import get_robot_dict
 
 
@@ -132,3 +135,6 @@ class Human:
             if position is None:
                 position = self.direction_point
         self._run_motors(self._calculate_motor_poses(position))
+
+    def find_object_human_is_pointing_at(self, objects: List[EnvObject]) -> EnvObject:
+        return objects[0]

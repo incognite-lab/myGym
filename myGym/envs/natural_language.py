@@ -123,11 +123,7 @@ class VirtualEnv:
             raise Exception("The only one argument must be passed")
 
         if task_objects:
-            self.objects: List[VirtualObject] = [
-                VirtualObject(o) if isinstance(o, EnvObject) else None for o in
-                [self.env.task_objects["actual_state"], self.env.task_objects["goal_state"]] +
-                (self.env.task_objects["distractor"] if "distractor" in self.env.task_objects else [])
-            ]
+            self.objects: List[VirtualObject] = [VirtualObject(o) if isinstance(o, EnvObject) else None for o in self.env.get_task_objects()]
             self.real_object_indices = list(
                 range(1, len(self.objects), 2) if self.get_task_type() in TaskType.get_pattern_reach_task_types()
                 else (
