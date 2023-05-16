@@ -464,7 +464,7 @@ class GymEnv(CameraEnv):
                     if not self.object_was_already_chosen_by_human:
                         if self.episode_steps == 0:
                             self.text_id = self.p.addUserDebugText(
-                                "Point the human's finger at the goal object and press enter", [1, 0, 0.5], textSize=1)
+                                "Point the human's finger via arrow keys at the goal object and press enter", [1, 0, 0.5], textSize=1)
 
                         key_press = self.p.getKeyboardEvents()
                         move_factor = 10  # times 1 cm
