@@ -131,9 +131,15 @@ class GymEnv(CameraEnv):
         self.nl_mode = natural_language_mode
         self.training = training
         if self.nl_mode:
+            if not isinstance(self.task_objects_dict, dict):
+                exc = f"Expected task_objects to be of type {dict} instead of {type(self.task_objects_dict)}"
+                raise Exception(exc)
             # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
             self.task_type = "pnp"
             self.num_networks = 3
+
+        if hasattr(self, "human"):
+            self.object_was_already_chosen_by_human = False
 
     def _init_task_and_reward(self):
         if self.reward == 'distractor':
@@ -179,7 +185,7 @@ class GymEnv(CameraEnv):
                     "max_force":self.max_force,"dimension_velocity":self.dimension_velocity,
                   "pybullet_client":self.p}
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action,task_type=self.task_type, **kwargs)
-        if self.workspace == 'collabtable': self.human = Human('human', self.p)
+        if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
 
     def _load_urdf(self, path, fixedbase=True, maxcoords=True):
         transform = self.workspace_dict[self.workspace]['transform']
@@ -278,7 +284,6 @@ class GymEnv(CameraEnv):
                 subtask_objects = self._randomly_place_objects({"obj_list": list(chain.from_iterable(subtasks_processed))})
                 self.env_objects = {"env_objects": self._randomly_place_objects(self.used_objects)}
                 self.task_objects = self._randomly_place_objects(self.task_objects_dict[self.task.current_task])
-                print(self.task_objects)
                 self.task_objects = dict(ChainMap(*self.task_objects))
                 if subtask_objects:
                     self.task_objects["distractor"] = subtask_objects
@@ -430,9 +435,27 @@ class GymEnv(CameraEnv):
         for i in range(self.action_repeat):
             objects = self.env_objects
             self.robot.apply_action(action, env_objects=objects)
-            if hasattr(self, 'human'):
-                if self.episode_steps >= 0:
-                    self.human.point_finger_at(self.task_objects['goal_state'].get_position())
+            if hasattr(self, "human"):
+                if self.training:
+                    self.human.point_finger_at(self.task_objects["goal_state"].get_position())
+                elif not self.training:
+                    self.human.point_finger_at()
+
+                    if not self.object_was_already_chosen_by_human:
+                        key_press = self.p.getKeyboardEvents()
+                        move_factor = 10  # times 1 cm
+
+                        if self.p.B3G_LEFT_ARROW in key_press.keys():
+                            self.human.point_finger_at(move_factor * np.array([0.01, 0, 0]), relative=True)
+                        if self.p.B3G_RIGHT_ARROW in key_press.keys():
+                            self.human.point_finger_at(move_factor * np.array([-0.01, 0, 0]), relative=True)
+                        if self.p.B3G_DOWN_ARROW in key_press.keys():
+                            self.human.point_finger_at(move_factor * np.array([0, 0, -0.01]), relative=True)
+                        if self.p.B3G_UP_ARROW in key_press.keys():
+                            self.human.point_finger_at(move_factor * np.array([0, 0, 0.01]), relative=True)
+                        if self.p.B3G_RETURN in key_press.keys():
+                            self.object_was_already_chosen_by_human = True
+
             self.p.stepSimulation()
         #print(f"Substeps:{i}")
         self.episode_steps += 1
@@ -466,11 +489,12 @@ class GymEnv(CameraEnv):
         env_objects = []
         if not "init" in object_dict.keys():  # solves used_objects
             for idx, o in enumerate(object_dict["obj_list"]):
-                  urdf = self._get_urdf_filename(o["obj_name"])
-                  if urdf:
-                    object_dict["obj_list"][idx]["urdf"] = urdf
-                  else:
-                    del object_dict["obj_list"][idx]
+                if o["obj_name"] != "null":
+                    urdf = self._get_urdf_filename(o["obj_name"])
+                    if urdf:
+                        object_dict["obj_list"][idx]["urdf"] = urdf
+                    else:
+                        del object_dict["obj_list"][idx]
             if "num_range" in object_dict.keys():
                 for x in range(random.randint(object_dict["num_range"][0], object_dict["num_range"][1])):
                         env_o = self._place_object(random.choice(object_dict["obj_list"]))
@@ -478,9 +502,10 @@ class GymEnv(CameraEnv):
                         env_objects.append(env_o)
             else:
                 for o in object_dict["obj_list"]:
-                    env_o = self._place_object(o)
-                    self.highlight_active_object(env_o, "other")
-                    env_objects.append(env_o)
+                    if o["obj_name"] != "null":
+                        env_o = self._place_object(o)
+                        self.highlight_active_object(env_o, "other")
+                        env_objects.append(env_o)
         else:  # solves task_objects
             for o in ['init','goal']:
                 d = object_dict[o]

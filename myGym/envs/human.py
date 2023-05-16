@@ -1,3 +1,4 @@
+import numpy as np
 import pkg_resources
 
 from myGym.utils.helpers import get_robot_dict
@@ -9,12 +10,13 @@ class Human:
 
     Parameters:
         :param model_name: (string) Model name from the get_robot_dict() dictionary
-        :param pybullet_client: Which pybullet client the environment should refer to in case of parallel existence 
+        :param pybullet_client: Which pybullet client the environment should refer to in case of parallel existence
         of multiple instances of this environment
     """
     def __init__(self,
-                 model_name='human',
+                 model_name: str = "human",
                  pybullet_client=None,
+                 direction_point: np.array = np.array([0, 0.8, 0]),
                  ):
 
         self.body_id = None
@@ -22,6 +24,7 @@ class Human:
         self.motors_indices = []
         self.n_motors = None
         self.end_effector_idx = None
+        self.direction_point = direction_point  # for pointing during a testing phase
         self.p = pybullet_client
 
         self._load_model(model_name)
@@ -111,11 +114,21 @@ class Human:
                                                  end_effector_pos,
                                                  )
 
-    def point_finger_at(self, position):
+    def point_finger_at(self, position=None, relative=False):
         """
         Point human's finger towards the desired position.
 
         Parameters:
             :param position: (list) Cartesian coordinates [x,y,z]
         """
+        if relative:
+            if position is not None:
+                self.direction_point += position
+                position = self.direction_point
+            else:
+                exc = "You must pass relative coordinates if a relative option has been chosen"
+                raise Exception(exc)
+        else:
+            if position is None:
+                position = self.direction_point
         self._run_motors(self._calculate_motor_poses(position))
