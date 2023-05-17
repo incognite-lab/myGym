@@ -161,8 +161,6 @@ class Human:
         vec = (p1 - p2) / np.linalg.norm(p1 - p2)
         points = np.array([o.get_position() for o in objects])
 
-        print(len(objects))
-
         points -= p2.reshape(1, -1)  # move points to be able to compute projections (make the vector relatively centered)
         scalars = np.dot(points, vec)  # scalar product (as a part of computing a projection)
         points_proj = scalars.reshape(-1, 1) * vec.reshape(1, -1)  # projections on the vector
