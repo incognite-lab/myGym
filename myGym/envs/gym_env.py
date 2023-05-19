@@ -141,6 +141,9 @@ class GymEnv(CameraEnv):
             # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
             self.task_type = "pnp"
             self.num_networks = 3
+        self.rng = np.random.default_rng(seed=0)
+        self.n_subtasks = len(self.task_objects_dict) if not self.nl_mode else 1
+        self.pick_random_init_goal_from_lists = not isinstance(self.task_objects_dict, list)
 
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 
@@ -166,7 +169,7 @@ class GymEnv(CameraEnv):
                                  yolact_path=self.yolact_path,
                                  yolact_config=self.yolact_config,
                                  distance_type=self.distance_type,
-                                 number_tasks=len(self.task_objects_dict) if not self.nl_mode else 1,
+                                 number_tasks=self.n_subtasks,
                                  env=self)
         self.reward = reward_classes[scheme][self.reward](env=self, task=self.task)
 
@@ -288,15 +291,30 @@ class GymEnv(CameraEnv):
             super().reset(hard=hard)
 
             if not self.nl_mode:
-                all_subtask_objects = [x for i, x in enumerate(self.task_objects_dict) if i != self.task.current_task]
-                subtasks_processed = [list(x.values()) for x in all_subtask_objects]
-                subtask_objects = self._randomly_place_objects(
-                    {"obj_list": list(chain.from_iterable(subtasks_processed))})
                 self.env_objects = {"env_objects": self._randomly_place_objects(self.used_objects)}
-                self.task_objects = self._randomly_place_objects(self.task_objects_dict[self.task.current_task])
-                self.task_objects = dict(ChainMap(*self.task_objects))
-                if subtask_objects:
-                    self.task_objects["distractor"] = subtask_objects
+                if not self.pick_random_init_goal_from_lists:
+                    all_subtask_objects = [x for i, x in enumerate(self.task_objects_dict) if i != self.task.current_task]
+                    subtasks_processed = [list(x.values()) for x in all_subtask_objects]
+                    subtask_objects = self._randomly_place_objects(
+                        {"obj_list": list(chain.from_iterable(subtasks_processed))})
+                    self.task_objects = self._randomly_place_objects(self.task_objects_dict[self.task.current_task])
+                    self.task_objects = dict(ChainMap(*self.task_objects))
+                    if subtask_objects:
+                        self.task_objects["distractor"] = subtask_objects
+                else:
+                    init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
+                    goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
+                    for i, c in enumerate(
+                            cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+                        init_objects[i].set_color(c)
+                    for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=True,
+                                                              excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+                        goal_objects[i].set_color(c)
+                    init = self.rng.choice(init_objects)
+                    goal = self.rng.choice(goal_objects)
+                    subtask_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
+                    self.task_objects = {"actual_state": init, "goal_state": goal}
+                    self.env_objects["env_objects"] += subtask_objects
             else:
                 init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
                 goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
