@@ -128,7 +128,6 @@ class GymEnv(CameraEnv):
         self.visgym = visgym
         self.logdir = logdir
         self.workspace_dict = get_workspace_dict()
-        super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
         if not hasattr(self, "task"):
             self.task = None
 
@@ -143,8 +142,7 @@ class GymEnv(CameraEnv):
             self.task_type = "pnp"
             self.num_networks = 3
 
-        if hasattr(self, "human"):
-            self.object_was_already_chosen_by_human = False
+        super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 
     def _init_task_and_reward(self):
         if self.reward == 'distractor':
@@ -168,7 +166,7 @@ class GymEnv(CameraEnv):
                                  yolact_path=self.yolact_path,
                                  yolact_config=self.yolact_config,
                                  distance_type=self.distance_type,
-                                 number_tasks=len(self.task_objects),
+                                 number_tasks=len(self.task_objects_dict) if not self.nl_mode else 1,
                                  env=self)
         self.reward = reward_classes[scheme][self.reward](env=self, task=self.task)
 
