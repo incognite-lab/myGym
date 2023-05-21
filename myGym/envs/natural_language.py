@@ -65,7 +65,8 @@ class TaskType(Enum):
 class VirtualObject:
     def __init__(self, obj: EnvObject):
         self.obj: EnvObject = obj
-        self.name = obj.get_name()
+        name = self.obj.get_name()
+        self.name = name if "_" not in name else name.split("_", 1)[0]
         self.properties = " ".join(_filter_out_none([cs.rgba_to_name(obj.get_color_rgba())]))
 
     def __deepcopy__(self, memo={}):
@@ -78,6 +79,9 @@ class VirtualObject:
 
     def get_name(self) -> str:
         return "the " + self.name
+
+    def get_properties(self) -> str:
+        return "the " + self.properties
 
     def get_name_with_properties(self) -> str:
         return "the " + self.properties + " " + self.name
@@ -333,7 +337,7 @@ class NaturalLanguage:
         o1, o2 = _unpack_1_or_2_element_tuple(self.venv.get_subtask_objects()[self.venv.get_current_subtask_idx()])
         task_type = self.venv.get_task_type()
         c1 = self.rng.choice(self._get_object_descriptions(self.venv, o1))
-        c2 = self.rng.choice(self._get_object_descriptions(self.venv, o2, as_goal=True)) if o2 is not None else None
+        c2 = self.rng.choice(self._get_object_descriptions(self.venv, o2)) if o2 is not None else None
 
         if task_type in TaskType.get_pattern_reach_task_types():
             return self._form_subtask_description(self.venv, task_type, c1)
