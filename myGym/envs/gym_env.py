@@ -140,7 +140,8 @@ class GymEnv(CameraEnv):
                 exc = f"Expected task_objects to be of type {dict} instead of {type(self.task_objects_dict)}"
                 raise Exception(exc)
             # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
-            self.task_type = "pnp"
+            self.task_type = "pnpswipe"
+            self.reward = "pnpswipe"
             self.num_networks = 3
         self.rng = np.random.default_rng(seed=0)
         self.task_objects_were_given_as_list = isinstance(self.task_objects_dict, list)
@@ -161,8 +162,7 @@ class GymEnv(CameraEnv):
                           "pnpswiperot": ThreeStageSwipeRot},
             "4-network": {"pnp": FourStagePnP}}
         scheme = "{}-network".format(str(self.num_networks))
-        assert self.reward in reward_classes[
-            scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
+        assert self.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
         self.task = t.TaskModule(task_type=self.task_type,
                                  observation=self.obs_type,
                                  task_objects=self.task_objects,
@@ -315,11 +315,9 @@ class GymEnv(CameraEnv):
             else:
                 init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
                 goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
-                for i, c in enumerate(
-                        cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+                for i, c in enumerate(cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
                     init_objects[i].set_color(c)
-                for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=True,
-                                                          excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+                for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=True, excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
                     goal_objects[i].set_color(c)
 
                 if self.training:
@@ -332,9 +330,7 @@ class GymEnv(CameraEnv):
 
                 # resetting the objects to remove the knowledge about whether an object is an init or a goal
                 self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-                self.task_type, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(
-                    self.nl.get_current_subtask_description())
-                self.reward = self.task_type
+                self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_current_subtask_description())
 
                 self.task_objects = {"actual_state": init, "goal_state": goal}
                 other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]

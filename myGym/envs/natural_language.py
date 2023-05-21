@@ -234,7 +234,7 @@ class NaturalLanguage:
 
         # pattern push
         elif task_type is TaskType.PUSH:
-            tokens = ["push", d1, d2]
+            tokens = ["push", d1, "to the same position as", d2]
         elif task_type is TaskType.PNP:
             tokens = ["pick", d1, "and place it to the same position as", d2]
         elif task_type is TaskType.PNPROT:
@@ -256,6 +256,8 @@ class NaturalLanguage:
 
     @staticmethod
     def _decompose_subtask_description(desc: str):
+        if desc.startswith("push"):
+            return TaskType.PUSH, _remove_first_word(desc).split(" to the same position as ")
         if desc.startswith("pick") and "rotate" not in desc:
             return TaskType.PNP, _remove_first_word(desc).split(" and place it to the same position as ")
         elif desc.startswith("pick") and "rotate" in desc:
@@ -301,9 +303,9 @@ class NaturalLanguage:
         else:
             return VirtualObject.extract_object_from_name_with_properties(desc, all_objects)
 
-    def generate_random_subtask_with_random_description(self):
+    def generate_random_subtask_with_random_description(self) -> None:
         task_type = self.venv.get_task_type()
-        assert task_type in [TaskType.PNP, TaskType.PNPROT, TaskType.PNPSWIPE]  # TODO: Implement the remaining tasks
+        assert task_type in TaskType.get_pattern_push_task_types()  # TODO: Implement the remaining tasks
         init = self.rng.choice(self.venv.get_real_objects())
         goal = self.rng.choice(self.venv.get_dummy_objects())
         d1 = self.rng.choice(self._get_object_descriptions(self.venv, init))
@@ -312,10 +314,17 @@ class NaturalLanguage:
 
     def extract_subtask_info_from_description(self, desc: str):
         task_type, descs = self._decompose_subtask_description(desc)
+        assert task_type in [TaskType.PUSH, TaskType.PNP, TaskType.PNPROT, TaskType.PNPSWIPE]
         d1, d2 = descs[0], descs[1]
         init = self._extract_object_from_object_description(self.venv, d1)
         goal = self._extract_object_from_object_description(self.venv, d2)
-        return task_type.to_string(), 3, init.get_env_object(), goal.get_env_object()
+
+        if task_type is TaskType.PUSH:
+            reward, n_nets = "distance", 1
+        else:
+            reward, n_nets = task_type.to_string(), 3
+
+        return task_type.to_string(), reward, n_nets, init.get_env_object(), goal.get_env_object()
 
     @staticmethod
     def _get_movable_object_clauses(venv: VirtualEnv) -> Tuple[List[str], List[str], List[str]]:
