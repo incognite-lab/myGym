@@ -323,7 +323,7 @@ class GymEnv(CameraEnv):
                 if self.training:
                     # setting the objects and generating a description based on them
                     self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
-                    self.nl.generate_random_subtask_with_random_description()
+                    self.nl.generate_subtask_with_random_description()
                 else:
                     self.nl.set_current_subtask_description(
                         input("Enter a subtask description in the natural language based on what you see:"))

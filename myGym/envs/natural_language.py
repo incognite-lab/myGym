@@ -1,5 +1,6 @@
 import copy
 import itertools
+import re
 from enum import Enum, auto
 from typing import Tuple, List
 
@@ -304,7 +305,7 @@ class NaturalLanguage:
         else:
             return VirtualObject.extract_object_from_name_with_properties(desc, all_objects)
 
-    def generate_random_subtask_with_random_description(self) -> None:
+    def generate_subtask_with_random_description(self) -> None:
         task_type = self.venv.get_task_type()
         assert task_type in TaskType.get_pattern_push_task_types()  # TODO: Implement the remaining tasks
         init = self.rng.choice(self.venv.get_real_objects())
@@ -313,7 +314,8 @@ class NaturalLanguage:
         d2 = self.rng.choice(self._get_object_descriptions(self.venv, goal))
         self.current_subtask_description = self._form_subtask_description(self.venv, d1, d2)
 
-    def extract_subtask_info_from_description(self, desc: str):
+    def extract_subtask_info_from_description(self, desc: str) -> Tuple[str, str, int, EnvObject, EnvObject]:
+        desc = re.sub(' +', ' ', desc.strip().lower())
         task_type, descs = self._decompose_subtask_description(desc)
         assert task_type in TaskType.get_pattern_push_task_types()
         d1, d2 = descs[0], descs[1]
