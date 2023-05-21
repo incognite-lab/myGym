@@ -245,9 +245,9 @@ class NaturalLanguage:
             bgrip = " with mechanic gripper" if "bgrip" in venv.get_env().robot.get_name() else ""
             tokens = ["pick", d1, "and place it" + bgrip, d2]
         elif task_type is TaskType.THROW:
-            tokens = ["throw", d1, d2]
+            tokens = ["throw", d1, "to the same position as", d2]
         elif task_type is TaskType.POKE:
-            tokens = ["poke", d1, d2]
+            tokens = ["poke", d1, "to the same position as", d2]
         else:
             exc = f"Unknown task type {task_type}"
             raise Exception(exc)
@@ -256,8 +256,9 @@ class NaturalLanguage:
 
     @staticmethod
     def _decompose_subtask_description(desc: str):
-        if desc.startswith("push"):
-            return TaskType.PUSH, _remove_first_word(desc).split(" to the same position as ")
+        if desc.startswith("push") or desc.startswith("throw") or desc.startswith("poke"):
+            task_type = TaskType.PUSH if desc.startswith("push") else (TaskType.THROW if desc.startswith("throw") else TaskType.POKE)
+            return task_type, _remove_first_word(desc).split(" to the same position as ")
         if desc.startswith("pick") and "rotate" not in desc:
             return TaskType.PNP, _remove_first_word(desc).split(" and place it to the same position as ")
         elif desc.startswith("pick") and "rotate" in desc:
@@ -314,7 +315,7 @@ class NaturalLanguage:
 
     def extract_subtask_info_from_description(self, desc: str):
         task_type, descs = self._decompose_subtask_description(desc)
-        assert task_type in [TaskType.PUSH, TaskType.PNP, TaskType.PNPROT, TaskType.PNPSWIPE]
+        assert task_type in TaskType.get_pattern_push_task_types()
         d1, d2 = descs[0], descs[1]
         init = self._extract_object_from_object_description(self.venv, d1)
         goal = self._extract_object_from_object_description(self.venv, d2)
