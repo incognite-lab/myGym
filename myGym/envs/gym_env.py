@@ -134,6 +134,7 @@ class GymEnv(CameraEnv):
 
         self.nl = NaturalLanguage(self)
         self.nl_mode = natural_language_mode
+        self.nl_text_id = None
         self.training = training
         if self.nl_mode:
             if not isinstance(self.task_objects_dict, dict):
@@ -332,7 +333,7 @@ class GymEnv(CameraEnv):
 
                 # resetting the objects to remove the knowledge about whether an object is an init or a goal
                 self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-                self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_current_subtask_description())
+                self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
 
                 self.task_objects = {"actual_state": init, "goal_state": goal}
                 other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
@@ -358,6 +359,13 @@ class GymEnv(CameraEnv):
         self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
+
+        if not self.nl_mode:  # then the description wasn't generated
+            self.nl.generate_random_description_for_current_subtask()
+        self.nl_text_id = self.p.addUserDebugText(self.nl.get_previously_generated_subtask_description(), [2, 0, 1], textSize=1)
+        if only_subtask and self.nl_text_id is not None:
+            self.p.removeUserDebugItem(self.nl_text_id)
+
         return self.flatten_obs(self._observation.copy())
 
     def shift_next_subtask(self):
@@ -420,8 +428,6 @@ class GymEnv(CameraEnv):
             :return done: (bool) Whether this stop is episode's final
             :return info: (dict) Additional information about step
         """
-        if self.episode_steps == 0:
-            self.p.addUserDebugText(self.nl.generate_current_subtask_description(), [2, 0, 1], textSize=1)
         self._apply_action_robot(action)
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
