@@ -49,7 +49,7 @@ class GymEnv(CameraEnv):
         :param reward: (string) Defines how to compute the reward
         :param distance_type: (string) Way of calculating distances (euclidean, manhattan)
         :param active_cameras: (int) The number of camera used to render and record images
-        :param dataset: (bool) Whether this environment serves for image dataset generation
+        :param dataset: (bool) Whether this envzironment serves for image dataset generation
         :param obs_space: (string) Type of observation data. Specify "dict" for usage of HER training algorithm.
         :param visualize: (bool) Whether to show helping visualization during training and testing of environment
         :param visgym: (bool) Whether to visualize whole gym building and other tasks (final visualization)
@@ -312,6 +312,8 @@ class GymEnv(CameraEnv):
                 self.task_objects = dict(ChainMap(*self.task_objects))
                 if subtask_objects:
                     self.task_objects["distractor"] = subtask_objects
+
+                self.nl.get_venv().set_objects(task_objects=self.task_objects)
             else:
                 init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
                 goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
@@ -418,8 +420,8 @@ class GymEnv(CameraEnv):
             :return done: (bool) Whether this stop is episode's final
             :return info: (dict) Additional information about step
         """
-        if self.nl_mode and self.episode_steps == 0:
-            self.p.addUserDebugText(self.nl.get_current_subtask_description(), [2, 0, 1], textSize=1)
+        if self.episode_steps == 0:
+            self.p.addUserDebugText(self.nl.generate_current_subtask_description(), [2, 0, 1], textSize=1)
         self._apply_action_robot(action)
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
