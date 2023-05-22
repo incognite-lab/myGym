@@ -229,7 +229,7 @@ class NaturalLanguage:
         """
         self.current_subtask_description = desc
 
-    def get_current_subtask_description(self) -> str:
+    def get_previously_generated_subtask_description(self) -> str:
         """
         Return a previously generated subtask description.
 
@@ -364,25 +364,21 @@ class NaturalLanguage:
 
         return task_type.to_string(), reward, n_nets, init.get_env_object(), goal.get_env_object()
 
-    def generate_current_subtask_description(self):
+    def generate_random_description_for_current_subtask(self) -> None:
+        """
+        Generate a random description (with random object relations) for the current subtask and save it internally.
+        """
         o1, o2 = _unpack_1_or_2_element_tuple(self.venv.get_subtask_objects()[self.venv.get_current_subtask_idx()])
         task_type = self.venv.get_task_type()
-        c1 = self.rng.choice(self._get_object_descriptions(self.venv, o1))
-        c2 = self.rng.choice(self._get_object_descriptions(self.venv, o2)) if o2 is not None else None
-
-        if task_type in TaskType.get_pattern_push_task_types():
-            return self._form_subtask_description(self.venv, c1, c2, task_type=task_type)
-        else:
-            return self._form_subtask_description(self.venv, c1, task_type=task_type)
+        d1 = self.rng.choice(self._get_object_descriptions(self.venv, o1))
+        d2 = self.rng.choice(self._get_object_descriptions(self.venv, o2)) if o2 is not None else None
+        ds = (d1, d2) if task_type in TaskType.get_pattern_push_task_types() else (d1,)
+        self.set_current_subtask_description(self._form_subtask_description(self.venv, *ds, task_type=task_type))
 
     def generate_task_description(self) -> str:
         """
-        Generate a natural language description for the environment task.
-        Warning: in multistep tasks must be called during the 1-st subtask
-        (due to the assumption about object's order in GymEnv.task_objects), otherwise the behaviour is undefined.
-
-        Returns:
-            :return description: (string) Natural language description
+        Deprecated function. Have been used for producing a description of a multistep task. But the function could be
+        updated to satisfy the new interface of the NL module.
         """
         subtasks = []
         task_type = self.venv.get_task_type()
@@ -400,6 +396,10 @@ class NaturalLanguage:
         return ", ".join(subtasks)
 
     def _generate_new_subtasks_from_1_env(self, task_desc: str, venv: VirtualEnv) -> List[Tuple[str, VirtualEnv]]:
+        """
+        Deprecated function. Have been used for generating new subtasks based on the current environment state. The function
+        can be updated and used in the future.
+        """
         tuples = []
         main_clauses, main_clauses_with_to, place_preposition_clauses = NaturalLanguage._get_movable_object_clauses(venv)
 
@@ -419,10 +419,16 @@ class NaturalLanguage:
         return tuples
 
     def _generate_new_subtasks(self, tuples: List[Tuple[str, VirtualEnv]]) -> List[Tuple[str, VirtualEnv]]:
+        """
+        Deprecated function. Have been used for generating new subtasks based on the current environment state.
+        Specifically, this function takes tuples of environment-NL description and produces new tuples
+        extended by a 1 new subtask. The function can be updated to satisfy new NL mode interface and can be used in the future.
+        """
         return list(itertools.chain(*[self._generate_new_subtasks_from_1_env(*t) for t in tuples]))
 
     def generate_new_tasks(self, max_tasks=10, max_subtasks=3) -> List[str]:
         """
+        Deprecated in a new NL mode interface, but it can be updated for reuse.
         Generate new natural language tasks from the given environment.
 
         Parameters:
