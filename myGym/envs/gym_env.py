@@ -132,6 +132,15 @@ class GymEnv(CameraEnv):
         if not hasattr(self, "task"):
             self.task = None
 
+        self.reach_gesture = False
+        if self.task_type == "reach_gesture":
+            if self.workspace != "collabtable":
+                exc = f"Expected collabtable workspace when the reach_gesture task is passed, got {self.workspace} instead"
+                raise Exception(exc)
+
+            self.reach_gesture = True
+            self.task_type = "reach"
+
         self.nl = NaturalLanguage(self)
         self.nl_mode = natural_language_mode
         self.nl_text_id = None
@@ -141,8 +150,6 @@ class GymEnv(CameraEnv):
                 exc = f"Expected task_objects to be of type {dict} instead of {type(self.task_objects_dict)}"
                 raise Exception(exc)
             # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
-            self.task_type = "pnpswipe"
-            self.reward = "pnpswipe"
             self.num_networks = 3
         self.rng = np.random.default_rng(seed=0)
         self.task_objects_were_given_as_list = isinstance(self.task_objects_dict, list)
@@ -328,8 +335,7 @@ class GymEnv(CameraEnv):
                     self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
                     self.nl.generate_subtask_with_random_description()
                 else:
-                    self.nl.set_current_subtask_description(
-                        input("Enter a subtask description in the natural language based on what you see:"))
+                    self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
 
                 # resetting the objects to remove the knowledge about whether an object is an init or a goal
                 self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
@@ -596,11 +602,11 @@ class GymEnv(CameraEnv):
             color = cs.name_to_rgba(color_name)
         return color
 
-    def get_task_objects(self) -> List[EnvObject]:
+    def get_task_objects(self, with_none=False) -> List[EnvObject]:
         objects = [self.task_objects["actual_state"], self.task_objects["goal_state"]]
         if "distractor" in self.task_objects:
             objects += self.task_objects["distractor"]
-        return [o for o in objects if isinstance(o, EnvObject)]
+        return [o for o in objects if isinstance(o, EnvObject)] if not with_none else [o if isinstance(o, EnvObject) else None for o in objects]
 
     def set_current_subtask_goal(self, goal) -> None:
         self.task_objects["actual_state"] = goal

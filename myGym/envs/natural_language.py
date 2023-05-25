@@ -131,7 +131,7 @@ class VirtualEnv:
             raise Exception("The only one argument must be passed")
 
         if task_objects:
-            self.objects: List[VirtualObject] = [VirtualObject(o) if isinstance(o, EnvObject) else None for o in self.env.get_task_objects()]
+            self.objects: List[VirtualObject] = [VirtualObject(o) if isinstance(o, EnvObject) else None for o in self.env.get_task_objects(with_none=True)]
             self.real_object_indices = list(
                 range(1, len(self.objects), 2) if self.get_task_type() in TaskType.get_pattern_reach_task_types()
                 else (
@@ -171,7 +171,7 @@ class VirtualEnv:
         return self._get_objects(self.dummy_object_indices)
 
     def get_all_objects(self, excluding=None) -> List[VirtualObject]:
-        return self.objects if not excluding else [o for o in self.objects if o not in excluding]
+        return self.get_real_objects() if not excluding else [o for o in self.get_real_objects() if o not in excluding]
 
     def _get_all_objects_in_relation(self, obj: VirtualObject, relation: str) -> List[VirtualObject]:
         # TODO: Check whether the angle between objects isn't too large
