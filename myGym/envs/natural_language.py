@@ -141,11 +141,16 @@ class VirtualEnv:
             )
         elif init_goal_objects:
             init, goal = init_goal_objects
-            if len(init) == 0 or len(goal) == 0:
-                raise Exception("Not enough real or dummy objects (every group must have at least 1 object)!")
             self.objects = list(map(VirtualObject, init + goal))
-            self.real_object_indices = list(range(len(init)))
-            self.dummy_object_indices = list(range(len(init), len(init) + len(goal)))
+            if self.env.task_type in TaskType.get_pattern_press_task_types():
+                if len(init) == 0 or len(goal) == 0:
+                    raise Exception("Not enough real or dummy objects (every group must have at least 1 object)!")
+                self.real_object_indices = list(range(len(init)))
+                self.dummy_object_indices = list(range(len(init), len(init) + len(goal)))
+            else:
+                if len(goal) == 0:
+                    raise Exception("Not enough real objects!")
+                self.real_object_indices = list(range(len(goal)))
         elif all_objects:
             self.objects = list(map(VirtualObject, all_objects))
 
@@ -279,7 +284,11 @@ class NaturalLanguage:
 
     @staticmethod
     def _decompose_subtask_description(desc: str):
-        if desc.startswith("push") or desc.startswith("throw") or desc.startswith("poke"):
+        # pattern reach
+        if desc.startswith("reach"):
+            return TaskType.REACH, _remove_first_word(desc)
+
+        elif desc.startswith("push") or desc.startswith("throw") or desc.startswith("poke"):
             task_type = TaskType.PUSH if desc.startswith("push") else (TaskType.THROW if desc.startswith("throw") else TaskType.POKE)
             return task_type, _remove_first_word(desc).split(" to the same position as ")
         if desc.startswith("pick") and "rotate" not in desc:
@@ -332,12 +341,15 @@ class NaturalLanguage:
         Generate the description of the current subtask and save it to the internal variable.
         """
         task_type = self.venv.get_task_type()
-        assert task_type in TaskType.get_pattern_push_task_types()  # TODO: Implement the remaining tasks
-        init = self.rng.choice(self.venv.get_real_objects())
-        goal = self.rng.choice(self.venv.get_dummy_objects())
-        d1 = self.rng.choice(self._get_object_descriptions(self.venv, init))
-        d2 = self.rng.choice(self._get_object_descriptions(self.venv, goal))
-        self.current_subtask_description = self._form_subtask_description(self.venv, d1, d2)
+        assert task_type in TaskType.get_pattern_push_task_types() or task_type == TaskType.REACH  # TODO: Implement the remaining tasks
+
+        if task_type in TaskType.get_pattern_push_task_types():
+            d1 = self.rng.choice(self._get_object_descriptions(self.venv, self.rng.choice(self.venv.get_real_objects())))
+            d2 = self.rng.choice(self._get_object_descriptions(self.venv, self.rng.choice(self.venv.get_dummy_objects())))
+            self.current_subtask_description = self._form_subtask_description(self.venv, d1, d2)
+        else:
+            d1 = self.rng.choice(self._get_object_descriptions(self.venv, self.rng.choice(self.venv.get_real_objects())))
+            self.current_subtask_description = self._form_subtask_description(self.venv, d1)
 
     def extract_subtask_info_from_description(self, desc: str) -> Tuple[str, str, int, EnvObject, EnvObject]:
         """
@@ -352,17 +364,23 @@ class NaturalLanguage:
         """
         desc = re.sub(' +', ' ', desc.strip().lower())
         task_type, descs = self._decompose_subtask_description(desc)
-        assert task_type in TaskType.get_pattern_push_task_types()
-        d1, d2 = descs[0], descs[1]
-        init = self._extract_object_from_object_description(self.venv, d1)
-        goal = self._extract_object_from_object_description(self.venv, d2)
+        assert task_type in TaskType.get_pattern_push_task_types() or task_type == TaskType.REACH
 
-        if task_type is TaskType.PUSH:
+        if task_type in TaskType.get_pattern_push_task_types():
+            d1, d2 = descs[0], descs[1]
+            init = self._extract_object_from_object_description(self.venv, d1)
+            goal = self._extract_object_from_object_description(self.venv, d2)
+        else:
+            d2 = descs
+            init = None
+            goal = self._extract_object_from_object_description(self.venv, d2)
+
+        if task_type is TaskType.REACH or task_type is TaskType.PUSH:
             reward, n_nets = "distance", 1
         else:
             reward, n_nets = task_type.to_string(), 3
 
-        return task_type.to_string(), reward, n_nets, init.get_env_object(), goal.get_env_object()
+        return task_type.to_string(), reward, n_nets, init.get_env_object() if init is not None else init, goal.get_env_object()
 
     def generate_random_description_for_current_subtask(self) -> None:
         """

@@ -149,8 +149,8 @@ class GymEnv(CameraEnv):
             if not isinstance(self.task_objects_dict, dict):
                 exc = f"Expected task_objects to be of type {dict} instead of {type(self.task_objects_dict)}"
                 raise Exception(exc)
-            # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
-            self.num_networks = 3
+            # # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
+            # self.num_networks = 3
         self.rng = np.random.default_rng(seed=0)
         self.task_objects_were_given_as_list = isinstance(self.task_objects_dict, list)
         self.n_subtasks = len(self.task_objects_dict) if self.task_objects_were_given_as_list else 1
@@ -304,11 +304,16 @@ class GymEnv(CameraEnv):
                 if self.task_objects_were_given_as_list:
                     task_objects_dict = copy.deepcopy(self.task_objects_dict)
                 else:
-                    init = self.rng.choice(self.task_objects_dict["init"])
-                    goal = self.rng.choice(self.task_objects_dict["goal"])
-                    objects = self.task_objects_dict["init"] + self.task_objects_dict["goal"]
-                    task_objects_dict = [{"init": init, "goal": goal}]
-                    other_objects = self._randomly_place_objects({"obj_list": [o for o in objects if o != init and o != goal]})
+                    if not self.reach_gesture:
+                        init = self.rng.choice(self.task_objects_dict["init"])
+                        goal = self.rng.choice(self.task_objects_dict["goal"])
+                        objects = self.task_objects_dict["init"] + self.task_objects_dict["goal"]
+                        task_objects_dict = [{"init": init, "goal": goal}]
+                        other_objects = self._randomly_place_objects({"obj_list": [o for o in objects if o != init and o != goal]})
+                    else:
+                        goal = self.rng.choice(self.task_objects_dict["goal"])
+                        task_objects_dict = [{"init": {"obj_name":"null"}, "goal": goal}]
+                        other_objects = self._randomly_place_objects({"obj_list": [o for o in self.task_objects_dict["goal"] if o != goal]})
 
                 all_subtask_objects = [x for i, x in enumerate(task_objects_dict) if i != self.task.current_task]
                 subtasks_processed = [list(x.values()) for x in all_subtask_objects]
@@ -323,11 +328,13 @@ class GymEnv(CameraEnv):
 
                 self.nl.get_venv().set_objects(task_objects=self.task_objects)
             else:
-                init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
+                init_objects = []
+                if not self.reach_gesture:
+                    init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
+                    for i, c in enumerate(cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+                        init_objects[i].set_color(c)
                 goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
-                for i, c in enumerate(cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
-                    init_objects[i].set_color(c)
-                for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=True, excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+                for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=not self.reach_gesture, excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
                     goal_objects[i].set_color(c)
 
                 if self.training:
@@ -341,7 +348,7 @@ class GymEnv(CameraEnv):
                 self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
                 self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
 
-                self.task_objects = {"actual_state": init, "goal_state": goal}
+                self.task_objects = {"actual_state": init if init is not None else {"obj_name":"null"}, "goal_state": goal}
                 other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
                 self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
 

@@ -18,9 +18,15 @@
 
 #Task
 "task_type"             :"reach_gesture",
-"natural_language_mode" :0,
-"task_objects"          :[{"init":{"obj_name":"null"},
-                           "goal":{"obj_name":"cube_holes","fixed":1,"rand_rot":0, "sampling_area":[-0.5, 0.2, 0.3, 0.6, 0.1, 0.4]}}],
+"natural_language_mode" :1,
+"task_objects"          :{"init": [
+                        {"obj_name":"null"},
+                        ],
+                        "goal": [
+                        {"obj_name": "cube_target", "fixed": 1, "rand_rot": 0, "sampling_area":[-0.2, 0.2, 0.7, 0.8, 0, 0]},
+                        {"obj_name": "cube_target", "fixed": 1, "rand_rot": 0, "sampling_area":[0.3, 0.5, 0.7, 0.8, 0, 0]},
+                        {"obj_name": "cube_holes", "fixed": 1, "rand_rot": 0, "sampling_area":[-0.7, -0.1, 0.8, 1.1, 0, 0]},
+                        ]},
 "used_objects"          :{"num_range":[0,0], "obj_list":[]},
 // Observation
 // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
