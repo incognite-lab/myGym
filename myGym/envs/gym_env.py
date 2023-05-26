@@ -348,7 +348,7 @@ class GymEnv(CameraEnv):
                 self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
                 self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
 
-                self.task_objects = {"actual_state": init if init is not None else {"obj_name":"null"}, "goal_state": goal}
+                self.task_objects = {"actual_state": init if init is not None else self.robot, "goal_state": goal}
                 other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
                 self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
 
@@ -375,6 +375,8 @@ class GymEnv(CameraEnv):
 
         if not self.nl_mode:  # then the description wasn't generated
             self.nl.generate_random_description_for_current_subtask()
+        if self.reach_gesture:
+            self.nl.set_current_subtask_description("reach there")
         self.nl_text_id = self.p.addUserDebugText(self.nl.get_previously_generated_subtask_description(), [2, 0, 1], textSize=1)
         if only_subtask and self.nl_text_id is not None:
             self.p.removeUserDebugItem(self.nl_text_id)
