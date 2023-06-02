@@ -154,6 +154,8 @@ class GymEnv(CameraEnv):
         self.rng = np.random.default_rng(seed=0)
         self.task_objects_were_given_as_list = isinstance(self.task_objects_dict, list)
         self.n_subtasks = len(self.task_objects_dict) if self.task_objects_were_given_as_list else 1
+        if self.reach_gesture and not self.nl_mode:
+            raise Exception("Reach gesture doesn't work without the NL mode")
 
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 

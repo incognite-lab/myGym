@@ -348,8 +348,17 @@ class NaturalLanguage:
             d2 = self.rng.choice(self._get_object_descriptions(self.venv, self.rng.choice(self.venv.get_dummy_objects())))
             self.current_subtask_description = self._form_subtask_description(self.venv, d1, d2)
         else:
-            d1 = self.rng.choice(self._get_object_descriptions(self.venv, self.rng.choice(self.venv.get_real_objects())))
-            self.current_subtask_description = self._form_subtask_description(self.venv, d1)
+            o2 = self.rng.choice(self.venv.get_real_objects())
+            env = self.venv.get_env()
+
+            if env.reach_gesture:
+                for _ in range(10):
+                    env.human.point_finger_at(position=o2.get_env_object().get_position())
+                    env.p.stepSimulation()
+                o2 = env.human.find_object_human_is_pointing_at(objects=self.venv.get_real_objects())
+
+            d2 = self.rng.choice(self._get_object_descriptions(self.venv, o2))
+            self.current_subtask_description = self._form_subtask_description(self.venv, d2)
 
     def extract_subtask_info_from_description(self, desc: str) -> Tuple[str, str, int, EnvObject, EnvObject]:
         """
