@@ -303,6 +303,9 @@ class NaturalLanguage:
 
     @staticmethod
     def _get_object_descriptions(venv: VirtualEnv, obj: VirtualObject):
+        if venv.get_env().reach_gesture:
+            return ["here", "there"]
+
         descs = [obj.get_name_with_properties()]
         for o in venv.get_all_objects_left_of(obj):
             descs.append(" ".join([obj.get_name_as_unknown_object_with_properties(), "right to", o.get_name_with_properties()]))
@@ -333,6 +336,9 @@ class NaturalLanguage:
                 else:
                     msg = f"Error, there are {len(object_matches)} objects with description \"{desc}\""
                     raise Exception(msg)
+        elif "here" in desc or "there" in desc:
+            objects = [vo.get_env_object() for vo in venv.get_all_objects()]
+            return VirtualObject(venv.get_env().human.find_object_human_is_pointing_at(objects=objects))
         else:
             return VirtualObject.extract_object_from_name_with_properties(desc, all_objects)
 
@@ -352,10 +358,14 @@ class NaturalLanguage:
             env = self.venv.get_env()
 
             if env.reach_gesture:
-                for _ in range(10):
-                    env.human.point_finger_at(position=o2.get_env_object().get_position())
-                    env.p.stepSimulation()
-                o2 = env.human.find_object_human_is_pointing_at(objects=self.venv.get_real_objects())
+                if env.training:
+                    for _ in range(10):
+                        env.human.point_finger_at(position=o2.get_env_object().get_position())
+                        env.p.stepSimulation()
+                    o2 = env.human.find_object_human_is_pointing_at(objects=self.venv.get_real_objects())
+                else:
+                    objects = [vo.get_env_object() for vo in self.venv.get_all_objects()]
+                    o2 = VirtualObject(env.choose_goal_object_by_human_with_keys(objects=objects))
 
             d2 = self.rng.choice(self._get_object_descriptions(self.venv, o2))
             self.current_subtask_description = self._form_subtask_description(self.venv, d2)

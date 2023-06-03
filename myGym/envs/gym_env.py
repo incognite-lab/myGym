@@ -336,10 +336,10 @@ class GymEnv(CameraEnv):
                     for i, c in enumerate(cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
                         init_objects[i].set_color(c)
                 goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
-                for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=not self.reach_gesture, excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+                for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=self.task_type != "reach", excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
                     goal_objects[i].set_color(c)
 
-                if self.training:
+                if self.training or (not self.training and self.reach_gesture):
                     # setting the objects and generating a description based on them
                     self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
                     self.nl.generate_subtask_with_random_description()
@@ -490,43 +490,37 @@ class GymEnv(CameraEnv):
             objects = self.env_objects
             self.robot.apply_action(action, env_objects=objects)
             if hasattr(self, "human"):
-                if self.training:
-                    self.human.point_finger_at(self.task_objects["goal_state"].get_position())
-                elif not self.training:
-                    if self.object_was_already_chosen_by_human:
-                        self.human.point_finger_at()
-                    else:
-                        self.text_id = self.p.addUserDebugText("Point the human's finger via arrow keys at the goal object and press enter", [1, 0, 0.5], textSize=1)
-                        move_factor = 10  # times 1 cm
-
-                        while not self.object_was_already_chosen_by_human:
-                            key_press = self.p.getKeyboardEvents()
-                            key_pressed = False
-
-                            if self.p.B3G_LEFT_ARROW in key_press.keys():
-                                self.human.point_finger_at(move_factor * np.array([0.01, 0, 0]), relative=True)
-                                key_pressed = True
-                            if self.p.B3G_RIGHT_ARROW in key_press.keys():
-                                self.human.point_finger_at(move_factor * np.array([-0.01, 0, 0]), relative=True)
-                                key_pressed = True
-                            if self.p.B3G_DOWN_ARROW in key_press.keys():
-                                self.human.point_finger_at(move_factor * np.array([0, 0, -0.01]), relative=True)
-                                key_pressed = True
-                            if self.p.B3G_UP_ARROW in key_press.keys():
-                                self.human.point_finger_at(move_factor * np.array([0, 0, 0.01]), relative=True)
-                                key_pressed = True
-                            if self.p.B3G_RETURN in key_press.keys():
-                                self.set_current_subtask_goal(self.human.find_object_human_is_pointing_at(objects=self.get_task_objects()))
-                                self.p.removeUserDebugItem(self.text_id)
-                                self.object_was_already_chosen_by_human = True
-                                key_pressed = True
-
-                            if key_pressed:
-                                self.p.stepSimulation()
-
+                self.human.point_finger_at(position=self.task_objects["goal_state"].get_position())
             self.p.stepSimulation()
         # print(f"Substeps:{i}")
         self.episode_steps += 1
+
+    def choose_goal_object_by_human_with_keys(self, objects: List[EnvObject]) -> EnvObject:
+        self.text_id = self.p.addUserDebugText("Point the human's finger via arrow keys at the goal object and press enter", [1, 0, 0.5], textSize=1)
+        move_factor = 10  # times 1 cm
+
+        while True:
+            key_press = self.p.getKeyboardEvents()
+            key_pressed = False
+
+            if self.p.B3G_LEFT_ARROW in key_press.keys():
+                self.human.point_finger_at(move_factor * np.array([0.01, 0, 0]), relative=True)
+                key_pressed = True
+            if self.p.B3G_RIGHT_ARROW in key_press.keys():
+                self.human.point_finger_at(move_factor * np.array([-0.01, 0, 0]), relative=True)
+                key_pressed = True
+            if self.p.B3G_DOWN_ARROW in key_press.keys():
+                self.human.point_finger_at(move_factor * np.array([0, 0, -0.01]), relative=True)
+                key_pressed = True
+            if self.p.B3G_UP_ARROW in key_press.keys():
+                self.human.point_finger_at(move_factor * np.array([0, 0, 0.01]), relative=True)
+                key_pressed = True
+            if self.p.B3G_RETURN in key_press.keys():
+                self.p.removeUserDebugItem(self.text_id)
+                return self.human.find_object_human_is_pointing_at(objects=objects)
+
+            if key_pressed:
+                self.p.stepSimulation()
 
     def draw_bounding_boxes(self):
         """

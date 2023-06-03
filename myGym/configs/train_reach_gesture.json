@@ -46,7 +46,7 @@
 "train_framework"   :"tensorflow",
 "algo"              :"ppo2",
 "num_networks" : 1,
-"max_episode_steps" :20,
+"max_episode_steps" :256,
 "algo_steps"        :256,
 "steps"             :10000,
 "pretrained_model"  :null,

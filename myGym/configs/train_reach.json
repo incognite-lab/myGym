@@ -1,7 +1,7 @@
 {
 #Environment
 "env_name"  :"Gym-v0",
-"workspace" :"table",
+"workspace" :"collabtable",
 "engine"    :"pybullet",
 "render"    :"opengl",
 "camera"    :0,
