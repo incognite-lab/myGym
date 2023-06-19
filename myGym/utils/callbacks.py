@@ -42,6 +42,7 @@ class CustomEvalCallback(EvalCallback):
     def __init__(self, eval_env: Union[gym.Env, VecEnv],
                  callback_on_new_best: Optional[BaseCallback] = None,
                  n_eval_episodes: int = 10,
+                 algo_steps: int = 256,
                  eval_freq: int = 10000,
                  log_path: str = None,
                  best_model_save_path: str = None,
@@ -55,6 +56,7 @@ class CustomEvalCallback(EvalCallback):
                  record_steps_limit=256): # pybullet or mujoco
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
+        self.algo_steps = algo_steps
         self.eval_freq = eval_freq
         self.best_mean_reward = -np.inf
         self.last_mean_reward = -np.inf
@@ -103,6 +105,7 @@ class CustomEvalCallback(EvalCallback):
         subrewards = []
         subrewsteps = []
         subrewsuccess = []
+        print("---Evaluation----")
         for e in range(n_eval_episodes):
 
             # Avoid double reset, as VecEnv are reset automatically
@@ -117,7 +120,6 @@ class CustomEvalCallback(EvalCallback):
             last_steps = 0
             srewardsteps = np.zeros(self.eval_env.env.reward.num_networks)
             srewardsuccess = np.zeros(self.eval_env.env.reward.num_networks)
-
 
             while not done:
                 steps_sum += 1
@@ -205,7 +207,7 @@ class CustomEvalCallback(EvalCallback):
 
         
 
-        print ("mean subtasks finished:{}".format(meansgoals))
+        #print ("mean subtasks finished:{}".format(meansgoals))
 
         #if not self.is_tb_set:
         #    with self.model.graph.as_default():
@@ -239,6 +241,7 @@ class CustomEvalCallback(EvalCallback):
                 self.locals['writer'].add_summary(summary, self.num_timesteps)
 
         self.eval_env.reset()
+        print ("Evaluation finished successfully")
         return results
 
 
@@ -265,11 +268,13 @@ class CustomEvalCallback(EvalCallback):
 
             if self.log_path is not None:
                 self.evaluations_results["evaluation_after_{}_steps".format(self.n_calls)] = results
-                print("Storing evaluation results after {} calls.".format(self.n_calls))
+                #print(self.n_calls)
+                #print(self.num_timesteps)
+                #print (self.evaluations_results)
                 filename = "evaluation_results.json"
                 with open(os.path.join(self.log_path, filename), 'w') as f:
                     json.dump(self.evaluations_results, f, indent=4)
-
+                print("Evaluation stored after {} calls.".format(self.n_calls))    
         return True
 
 
@@ -331,8 +336,8 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
                 # Save the new best model (with best average reward)
                 if average_reward > self.best_average_reward:
                     self.best_average_reward = average_reward
-                    if self.verbose > 0:
-                        print("Saving new best model to {}".format(self.save_path))
+                    #if self.verbose > 0:
+                        #print("Saving new best model to {}".format(self.save_path))
                     self.model.save(self.save_path)
 
                 if self.engine == "mujoco":  # Mujoco has additional prints

@@ -347,7 +347,11 @@ class MultiACKTR(ActorCriticRLModel):
 
             callback.on_training_start(locals(), globals())
 
-            for update in range(1, total_timesteps // self.n_batch + 1):
+            update = 0
+            done = False
+            n_updates = total_timesteps // self.n_batch
+
+            while not done:
 
                 callback.on_rollout_start()
 
@@ -393,7 +397,6 @@ class MultiACKTR(ActorCriticRLModel):
                         if writer is not None:
                             n_steps = model.n_batch
                             try:
-                                print("true reward:{}".format(true_reward.shape))
                                 total_episode_reward_logger(self.episode_reward,
                                                         true_reward.reshape((self.n_envs, n_steps)),
                                                         masks.reshape((self.n_envs, n_steps)),
@@ -426,7 +429,11 @@ class MultiACKTR(ActorCriticRLModel):
                             logger.dump_tabular()
                     
                     i += 1
-
+                print("Steps: " + str(self.num_timesteps) + "/" + str(total_timesteps) + " - (" + str(round(self.num_timesteps/total_timesteps*100)) + "%)")    
+                print("Episodes: " + str(update+1) + "/" + str(n_updates) + " - (" + str(round((update+1)/n_updates*100)) + "%)")
+                if self.num_timesteps >= total_timesteps:
+                    done = True
+                update +=1
             coord.request_stop()
             coord.join(enqueue_threads)
 

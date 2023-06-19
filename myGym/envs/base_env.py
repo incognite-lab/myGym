@@ -229,16 +229,16 @@ class BaseEnv(gym.Env):
         else:
             episode_status = "SUCCESS"
 
-        print("#---------Episode-Summary---------#")
-        print("Episode number: " + str(self.episode_number))
-        print("Episode's number of steps: " + str(self.episode_steps))
-        print("Episode status: " + episode_status)
-        print("Episode info: " + self.episode_info)
-        print("Episode reward: " + str(self.episode_reward))
-        if hasattr(self.reward, "network_rewards"):
-                [print("Reward network {}: {}".format(i, x)) for i, x in enumerate(self.reward.network_rewards)]
-        print("Last step reward: " + str(self.reward.rewards_history[-1]))
-        print("#---------------------------------#")
+        #print("#---------Episode-Summary---------#")
+        print(str(self.episode_steps) + " , " + str(episode_status) + " , " + str(self.episode_info))
+        #print("Episode's number of steps: " + str(self.episode_steps))
+        #print("Episode status: " + episode_status)
+        #print("Episode info: " + self.episode_info)
+        #print("Episode reward: " + str(self.episode_reward))
+        #if hasattr(self.reward, "network_rewards"):
+        #        [print("Reward network {}: {}".format(i, x)) for i, x in enumerate(self.reward.network_rewards)]
+        #print("Last step reward: " + str(self.reward.rewards_history[-1]))
+        #print("#---------------------------------#")
 
         #for key, value in info_dict.items():
         #    print(key + ": " + str(value))
