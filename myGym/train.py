@@ -1,3 +1,5 @@
+import random
+
 import pkg_resources
 import os, sys, time, yaml
 import argparse
@@ -134,11 +136,15 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     conf_pth   = os.path.join(model_logdir, "train.json")
     model_path = os.path.join(model_logdir, "best_model.zip")
     arg_dict["model_path"] = model_path
+    seed = arg_dict.get("seed", 1)
+    np.random.seed(seed)
+    random.seed(seed)
     with open(conf_pth, "w") as f:
         json.dump(arg_dict, f, indent=4)
 
     model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
     model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
+    model_kwargs["seed"] = seed
     if pretrained_model:
         if not os.path.isabs(pretrained_model):
             pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
@@ -155,7 +161,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             generate_expert_traj(model, model_name, n_timesteps=3000, n_episodes=100)
             # Load the expert dataset
             dataset = ExpertDataset(expert_path=model_name+'.npz', traj_limitation=10, verbose=1)
-            model = GAIL_T('MlpPolicy', model_name, dataset, verbose=1)
+            model = GAIL_T('MlpPolicy', model_name, dataset, verbose=1, seed=seed)
             # Note: in practice, you need to train for 1M steps to have a working policy
 
     start_time = time.time()
@@ -199,6 +205,7 @@ def get_parser():
     parser.add_argument("-n", "--env_name", type=str, help="The name of environment")
     parser.add_argument("-ws", "--workspace", type=str, help="The name of workspace")
     parser.add_argument("-p", "--engine", type=str,  help="Name of the simulation engine you want to use")
+    parser.add_argument("-sd", "--seed", type=int, help="Seed number")
     parser.add_argument("-d", "--render", type=str,  help="Type of rendering: opengl, opencv")
     parser.add_argument("-c", "--camera", type=int, help="The number of camera used to render and record")
     parser.add_argument("-vi", "--visualize", type=int,  help="Whether visualize camera render and vision in/out or not: 1 or 0")
