@@ -14,7 +14,7 @@ from stable_baselines.common.schedules import Scheduler
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
 from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCriticPolicy
 from stable_baselines.common.math_util import safe_mean
-
+from stable_baselines.common.misc_util import set_global_seeds
 import commentjson
 import numpy as np
 import gym
@@ -676,6 +676,22 @@ class SubModel(MultiACKTR):
                 self.summary = tf.summary.merge_all()
 
                 self.parent = parent
+
+    def set_random_seed(self, seed: int) -> None:
+        """
+        :param seed: (Optional[int]) Seed for the pseudo-random generators. If None,
+            do not change the seeds.
+        """
+        # Ignore if the seed is None
+        if seed is None:
+            return
+        # Seed python, numpy and tf random generator
+        set_global_seeds(seed)
+        if self.env is not None:
+            self.env.seed(seed)
+            # Seed the action space
+            # useful when selecting random actions
+            self.env.action_space.seed(seed)
 
     def _setup_learn(self, parent): 
         """

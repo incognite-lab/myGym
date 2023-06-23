@@ -17,7 +17,7 @@ from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCr
 from stable_baselines.common.schedules import get_schedule_fn
 from stable_baselines.common.tf_util import total_episode_reward_logger
 from stable_baselines.common.math_util import safe_mean
-
+from stable_baselines.common.misc_util import set_global_seeds
 
 class MultiPPO2(ActorCriticRLModel):
     """
@@ -575,6 +575,22 @@ class SubModel(MultiPPO2):
             parent.episode_reward = np.zeros((parent.n_envs,))
         if parent.ep_info_buf is None:
             parent.ep_info_buf = deque(maxlen=100)
+
+    def set_random_seed(self, seed: int) -> None:
+        """
+        :param seed: (Optional[int]) Seed for the pseudo-random generators. If None,
+            do not change the seeds.
+        """
+        # Ignore if the seed is None
+        if seed is None:
+            return
+        # Seed python, numpy and tf random generator
+        set_global_seeds(seed)
+        if self.env is not None:
+            self.env.seed(seed)
+            # Seed the action space
+            # useful when selecting random actions
+            self.env.action_space.seed(seed)
 
     def save(self, parent_path, i, cloudpickle=False):
         # save only one model
