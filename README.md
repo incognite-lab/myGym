@@ -102,7 +102,7 @@ If everything is correct, the toolbox will train for two minutes without GUI and
 |---|---|
 | Workspaces | Table, Collaborative table, Maze, Vertical maze, Drawer, Darts, Football, Fridge, Stairs, Baskets |
 | Vision  | Cartesians, RGB, Depth, Class, Centroid, Bounding Box, Semantic Mask, Latent Vector |
-| Robots  | 8 robotic arms, 2 dualarms, humanoid |
+| Robots  | 9 robotic arms, 2 dualarms, humanoid |
 | Robot actions  | Absolute, Relative, Joints |
 | Objects  | 54 objects in 5 categories |
 | Tasks  | Reach, Press, Switch, Turn, Push, Pick, Place, PicknPlace, Poke,MultiReach, MultiPNP|
@@ -259,6 +259,7 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 |  Franka-Emica | arm  | gripper  | 7  |  panda |
 | Jaco arm  | arm  |  two finger |  13 | jaco  |
 | Gummiarm  | arm  | passive palm  |  13 | gummi  |
+| Human Support Robot (HSR) | arm | gripper | 7 | hsr |
 | ABB Yumi  | dualarm  | two finger  |  12 | yummi  |
 | ReachyLeachy  | dualarm  | passive palms  |  14 | reachy_and_leachy |
 | Pepper  | humanoid | --  |  20 | WIP  |
