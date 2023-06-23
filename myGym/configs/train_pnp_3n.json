@@ -4,6 +4,7 @@
     "workspace" :"table",
     "engine"    :"pybullet",
     "render"    :"opengl",
+    "seed"      :1,
     "camera"    :0,
     "gui"       :0,
     "visualize" :0,
@@ -48,6 +49,6 @@
     "eval_freq"     :500000,
     "eval_episodes" :50,
     #Saving and logging
-    "logdir"    :"trained_models/pnp3new",
+    "logdir"    :"trained_models/pnp3seed",
     "record"    :0
     }

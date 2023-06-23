@@ -4,6 +4,7 @@
     "workspace" :"table",
     "engine"    :"pybullet",
     "render"    :"opengl",
+    "seed"      :1,
     "camera"    :0,
     "gui"       :0,
     "visualize" :0,
@@ -37,11 +38,11 @@
     "yolact_config" :null,
     #Train
     "train_framework"   :"tensorflow",
-    "algo"              :"multi",
+    "algo"              :"multippo2",
     "num_networks"      :3,
     "max_episode_steps" :512,
     "algo_steps"        :512,
-    "steps"             :15000000,
+    "steps"             :10000000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
