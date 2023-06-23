@@ -136,15 +136,16 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     conf_pth   = os.path.join(model_logdir, "train.json")
     model_path = os.path.join(model_logdir, "best_model.zip")
     arg_dict["model_path"] = model_path
-    seed = arg_dict.get("seed", 1)
-    np.random.seed(seed)
-    random.seed(seed)
+    seed = arg_dict.get("seed", None)
     with open(conf_pth, "w") as f:
         json.dump(arg_dict, f, indent=4)
 
     model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
     model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
-    model_kwargs["seed"] = seed
+    if seed is not None:
+        np.random.seed(seed)
+        random.seed(seed)
+        model_kwargs["seed"] = seed
     if pretrained_model:
         if not os.path.isabs(pretrained_model):
             pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
@@ -161,7 +162,10 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             generate_expert_traj(model, model_name, n_timesteps=3000, n_episodes=100)
             # Load the expert dataset
             dataset = ExpertDataset(expert_path=model_name+'.npz', traj_limitation=10, verbose=1)
-            model = GAIL_T('MlpPolicy', model_name, dataset, verbose=1, seed=seed)
+            kwargs = {"verbose":1}
+            if seed is not None:
+                kwargs["seed"] = seed
+            model = GAIL_T('MlpPolicy', model_name, dataset, **kwargs)
             # Note: in practice, you need to train for 1M steps to have a working policy
 
     start_time = time.time()
