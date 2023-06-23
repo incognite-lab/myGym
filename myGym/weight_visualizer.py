@@ -124,7 +124,7 @@ def visualize_weights(root_dir, weight_layer):
     
     plt.tight_layout() 
     #plt.show()
-    plt.savefig(os.path.join(root_dir,taskname + layername + '.png'))
+    plt.savefig(os.path.join(weight_dir,taskname + layername + '.png'))
 
     # Perform PCA
     #pca = PCA(n_components=2, random_state=42)
@@ -176,4 +176,5 @@ if __name__ == '__main__':
     "model/q/b:0"]
 
     for weight_layer in weigth_layers:
+        print("Visualizing weights for layer: {}".format(weight_layer))
         visualize_weights(args.rootdir,weight_layer)
