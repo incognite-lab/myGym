@@ -18,14 +18,14 @@
 
 #Task
 "task_type"             :"reach_gesture",
-"natural_language"      :0,
+"natural_language"      :1,
 "task_objects"          :{"init": [
                         {"obj_name":"null"},
                         ],
                         "goal": [
-                        {"obj_name": "cube_target", "fixed": 1, "rand_rot": 0, "sampling_area":[-0.2, 0.2, 0.7, 0.8, 0, 0]},
-                        {"obj_name": "cube_target", "fixed": 1, "rand_rot": 0, "sampling_area":[0.3, 0.5, 0.7, 0.8, 0, 0]},
-                        {"obj_name": "cube_holes", "fixed": 1, "rand_rot": 0, "sampling_area":[-0.7, -0.1, 0.8, 1.1, 0, 0]},
+                        {"obj_name": "cube_target", "fixed": 1, "rand_rot": 0, "sampling_area":[0.1, 0.35, 0.6, 0.9, 0.1, 0.4]},
+                        {"obj_name": "cube_target", "fixed": 1, "rand_rot": 0, "sampling_area":[-0.1, 0.1, 0.6, 0.9, 0.1, 0.4]},
+                        {"obj_name": "cube_target", "fixed": 1, "rand_rot": 0, "sampling_area":[-0.35, -0.1, 0.6, 0.9, 0.1, 0.4]},
                         ]},
 "used_objects"          :{"num_range":[0,0], "obj_list":[]},
 // Observation
