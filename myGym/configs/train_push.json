@@ -19,6 +19,7 @@
 
 #Task
 "task_type"             :"push",
+"natural_language"      :0,
 "task_objects"          :[{"init":{"obj_name":"cube_holes","fixed":0,"rand_rot":0, "sampling_area":[0, 0, 0.46, 0.55, 0.1, 0.1]},
                            "goal":{"obj_name":"target","fixed":1,"rand_rot":0, "sampling_area":[-0.5, 0.5, 0.65, 0.7, 0.05, 0.05]}}],
 "used_objects"          :{"num_range":[0,0], "obj_list":[]},

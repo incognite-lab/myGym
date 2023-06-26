@@ -17,6 +17,7 @@
 "action_repeat" :1,
 #Task
 "task_type"             :"turn",
+"natural_language"      :0,
 "task_objects"          :[{"init":{"obj_name":"null"},
                            "goal":{"obj_name":"steering_wheel","fixed":1,"rand_rot":0, "sampling_area":[0, 0, 0.7, 0.7, 0.1, 0.1]}}],
 "used_objects"          :{"num_range":[0,0], "obj_list":[]},

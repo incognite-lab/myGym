@@ -84,7 +84,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
                      "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"],
-                     "natural_language_mode": arg_dict["natural_language_mode"],
+                     "natural_language": bool(arg_dict["natural_language"]),
                      "training": bool(for_train)
                      }
     if for_train:
@@ -249,11 +249,11 @@ def get_parser():
     parser.add_argument("-yc", "--yolact_config", type=str, help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
     parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
     #Language
-    parser.add_argument("-nl", "--natural_language", type=str, default="",
-                        help="If passed, instead of training the script will produce a natural language output "
-                             "of the given type, save it to the predefined file (for communication with other scripts) "
-                             "and exit the program (without the actual training taking place). Expected values are \"description\" "
-                             "(generate a task description) or \"new_tasks\" (generate new tasks)")
+    # parser.add_argument("-nl", "--natural_language", type=str, default="",
+    #                     help="If passed, instead of training the script will produce a natural language output "
+    #                          "of the given type, save it to the predefined file (for communication with other scripts) "
+    #                          "and exit the program (without the actual training taking place). Expected values are \"description\" "
+    #                          "(generate a task description) or \"new_tasks\" (generate new tasks)")
     return parser
 
 def get_arguments(parser):
@@ -302,9 +302,6 @@ def main():
             add += 1
 
     env = configure_env(arg_dict, model_logdir, for_train=1)
-    if arg_dict['natural_language'] != '':
-        process_natural_language_command(arg_dict['natural_language'], env.env.env)
-        return
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
     train(env, implemented_combos, model_logdir, arg_dict, arg_dict["pretrained_model"])
     print(model_logdir)

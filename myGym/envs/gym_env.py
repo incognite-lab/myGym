@@ -57,7 +57,7 @@ class GymEnv(CameraEnv):
         :param vae_path: (string) Path to a trained VAE in 2dvu reward type
         :param yolact_path: (string) Path to a trained Yolact in 3dvu reward type
         :param yolact_config: (string) Path to saved Yolact config obj or name of an existing one in the data/Config script or None for autodetection
-        :param natural_language_mode: (bool) Whether the natural language mode should be turned on
+        :param natural_language: (bool) Whether the natural language mode should be turned on
         :param training: (bool) Whether a training or a testing is taking place
     """
 
@@ -89,7 +89,7 @@ class GymEnv(CameraEnv):
                  vae_path=None,
                  yolact_path=None,
                  yolact_config=None,
-                 natural_language_mode=False,
+                 natural_language=False,
                  training=True,
                  **kwargs
                  ):
@@ -142,7 +142,7 @@ class GymEnv(CameraEnv):
             self.task_type = "reach"
 
         self.nl = NaturalLanguage(self)
-        self.nl_mode = natural_language_mode
+        self.nl_mode = natural_language
         self.nl_text_id = None
         self.training = training
         if self.nl_mode:
@@ -375,13 +375,12 @@ class GymEnv(CameraEnv):
         self.p.stepSimulation()
         self._observation = self.get_observation()
 
-        if not self.nl_mode:  # then the description wasn't generated
-            self.nl.generate_random_description_for_current_subtask()
-        if self.reach_gesture:
-            self.nl.set_current_subtask_description("reach there")
-        self.nl_text_id = self.p.addUserDebugText(self.nl.get_previously_generated_subtask_description(), [2, 0, 1], textSize=1)
-        if only_subtask and self.nl_text_id is not None:
-            self.p.removeUserDebugItem(self.nl_text_id)
+        if self.nl_mode:
+            if self.reach_gesture:
+                self.nl.set_current_subtask_description("reach there")
+            self.nl_text_id = self.p.addUserDebugText(self.nl.get_previously_generated_subtask_description(), [2, 0, 1], textSize=1)
+            if only_subtask and self.nl_text_id is not None:
+                self.p.removeUserDebugItem(self.nl_text_id)
 
         return self.flatten_obs(self._observation.copy())
 

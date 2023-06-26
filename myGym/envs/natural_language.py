@@ -104,6 +104,7 @@ class VirtualObject:
         color_name = _remove_last_word(_remove_first_word(desc))
         object_matches = [o for o in objects if o.properties == color_name]
         if len(object_matches) == 0:
+            print(" ".join([o.properties for o in objects]))
             msg = f"There are no objects with description \"{desc}\""
             raise Exception(msg)
         return object_matches
@@ -120,7 +121,6 @@ class VirtualEnv:
     def __init__(self, env):
         self.env = env
         self.task_type: TaskType = TaskType.from_string(env.task_type)
-        assert self.task_type not in TaskType.get_pattern_press_task_types()  # not implemented yet
         self.objects: List[VirtualObject] = []
         self.real_object_indices: List[int] = []
         self.dummy_object_indices: List[int] = []
@@ -142,7 +142,7 @@ class VirtualEnv:
         elif init_goal_objects:
             init, goal = init_goal_objects
             self.objects = list(map(VirtualObject, init + goal))
-            if self.env.task_type in TaskType.get_pattern_press_task_types():
+            if TaskType.from_string(self.env.task_type) in TaskType.get_pattern_push_task_types():
                 if len(init) == 0 or len(goal) == 0:
                     raise Exception("Not enough real or dummy objects (every group must have at least 1 object)!")
                 self.real_object_indices = list(range(len(init)))
@@ -176,7 +176,7 @@ class VirtualEnv:
         return self._get_objects(self.dummy_object_indices)
 
     def get_all_objects(self, excluding=None) -> List[VirtualObject]:
-        return self.get_real_objects() if not excluding else [o for o in self.get_real_objects() if o not in excluding]
+        return self.objects if not excluding else [o for o in self.objects if o not in excluding]
 
     def _get_all_objects_in_relation(self, obj: VirtualObject, relation: str) -> List[VirtualObject]:
         # TODO: Check whether the angle between objects isn't too large
