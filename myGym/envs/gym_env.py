@@ -502,19 +502,19 @@ class GymEnv(CameraEnv):
             key_press = self.p.getKeyboardEvents()
             key_pressed = False
 
-            if self.p.B3G_LEFT_ARROW in key_press.keys():
+            if self.p.B3G_LEFT_ARROW in key_press.keys() and key_press[self.p.B3G_LEFT_ARROW] == 3:
                 self.human.point_finger_at(move_factor * np.array([0.01, 0, 0]), relative=True)
                 key_pressed = True
-            if self.p.B3G_RIGHT_ARROW in key_press.keys():
+            if self.p.B3G_RIGHT_ARROW in key_press.keys() and key_press[self.p.B3G_RIGHT_ARROW] == 3:
                 self.human.point_finger_at(move_factor * np.array([-0.01, 0, 0]), relative=True)
                 key_pressed = True
-            if self.p.B3G_DOWN_ARROW in key_press.keys():
+            if self.p.B3G_DOWN_ARROW in key_press.keys() and key_press[self.p.B3G_DOWN_ARROW] == 3:
                 self.human.point_finger_at(move_factor * np.array([0, 0, -0.01]), relative=True)
                 key_pressed = True
-            if self.p.B3G_UP_ARROW in key_press.keys():
+            if self.p.B3G_UP_ARROW in key_press.keys() and key_press[self.p.B3G_UP_ARROW] == 3:
                 self.human.point_finger_at(move_factor * np.array([0, 0, 0.01]), relative=True)
                 key_pressed = True
-            if self.p.B3G_RETURN in key_press.keys():
+            if self.p.B3G_RETURN in key_press.keys() and key_press[self.p.B3G_RETURN] == 3:
                 self.p.removeUserDebugItem(self.text_id)
                 return self.human.find_object_human_is_pointing_at(objects=objects)
 
