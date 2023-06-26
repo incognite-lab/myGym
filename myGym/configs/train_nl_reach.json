@@ -5,7 +5,7 @@
 "engine"    :"pybullet",
 "render"    :"opengl",
 "camera"    :0,
-"gui"       :1,
+"gui"       :0,
 "visualize" :0,
 "visgym"    :0,
 #Robot
