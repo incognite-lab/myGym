@@ -343,12 +343,32 @@ class GymEnv(CameraEnv):
                     # setting the objects and generating a description based on them
                     self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
                     self.nl.generate_subtask_with_random_description()
-                else:
-                    self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
 
-                # resetting the objects to remove the knowledge about whether an object is an init or a goal
-                self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-                self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
+                    # resetting the objects to remove the knowledge about whether an object is an init or a goal
+                    self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
+                    self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
+                else:
+                    success = False
+                    i = 0
+
+                    while (not success):
+                        try:
+                            if i > 0:
+                                print("Unknown task description format. Actual format is very strict. "
+                                      "All articles must be included. Examples of valid subtask descriptions in general:")
+                                print("\"reach the cyan cube\"")
+                                print("\"reach the transparent pink cube left to the gray cube\"")
+                                print("\"pick the orange cube and place it to the same position as the pink cube\"")
+                                print("Pay attention to the fact that colors, task and objects in your case can be different!")
+                            self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
+                            # resetting the objects to remove the knowledge about whether an object is an init or a goal
+                            self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
+                            self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
+                            success = True
+                            break
+                        except:
+                            pass
+                        i += 1
 
                 self.task_objects = {"actual_state": init if init is not None else self.robot, "goal_state": goal}
                 other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
