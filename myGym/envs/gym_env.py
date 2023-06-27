@@ -395,7 +395,7 @@ class GymEnv(CameraEnv):
         self.p.stepSimulation()
         self._observation = self.get_observation()
 
-        if self.nl_mode:
+        if self.gui_on and self.nl_mode:
             if self.reach_gesture:
                 self.nl.set_current_subtask_description("reach there")
             self.nl_text_id = self.p.addUserDebugText(self.nl.get_previously_generated_subtask_description(), [2, 0, 1], textSize=1)
