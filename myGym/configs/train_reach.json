@@ -40,14 +40,14 @@
 "train_framework"   :"tensorflow",
 "algo"              :"ppo2",
 "num_networks" : 1,
-"max_episode_steps" :256,
-"algo_steps"        :256,
-"steps"             :50000,
+"max_episode_steps" :512,
+"algo_steps"        :512,
+"steps"             :1000000,
 "pretrained_model"  :null,
 "multiprocessing"   :false,
 #Evaluation
-"eval_freq"     :5000,
-"eval_episodes" :3,
+"eval_freq"     :50000,
+"eval_episodes" :30,
 #Saving and logging
 "logdir"    :"trained_models/reach",
 "record"    :0
