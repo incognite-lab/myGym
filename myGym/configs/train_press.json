@@ -4,6 +4,7 @@
 "workspace" :"table",
 "engine"    :"pybullet",
 "render"    :"opengl",
+"seed"      :1,
 "camera"    :0,
 "gui"       :0,
 "visualize" :0,
