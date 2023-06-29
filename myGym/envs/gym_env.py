@@ -6,7 +6,7 @@ from collections import ChainMap
 from myGym.envs.rewards import *
 import numpy as np
 from itertools import chain
-from gym import spaces
+from gymnasium import spaces
 import random
 from myGym.utils.helpers import get_workspace_dict
 import pkg_resources
