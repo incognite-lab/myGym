@@ -360,6 +360,7 @@ class GymEnv(CameraEnv):
                                 print("\"reach the transparent pink cube left to the gray cube\"")
                                 print("\"pick the orange cube and place it to the same position as the pink cube\"")
                                 print("Pay attention to the fact that colors, task and objects in your case can be different!")
+                                print("To leave the program use Ctrl + Z!")
                             self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
                             # resetting the objects to remove the knowledge about whether an object is an init or a goal
                             self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
