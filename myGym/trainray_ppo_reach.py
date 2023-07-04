@@ -7,9 +7,12 @@ from gymnasium.wrappers import EnvCompatibility
 from ray.tune.registry import register_env
 from myGym.envs.gym_env import GymEnv
 import numpy as np
-
+import time
 
 def main():
+    #Start time counter and print it
+    start_time = time.time()
+    print(start_time)
     parser = get_parser()
     arg_dict = get_arguments(parser)
 
@@ -32,7 +35,7 @@ def main():
             add += 1
 
     # Set env arguments 
-    env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
+    env_arguments = {"render_on": False, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                      "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
                      "robot_action": arg_dict["robot_action"],"max_velocity": arg_dict["max_velocity"], 
                      "max_force": arg_dict["max_force"],"task_type": arg_dict["task_type"],
@@ -45,7 +48,7 @@ def main():
                      "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"]}
 
-    env_arguments["gui_on"] = True
+    env_arguments["gui_on"] = False
 
     # Register OpenAI gym env in gymnasium
     def env_creator(env_config):
@@ -55,7 +58,7 @@ def main():
     # Set up algo
     algo = (
         PPOConfig()
-        .rollouts(num_rollout_workers=4) # You can try to increase or decrease based on your systems specs
+        .rollouts(num_rollout_workers=12) # You can try to increase or decrease based on your systems specs
         .resources(num_gpus=1) # You can try to increase or decrease based on your systems specs
         .environment(env='GymEnv-v0', env_config=env_arguments)
         .build()
@@ -69,6 +72,7 @@ def main():
         if i % 5 == 0:
             checkpoint_dir = algo.save()
             print(f"Checkpoint saved in directory {checkpoint_dir}")
-
+    #Print start time minus end time
+    print("--- %s seconds ---" % (time.time() - start_time))
 if __name__ == "__main__":
     main()
