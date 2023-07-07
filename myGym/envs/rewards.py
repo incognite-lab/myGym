@@ -529,10 +529,10 @@ class SwitchReward(DistanceReward):
 
         x = 2*range*(x1/(x1+x2)) - range
         if self.last_pos_on_line > x:
-            return -fabs(x-last_pos_on_line)
+            return -fabs(x-self.last_pos_on_line)
         else:
             self.last_pos_on_line = x
-        return normap_dist_func(x)
+        return self.normap_dist_func(x)
 
     def get_angle_reward(self):
         if self.last_angle == None:
@@ -598,7 +598,7 @@ class SwitchReward(DistanceReward):
         if self.x_obj is None:
             self.x_obj = o1[0]
 
-        if self.y_obj is None:get_bonus
+        if self.y_obj is None:
             self.y_obj = o1[1]
 
         if self.z_obj is None:
