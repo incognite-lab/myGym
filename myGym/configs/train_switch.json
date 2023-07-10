@@ -42,11 +42,11 @@
 "num_networks" : 1,
 "max_episode_steps" :512,
 "algo_steps"        :512,
-"steps"             :6000000,
+"steps"             :700000,
 "pretrained_model"  :null,
 "multiprocessing"   :false,
 #Evaluation
-"eval_freq"     :500000,
+"eval_freq"     :50000,
 "eval_episodes" :50,
 #Saving and logging
 "logdir"    :"trained_models/switch",
