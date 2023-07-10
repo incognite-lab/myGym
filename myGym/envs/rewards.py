@@ -414,7 +414,7 @@ class VectorReward(Reward):
 
 
 class SwitchReward(DistanceReward):
-    """
+   """
     Reward class for reward signal calculation based on distance differences between 2 objects,
     angle of switch and difference between point and line (function used for that: calc_direction_3d()).
     Parameters:
@@ -492,8 +492,8 @@ class SwitchReward(DistanceReward):
         else:
             rew_line    =   self.lin_eval(distances[3]) if distances[3] < last_dist[3] else -1/self.lin_eval(distances[3]) 
             rew_2point  =   self.lin_eval(distances[1]) if distances[1] < last_dist[1] else -1/self.lin_eval(distances[1])
-            # if distances[3] < self.dist_offset:
-            #     rew_line += self.norm_eval_4_line(points[0], points[1], cur_pos)
+            if distances[3] < self.dist_offset:
+                rew_line += self.norm_eval_4_line(points[0], points[1], cur_pos)
 
         reward = rew_1point + rew_line + rew_2point + self.get_bonus(*distances) + self.get_angle_reward()
 
@@ -529,10 +529,10 @@ class SwitchReward(DistanceReward):
 
         x = 2*range*(x1/(x1+x2)) - range
         if self.last_pos_on_line > x:
-            return -fabs(x-self.last_pos_on_line)
+            return -fabs(x-last_pos_on_line)
         else:
             self.last_pos_on_line = x
-        return self.normap_dist_func(x)
+        return normap_dist_func(x)
 
     def get_angle_reward(self):
         if self.last_angle == None:
