@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
     #Environment
     "env_name"  :"Gym-v0",
     "workspace" :"table",
@@ -90,7 +89,7 @@
 "distance_type" :"euclidean",
 "vae_path"      :null,
 "yolact_path"   :null,
-"yolact_config" :null,
+"yolact_config" :null,Merge branch 'testing' of https://github.com/incognite-lab/mygym into testing
 #Train
 "train_framework"   :"tensorflow",
 "algo"              :"ppo2",
@@ -107,4 +106,3 @@
 "logdir"    :"trained_models/switch",
 "record"    :0
 }
->>>>>>> 932a58f07b0deeff6cf802eb55bef5aa8735046f
