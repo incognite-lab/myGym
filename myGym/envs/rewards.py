@@ -7,6 +7,7 @@ from math import sqrt
 from myGym.utils.vector import Vector
 import random
 
+
 class Reward:
     """
     Reward base class for reward signal calculation and visualization
@@ -1042,7 +1043,6 @@ class TurnReward(SwitchReward):
     def get_angle_between_vectors(self, v1, v2):
         return math.acos(np.dot(v1, v2)/(self.count_vector_norm(v1)*self.count_vector_norm(v2)))
 
-
 class PokeReachReward(SwitchReward):
 
     def __init__(self, env, task):
@@ -1286,7 +1286,6 @@ class DualPoke(PokeReachReward):
         if b > a or c > a:
             distance = c
         return distance
-
 
 # pick and place rewards
 class SingleStagePnP(DistanceReward):
@@ -2125,3 +2124,99 @@ class GripperPickAndPlace():
 
         self.network_rewards[2] += reward
         return reward
+
+class Malyarty(SwitchReward):
+
+    def __init__(self, env, task):
+        super(PokeReachReward, self).__init__(env, task)
+
+        self.threshold = 0.1
+        self.last_distance = None
+        self.last_gripper_distance = None
+        self.moved = False
+        self.prev_poker_position = [None]*3
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+        self.last_distance = None
+        self.last_gripper_distance = None
+        self.moved = False
+        self.prev_poker_position = [None]*3
+
+    def compute(self, observation=None):
+        print("Maly Arty works!!!!!!@!")
+        poker_position, distance, gripper_distance = self.init(observation)
+        self.task.check_goal()
+        reward = self.count_reward(poker_position, distance, gripper_distance)
+        self.finish(observation, poker_position, distance, gripper_distance, reward)
+        return reward
+
+    def init(self, observation):
+        # load positions
+        goal_position = observation["goal_state"]
+        poker_position = observation["actual_state"]
+        gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
+        gripper_position = self.env.robot.get_accurate_gripper_position()
+
+        for i in range(len(poker_position)):
+            poker_position[i] = round(poker_position[i], 4)
+
+        distance = round(self.env.task.calc_distance(goal_position, poker_position), 7)
+        gripper_distance = self.env.task.calc_distance(poker_position, gripper_position)
+        self.initialize_positions(poker_position, distance, gripper_distance)
+
+        return poker_position, distance, gripper_distance
+
+    def finish(self, observation, poker_position, distance, gripper_distance, reward):
+        self.update_positions(poker_position, distance, gripper_distance)
+        self.check_strength_threshold()
+        self.task.check_distance_threshold(observation)
+        self.rewards_history.append(reward)
+
+    def count_reward(self, poker_position, distance, gripper_distance):
+        reward = 0
+        if self.check_motion(poker_position):
+            reward += self.last_gripper_distance - gripper_distance
+        reward += 100*(self.last_distance - distance)
+        return reward
+
+    def initialize_positions(self, poker_position, distance, gripper_distance):
+        if self.last_distance is None:
+            self.last_distance = distance
+
+        if self.last_gripper_distance is None:
+            self.last_gripper_distance = gripper_distance
+
+        if self.prev_poker_position[0] is None:
+            self.prev_poker_position = poker_position
+
+    def update_positions(self, poker_position, distance, gripper_distance):
+        self.last_distance = distance
+        self.last_gripper_distance = gripper_distance
+        self.prev_poker_position = poker_position
+
+    def check_strength_threshold(self):
+        if self.task.check_object_moved(self.env.task_objects["actual_state"], 2):
+            self.env.episode_over = True
+            self.env.episode_failed = True
+            self.env.episode_info = "poke too strong"
+
+    def is_poker_moving(self, poker):
+        if self.prev_poker_position[0] == poker[0] and self.prev_poker_position[1] == poker[1]:
+            return False
+        elif self.env.episode_steps > 25:   # it slightly moves on the beginning
+            self.moved = True
+        return True
+
+    def check_motion(self, poker):
+        if not self.is_poker_moving(poker) and self.moved:
+            self.env.episode_over = True
+            self.env.episode_failed = True
+            self.env.episode_info = "too weak poke"
+            return True
+        elif self.is_poker_moving(poker):
+            return False
+        return True
+# dual rewards
