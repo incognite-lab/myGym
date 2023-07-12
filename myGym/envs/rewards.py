@@ -908,38 +908,81 @@ class TurnReward(SwitchReward):
 class PushReward(SwitchReward):
     def __init__(self, env, task):
         super(PushReward, self).__init__(env, task)
+        
+        self.x_cube = None
+        self.y_cube = None
+        self.z_cube = None
+
+        self.x_gripper = None
+        self.y_gripper = None
+        self.z_gripper = None
+
+        self.x_target = None
+        self.y_target = None
+        self.z_target = None
+        
         self.k_w = 0.1   # coefficient for distance between actual position of robot's gripper and generated line
         self.k_d = 0.1   # coefficient for absolute distance between gripper and end position
         self.k_a = 1     # coefficient for calculated angle reward
 
-    def compute(self, observation):
-        """
-        Compute reward signal based on distance between 2 objects, position of button and difference between point and line
-        (function used for that: calc_direction_3d()).
-        The position of the objects must be present in observation.
-        Params:
-            :param observation: (list) Observation of the environment
-        Returns:
-            :return reward: (float) Reward signal for the environment
-        """
-        print("adfae")
-        goal = observation["goal_state"]
-        goal_position, object_position, gripper_position = self.get_positions(observation)
-        self.set_variables(goal, gripper_position)
-        self.set_offset(z=0.16)
-        w = self.calc_direction_3d(self.x_obj, self.y_obj, 1, self.x_obj, self.y_obj, self.z_obj,
-                                   self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
-        d = self.abs_diff()
+    def set_variables_push(self, cube_position, gripper_position, target_position):
+ 
+        if self.x_cube is None:
+            self.x_cube = cube_position[0]
+        if self.y_cube is None:
+            self.y_cube = cube_position[1]
+        if self.z_cube is None:
+            self.z_cube = cube_position[2]
+
+        if self.x_gripper is None:
+            self.x_gripper = gripper_position[0]
+        if self.y_gripper is None:
+            self.y_gripper = gripper_position[1]
+        if self.z_gripper is None:
+            self.z_gripper = gripper_position[2]
+        
+        if self.x_target is None:
+            self.x_target = target_position[0]
+        if self.y_target is None:
+            self.y_target = target_position[1]
+        if self.z_target is None:
+            self.z_target = target_position[2]
+
+    def get_positions_push(self, observation):
+
+        target_position = observation["goal_state"]
+        cube_position = observation["actual_state"] 
+        gripper_position = observation["additional_obs"]["endeff_xyz"] 
+
+        return target_position,cube_position,gripper_position
+
+    def compute(self, observation): 
+        print("test 1")
+
+        target_position, cube_position, gripper_position = self.get_positions_push(observation)
+        
+        self.set_variables_push(cube_position, gripper_position, target_position)
+
+        # self.set_offset(z=0.16)
+        w = 1 #self.calc_direction_3d(self.x_obj, self.y_obj, 1, self.x_obj, self.y_obj, self.z_obj,
+                                   #self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
+        d = 1 #self.abs_diff()
         if gripper_position[2] < 0.15:
             d *= 5
-        a = self.calc_press_reward()
+        a = 1 #self.calc_press_reward()
         reward = - self.k_w * w - self.k_d * d + self.k_a * a
         if self.debug:
-            self.env.p.addUserDebugLine([self.x_obj, self.y_obj, self.z_obj], [self.x_obj, self.y_obj, 1],
+            self.env.p.addUserDebugLine(target_position, [self.x_target, self.y_target, 0.5],
                                         lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=1)
 
-            self.env.p.addUserDebugLine([self.x_obj, self.y_obj, self.z_obj], gripper_position,
-                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.03)
+            self.env.p.addUserDebugLine(target_position, gripper_position,
+                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
+            
+            self.env.p.addUserDebugLine(cube_position, gripper_position,
+                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
+            
+            self.env.p.addUserDebugLine(target_position, cube_position,
+                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
 
             self.env.p.addUserDebugText(f"reward:{reward:.3f}, w:{w * self.k_w:.3f}, d:{d * self.k_d:.3f},"
                                         f" a:{a * self.k_a:.3f}",
@@ -949,48 +992,7 @@ class PushReward(SwitchReward):
         self.task.check_goal()
         self.rewards_history.append(reward)
         return reward
-
-    def set_offset(self, x=0.0, y=0.0, z=0.0):
-        if self.offset is None:
-            self.offset = True
-            self.x_obj += x
-            self.y_obj += y
-            self.z_obj += z
-
-    @staticmethod
-    def set_vector_len(vector, len):
-        """
-        Scale given vector so its length is equal to len
-        """
-        norm = math.sqrt(np.dot(vector, vector))
-        if norm == 0:
-            return norm
-        else:
-           return (vector * (1/norm))*len
-
-    def abs_diff(self):
-        """
-        Calculate absolute difference between task_object and gripper
-        """
-        x_diff = self.x_obj_curr_pos - self.x_bot_curr_pos
-        y_diff = self.y_obj_curr_pos - self.y_bot_curr_pos
-        z_diff = self.z_obj_curr_pos - self.z_bot_curr_pos
-        abs_diff = sqrt(x_diff ** 2 + y_diff ** 2 + z_diff ** 2)
-        return abs_diff
-
-    def calc_press_reward(self):
-        press = 1 #(self.get_angle() *100)
-        if self.prev_val is None:
-            self.prev_val = press
-        k = press // 2
-        reward = (k * press)/1000
-        if reward >= 14:
-            reward += 2
-        reward /= 10
-        if self.prev_val == press:
-            reward = 0
-        self.prev_val = press
-        return reward
+ 
     
 class PokeReachReward(SwitchReward):
 
