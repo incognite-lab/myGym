@@ -941,7 +941,7 @@ class PushReward(SwitchReward):
         if self.debug:
             self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
                                         [1, 1, 1], textSize=2.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
-        print("kokookokoko")
+        print("------------")
         #self.task.check_distance_threshold(observation=observation)
         self.task.check_goal()
         self.rewards_history.append(reward)
