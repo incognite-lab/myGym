@@ -123,7 +123,7 @@ class GymEnv(CameraEnv):
             self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
         reward_classes = {"1-network":   {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
                                               "distractor": VectorReward, "poke": PokeReachReward, "switch": SwitchReward,
-                                              "btn": ButtonReward, "turn": TurnReward, "pnp":SingleStagePnP, "push": PushReward},
+                                              "btn": ButtonReward, "turn": TurnReward, "pnp":SingleStagePnP},
                           "2-network":     {"poke": DualPoke, "pnp":TwoStagePnP,"pnpbgrip":TwoStagePnPBgrip},
                           "3-network":     {"pnp":ThreeStagePnP, "pnprot":ThreeStagePnPRot, "pnpswipe":ThreeStageSwipe, "pnpswiperot":ThreeStageSwipeRot},
                           "4-network":     {"pnp":FourStagePnP}}

@@ -16,7 +16,7 @@
 "max_velocity"  :10,
 "max_force"     :200,
 "action_repeat" :1,
-#testing
+
 #Task
 "task_type"             :"switch",
 "task_objects"          :[{"init":{"obj_name":"null"},
