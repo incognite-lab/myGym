@@ -11,7 +11,7 @@
 "visgym"    :0,
 #Robot
 "robot"         :"kuka_push",
-"robot_action"  :"step",
+"robot_action"  :"joints",
 "robot_init"    :[0.0, 0.4, 0.6],
 "max_velocity"  :40,
 "max_force"     :300,
@@ -43,13 +43,13 @@
 "num_networks" : 1,
 "max_episode_steps" :512,
 "algo_steps"        :512,
-"steps"             :100000,
+"steps"             :1000000,
 "pretrained_model"  :null,
 "multiprocessing"   :false,
 #Evaluation
-"eval_freq"     :5000,
+"eval_freq"     :100000,
 "eval_episodes" :20,
 #Saving and logging
-"logdir"    :"trained_models/reach",
+"logdir"    :"trained_models/push",
 "record"    :0
 }

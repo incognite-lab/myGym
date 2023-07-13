@@ -920,68 +920,44 @@ class PushReward(SwitchReward):
         self.x_target = None
         self.y_target = None
         self.z_target = None
+
+        self.x_cube_offset = None
+        self.y_cube_offset = None
+        self.z_cube_offset = None
         
-        self.k_w = 0.1   # coefficient for distance between actual position of robot's gripper and generated line
-        self.k_d = 0.1   # coefficient for absolute distance between gripper and end position
-        self.k_a = 1     # coefficient for calculated angle reward
-
-    def set_variables_push(self, cube_position, gripper_position, target_position):
- 
-        if self.x_cube is None:
-            self.x_cube = cube_position[0]
-        if self.y_cube is None:
-            self.y_cube = cube_position[1]
-        if self.z_cube is None:
-            self.z_cube = cube_position[2]
-
-        if self.x_gripper is None:
-            self.x_gripper = gripper_position[0]
-        if self.y_gripper is None:
-            self.y_gripper = gripper_position[1]
-        if self.z_gripper is None:
-            self.z_gripper = gripper_position[2]
-        
-        if self.x_target is None:
-            self.x_target = target_position[0]
-        if self.y_target is None:
-            self.y_target = target_position[1]
-        if self.z_target is None:
-            self.z_target = target_position[2]
-
-    def get_positions_push(self, observation):
-
-        target_position = observation["goal_state"]
-        cube_position = observation["actual_state"] 
-        gripper_position = observation["additional_obs"]["endeff_xyz"] 
-
-        return target_position,cube_position,gripper_position
+        self.k_w = 0.5   # distance coefficient between cube position and target position
+        self.k_d = 0.5   # distance coefficient between cube position and gripper position
+        self.k_a = 1     # angle(<GCT) coefficient (G-grip_pos, C-cub_pos, T-targ_pos)
 
     def compute(self, observation): 
-        print("test 1")
+
+        # print("test 1")
 
         target_position, cube_position, gripper_position = self.get_positions_push(observation)
         
         self.set_variables_push(cube_position, gripper_position, target_position)
 
-        # self.set_offset(z=0.16)
-        w = 1 #self.calc_direction_3d(self.x_obj, self.y_obj, 1, self.x_obj, self.y_obj, self.z_obj,
-                                   #self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
-        d = 1 #self.abs_diff()
-        if gripper_position[2] < 0.15:
-            d *= 5
-        a = 1 #self.calc_press_reward()
-        reward = - self.k_w * w - self.k_d * d + self.k_a * a
+        w = self.dist_reward(cube_position, target_position)
+        d = self.dist_reward(cube_position, gripper_position)
+
+        a = self.angle_reward()
+        reward = self.k_w * w + self.k_d * d + self.k_a * a
+
+        
         if self.debug:
-            self.env.p.addUserDebugLine(target_position, [self.x_target, self.y_target, 0.5],
+            self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], [self.x_target, self.y_target, 0.5],
                                         lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=1)
 
-            self.env.p.addUserDebugLine(target_position, gripper_position,
+            # self.env.p.addUserDebugLine([self.x_cube_offset, self.y_cube_offset, self.z_cube_offset], [self.x_cube_offset, self.y_cube_offset, 0.5],
+            #                             lineColorRGB=(0, 0.5, 1), lineWidth=1, lifeTime=1)
+             
+            self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], gripper_position,
                                         lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
             
             self.env.p.addUserDebugLine(cube_position, gripper_position,
                                         lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
             
-            self.env.p.addUserDebugLine(target_position, cube_position,
+            self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], cube_position,
                                         lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
 
             self.env.p.addUserDebugText(f"reward:{reward:.3f}, w:{w * self.k_w:.3f}, d:{d * self.k_d:.3f},"
@@ -992,8 +968,80 @@ class PushReward(SwitchReward):
         self.task.check_goal()
         self.rewards_history.append(reward)
         return reward
- 
+
+
+    def scalar_multiply(self,vector1, vector2):
+        return vector1[0]*vector2[0]+vector1[1]*vector2[1]+vector1[2]*vector2[2]
     
+    def module(self,vector):
+        return math.sqrt(vector[0]*vector[0] + vector[1]*vector[1] + vector[2]*vector[2])
+    
+    def angle_between_vectors(self,vector1, vector2): 
+        return np.arccos(self.scalar_multiply(vector1, vector2)/(self.module(vector1)*self.module(vector2))) * 180 / math.pi
+    
+    def angle_reward(self):
+        vector1 = [self.x_cube - self.x_target, self.y_cube- self.y_target, self.z_cube - self.z_target]
+        vector2 = [self.x_cube - self.x_gripper, self.y_cube- self.y_gripper, self.z_cube - self.z_gripper]
+
+        angle = self.angle_between_vectors(vector1, vector2)
+        # print(angle)
+
+        reward = 0
+
+        if angle < 150:
+            reward = angle / 20
+        else:
+            reward = angle / 10
+
+        return reward
+
+    def dist_reward(self, point1, point2):
+        reward = 0
+        distance = math.sqrt(math.pow( point1[0] - point2[0], 2) + math.pow( point1[1] - point2[1], 2) + math.pow( point1[2] - point2[2], 2))
+        
+        reward = -distance * 10
+        return reward
+
+    def set_variables_push(self, cube_position, gripper_position, target_position):
+  
+        self.x_cube = cube_position[0] 
+        self.y_cube = cube_position[1] 
+        self.z_cube = cube_position[2]
+ 
+        self.x_gripper = gripper_position[0] 
+        self.y_gripper = gripper_position[1] 
+        self.z_gripper = gripper_position[2]
+         
+        self.x_target = target_position[0] 
+        self.y_target = target_position[1] 
+        self.z_target = target_position[2]
+
+    def get_positions_push(self, observation):
+
+        target_position = observation["goal_state"]
+        cube_position = observation["actual_state"] 
+        gripper_position = observation["additional_obs"]["endeff_xyz"] 
+
+        return target_position,cube_position,gripper_position
+    
+    # def set_cube_offset(self):
+    #     if (self.x_cube != None and self.y_cube != None and 
+    #         self.x_target != None and self.y_target != None) :
+
+    #         x1 = self.x_target
+    #         y1 = self.x_target
+
+    #         x2 = self.x_cube
+    #         y2 = self.x_cube
+
+    #         k = (y2 - y1) / (x2 - x1)
+ 
+    #         c = y1 - k * x1   # y = kx + c
+
+    #         self.x_cube_offset = self.x_cube + 0.5
+    #         self.y_cube_offset = k * self.x_cube_offset + c
+    #         self.z_cube_offset = self.z_cube
+
 class PokeReachReward(SwitchReward):
 
     def __init__(self, env, task):
