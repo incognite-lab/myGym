@@ -925,9 +925,9 @@ class PushReward(SwitchReward):
         self.y_cube_offset = None
         self.z_cube_offset = None
         
-        self.k_w = 0.5   # distance coefficient between cube position and target position
-        self.k_d = 0.5   # distance coefficient between cube position and gripper position
-        self.k_a = 1     # angle(<GCT) coefficient (G-grip_pos, C-cub_pos, T-targ_pos)
+        self.k_ct = 1   # distance coefficient between cube position and target position
+        self.k_cg = 1   # distance coefficient between cube position and gripper position
+        self.k_a = 1    # angle(<GCT) coefficient (G-grip_pos, C-cub_pos, T-targ_pos)
 
     def compute(self, observation): 
 
@@ -937,19 +937,28 @@ class PushReward(SwitchReward):
         
         self.set_variables_push(cube_position, gripper_position, target_position)
 
-        w = self.dist_reward(cube_position, target_position)
-        d = self.dist_reward(cube_position, gripper_position)
-
         a = self.angle_reward()
-        reward = self.k_w * w + self.k_d * d + self.k_a * a
+        if a > 16:
+            ct = self.dist_reward(cube_position, target_position)
+        else:
+            ct = 0
+        cg = self.dist_reward(cube_position, gripper_position)
+
+        
+        reward = self.k_ct * ct + self.k_cg * cg + self.k_a * a
 
         
         if self.debug:
+            #XYZ
+            # self.env.p.addUserDebugLine([0, 0, -0.5], [0, 0, 0.5],
+            #                             lineColorRGB=(0, 0, 0), lineWidth=3, lifeTime=1) 
+            # self.env.p.addUserDebugLine([0, -0.5, 0], [0, 0.5, 0],
+            #                             lineColorRGB=(0, 0, 0), lineWidth=3, lifeTime=1)          
+            # self.env.p.addUserDebugLine([-0.5, 0, 0], [0.5, 0, 0],
+            #                             lineColorRGB=(0, 0, 0), lineWidth=3, lifeTime=1)                           
+            #help lines
             self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], [self.x_target, self.y_target, 0.5],
-                                        lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=1)
-
-            # self.env.p.addUserDebugLine([self.x_cube_offset, self.y_cube_offset, self.z_cube_offset], [self.x_cube_offset, self.y_cube_offset, 0.5],
-            #                             lineColorRGB=(0, 0.5, 1), lineWidth=1, lifeTime=1)
+                                        lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=1) 
              
             self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], gripper_position,
                                         lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
@@ -960,7 +969,7 @@ class PushReward(SwitchReward):
             self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], cube_position,
                                         lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
 
-            self.env.p.addUserDebugText(f"reward:{reward:.3f}, w:{w * self.k_w:.3f}, d:{d * self.k_d:.3f},"
+            self.env.p.addUserDebugText(f"reward:{reward:.3f}, ct:{ct * self.k_w:.3f}, cg:{cg * self.k_d:.3f},"
                                         f" a:{a * self.k_a:.3f}",
                                         [1, 1, 1], textSize=2.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
 
@@ -986,12 +995,7 @@ class PushReward(SwitchReward):
         angle = self.angle_between_vectors(vector1, vector2)
         # print(angle)
 
-        reward = 0
-
-        if angle < 150:
-            reward = angle / 20
-        else:
-            reward = angle / 10
+        reward = angle / 10
 
         return reward
 
