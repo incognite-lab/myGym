@@ -949,14 +949,27 @@ class PushReward(SwitchReward):
 
         
         if self.debug:
-            #XYZ
-            # self.env.p.addUserDebugLine([0, 0, -0.5], [0, 0, 0.5],
-            #                             lineColorRGB=(0, 0, 0), lineWidth=3, lifeTime=1) 
-            # self.env.p.addUserDebugLine([0, -0.5, 0], [0, 0.5, 0],
-            #                             lineColorRGB=(0, 0, 0), lineWidth=3, lifeTime=1)          
-            # self.env.p.addUserDebugLine([-0.5, 0, 0], [0.5, 0, 0],
-            #                             lineColorRGB=(0, 0, 0), lineWidth=3, lifeTime=1)                           
-            #help lines
+            # XYZ
+            self.env.p.addUserDebugLine([0, 0, -10], [0, 0, 10],
+                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=1) # Z
+            self.env.p.addUserDebugLine([0, -10, 0], [0, 10, 0],
+                                        lineColorRGB=(0, 1, 0), lineWidth=3, lifeTime=1) # Y        
+            self.env.p.addUserDebugLine([-10, 0, 0], [10, 0, 0],
+                                        lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1) # X
+                
+            self.env.p.addUserDebugLine([-10, 1, 0], [10, 1, 0],
+                                        lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
+            
+            self.env.p.addUserDebugLine([0, 0.46, 0.1], [0, 0.55, 0.1],
+                                        lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
+            
+            self.env.p.addUserDebugLine([-0.5, 0.65, 0.05], [0.5, 0.7, 0.05],
+                                        lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
+
+            self.env.p.addUserDebugLine([-0.5, 0.8, 0.05], [0.5, 0.4, 0.05],
+                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=1)
+                                                             
+            # help lines
             self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], [self.x_target, self.y_target, 0.5],
                                         lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=1) 
              
