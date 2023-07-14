@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from stable_baselines import results_plotter
 import os
 import math
-from math import sqrt
+from math import sqrt, fabs, exp, pi, asin
 from myGym.utils.vector import Vector
 import random
 
@@ -1060,8 +1060,6 @@ class PokeReachReward(SwitchReward):
     def reset(self):
         self.last_points               = None
         self.point_was_reached         = False
-        
-# -------------------------------------------------------------------------------------------------------------------------------
     
     def compute(self, observation=None):
         goal_pos, cube_pos, gripper = self.set_points(observation)
@@ -1080,9 +1078,7 @@ class PokeReachReward(SwitchReward):
 
 
         rew_point = self.exp_eval(cur_dist) if cur_dist < last_dist else self.lin_penalty(last_dist, min_penalty = 1)
-        # print("\n\n\n",cube_last_pos == cube_pos, "\n\n\n")
         rew_angle = self.get_angle_reward_2D(goal_pos,cube_last_pos, cube_pos)
-        # rew_distG = self.norm_eval_4_line()
 
         reward = rew_point + rew_angle 
         self.env.p.addUserDebugText(f"{rew_point}, {rew_angle}", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[1,0,0])
@@ -1090,6 +1086,7 @@ class PokeReachReward(SwitchReward):
         self.rewards_history.append(reward)
         self.task.check_goal()
         return reward
+
 
     # def __init__(self, env, task):
     #     super(PokeReachReward, self).__init__(env, task)
@@ -1114,7 +1111,7 @@ class PokeReachReward(SwitchReward):
     #     self.task.check_goal()
     #     reward = self.count_reward(poker_position, distance, gripper_distance)
     #     self.finish(observation, poker_position, distance, gripper_distance, reward)
-        return reward
+    #     return reward
 
     def init(self, observation):
         # load positions
@@ -1218,6 +1215,7 @@ class PokeReachReward(SwitchReward):
             return 0
         angle = fabs(self.get_angle_2vec(vecU1, vecU2)) 
         return [-angle, 200/angle][int(angle > 20)]
+
 # dual rewards
 
 class DualPoke(PokeReachReward):
