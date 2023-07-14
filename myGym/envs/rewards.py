@@ -1061,7 +1061,7 @@ class PushReward(SwitchReward):
 
 class PokeReachReward(SwitchReward):
 
-        def __init__(self, env, task):
+    def __init__(self, env, task):
         super(PokeReachReward, self).__init__(env, task)
 
         self.cube_offest               = 0.1
