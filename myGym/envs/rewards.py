@@ -1040,159 +1040,6 @@ class TurnReward(SwitchReward):
     def get_angle_between_vectors(self, v1, v2):
         return math.acos(np.dot(v1, v2)/(self.count_vector_norm(v1)*self.count_vector_norm(v2)))
 
-class PushReward(SwitchReward):
-    def __init__(self, env, task):
-        super(PushReward, self).__init__(env, task)
-        
-        self.x_cube = None
-        self.y_cube = None
-        self.z_cube = None
-
-        self.x_gripper = None
-        self.y_gripper = None
-        self.z_gripper = None
-
-        self.x_target = None
-        self.y_target = None
-        self.z_target = None
-
-        self.offset = None 
-        
-        # self.k_ct = 1   # distance coefficient between cube position and target position
-        # self.k_cg = 1   # distance coefficient between cube position and gripper position
-        # self.k_a = 1    # angle(<GCT) coefficient (G-grip_pos, C-cub_pos, T-targ_pos)
-
-    def compute(self, observation): 
-
-        # print("test 1")
-
-        target_position, cube_position, gripper_position = self.get_positions_push(observation)
-        
-        self.set_variables_push(cube_position, gripper_position, target_position)
-
-        a = self.angle_reward()
-        if a > 16:
-            ct = self.dist_reward(cube_position, target_position)
-        else:
-            ct = 0
-        cg = self.dist_reward(cube_position, gripper_position)
-
-        
-        reward = self.k_ct * ct + self.k_cg * cg + self.k_a * a
-
-        # goal_pos, cube_pos, gripper = self.set_points(observation)
-        # cube_last_pos, gripper_last = self.last_points if self.last_points != None else [cube_pos, gripper]
-
-        # point_grg = self.get_point_grg(goal_pos, cube_pos)
-
-        # state = [(gripper, point_grg),(gripper, cube_pos)][int(self.point_was_reached)]
-        # state_last = [(gripper_last, point_grg),(gripper_last, cube_pos)][int(self.point_was_reached)]
-
-        # cur_dist = self.get_distance(*state)
-        # if cur_dist <= self.dist_offset:
-        #     self.line_was_reached = True
-        # last_dist = self.get_distance(*state_last)
-        # dist_cube_goal = self.get_distance(cube_pos, goal_pos)
-
-
-        # rew_point = self.exp_eval(cur_dist) if cur_dist < last_dist else self.lin_penalty(last_dist, min_penalty = 1)
-        # rew_angle = self.get_angle_reward_2D(goal_pos,cube_last_pos, cube_pos)
-
-        # reward = rew_point + rew_angle 
-        
-        if self.debug:
-            # XYZ
-            # self.env.p.addUserDebugLine([0, 0, -10], [0, 0, 10],
-            #                             lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=1) # Z
-            # self.env.p.addUserDebugLine([0, -10, 0], [0, 10, 0],
-            #                             lineColorRGB=(0, 1, 0), lineWidth=3, lifeTime=1) # Y        
-            # self.env.p.addUserDebugLine([-10, 0, 0], [10, 0, 0],
-            #                             lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1) # X
-                
-            # self.env.p.addUserDebugLine([-10, 1, 0], [10, 1, 0],
-            #                             lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
-            
-            # self.env.p.addUserDebugLine([0, 0.46, 0.1], [0, 0.55, 0.1],
-            #                             lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
-            
-            # self.env.p.addUserDebugLine([-0.5, 0.65, 0.05], [0.5, 0.7, 0.05],
-            #                             lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
-
-            # self.env.p.addUserDebugLine([-0.5, 0.8, 0.05], [0.5, 0.4, 0.05],
-            #                             lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=1)
-                                                             
-            # help lines
-            self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], [self.x_target, self.y_target, 0.5],
-                                        lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=1) 
-             
-            self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], gripper_position,
-                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
-            
-            self.env.p.addUserDebugLine(cube_position, gripper_position,
-                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
-            
-            self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], cube_position,
-                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
-
-            self.env.p.addUserDebugText(f"reward:{reward:.3f}, ct:{ct * self.k_w:.3f}, cg:{cg * self.k_d:.3f},"
-                                        f" a:{a * self.k_a:.3f}",
-                                        [1, 1, 1], textSize=2.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
-
-        #self.task.check_distance_threshold(observation=observation)
-        self.task.check_goal()
-        self.rewards_history.append(reward)
-        return reward
-
-
-    def scalar_multiply(self,vector1, vector2):
-        return vector1[0]*vector2[0]+vector1[1]*vector2[1]+vector1[2]*vector2[2]
-    
-    def module(self,vector):
-        return math.sqrt(vector[0]*vector[0] + vector[1]*vector[1] + vector[2]*vector[2])
-    
-    def angle_between_vectors(self,vector1, vector2): 
-        return np.arccos(self.scalar_multiply(vector1, vector2)/(self.module(vector1)*self.module(vector2))) * 180 / math.pi
-    
-    def angle_reward(self):
-        vector1 = [self.x_cube - self.x_target, self.y_cube- self.y_target, self.z_cube - self.z_target]
-        vector2 = [self.x_cube - self.x_gripper, self.y_cube- self.y_gripper, self.z_cube - self.z_gripper]
-
-        angle = self.angle_between_vectors(vector1, vector2)
-        # print(angle)
-
-        reward = angle / 10
-
-        return reward
-
-    def dist_reward(self, point1, point2):
-        reward = 0
-        distance = math.sqrt(math.pow( point1[0] - point2[0], 2) + math.pow( point1[1] - point2[1], 2) + math.pow( point1[2] - point2[2], 2))
-        
-        reward = -distance * 10
-        return reward
-
-    def set_variables_push(self, cube_position, gripper_position, target_position):
-  
-        self.x_cube = cube_position[0] 
-        self.y_cube = cube_position[1] 
-        self.z_cube = cube_position[2]
- 
-        self.x_gripper = gripper_position[0] 
-        self.y_gripper = gripper_position[1] 
-        self.z_gripper = gripper_position[2]
-         
-        self.x_target = target_position[0] 
-        self.y_target = target_position[1] 
-        self.z_target = target_position[2]
-
-    def get_positions_push(self, observation):
-
-        target_position = observation["goal_state"]
-        cube_position = observation["actual_state"] 
-        gripper_position = observation["additional_obs"]["endeff_xyz"] 
-
-        return target_position,cube_position,gripper_position
-
 class PokeReachReward(SwitchReward):
 
     def __init__(self, env, task):
@@ -1363,7 +1210,236 @@ class PokeReachReward(SwitchReward):
         angle = fabs(self.get_angle_2vec(vecU1, vecU2)) 
         return [-angle, 200/angle][int(angle > 20)]
 
+class PushReward(PokeReachReward):
+
+    def __init__(self, env, task):
+        super(PushReward, self).__init__(env, task)
+
+        self.cube_offest               = 0.1
+        self.dist_offset               = 0.05
+
+        self.last_points               = None 
+        self.point_was_reached         = False
+
+    def reset(self):
+        self.last_points               = None
+        self.point_was_reached         = False
+    
+    def compute(self, observation):
+        goal_pos, cube_pos, gripper = self.set_points(observation)
+        cube_last_pos, gripper_last = self.last_points if self.last_points != None else [cube_pos, gripper]
+
+        point_grg = self.get_point_grg(goal_pos, cube_pos)
+
+        state = [(gripper, point_grg),(gripper, cube_pos)][int(self.point_was_reached)]
+        state_last = [(gripper_last, point_grg),(gripper_last, cube_pos)][int(self.point_was_reached)]
+
+        cur_dist = self.get_distance(*state)
+        if cur_dist <= self.dist_offset:
+            self.line_was_reached = True
+        last_dist = self.get_distance(*state_last)
+        dist_cube_goal = self.get_distance(cube_pos, goal_pos)
+
+
+        rew_point = self.exp_eval(cur_dist) if cur_dist < last_dist else self.lin_penalty(last_dist, min_penalty = 1)
+        rew_angle = self.get_angle_reward_2D(goal_pos,cube_last_pos, cube_pos)
+
+        reward = rew_point + rew_angle 
+        self.env.p.addUserDebugText(f"{rew_point}, {rew_angle}", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[1,0,0])
+        self.set_last_positions(cube_pos, gripper)
+        self.rewards_history.append(reward)
+        self.task.check_goal()
+        return reward 
+    
+    def lin_penalty(self, dist: float, min_penalty: float = 0, k: float = 1) -> float:
+        return -dist*fabs(k) - fabs(min_penalty)
+
+    def get_point_grg(self, point1: 'numpy.ndarray', point2: 'numpy.ndarray') -> 'numpy.ndarray':
+        dir_unit_vctor = (point2-point1) / np.linalg.norm(point2-point1)
+        point3 = dir_unit_vctor*self.cube_offest + point2
+        return point3
+    
+    def set_last_positions(self, cube: 'numpy.ndarray', gripper: 'numpy.ndarray'):
+        self.last_points = [cube, gripper]
+    
+    @staticmethod
+    def get_unit_vector(tail: 'numpy.ndarray', head: 'numpy.ndarray') -> 'numpy.ndarray':
+        vector = head - tail
+        return vector/np.linalg.norm(vector)
+
+    @staticmethod
+    def get_angle_2vec(vecU1: 'numpy.ndarray', vecU2: 'numpy.ndarray') -> float:
+        M = np.array([[vecU1[0], -vecU1[1]], [vecU1[1], vecU1[0]]])
+        cos, sin = np.linalg.solve(M, vecU2)
+        return -asin(sin)*180/pi
+
+    def is_moved_2D(self, last_pos: 'numpy.ndarray', cur_pos: 'numpy.ndarray') -> bool:
+        return (np.abs(last_pos[:-1] - cur_pos[:-1]) > 0.0001).any()
+
+    def get_angle_reward_2D(self, head1: 'numpy.ndarray', tail: 'numpy.ndarray', head2: 'numpy.ndarray',) -> float:
+        vecU1 = self.get_unit_vector(tail[:-1], head1[:-1])
+        vecU2 = self.get_unit_vector(tail[:-1], head2[:-1])
+        if not self.is_moved_2D(tail, head2):
+            return 0
+        angle = fabs(self.get_angle_2vec(vecU1, vecU2)) 
+        return [-angle, 200/angle][int(angle > 20)]
+
 # dual rewards
+class PushReward2(PokeReachReward):
+    def __init__(self, env, task):
+        super(PushReward2, self).__init__(env, task)
+        
+        self.x_cube = None
+        self.y_cube = None
+        self.z_cube = None
+
+        self.x_gripper = None
+        self.y_gripper = None
+        self.z_gripper = None
+
+        self.x_target = None
+        self.y_target = None
+        self.z_target = None
+        
+        self.k_ct = 1   # distance coefficient between cube position and target position
+        self.k_cg = 1   # distance coefficient between cube position and gripper position
+        self.k_a = 1    # angle(<GCT) coefficient (G-grip_pos, C-cub_pos, T-targ_pos)
+
+    def compute(self, observation): 
+
+        # print("test 1")
+
+        target_position, cube_position, gripper_position = self.get_positions_push(observation)
+        cube_last_pos, gripper_last = self.last_points if self.last_points != None else [cube_position, gripper_position]
+
+        point_grg = self.get_point_grg(target_position, cube_position)
+        self.set_variables_push(cube_position, gripper_position, target_position)
+
+        state = [(gripper_position, point_grg),(gripper_position, cube_position)][int(self.point_was_reached)]
+        state_last = [(gripper_last, point_grg),(gripper_last, cube_position)][int(self.point_was_reached)]
+
+        a = self.angle_reward()
+        if a > 16:
+            ct = self.dist_reward(cube_position, target_position)
+        else:
+            ct = 0
+        cg = self.dist_reward(cube_position, gripper_position)
+
+        
+        reward = self.k_ct * ct + self.k_cg * cg + self.k_a * a
+
+        # goal_pos, cube_pos, gripper = self.set_points(observation)
+        # cube_last_pos, gripper_last = self.last_points if self.last_points != None else [cube_pos, gripper]
+
+        # point_grg = self.get_point_grg(goal_pos, cube_pos)
+
+        # state = [(gripper, point_grg),(gripper, cube_pos)][int(self.point_was_reached)]
+        # state_last = [(gripper_last, point_grg),(gripper_last, cube_pos)][int(self.point_was_reached)]
+
+        # cur_dist = self.get_distance(*state)
+        # if cur_dist <= self.dist_offset:
+        #     self.line_was_reached = True
+        # last_dist = self.get_distance(*state_last)
+        # dist_cube_goal = self.get_distance(cube_pos, goal_pos)
+
+
+        # rew_point = self.exp_eval(cur_dist) if cur_dist < last_dist else self.lin_penalty(last_dist, min_penalty = 1)
+        # rew_angle = self.get_angle_reward_2D(goal_pos,cube_last_pos, cube_pos)
+
+        # reward = rew_point + rew_angle 
+        
+        if self.debug:
+            # XYZ
+            # self.env.p.addUserDebugLine([0, 0, -10], [0, 0, 10],
+            #                             lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=1) # Z
+            # self.env.p.addUserDebugLine([0, -10, 0], [0, 10, 0],
+            #                             lineColorRGB=(0, 1, 0), lineWidth=3, lifeTime=1) # Y        
+            # self.env.p.addUserDebugLine([-10, 0, 0], [10, 0, 0],
+            #                             lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1) # X
+                
+            # self.env.p.addUserDebugLine([-10, 1, 0], [10, 1, 0],
+            #                             lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
+            
+            # self.env.p.addUserDebugLine([0, 0.46, 0.1], [0, 0.55, 0.1],
+            #                             lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
+            
+            # self.env.p.addUserDebugLine([-0.5, 0.65, 0.05], [0.5, 0.7, 0.05],
+            #                             lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
+
+            # self.env.p.addUserDebugLine([-0.5, 0.8, 0.05], [0.5, 0.4, 0.05],
+            #                             lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=1)
+                                                             
+            # help lines
+            self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], [self.x_target, self.y_target, 0.5],
+                                        lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=1) 
+             
+            self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], gripper_position,
+                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
+            
+            self.env.p.addUserDebugLine(cube_position, gripper_position,
+                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
+            
+            self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], cube_position,
+                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
+
+            self.env.p.addUserDebugText(f"reward:{reward:.3f}, ct:{ct * self.k_w:.3f}, cg:{cg * self.k_d:.3f},"
+                                        f" a:{a * self.k_a:.3f}",
+                                        [1, 1, 1], textSize=2.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
+
+        #self.task.check_distance_threshold(observation=observation)
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+
+    def scalar_multiply(self,vector1, vector2):
+        return vector1[0]*vector2[0]+vector1[1]*vector2[1]+vector1[2]*vector2[2]
+    
+    def module(self,vector):
+        return math.sqrt(vector[0]*vector[0] + vector[1]*vector[1] + vector[2]*vector[2])
+    
+    def angle_between_vectors(self,vector1, vector2): 
+        return np.arccos(self.scalar_multiply(vector1, vector2)/(self.module(vector1)*self.module(vector2))) * 180 / math.pi
+    
+    def angle_reward(self):
+        vector1 = [self.x_cube - self.x_target, self.y_cube- self.y_target, self.z_cube - self.z_target]
+        vector2 = [self.x_cube - self.x_gripper, self.y_cube- self.y_gripper, self.z_cube - self.z_gripper]
+
+        angle = self.angle_between_vectors(vector1, vector2)
+        # print(angle)
+
+        reward = angle / 10
+
+        return reward
+
+    def dist_reward(self, point1, point2):
+        reward = 0
+        distance = math.sqrt(math.pow( point1[0] - point2[0], 2) + math.pow( point1[1] - point2[1], 2) + math.pow( point1[2] - point2[2], 2))
+        
+        reward = -distance * 10
+        return reward
+
+    def set_variables_push(self, cube_position, gripper_position, target_position):
+  
+        self.x_cube = cube_position[0] 
+        self.y_cube = cube_position[1] 
+        self.z_cube = cube_position[2]
+ 
+        self.x_gripper = gripper_position[0] 
+        self.y_gripper = gripper_position[1] 
+        self.z_gripper = gripper_position[2]
+         
+        self.x_target = target_position[0] 
+        self.y_target = target_position[1] 
+        self.z_target = target_position[2]
+
+    def get_positions_push(self, observation):
+
+        target_position = observation["goal_state"]
+        cube_position = observation["actual_state"] 
+        gripper_position = observation["additional_obs"]["endeff_xyz"] 
+
+        return target_position,cube_position,gripper_position
 
 class DualPoke(PokeReachReward):
     """
