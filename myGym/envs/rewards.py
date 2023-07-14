@@ -1193,7 +1193,7 @@ class PokeReachReward(SwitchReward):
             return False
         return True
     
-        def set_points(self, observation) -> tuple:
+    def set_points(self, observation) -> tuple:
         return np.array(observation["goal_state"]), np.array(observation["actual_state"]), np.array(observation["additional_obs"]["endeff_xyz"])
     
     def lin_penalty(self, dist: float, min_penalty: float = 0, k: float = 1) -> float:
