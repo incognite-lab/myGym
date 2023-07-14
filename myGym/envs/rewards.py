@@ -921,13 +921,11 @@ class PushReward(SwitchReward):
         self.y_target = None
         self.z_target = None
 
-        self.x_cube_offset = None
-        self.y_cube_offset = None
-        self.z_cube_offset = None
+        self.offset = None 
         
-        self.k_ct = 1   # distance coefficient between cube position and target position
-        self.k_cg = 1   # distance coefficient between cube position and gripper position
-        self.k_a = 1    # angle(<GCT) coefficient (G-grip_pos, C-cub_pos, T-targ_pos)
+        # self.k_ct = 1   # distance coefficient between cube position and target position
+        # self.k_cg = 1   # distance coefficient between cube position and gripper position
+        # self.k_a = 1    # angle(<GCT) coefficient (G-grip_pos, C-cub_pos, T-targ_pos)
 
     def compute(self, observation): 
 
@@ -947,27 +945,46 @@ class PushReward(SwitchReward):
         
         reward = self.k_ct * ct + self.k_cg * cg + self.k_a * a
 
+        # goal_pos, cube_pos, gripper = self.set_points(observation)
+        # cube_last_pos, gripper_last = self.last_points if self.last_points != None else [cube_pos, gripper]
+
+        # point_grg = self.get_point_grg(goal_pos, cube_pos)
+
+        # state = [(gripper, point_grg),(gripper, cube_pos)][int(self.point_was_reached)]
+        # state_last = [(gripper_last, point_grg),(gripper_last, cube_pos)][int(self.point_was_reached)]
+
+        # cur_dist = self.get_distance(*state)
+        # if cur_dist <= self.dist_offset:
+        #     self.line_was_reached = True
+        # last_dist = self.get_distance(*state_last)
+        # dist_cube_goal = self.get_distance(cube_pos, goal_pos)
+
+
+        # rew_point = self.exp_eval(cur_dist) if cur_dist < last_dist else self.lin_penalty(last_dist, min_penalty = 1)
+        # rew_angle = self.get_angle_reward_2D(goal_pos,cube_last_pos, cube_pos)
+
+        # reward = rew_point + rew_angle 
         
         if self.debug:
             # XYZ
-            self.env.p.addUserDebugLine([0, 0, -10], [0, 0, 10],
-                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=1) # Z
-            self.env.p.addUserDebugLine([0, -10, 0], [0, 10, 0],
-                                        lineColorRGB=(0, 1, 0), lineWidth=3, lifeTime=1) # Y        
-            self.env.p.addUserDebugLine([-10, 0, 0], [10, 0, 0],
-                                        lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1) # X
+            # self.env.p.addUserDebugLine([0, 0, -10], [0, 0, 10],
+            #                             lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=1) # Z
+            # self.env.p.addUserDebugLine([0, -10, 0], [0, 10, 0],
+            #                             lineColorRGB=(0, 1, 0), lineWidth=3, lifeTime=1) # Y        
+            # self.env.p.addUserDebugLine([-10, 0, 0], [10, 0, 0],
+            #                             lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1) # X
                 
-            self.env.p.addUserDebugLine([-10, 1, 0], [10, 1, 0],
-                                        lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
+            # self.env.p.addUserDebugLine([-10, 1, 0], [10, 1, 0],
+            #                             lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
             
-            self.env.p.addUserDebugLine([0, 0.46, 0.1], [0, 0.55, 0.1],
-                                        lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
+            # self.env.p.addUserDebugLine([0, 0.46, 0.1], [0, 0.55, 0.1],
+            #                             lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
             
-            self.env.p.addUserDebugLine([-0.5, 0.65, 0.05], [0.5, 0.7, 0.05],
-                                        lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
+            # self.env.p.addUserDebugLine([-0.5, 0.65, 0.05], [0.5, 0.7, 0.05],
+            #                             lineColorRGB=(0, 0, 1), lineWidth=3, lifeTime=1)
 
-            self.env.p.addUserDebugLine([-0.5, 0.8, 0.05], [0.5, 0.4, 0.05],
-                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=1)
+            # self.env.p.addUserDebugLine([-0.5, 0.8, 0.05], [0.5, 0.4, 0.05],
+            #                             lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=1)
                                                              
             # help lines
             self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], [self.x_target, self.y_target, 0.5],
@@ -1040,24 +1057,6 @@ class PushReward(SwitchReward):
         gripper_position = observation["additional_obs"]["endeff_xyz"] 
 
         return target_position,cube_position,gripper_position
-    
-    # def set_cube_offset(self):
-    #     if (self.x_cube != None and self.y_cube != None and 
-    #         self.x_target != None and self.y_target != None) :
-
-    #         x1 = self.x_target
-    #         y1 = self.x_target
-
-    #         x2 = self.x_cube
-    #         y2 = self.x_cube
-
-    #         k = (y2 - y1) / (x2 - x1)
- 
-    #         c = y1 - k * x1   # y = kx + c
-
-    #         self.x_cube_offset = self.x_cube + 0.5
-    #         self.y_cube_offset = k * self.x_cube_offset + c
-    #         self.z_cube_offset = self.z_cube
 
 class PokeReachReward(SwitchReward):
 
