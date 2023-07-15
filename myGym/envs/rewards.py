@@ -1260,7 +1260,7 @@ class PushReward(PokeReachReward):
         last_dist = self.get_distance(*state_last)
 
         rew_point = self.exp_eval(cur_dist) if cur_dist < last_dist else self.lin_penalty(last_dist, min_penalty = 1)
-        rew_angle = self.angle_reward_push(point_grg)
+        rew_angle = self.angle_reward_push()
         rew_dist = self.dist_reward(cube_pos, goal_pos)
 
         reward = rew_point + rew_angle + rew_dist
@@ -1320,9 +1320,9 @@ class PushReward(PokeReachReward):
     def angle_between_vectors(self,vector1, vector2): 
         return np.arccos(self.scalar_multiply(vector1, vector2)/(self.module(vector1)*self.module(vector2))) * 180 / math.pi
     
-    def angle_reward_push(self,point3):
-        vector1 = [point3[0] - self.x_target, point3[1]- self.y_target, point3[2] - self.z_target]
-        vector2 = [point3[0] - self.x_gripper, point3[1]- self.y_gripper, point3[2] - self.z_gripper]
+    def angle_reward_push(self):
+        vector1 = [self.x_cube - self.x_target, self.y_cube - self.y_target, self.z_cube - self.z_target]
+        vector2 = [self.x_cube - self.x_gripper, self.y_cube - self.y_gripper, self.z_cube - self.z_gripper]
         reward = 0
 
         if self.last_angle == None:
