@@ -1269,10 +1269,11 @@ class PushReward(PokeReachReward):
         rew_angle, angle= self.angle_reward_push(vector1, vector2)
         rew_dist_ct = self.dist_reward_ct(cube_pos, goal_pos)
         rew_dist_gt = 0
+        
         if angle > 170 and cur_dist <= self.dist_offset: 
             #best position -> start moving cube to target
             reward += 10
-            rew_dist_gt = self.dist_reward_ct(gripper, goal_pos) 
+            rew_dist_gt = self.dist_reward_gt(gripper, goal_pos) 
             print(rew_dist_gt, angle, cur_dist)
 
         reward = rew_point + rew_angle + rew_dist_ct + rew_dist_gt
