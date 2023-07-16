@@ -1234,10 +1234,12 @@ class PushReward(PokeReachReward):
         self.z_target = None 
 
         self.k_p = 1   # distance coefficient between cube position and gripper position
-        self.k_d = 1   # distance coefficient between cube position and target position
+        self.k_ct = 1   # distance coefficient between cube position and target position
+        self.k_gt = 1   # distance coefficient between gripper position and target position
         self.k_a = 1    # angle(<GCT) coefficient (G-grip_pos, C-cub_pos, T-targ_pos)
 
         self.last_ct_dist = None # previous distance between cube and target
+        self.last_gt_dist = None # previous distance between gripper and target
 
 
     def reset(self):
@@ -1245,6 +1247,7 @@ class PushReward(PokeReachReward):
         self.point_was_reached         = False
     
     def compute(self, observation=None):
+        reward = 0
         goal_pos, cube_pos, gripper = self.set_points(observation)
         cube_last_pos, gripper_last = self.last_points if self.last_points != None else [cube_pos, gripper]
         self.set_variables_push(cube_pos, gripper, goal_pos)
@@ -1253,17 +1256,26 @@ class PushReward(PokeReachReward):
 
         state = [(gripper, point_grg),(gripper, cube_pos)][int(self.point_was_reached)]
         state_last = [(gripper_last, point_grg),(gripper_last, cube_pos)][int(self.point_was_reached)]
-
+ 
         cur_dist = self.get_distance(*state)
         if cur_dist <= self.dist_offset:
             self.line_was_reached = True
         last_dist = self.get_distance(*state_last)
 
-        rew_point = self.exp_eval(cur_dist) if cur_dist < last_dist else self.lin_penalty(last_dist, min_penalty = 1)
-        rew_angle = self.angle_reward_push()
-        rew_dist = self.dist_reward(cube_pos, goal_pos)
+        vector1 = [self.x_cube - self.x_target, self.y_cube - self.y_target, self.z_cube - self.z_target]
+        vector2 = [self.x_cube - self.x_gripper, self.y_cube - self.y_gripper, self.z_cube - self.z_gripper]
 
-        reward = rew_point + rew_angle + rew_dist
+        rew_point = self.exp_eval(cur_dist) if cur_dist < last_dist else self.lin_penalty(last_dist, min_penalty = 1)
+        rew_angle, angle= self.angle_reward_push(vector1, vector2)
+        rew_dist_ct = self.dist_reward_ct(cube_pos, goal_pos)
+        rew_dist_gt = 0
+        if angle > 170 and cur_dist <= self.dist_offset: 
+            #best position -> start moving cube to target
+            reward += 10
+            rew_dist_gt = self.dist_reward_ct(gripper, goal_pos) 
+            print(rew_dist_gt, angle, cur_dist)
+
+        reward = rew_point + rew_angle + rew_dist_ct + rew_dist_gt
         self.set_last_positions(cube_pos, gripper)
         self.rewards_history.append(reward)
         self.task.check_goal()
@@ -1305,7 +1317,7 @@ class PushReward(PokeReachReward):
             self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], point_grg,
                                         lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
 
-            self.env.p.addUserDebugText(f"reward:{reward:.3f}, r_d:{rew_dist * self.k_d:.3f}, r_p:{rew_point * self.k_p:.3f},"
+            self.env.p.addUserDebugText(f"reward:{reward:.3f}, r_ct:{rew_dist_ct * self.k_ct:.3f}, r_gt:{rew_dist_gt * self.k_gt:.3f}, r_p:{rew_point * self.k_p:.3f},"
                                         f" r_a:{rew_angle * self.k_a:.3f}",
                                         [1, 1, 1], textSize=2.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
 
@@ -1320,9 +1332,8 @@ class PushReward(PokeReachReward):
     def angle_between_vectors(self,vector1, vector2): 
         return np.arccos(self.scalar_multiply(vector1, vector2)/(self.module(vector1)*self.module(vector2))) * 180 / math.pi
     
-    def angle_reward_push(self):
-        vector1 = [self.x_cube - self.x_target, self.y_cube - self.y_target, self.z_cube - self.z_target]
-        vector2 = [self.x_cube - self.x_gripper, self.y_cube - self.y_gripper, self.z_cube - self.z_gripper]
+    def angle_reward_push(self, vector1, vector2):
+        
         reward = 0
 
         if self.last_angle == None:
@@ -1337,9 +1348,9 @@ class PushReward(PokeReachReward):
             
         self.last_angle = angle
         
-        return reward
+        return reward, angle
 
-    def dist_reward(self, cube_position, target_position):
+    def dist_reward_ct(self, cube_position, target_position):
         if self.last_ct_dist == None:
             self.last_ct_dist = 0
 
@@ -1349,6 +1360,17 @@ class PushReward(PokeReachReward):
         else:
             reward = self.exp_eval(ct_dist) if ct_dist < self.last_ct_dist else self.lin_penalty(self.last_ct_dist, min_penalty = 1)
         self.last_ct_dist = self.get_distance(cube_position, target_position)
+
+        return reward
+    
+    def dist_reward_gt(self, gripper_position, target_position):
+        if self.last_gt_dist == None:
+            self.last_gt_dist = 0
+
+        gt_dist = self.get_distance(gripper_position, target_position)
+        reward = self.exp_eval(gt_dist) if gt_dist < self.last_gt_dist else self.lin_penalty(self.last_gt_dist, min_penalty = 1)
+        
+        self.last_ct_dist = self.get_distance(gripper_position, target_position)
 
         return reward
 
