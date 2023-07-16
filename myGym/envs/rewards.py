@@ -1370,7 +1370,7 @@ class PushReward(PokeReachReward):
         gt_dist = self.get_distance(gripper_position, target_position)
         reward = self.exp_eval(gt_dist) if gt_dist < self.last_gt_dist else self.lin_penalty(self.last_gt_dist, min_penalty = 1)
         
-        self.last_ct_dist = self.get_distance(gripper_position, target_position)
+        self.last_gt_dist = self.get_distance(gripper_position, target_position)
 
         return reward
 
