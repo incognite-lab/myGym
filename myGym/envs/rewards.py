@@ -1234,7 +1234,7 @@ class PushReward(PokeReachReward):
         self.z_target = None 
 
         self.k_p = 1   # distance coefficient between cube position and gripper position
-        self.k_ct = 1   # distance coefficient between cube position and target position
+        self.k_ct = 2   # distance coefficient between cube position and target position
         self.k_gt = 1   # distance coefficient between gripper position and target position
         self.k_a = 1    # angle(<GCT) coefficient (G-grip_pos, C-cub_pos, T-targ_pos)
 
@@ -1272,11 +1272,14 @@ class PushReward(PokeReachReward):
         
         if angle > 170 and cur_dist <= self.dist_offset: 
             #best position -> start moving cube to target
-            reward += 10
+            # reward += 5
             rew_dist_gt = self.dist_reward_gt(gripper, goal_pos) 
             print(rew_dist_gt, angle, cur_dist)
+        
+        reward = rew_point * self.k_p + rew_angle * self.k_a + rew_dist_ct * self.k_ct + rew_dist_gt * self.k_gt
 
-        reward = rew_point + rew_angle + rew_dist_ct + rew_dist_gt
+        # print(reward, rew_point * self.k_p, rew_angle * self.k_a, rew_dist_ct * self.k_ct, rew_dist_gt * self.k_gt)
+
         self.set_last_positions(cube_pos, gripper)
         self.rewards_history.append(reward)
         self.task.check_goal()
