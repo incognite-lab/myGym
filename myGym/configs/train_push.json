@@ -39,16 +39,16 @@
 "yolact_config" :null,
 #Train
 "train_framework"   :"tensorflow",
-"algo"              :"multiacktr",
-"num_networks" : 2,
+"algo"              :"ppo2",
+"num_networks" : 1,
 "max_episode_steps" :1024,
 "algo_steps"        :1024,
-"steps"             :1001024,
+"steps"             :5001024,
 "pretrained_model"  :null,
 "multiprocessing"   :false,
 #Evaluation
-"eval_freq"     :200000,
-"eval_episodes" :50,
+"eval_freq"     :500000,
+"eval_episodes" :100,
 #Saving and logging
 "logdir"    :"trained_models/push",
 "record"    :0
