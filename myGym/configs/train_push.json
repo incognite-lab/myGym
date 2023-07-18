@@ -40,7 +40,7 @@
 #Train
 "train_framework"   :"tensorflow",
 "algo"              :"multiacktr",
-"num_networks" : 3,
+"num_networks" : 2,
 "max_episode_steps" :1024,
 "algo_steps"        :1024,
 "steps"             :1001024,

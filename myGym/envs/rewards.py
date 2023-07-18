@@ -1472,7 +1472,7 @@ class ThreeStagePushReward(PokeReachReward):
         stage = self.decide(observation)
         target = [[target_position, cube_position, gripper_position],[],[target_position, cube_position ,gripper_position]][stage]
 
-        reward = [self.approach_rew, self.angle_rew, self.move_rew][stage](*target)
+        reward = [self.approach_rew, self.angle_rew, self.move_rew][stage](*target) + stage
         # self.network_rewards
         self.task.check_goal()
         self.rewards_history.append(reward)
@@ -1580,10 +1580,10 @@ class ThreeStagePushReward(PokeReachReward):
 
         return target_position,cube_position,gripper_position
     
-class TwoStagePushReward(PokeReachReward):
+class TwoStagePushReward2(PokeReachReward):
 
     def __init__(self, env, task):
-        super(TwoStagePushReward,self).__init__(env, task)
+        super(TwoStagePushReward2,self).__init__(env, task)
         self.x_cube = None
         self.y_cube = None
         self.z_cube = None
@@ -1640,7 +1640,7 @@ class TwoStagePushReward(PokeReachReward):
         stage = self.decide(observation)
         target = [[target_position, cube_position, gripper_position],[target_position, cube_position ,gripper_position]][stage]
 
-        reward = [self.approach_rew, self.move_rew][stage](*target)
+        reward = [self.approach_rew, self.move_rew][stage](*target) + stage
         # self.network_rewards
         self.task.check_goal()
         self.rewards_history.append(reward)
@@ -1708,6 +1708,96 @@ class TwoStagePushReward(PokeReachReward):
 
         return target_position,cube_position,gripper_position
 
+class TwoStagePushReward(ThreeStagePushReward):
+
+    def __init__(self, env, task):
+        super(TwoStagePushReward,self).__init__(env, task)
+        self.x_cube = None
+        self.y_cube = None
+        self.z_cube = None
+
+        self.x_gripper = None
+        self.y_gripper = None
+        self.z_gripper = None
+
+        self.x_target = None
+        self.y_target = None
+        self.z_target = None 
+        
+        self.approach     = None
+        self.cube_move    = None
+        self.gripper_move = None
+
+        self.last_approach     = None  #previouse gripper distance to cube
+        self.last_cube_move    = None  #previouse cube distance to target
+        self.last_gripper_move = None  #previouse gripper position to target
+        self.current_network = 0
+        self.num_networks = env.num_networks
+        self.check_num_networks()
+        # self.network_rewards = [0] * self.num_networks 
+
+    def check_num_networks(self):
+        assert self.num_networks <= 2, "ThreeStagePushReward reward can work with maximum 3 networks"
+
+    def reset(self):
+        self.x_cube = None
+        self.y_cube = None
+        self.z_cube = None
+
+        self.x_gripper = None
+        self.y_gripper = None
+        self.z_gripper = None
+
+        self.x_target = None
+        self.y_target = None
+        self.z_target = None
+
+        self.last_approach     = None  #previouse gripper distance to cube
+        self.last_cube_move    = None  #previouse cube distance to target
+        self.last_gripper_move = None  #previouse gripper position to target
+        self.current_network = 0
+        self.network_rewards = [0] * self.num_networks
+    
+    def compute(self, observation=None):  
+        target_position, cube_position, gripper_position = self.get_positions_push(observation)
+        self.set_variables_push(target_position, cube_position, gripper_position)
+
+        vector1 = [self.x_cube - self.x_target, self.y_cube - self.y_target, self.z_cube - self.z_target]
+        vector2 = [self.x_cube - self.x_gripper, self.y_cube - self.y_gripper, self.z_cube - self.z_gripper]
+        
+        self.angle = round(self.angle_between_vectors(vector1, vector2),2)
+
+        cube_offset_pos = self.get_point_grg(np.array(target_position),np.array(cube_position))
+        self.approach = self.task.calc_distance(gripper_position, cube_offset_pos)
+
+        stage = self.decide(observation)
+        target = [[target_position, cube_position, gripper_position],[target_position, cube_position ,gripper_position]][stage]
+
+        reward = [self.approach_rew, self.move_rew][stage](*target) + stage
+
+        if self.angle != None and self.approach != None:
+            if self.angle > 170 and self.approach <= 0.05:
+                reward += 1
+        # self.network_rewards
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        self.env.p.addUserDebugText(f"{reward}, {stage}", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[1,0,0])
+        self.env.p.addUserDebugLine(cube_position, gripper_position, lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
+        self.env.p.addUserDebugLine(target_position, gripper_position, lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
+        self.env.p.addUserDebugLine(cube_position, target_position, lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
+        
+        return reward
+    
+    def decide(self, observation=None):
+        if self.approach != None:
+            if self.approach > 0.05:
+                self.current_network = 0
+            else:
+                self.current_network = 1
+        
+        return self.current_network
+
+    
 
 class DualPoke(PokeReachReward):
     """
