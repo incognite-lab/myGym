@@ -927,37 +927,144 @@ class TurnReward(SwitchReward):
     """
     def __init__(self, env, task):
         super(TurnReward, self).__init__(env, task)
-        self.r = 0.45
-        self.k_w = 0    # coefficient for distance between actual position of robot's gripper and generated line
-        self.k_d = 1    # coefficient for absolute distance between gripper and end position
-        self.k_a = 0    # coefficient for calculated angle reward
+        self.x_obj = None
+        self.y_obj = None
+        self.z_obj = None
+        self.x_bot = None
+        self.y_bot = None
+        self.z_bot = None
+
+        self.x_obj_curr_pos = None
+        self.y_obj_curr_pos = None
+        self.z_obj_curr_pos = None
+        self.x_bot_curr_pos = None
+        self.y_bot_curr_pos = None
+        self.z_bot_curr_pos = None
+
+        # auxiliary variables
+        self.offset     = None
+        self.prev_val   = None
+        self.debug      = True
+        
+
+        self.reach_line     = False
+        self.dist_offset    = 0.05
+
+        self.x_bot_last_pos = None
+        self.y_bot_last_pos = None
+        self.z_bot_last_pos = None
+
+        self.last_pos_on_line = None
+        self.last_angle = None
+
+        self.bonus_reward   = 10
+
+        self.right_bonus    = False
+        self.left_bonus     = False
 
     def compute(self, observation):
-        """
-        Compute reward signal based on distance between 2 points (robot gripper and middle point of predefined line)
-        and angle of handle
-        The position of the objects must be present in observation.
-        Params:
-            :param observation: (list) Observation of the environment
-        Returns:
-            :return reward: (float) Reward signal for the environment
-        """
-        goal = observation["goal_state"]
-        goal_position, object_position, gripper_position = self.get_positions(observation)
-        self.set_variables(goal, gripper_position)
-        self.set_offset(z=0.1)
+        goal_pos            = observation["goal_state"]
+        gripper_position    = observation["actual_state"]
+        self.set_variables(goal_pos, gripper_position)    # save local positions of task_object and gripper to global positions
 
-        d = self.threshold_reached()
-        a = self.calc_turn_reward()
-        reward = - self.k_d * d + a * self.k_a
+        points   =  [(self.x_obj+0.3, self.y_obj-0.2, self.z_obj+0.1),
+                    (self.x_obj-0.4, self.y_obj-0.2, self.z_obj+0.1)]
+        
+        cur_pos  =  (self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
+        last_pos =  (self.x_bot_last_pos, self.y_bot_last_pos, self.z_bot_last_pos)
+
+        self.env.p.addUserDebugLine(points[0], points[1], lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=1)
+
+        distances =  [self.get_distance(points[0], cur_pos), self.get_distance(points[1], cur_pos),
+                     self.get_distance(goal_pos, cur_pos), self.get_distance_line_point(points[0], points[1], cur_pos)]
+        
+        last_dist =  [self.get_distance(points[0], last_pos), self.get_distance(points[1], last_pos),
+                     self.get_distance(goal_pos, last_pos), self.get_distance_line_point(points[0], points[1], last_pos)]
+
+        rewards = {
+            "max_1point":   1.,
+            "min_1point":   0.,
+            "max_2point":   2.,
+            "min_2point":   1.,
+            "max_line":     2.,
+            "min_line":     0
+        }
+
+        rew_1point  =   0
+        rew_line    =   0
+        rew_2point  =   0
+
+        if not self.reach_line:
+            rew_1point = self.lin_hyp_eval(distances[0], max_r = rewards["max_1point"], default = rewards["min_1point"]) if distances[0] < last_dist[0] else -1.5*self.lin_hyp_eval(distances[0], max_r = rewards["max_1point"], default = rewards["min_1point"]) 
+            if distances[3] <= self.dist_offset:
+                self.reach_line = True
+        else:
+            rew_line    =   self.lin_hyp_eval(distances[3], max_r = rewards["max_line"], default = rewards["min_line"]) if distances[3] < last_dist[3] else -1.5*self.lin_hyp_eval(distances[3], max_r = rewards["max_line"], default = rewards["min_line"]) 
+            rew_2point  =   self.lin_hyp_eval(distances[1], max_r = rewards["max_2point"], default = rewards["min_2point"]) if distances[1] < last_dist[1] else -1.5*self.lin_hyp_eval(distances[1], max_r = rewards["max_2point"], default = rewards["min_2point"])
+
+        angle_rew = self.get_angle_reward()
+        reward = rew_1point + rew_line + rew_2point + angle_rew + self.get_bonus(*distances)
+
         if self.debug:
-            self.env.p.addUserDebugText(f"reward:{reward:.3f}, d:{d * self.k_d:.3f}, a: {a * self.k_a:.3f}",
-                                        [1, 1, 1], textSize=2.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
+            self.env.p.addUserDebugLine([self.x_obj, self.y_obj, self.z_obj], gripper_position,
+                                        lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
 
-        #self.task.check_distance_threshold(observation=observation)
+            self.env.p.addUserDebugText(f"line : {self.reach_line} reward: {reward}",
+                                        [0.5, 0.5, 0.5], textSize=2.0, lifeTime=5, textColorRGB=[0.6, 0.0, 0.6])
+
         self.task.check_goal()
         self.rewards_history.append(reward)
+        self.set_last_pos()
         return reward
+
+    def reset(self):
+        self.x_obj = None
+        self.y_obj = None
+        self.z_obj = None
+        self.x_bot = None
+        self.y_bot = None
+        self.z_bot = None
+
+        self.x_obj_curr_pos = None
+        self.y_obj_curr_pos = None
+        self.z_obj_curr_pos = None
+        self.x_bot_curr_pos = None
+        self.y_bot_curr_pos = None
+        self.z_bot_curr_pos = None
+
+        self.x_bot_last_pos = None
+        self.y_bot_last_pos = None
+        self.z_bot_last_pos = None
+
+        # auxiliary variables
+        self.x_last_curr_pos = None
+        self.y_last_curr_pos = None
+        self.z_last_curr_pos = None
+
+        self.offset = None
+        self.prev_val = None
+
+        self.reach_line = False
+
+        self.right_bonus    = False
+        self.left_bonus     = False
+
+        self.last_pos_on_line = None
+        self.last_angle = None
+
+    def lin_hyp_eval(self, dist: float, max_r: float = 1., default: float = 0.) -> float:
+        reward = [-dist+max_r, ((0.5*max_r)**2)/dist][int(dist > 0.5*max_r)]
+        return reward + default
+  
+  
+    def hyperb_reward(self, dist: float, a: float = 0.1, maxR: float = float("inf"), minR: float =  0.) -> float:
+        assert maxR > minR, "maxR must be higher then minR"
+        return np.median([maxR, a/dist, minR])
+    
+
+    def lin_penalty(self, dist: float, k: float = 1., maxP: float = -float('inf'), minP: float = 0.) -> float:
+        assert maxP < minP, "maxP must be less then minP"
+        return np.median([maxP, -fabs(k)*dist, minP])
 
 
     def set_offset(self, x=0.0, y=0.0, z=0.0):
@@ -1039,6 +1146,7 @@ class TurnReward(SwitchReward):
 
     def get_angle_between_vectors(self, v1, v2):
         return math.acos(np.dot(v1, v2)/(self.count_vector_norm(v1)*self.count_vector_norm(v2)))
+
 
 class PokeReachReward(SwitchReward):
 
