@@ -359,7 +359,7 @@ class NaturalLanguage:
 
             if env.reach_gesture:
                 if env.training:
-                    for _ in range(10):
+                    for _ in range(1):
                         env.human.point_finger_at(position=o2.get_env_object().get_position())
                         env.p.stepSimulation()
                     o2 = env.human.find_object_human_is_pointing_at(objects=self.venv.get_real_objects())

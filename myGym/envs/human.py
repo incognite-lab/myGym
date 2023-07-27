@@ -63,7 +63,7 @@ class Human:
             self.body_id = self.p.loadSDF(path)[0]
             self.p.resetBasePositionAndOrientation(self.body_id, position, orientation)
         else:
-            self.body_id = self.p.loadURDF(path, position, orientation, useFixedBase=True, flags=(self.p.URDF_USE_SELF_COLLISION))
+            self.body_id = self.p.loadURDF(path, position, orientation, useFixedBase=True) #  flags=(self.p.URDF_USE_SELF_COLLISION)
 
         self.n_joints = self.p.getNumJoints(self.body_id)
         for jid in range(self.n_joints):
