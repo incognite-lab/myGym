@@ -17,7 +17,7 @@ from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCr
 from stable_baselines.common.schedules import get_schedule_fn
 from stable_baselines.common.tf_util import total_episode_reward_logger
 from stable_baselines.common.math_util import safe_mean
-
+from stable_baselines.common.misc_util import set_global_seeds
 
 class MultiPPO2(ActorCriticRLModel):
     """
@@ -190,10 +190,13 @@ class MultiPPO2(ActorCriticRLModel):
 
             t_first_start = time.time()
             n_updates     = total_timesteps // (self.n_envs * self.n_steps)
+            update = 0
+            done = False
 
             callback.on_training_start(locals(), globals())
 
-            for update in range(1, n_updates + 1):
+
+            while not done:
                 assert (self.n_envs * self.n_steps) % self.nminibatches == 0, ("The number of minibatches (`nminibatches`) is not a factor of the total number of samples collected per rollout (`n_batch`), some samples won't be used.")
 
                 batch_size       = (self.n_envs * self.n_steps) // self.nminibatches
@@ -254,7 +257,7 @@ class MultiPPO2(ActorCriticRLModel):
                         if writer is not None:
                             n_steps = model.n_batch
                             try:
-                                print("true reward:{}".format(true_reward.shape))
+                                #print("true reward:{}".format(true_reward.shape))
                                 total_episode_reward_logger(self.episode_reward, true_reward.reshape((self.n_envs, n_steps)), masks.reshape((self.n_envs, n_steps)), writer, self.num_timesteps)
 
                             except:
@@ -270,20 +273,15 @@ class MultiPPO2(ActorCriticRLModel):
 
                         if self.verbose >= 1 and (update % log_interval == 0 or update == 1):
                             explained_var = explained_variance(values, returns)
-                            logger.logkv("serial_timesteps", update * self.n_steps)
-                            logger.logkv("n_updates", update)
-                            logger.logkv("total_timesteps", self.num_timesteps)
-                            logger.logkv("fps", fps)
                             logger.logkv("Steps", steps_used)
-                            logger.logkv("explained_variance", float(explained_var))
-                            if len(self.ep_info_buf) > 0 and len(self.ep_info_buf[0]) > 0:
-                                logger.logkv('ep_reward_mean', safe_mean([ep_info['r'] for ep_info in self.ep_info_buf]))
-                                logger.logkv('ep_len_mean', safe_mean([ep_info['l'] for ep_info in self.ep_info_buf]))
-                            logger.logkv('time_elapsed', t_start - t_first_start)
-                            for (loss_val, loss_name) in zip(loss_vals, model.loss_names):
-                                logger.logkv(loss_name, loss_val)
                             logger.dumpkvs()
+
                     i+=1
+                print("Steps: " + str(self.num_timesteps) + "/" + str(total_timesteps) + " - (" + str(round(self.num_timesteps/total_timesteps*100)) + "%)")
+                print("Episodes: " + str(update+1) + "/" + str(n_updates) + " - (" + str(round((update+1)/n_updates*100)) + "%)")
+                if self.num_timesteps >= total_timesteps:
+                    done = True
+                update +=1
             callback.on_training_end()
             return self
 
@@ -578,6 +576,22 @@ class SubModel(MultiPPO2):
         if parent.ep_info_buf is None:
             parent.ep_info_buf = deque(maxlen=100)
 
+    def set_random_seed(self, seed: int) -> None:
+        """
+        :param seed: (Optional[int]) Seed for the pseudo-random generators. If None,
+            do not change the seeds.
+        """
+        # Ignore if the seed is None
+        if seed is None:
+            return
+        # Seed python, numpy and tf random generator
+        set_global_seeds(seed)
+        if self.env is not None:
+            self.env.seed(seed)
+            # Seed the action space
+            # useful when selecting random actions
+            self.env.action_space.seed(seed)
+
     def save(self, parent_path, i, cloudpickle=False):
         # save only one model
         data = {
@@ -668,7 +682,7 @@ class Runner(AbstractEnvRunner):
                 successful_stages += 1
                 print ("Episode successfully finished at step {}".format(_))
             if owner > last_owner: 
-                print("Changed to Net {} at step {}".format(owner,_))
+                #print("Changed to Net {} at step {}".format(owner,_))
                 last_owner = owner
             #print(_)
             #if last_success != successful_stages:
@@ -707,7 +721,7 @@ class Runner(AbstractEnvRunner):
             mb_rewards.append(rewards)
             model.n_batch += 1
             if self.dones:
-                print('Finished batch training')
+                #print('Finished batch training')
                 break
         # batch of steps to batch of rollouts
         last_values          = model.value(self.obs, self.states, self.dones) # last observation, last state, last done
@@ -715,7 +729,7 @@ class Runner(AbstractEnvRunner):
         # discount/bootstrap off value fn
         #print("Minibatches: {}".format(len(minibatches)))
         for i, minibatch in enumerate(minibatches):
-            print("Step:{}".format(i))
+            #print("Step:{}".format(i))
             mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = minibatch
             
             mb_obs        = np.asarray(mb_obs,        dtype=self.obs.dtype)
@@ -743,8 +757,8 @@ class Runner(AbstractEnvRunner):
             try:
                 mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward = map(swap_and_flatten, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward))
             except:
-              print("model {} had no data".format(i))
-
+              #print("model {} had no data".format(i))
+              pass
             finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
             finished_minibatches.append(finished_minibatch)
         steps_taken = [finished_minibatches[x][0].shape[0] for x in range(len(finished_minibatches))]
