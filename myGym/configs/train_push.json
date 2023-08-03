@@ -6,7 +6,7 @@
 "render"    :"opengl",
 "seed"      :1,
 "camera"    :1,
-"gui"       :1,
+"gui"       :0,
 "visualize" :1,
 "visgym"    :0,
 #Robot

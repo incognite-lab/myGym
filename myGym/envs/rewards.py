@@ -718,7 +718,7 @@ class ButtonReward(SwitchReward):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         self.set_variables(goal, gripper_position)
         self.set_offset(z=0.16)
-
+        
         w = self.calc_direction_3d(self.x_obj, self.y_obj, 1, self.x_obj, self.y_obj, self.z_obj,
                                    self.x_bot_curr_pos, self.y_bot_curr_pos, self.z_bot_curr_pos)
         d = self.abs_diff()
@@ -905,7 +905,6 @@ class TurnReward(SwitchReward):
 
     def get_angle_between_vectors(self, v1, v2):
         return math.acos(np.dot(v1, v2)/(self.count_vector_norm(v1)*self.count_vector_norm(v2)))
-
 
 class PokeReachReward(SwitchReward):
 
