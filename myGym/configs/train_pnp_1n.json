@@ -10,11 +10,11 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"panda1",
-    "robot_action"  :"step",
-    "robot_init"    :[-0.4, 0.4, 0.4],
-    "max_velocity"  :1,
-    "max_force"     :70,
+    "robot"         :"kuka",
+    "robot_action"  :"joints",
+    "robot_init"    :[0.0, 0.4, 0.6],
+    "max_velocity"  :10,
+    "max_force"     :200,
     "action_repeat" :1,
     #Task
     "task_type"             :"pnp",
