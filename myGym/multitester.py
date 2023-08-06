@@ -10,7 +10,6 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-cfg", "--config", type=str, default="./configs/debugdist.json", help="config file for evaluation")
-#robot
 parser.add_argument("-b", "--robot",  default=["kuka"], nargs='*', help="what robots to test")
 parser.add_argument("-ba", "--robot_action",  default=["joints"], nargs='*', help="what actions to test")
 parser.add_argument("-ar", "--action_repeat", default=[1], nargs='*', help="simuilation steps without env action")
