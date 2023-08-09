@@ -946,7 +946,7 @@ class TurnReward(SwitchReward):
         self.offset     = None
         self.prev_val   = None
         self.debug      = True
-        
+
 
         self.reach_line     = False
         self.dist_offset    = 0.05
