@@ -5,7 +5,7 @@ Install
 
 You can install myGym by standard procedure:
 
-``git clone https://github.com/incognite/mygym.git``
+``git clone https://github.com/incognite_lab/mygym.git``
 
 ``cd myGym``
 
