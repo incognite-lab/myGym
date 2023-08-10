@@ -110,7 +110,7 @@ def visualize_infotext(action, env, info):
 
 
 def test_env(env, arg_dict):
-    #arg_dict["gui"] == 1
+    arg_dict["gui"] == 1
     debug_mode = True
     spawn_objects = False
     action_control = "slider" #"oraculum", "keyboard","observation", "random", "keyboard" or "slider"
