@@ -17,9 +17,10 @@
     "action_repeat" :1,
     #Task
     "task_type"             :"pnprot",
+    "natural_language"      :0,
     "task_objects"          :[{"init":{"obj_name":"bar","fixed":0,"rand_rot":0, "sampling_area":[-0.7,0.7,0.3,0.8,0.1,0.1]},
                            "goal":{"obj_name":"bar_target","fixed":1,"rand_rot":1, "sampling_area":[-0.7,0.7,0.3,0.8,0.35,0.35]}}],
-    "color_dict"            : {"cube_holes":[[0.2,0.5,0.2,1]], "target":[[0.3,0.3,0.3,1]]},
+    "color_dict"            : {"cube_holes":["green"], "target":["gray"]},
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
     // Observation
     // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"

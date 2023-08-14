@@ -1,39 +1,61 @@
+from typing import List, Tuple
+
+import numpy as np
 import pkg_resources
 
+from myGym.envs.env_object import EnvObject
 from myGym.utils.helpers import get_robot_dict
+
+
+def _link_name_to_idx(p, body_id: int, link_name: str) -> int:
+    for i in range(p.getNumJoints(body_id)):
+        info = p.getJointInfo(body_id, i)
+        if info[-5].decode('utf-8') == link_name:
+            return i
+    exc = f"Cannot find a link index for the link with name {link_name}"
+    raise Exception(exc)
 
 
 class Human:
     """
-    Human class for control of human environment interaction
+    Class for control of human-environment interaction.
 
     Parameters:
-        :param model: (string) Model name in the get_robot_dict() dictionary
-        :param pybullet_client: Which pybullet client the environment should refere to in case of parallel existence of multiple instances of this environment
+        :param model_name: (string) Model name from the get_robot_dict() dictionary
+        :param pybullet_client: Which pybullet client the environment should refer to in case of parallel existence
+        of multiple instances of this environment
     """
     def __init__(self,
-                 model='human',
+                 model_name: str = "human",
                  pybullet_client=None,
+                 direction_point: np.array = np.array([0, 0.8, 0]),
+                 links_for_direction_vector: Tuple[str, str] = ("r_index3_endeffector", "r_index2")
                  ):
 
-        self.body_id = None
-        self.n_joints = None
-        self.motors_indices = []
-        self.n_motors = None
-        self.end_effector_idx = None
         self.p = pybullet_client
+        self.body_id: int or None = None
+        self.n_joints: int or None = None
+        self.motors_indices = []
+        self.n_motors: int or None = None
+        self.end_effector_idx: int or None = None
+        self.direction_point = direction_point  # for pointing during a testing phase
 
-        self._load_robot(model)
+        self._load_model(model_name)
         self._set_motors()
 
-    def _load_robot(self, model):
+        self.links_indices_for_direction_vector = (
+            _link_name_to_idx(self.p, self.body_id, links_for_direction_vector[0]),
+            _link_name_to_idx(self.p, self.body_id, links_for_direction_vector[1])
+        )
+
+    def _load_model(self, model_name):
         """
-        Load SDF or URDF model of specified model and place it in the environment to specified position and orientation
+        Load SDF or URDF model of specified model and place it in the environment to specified position and orientation.
 
         Parameters:
-            :param model: (string) Model name in the get_robot_dict() dictionary
+            :param model_name: (string) Model name in the get_robot_dict() dictionary
         """
-        path, position, orientation = get_robot_dict()[model].values()
+        path, position, orientation = get_robot_dict()[model_name].values()
         path = pkg_resources.resource_filename("myGym", path)
         orientation = self.p.getQuaternionFromEuler(orientation)
 
@@ -41,7 +63,7 @@ class Human:
             self.body_id = self.p.loadSDF(path)[0]
             self.p.resetBasePositionAndOrientation(self.body_id, position, orientation)
         else:
-            self.body_id = self.p.loadURDF(path, position, orientation, useFixedBase=True, flags=(self.p.URDF_USE_SELF_COLLISION))
+            self.body_id = self.p.loadURDF(path, position, orientation, useFixedBase=True) #  flags=(self.p.URDF_USE_SELF_COLLISION)
 
         self.n_joints = self.p.getNumJoints(self.body_id)
         for jid in range(self.n_joints):
@@ -72,7 +94,7 @@ class Human:
 
     def __repr__(self):
         """
-        Get overall description of the human. Mainly for debug.
+        Get overall description of the human. Used mainly for debug.
 
         Returns:
             :return description: (string) Overall description
@@ -110,11 +132,38 @@ class Human:
                                                  end_effector_pos,
                                                  )
 
-    def point_finger_at(self, position):
+    def point_finger_at(self, position=None, relative=False):
         """
         Point human's finger towards the desired position.
 
         Parameters:
             :param position: (list) Cartesian coordinates [x,y,z]
         """
+        if relative:
+            if position is not None:
+                self.direction_point += position
+                position = self.direction_point
+            else:
+                exc = "You must pass relative coordinates if a relative option has been chosen"
+                raise Exception(exc)
+        else:
+            if position is None:
+                position = self.direction_point
         self._run_motors(self._calculate_motor_poses(position))
+
+    def find_object_human_is_pointing_at(self, objects: List[EnvObject]) -> EnvObject:
+        if not objects:
+            raise Exception("There are no objects!")
+
+        i1, i2 = self.links_indices_for_direction_vector
+        p1, p2 = self.p.getLinkState(self.body_id, i1)[0], self.p.getLinkState(self.body_id, i2)[0]
+        p1, p2 = np.array(p1), np.array(p2)
+        vec = (p1 - p2) / np.linalg.norm(p1 - p2)
+        points = np.array([o.get_position() for o in objects])
+
+        points -= p2.reshape(1, -1)  # move points to be able to compute projections (make the vector relatively centered)
+        scalars = np.dot(points, vec)  # scalar product (as a part of computing a projection)
+        points_proj = scalars.reshape(-1, 1) * vec.reshape(1, -1)  # projections on the vector
+        points_rej = points - points_proj  # rejections
+        distances = np.linalg.norm(points_rej, axis=1)
+        return objects[np.argmin(distances)]

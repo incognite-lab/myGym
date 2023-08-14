@@ -58,15 +58,7 @@ class EnvObject:
         Parameters:
             :param color: (list) RGB color to set
         """
-        self.color_rgba =  color
-        if not self.virtual:
-            self.p.changeVisualShape(self.uid, -1, rgbaColor=self.color_rgba)
-
-    def set_random_color(self):
-        """
-        Set random color of object
-        """
-        self.color_rgba =  self.get_random_color()
+        self.color_rgba = color
         if not self.virtual:
             self.p.changeVisualShape(self.uid, -1, rgbaColor=self.color_rgba)
 
@@ -363,17 +355,3 @@ class EnvObject:
         angleY = 0
         angleZ = np.pi + (np.pi * random.random())
         return pybullet.getQuaternionFromEuler([angleX, angleY, angleZ])
-
-    @staticmethod
-    def get_random_color():
-        """
-        Get random color
-
-        Returns:
-            :return color: (list) RGB color
-        """
-        color = []
-        for i in range(3):
-            color.append(random.uniform(0, 1))
-        color.append(1)
-        return color
