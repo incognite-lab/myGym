@@ -4,6 +4,7 @@
     "workspace" :"table",
     "engine"    :"pybullet",
     "render"    :"opengl",
+    "seed"      :1,
     "camera"    :0,
     "gui"       :0,
     "visualize" :0,
@@ -41,17 +42,17 @@
     "yolact_config" :null,
     #Train
     "train_framework"   :"tensorflow",
-    "algo"              :"multippo2",
-    "num_networks"      :3,
+    "algo"              :"ppo2",
+    "num_networks" : 1,
     "max_episode_steps" :512,
     "algo_steps"        :512,
-    "steps"             :10000000,
+    "steps"             :1000000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
-    "eval_freq"     :500000,
-    "eval_episodes" :50,
+    "eval_freq"     :50000,
+    "eval_episodes" :30,
     #Saving and logging
-    "logdir"    :"trained_models/pnp3new",
+    "logdir"    :"trained_models/pnp3seed",
     "record"    :0
     }
