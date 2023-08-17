@@ -110,14 +110,15 @@ def visualize_infotext(action, env, info):
 
 
 def test_env(env, arg_dict):
-    arg_dict["gui"] == 1
-    debug_mode = True
+    #arg_dict["gui"] = 1
+    debug_mode = False
     spawn_objects = False
-    action_control = "slider" #"oraculum", "keyboard","observation", "random", "keyboard" or "slider"
+    action_control = "slider" #"oraculum", "keyboard","observation", "random", or "slider"
     visualize_sampling = False
     visualize_traj = False
-    visualize_info = True
+    visualize_info = False
     env.render("human")
+    print("attempt 1")
     #env.reset()
     joints = ['Joint1','Joint2','Joint3','Joint4','Joint5','Joint6','Joint7','Joint 8','Joint 9', 'Joint10', 'Joint11','Joint12','Joint13','Joint14','Joint15','Joint16','Joint17','Joint 18','Joint 19']
     jointparams = ['Jnt1','Jnt2','Jnt3','Jnt4','Jnt5','Jnt6','Jnt7','Jnt 8','Jnt 9', 'Jnt10', 'Jnt11','Jnt12','Jnt13','Jnt14','Jnt15','Jnt16','Jnt17','Jnt 18','Jnt 19']
@@ -194,7 +195,7 @@ def test_env(env, arg_dict):
             jointparams[i] = p.readUserDebugParameter(joints[i])
             action.append(jointparams[i])
 
-    for e in range(10000):
+    for e in range(50):
         env.reset()
         #if spawn_objects:
         #    cube[e] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [0, 0.5, .1])
