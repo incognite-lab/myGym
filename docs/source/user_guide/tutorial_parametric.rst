@@ -15,7 +15,7 @@ Change the :ref:`workspace` within the gym:
 
 Set a different :ref:`task_class`:
 
-``python train.py  --task push``
+``python train.py  --task_type push``
 
 Choose a task :ref:`mygym_objects`:
 
