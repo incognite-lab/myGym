@@ -334,7 +334,7 @@
     </collision>
   </link>
 
-  <link name="end_effector"> <!--hand_ball-->
+  <link name="endeffector"> <!--hand_ball-->
     <visual>
       <geometry>
         <mesh filename="package://reachy/meshes/ball-tip-visual.stl"></mesh>
@@ -404,7 +404,7 @@
 
   <joint name="wrist_roll" type="revolute">
     <parent link="gripper"/>
-    <child link="end_effector"/>
+    <child link="endeffector"/>
     <origin rpy="0 0 0" xyz="0 0 -0.03243"/>
     <axis xyz="1 0 0"/>
     <limit effort="30" lower="-1.0472" upper="1.0472" velocity="1"/>

@@ -918,7 +918,7 @@
 
   </joint>
   <link
-    name="end_effector"> <!--i2-->
+    name="endeffector"> <!--i2-->
     <inertial>
       <origin
         xyz="0.029386051121549 0.00499999330192313 0.000893559269171462"
@@ -966,7 +966,7 @@
     <parent
       link="wrist" />
     <child
-      link="end_effector" />
+      link="endeffector" />
     <axis
       xyz="0 -1 0" />
     <limit

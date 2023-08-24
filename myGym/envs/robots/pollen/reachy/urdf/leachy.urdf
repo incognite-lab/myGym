@@ -139,7 +139,7 @@
     </collision>
   </link>
 
-  <link name="end_effector"> <!--l_open_bionics_hand-->
+  <link name="endeffector"> <!--l_open_bionics_hand-->
     <visual>
       <geometry>
         <mesh filename="package://reachy/meshes/open_bionics_hand_left-visual.stl"></mesh>
@@ -202,7 +202,7 @@
 
   <joint name="l_wrist_pitch" type="revolute">
     <parent link="gripper"/>
-    <child link="end_effector"/>
+    <child link="endeffector"/>
     <origin rpy="0 0 0" xyz="0 0 -0.22415"/>
     <axis xyz="0 1 0"/>
     <limit effort="30" lower="-1.22173" upper="1.22173" velocity="1"/>
