@@ -160,7 +160,7 @@
   </link>
 
 
-  <joint name="l_shoulder_pitch" type="revolute">
+  <joint name="l_shoulder_pitch_rjoint" type="revolute">
     <parent link="base"/>
     <child link="l_shoulder"/>
     <origin rpy="0 -1.5 0" xyz="0 0.14 0"/>
@@ -168,7 +168,7 @@
     <limit effort="30" lower="-1.5708" upper="3.14159" velocity="1"/>
   </joint>
 
-  <joint name="l_shoulder_roll" type="revolute">
+  <joint name="l_shoulder_roll_rjoint" type="revolute">
     <parent link="l_shoulder"/>
     <child link="l_shoulder_to_arm"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -176,7 +176,7 @@
     <limit effort="30" lower="-0.174533" upper="3.14159" velocity="1"/>
   </joint>
 
-  <joint name="l_arm_yaw" type="revolute">
+  <joint name="l_arm_yaw_rjoint" type="revolute">
     <parent link="l_shoulder_to_arm"/>
     <child link="l_upper_arm"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -184,7 +184,7 @@
     <limit effort="30" lower="-1.5708" upper="1.5708" velocity="1"/>
   </joint>
 
-  <joint name="l_elbow_pitch" type="revolute">
+  <joint name="l_elbow_pitch_rjoint" type="revolute">
     <parent link="l_upper_arm"/>
     <child link="l_forearm"/>
     <origin rpy="0 0 0" xyz="0 0 -0.30745" />
@@ -192,7 +192,7 @@
     <limit effort="30" lower="-2.18166" upper="0" velocity="1" />
   </joint>
 
-  <joint name="l_forearm_yaw" type="revolute">
+  <joint name="l_forearm_yaw_rjoint" type="revolute">
     <parent link="l_forearm"/>
     <child link="gripper"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -200,7 +200,7 @@
     <limit effort="30" lower="-2.61799" upper="2.61799" velocity="1"/>
   </joint>
 
-  <joint name="l_wrist_pitch" type="revolute">
+  <joint name="l_wrist_pitch_rjoint" type="revolute">
     <parent link="gripper"/>
     <child link="endeffector"/>
     <origin rpy="0 0 0" xyz="0 0 -0.22415"/>
