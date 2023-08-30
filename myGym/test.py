@@ -113,7 +113,7 @@ def test_env(env, arg_dict):
     #arg_dict["gui"] = 1
     debug_mode = False
     spawn_objects = False
-    action_control = "slider" #"oraculum", "keyboard","observation", "random", or "slider"
+    action_control = "keyboard" #"oraculum", "keyboard","observation", "random", or "slider"
     visualize_sampling = False
     visualize_traj = False
     visualize_info = False
