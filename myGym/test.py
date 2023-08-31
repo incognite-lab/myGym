@@ -108,15 +108,54 @@ def visualize_infotext(action, env, info):
     p.addUserDebugText(f"Force:{env.env.max_force}",
         [.81, 1, 0.00], textSize=1.0, lifeTime=0.5, textColorRGB=[0.3, 0.2, .4])
 
+def detect_key(keypress,arg_dict,action):
+
+    if 97 in keypress.keys() and keypress[97] == 1:
+        action[2] += .03
+        print(action)
+    if 122 in keypress.keys() and keypress[122] == 1:
+        action[2] -= .03
+        print(action)
+    if 65297 in keypress.keys() and keypress[65297] == 1:
+        action[1] -= .03
+        print(action)
+    if 65298 in keypress.keys() and keypress[65298] == 1:
+        action[1] += .03
+        print(action)
+    if 65295 in keypress.keys() and keypress[65295] == 1:
+        action[0] += .03
+        print(action)
+    if 65296 in keypress.keys() and keypress[65296] == 1:
+        action[0] -= .03
+        print(action)
+    if 120 in keypress.keys() and keypress[120] == 1:
+        action[3] -= .03
+        action[4] -= .03
+        print(action)
+    if 99 in keypress.keys() and keypress[99] == 1:
+        action[3] += .03
+        action[4] += .03
+        print(action)
+    if 100 in keypress.keys() and keypress[100] == 1:
+        cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
+        change_dynamics(cube[cubecount],lfriction,rfriction,ldamping,adamping)
+        cubecount +=1
+    if "step" in arg_dict["robot_action"]:
+        action[:3] = np.multiply(action [:3],10)
+    elif "joints" in arg_dict["robot_action"]:
+        print("Robot action: Joints - KEYBOARD CONTROL UNDER DEVELOPMENT")
+        quit()
+    #for i in range (env.action_space.shape[0]):
+    #    env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
+    #    env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
+    return action
 
 def test_env(env, arg_dict):
     #arg_dict["gui"] = 1
     spawn_objects = False
-    visualize_traj = False
-    visualize_info = False
     env.render("human")
-    print("attempt 1")
     #env.reset()
+    #Prepare names for sliders
     joints = ['Joint1','Joint2','Joint3','Joint4','Joint5','Joint6','Joint7','Joint 8','Joint 9', 'Joint10', 'Joint11','Joint12','Joint13','Joint14','Joint15','Joint16','Joint17','Joint 18','Joint 19']
     jointparams = ['Jnt1','Jnt2','Jnt3','Jnt4','Jnt5','Jnt6','Jnt7','Jnt 8','Jnt 9', 'Jnt10', 'Jnt11','Jnt12','Jnt13','Jnt14','Jnt15','Jnt16','Jnt17','Jnt 18','Jnt 19']
     cube = ['Cube1','Cube2','Cube3','Cube4','Cube5','Cube6','Cube7','Cube8','Cube9','Cube10','Cube11','Cube12','Cube13','Cube14','Cube15','Cube16','Cube17','Cube18','Cube19']
@@ -242,44 +281,7 @@ def test_env(env, arg_dict):
             elif arg_dict["control"] == "keyboard":
                 keypress = p.getKeyboardEvents()
                 #print(action)    
-                if 97 in keypress.keys() and keypress[97] == 1:
-                    action[2] += .03
-                    print(action)
-                if 122 in keypress.keys() and keypress[122] == 1:
-                    action[2] -= .03
-                    print(action)
-                if 65297 in keypress.keys() and keypress[65297] == 1:
-                    action[1] -= .03
-                    print(action)
-                if 65298 in keypress.keys() and keypress[65298] == 1:
-                    action[1] += .03
-                    print(action)
-                if 65295 in keypress.keys() and keypress[65295] == 1:
-                    action[0] += .03
-                    print(action)
-                if 65296 in keypress.keys() and keypress[65296] == 1:
-                    action[0] -= .03
-                    print(action)
-                if 120 in keypress.keys() and keypress[120] == 1:
-                    action[3] -= .03
-                    action[4] -= .03
-                    print(action)
-                if 99 in keypress.keys() and keypress[99] == 1:
-                    action[3] += .03
-                    action[4] += .03
-                    print(action)
-                if 100 in keypress.keys() and keypress[100] == 1:
-                    cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
-                    change_dynamics(cube[cubecount],lfriction,rfriction,ldamping,adamping)
-                    cubecount +=1
-                if "step" in arg_dict["robot_action"]:
-                    action[:3] = np.multiply(action [:3],10)
-                elif "joints" in arg_dict["robot_action"]:
-                    print("Robot action: Joints - KEYBOARD CONTROL UNDER DEVELOPMENT")
-                    quit()
-                #for i in range (env.action_space.shape[0]):
-                #    env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
-                #    env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
+                action =  detect_key(keypress,arg_dict,action)
             elif arg_dict["control"] == "random":
                 action = env.action_space.sample()
 
@@ -288,9 +290,9 @@ def test_env(env, arg_dict):
             #print (f"Action:{action}")
             observation, reward, done, info = env.step(action)
             
-            if visualize_traj:
+            if arg_dict["vtrajectory"] == True:
                 visualize_trajectories(info,action)
-            if visualize_info:
+            if arg_dict["vinfo"] == True:
                 visualize_infotext(action, env, info)
 
                 
@@ -347,24 +349,21 @@ def test_env(env, arg_dict):
                 break
 
 def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_logdir=None, deterministic=False):
-    if arg_dict.get("model_path") is None and model is None:
-        print("Path to the model using --model_path argument not specified. Testing random actions in selected environment.")
-        test_env(env, arg_dict)
-    else:
-        try:
-            if "multi" in arg_dict["algo"]:
-                model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
-                model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env=model_args[1].env)
-            else:
-                model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"])
-        except:
-            if (arg_dict["algo"] in implemented_combos.keys()) and (arg_dict["train_framework"] not in list(implemented_combos[arg_dict["algo"]].keys())):
-                err = "{} is only implemented with {}".format(arg_dict["algo"],list(implemented_combos[arg_dict["algo"]].keys())[0])
-            elif arg_dict["algo"] not in implemented_combos.keys():
-                err = "{} algorithm is not implemented.".format(arg_dict["algo"])
-            else:
-                err = "invalid model_path argument"
-            raise Exception(err)
+
+    try:
+        if "multi" in arg_dict["algo"]:
+            model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
+            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env=model_args[1].env)
+        else:
+            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"])
+    except:
+        if (arg_dict["algo"] in implemented_combos.keys()) and (arg_dict["train_framework"] not in list(implemented_combos[arg_dict["algo"]].keys())):
+            err = "{} is only implemented with {}".format(arg_dict["algo"],list(implemented_combos[arg_dict["algo"]].keys())[0])
+        elif arg_dict["algo"] not in implemented_combos.keys():
+            err = "{} algorithm is not implemented.".format(arg_dict["algo"])
+        else:
+            err = "invalid model_path argument"
+        raise Exception(err)
 
     images = []  # Empty list for gif images
     success_episodes_num = 0
@@ -434,22 +433,28 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
 
 def main():
     parser = get_parser()
-    parser.add_argument("-ct", "--control", default="keyboard", help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
+    parser.add_argument("-ct", "--control", default="slider", help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", default=False, help="Visualize sampling area. Valid arguments: True, False")
     parser.add_argument("-vt", "--vtrajectory", default=False, help="Visualize gripper trajectgory. Valid arguments: True, False")
     parser.add_argument("-vn", "--vinfo", default=False, help="Visualize info. Valid arguments: True, False")
+    parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")      
     arg_dict = get_arguments(parser)
 
+    model_logdir = os.path.dirname(arg_dict.get("model_path",""))
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
-
-    model_logdir = os.path.dirname(arg_dict.get("model_path",""))
-    env = configure_env(arg_dict, model_logdir, for_train=0)
-    implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
-
-    test_model(env, None, implemented_combos, arg_dict, model_logdir)
+    if arg_dict.get("model_path") is None:
+        print("Path to the model using --model_path argument not specified. Testing random actions in selected environment.")
+        arg_dict["gui"] = 1
+        env = configure_env(arg_dict, model_logdir, for_train=0)
+        test_env(env, arg_dict)
+        
+    else:        
+        env = configure_env(arg_dict, model_logdir, for_train=0)
+        implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
+        test_model(env, None, implemented_combos, arg_dict, model_logdir)
 
 
 if __name__ == "__main__":
