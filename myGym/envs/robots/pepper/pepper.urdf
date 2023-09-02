@@ -299,7 +299,7 @@
       <geometry>
         <mesh filename="meshes/pepper/Torso_0.10.stl" scale="1 1 1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0.139"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/><!--0 0 0.139-->
     </collision>
   </link>
   <joint name="Torso_1_joint" type="fixed">
@@ -376,7 +376,7 @@
   </link>
   <!-- End torso links -->
 
-  <joint name="LShoulderPitch_rjoint" type="revolute">
+  <joint name="LShoulderPitch" type="fixed">
     <parent link="torso"/>
     <child link="LShoulder"/>
     <origin rpy="0 0 0" xyz="-0.057 0.14974 0.22582"/>
@@ -387,7 +387,7 @@
     <inertial>
       <mass value="0.3125"/>
       <inertia ixx="0.000361198" ixy="-1.98347e-06" ixz="6.35907e-07" iyy="0.000137229" iyz="-5.68878e-06" izz="0.000399194"/>
-      <origin rpy="0 0 0" xyz="0.00018 -0.01856 0.00099"/>
+      <origin rpy="0 0 0" xyz="0.00018 -0.019 0.00099"/> <!-- 0.00018 0.01856 0.00099-->
     </inertial>
     <visual>
       <geometry>
@@ -404,7 +404,7 @@
   </link>
 
   <!-- LShoulderRoll and additional texture link -->
-  <joint name="LShoulderRoll_rjoint" type="revolute">
+  <joint name="LShoulderRoll" type="fixed">
     <parent link="LShoulder"/>
     <child link="LBicep"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -450,7 +450,7 @@
   </link>
   <!-- End LShoulderRoll -->
 
-  <joint name="LElbowYaw_rjoint" type="revolute">
+  <joint name="LElbowYaw" type="fixed">
     <parent link="LBicep"/>
     <child link="LElbow"/>
     <origin rpy="0 -0.157079 0" xyz="0.1812 0.015 0.00013"/>
@@ -478,7 +478,7 @@
   </link>
 
   <!-- LElbowRoll link and additional texture  -->
-  <joint name="LElbowRoll_rjoint" type="revolute">
+  <joint name="LElbowRoll" type="fixed">
     <parent link="LElbow"/>
     <child link="LForeArm"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -524,7 +524,7 @@
   </link>
   <!-- End definition of LElbowRoll -->
 
-  <joint name="LWristYaw_rjoint" type="revolute">
+  <joint name="LWristYaw" type="fixed">
     <parent link="LForeArm"/>
     <child link="l_wrist"/>
     <origin rpy="0 0 0" xyz="0.15 0 0"/>
@@ -562,7 +562,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
     </inertial>
   </link>
-  <joint name="LHand_rjoint" type="revolute">
+  <joint name="LHand" type="fixed">
     <parent link="l_wrist"/>
     <child link="l_hand"/>
     <origin rpy="0 0 0" xyz="0.025 0 0"/>
@@ -575,10 +575,10 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
     </inertial>
   </link>
-  <joint name="RShoulderPitch" type="fixed">
+  <joint name="RShoulderPitch_rjoint" type="revolute">
     <parent link="torso"/>
     <child link="RShoulder"/>
-    <origin rpy="0 0 0" xyz="-0.057 -0.14974 0.22582"/>
+    <origin rpy="0 0 0" xyz="-0.057 -0.14974 0.22582"/><!---0.057 -0.14974 0.22582-->
     <axis xyz="0 1.0 0"/>
     <limit effort="5.428" lower="-2.08567" upper="2.08567" velocity="7.33998"/>
   </joint>
@@ -586,7 +586,7 @@
     <inertial>
       <mass value="0.3125"/>
       <inertia ixx="0.000361198" ixy="1.98347e-06" ixz="6.35907e-07" iyy="0.000137229" iyz="5.68878e-06" izz="0.000399194"/>
-      <origin rpy="0 0 0" xyz="0.00018 0.01856 0.00099"/>
+      <origin rpy="0 0 0" xyz="0.00018 0.019 0.00099"/><!--0.00018 0.01856 0.00099-->
     </inertial>
     <visual>
       <geometry>
@@ -603,7 +603,7 @@
   </link>
 
   <!-- RShoulderRoll and additional texture link -->
-  <joint name="RShoulderRoll" type="fixed">
+  <joint name="RShoulderRoll_rjoint" type="revolute">
     <parent link="RShoulder"/>
     <child link="RBicep"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -649,18 +649,18 @@
   </link>
   <!-- End RShoulderRoll -->
 
-  <joint name="RElbowYaw" type="fixed">
+  <joint name="RElbowYaw_rjoint" type="revolute">
     <parent link="RBicep"/>
     <child link="RElbow"/>
-    <origin rpy="0 -0.157079 0" xyz="0.1812 -0.015 0.00013"/>
+    <origin rpy="0 -0.157079 0" xyz="0.19920 -0.015 0.00013"/><!-- 0.1812 -0.015 0.00013-->
     <axis xyz="1.0 0 0"/>
-    <limit effort="5.428" lower="-2.08567" upper="2.08567" velocity="7.33998"/>
+    <limit effort="25.428" lower="-2.08567" upper="2.08567" velocity="25.33998"/>
   </joint>
   <link name="RElbow">
     <inertial>
       <mass value="0.27495"/>
       <inertia ixx="0.000122971" ixy="-9.86024e-07" ixz="-2.55838e-05" iyy="0.000331766" iyz="1.98925e-06" izz="0.000303047"/>
-      <origin rpy="0 0 0" xyz="-0.02297 0.00019 0.00119"/>
+      <origin rpy="0 0 0" xyz="--0.02297 0.00019 0.00119"/><!-- -0.02297 0.00019 0.00119-->
     </inertial>
     <visual>
       <geometry>
@@ -677,12 +677,12 @@
   </link>
 
   <!-- RElbowRoll link and additional texture link -->
-  <joint name="RElbowRoll" type="fixed">
+  <joint name="RElbowRoll_rjoint" type="revolute">
     <parent link="RElbow"/>
     <child link="RForeArm"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1.0"/>
-    <limit effort="2.666" lower="0.00872665" upper="1.56207" velocity="9.22756"/>
+    <limit effort="22.666" lower="0.00872665" upper="1.56207" velocity="19.22756"/>
   </joint>
   <link name="RForeArm">
     <inertial>
@@ -723,7 +723,7 @@
   </link>
   <!-- End RElbowRoll -->
 
-  <joint name="RWristYaw" type="fixed">
+  <joint name="RWristYaw_rjoint" type="revolute">
     <parent link="RForeArm"/>
     <child link="r_wrist"/>
     <origin rpy="0 0 0" xyz="0.15 0 0"/>
@@ -1477,7 +1477,7 @@
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </collision>
   </link>
-  <joint name="RFinger22" type="fixed">
+  <joint name="RFinger22_rjoint" type="revolute">
     <parent link="RFinger21_link"/>
     <child link="RFinger22_link"/>
     <origin rpy="0 0 -1.0472" xyz="0.018 0 0"/>
@@ -1558,7 +1558,7 @@
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </collision>
   </link>
-  <joint name="RFinger21" type="fixed">
+  <joint name="RFinger21_rjoint" type="revolute">
     <parent link="r_wrist"/>
     <child link="RFinger21_link"/>
     <origin rpy="1.5708 1.0472 0.061086" xyz="0.0873 0.0073 0.006"/>
@@ -1620,7 +1620,7 @@
     <mimic joint="LHand" multiplier="0.872665" offset="0"/>
     <limit effort="0.144" lower="0.0" upper="0.872665" velocity="12.56"/>
   </joint>
-  <link name="RFinger23_link"><!--RFinger23_link -->
+  <link name="endeffector"><!--RFinger23_link -->
     <inertial>
       <mass value="2e-03"/>
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
@@ -1639,9 +1639,9 @@
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </collision>
   </link>
-  <joint name="RFinger23" type="revolute">
+  <joint name="endeffector_joint" type="fixed"><!--RFinger23-->
     <parent link="RFinger22_link"/>
-    <child link="RFinger23_link"/>
+    <child link="endeffector"/>
     <origin rpy="0 0 -1.0472" xyz="0.018 0 0"/>
     <axis xyz="0 0 1.0"/>
     <mimic joint="RHand" multiplier="0.872665" offset="0"/>
@@ -1674,7 +1674,7 @@
     <mimic joint="RHand" multiplier="0.872665" offset="0"/>
     <limit effort="0.144" lower="0.0" upper="0.872665" velocity="12.56"/>
   </joint>
-  <link name="endeffector"><!-- LFinger23_link-->
+  <link name="LFinger23_link"><!-- LFinger23_link-->
     <inertial>
       <mass value="2e-03"/>
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
@@ -1695,7 +1695,7 @@
   </link>
   <joint name="LFinger23" type="fixed">
     <parent link="LFinger22_link"/>
-    <child link="endeffector"/>
+    <child link="LFinger23_link"/>
     <origin rpy="0 0 -1.0472" xyz="0.018 0 0"/>
     <axis xyz="0 0 1.0"/>
     <mimic joint="LHand" multiplier="0.872665" offset="0"/>
@@ -1938,7 +1938,7 @@
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </collision>
   </link>
-  <joint name="LThumb2_rjoint" type="revolute">
+  <joint name="LThumb2" type="fixed">
     <parent link="LThumb1_link"/>
     <child link="LThumb2_link"/>
     <origin rpy="0 0 -1.0472" xyz="0.022 0 0"/>
