@@ -1,0 +1,11 @@
+# File produced by Open Asset Import Library (http://www.assimp.sf.net)
+# (assimp v3.2.0)
+
+newmtl milky_white
+Kd 0.911398 0.911398 0.911398
+Ka 0 0 0
+Ks 0.0563467 0.0563467 0.0563467
+Ke 0 0 0
+Ns 50
+illum 2
+

@@ -1,0 +1,45 @@
+# File produced by Open Asset Import Library (http://www.assimp.sf.net)
+# (assimp v3.2.0)
+
+newmtl black
+Kd 0 0 0
+Ka 0 0 0
+Ks 0 0 0
+Ke 0 0 0
+Ns 50
+illum 2
+
+newmtl blue_led
+Kd 0.0384407 0.383562 0.64
+Ka 0 0 0
+Ks 0 0.308041 0.5
+Ke 0 0 0
+Ns 50
+illum 2
+
+newmtl milky_white
+Kd 0.911398 0.911398 0.911398
+Ka 0 0 0
+Ks 0.0563467 0.0563467 0.0563467
+Ke 0 0 0
+Ns 50
+illum 2
+
+newmtl shiny_white
+Kd 1 1 1
+Ka 0 0 0
+Ks 1 1 1
+Ke 1 1 1
+Ns 50
+illum 2
+
+newmtl transparent
+Kd 1 1 1
+Ka 0 0 0
+Ks 0.4 0.4 0.4
+Ke 0 0 0
+d 0
+Ns 10
+illum 2
+map_Kd ./juliette_tab.png
+
