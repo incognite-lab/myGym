@@ -10,8 +10,8 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"panda1",
-    "robot_action"  :"step",
+    "robot"         :"kuka",
+    "robot_action"  :"joints",
     "robot_init"    :[-0.4, 0.4, 0.4],
     "max_velocity"  :1,
     "max_force"     :70,
@@ -45,12 +45,12 @@
     "num_networks"      :3,
     "max_episode_steps" :1024,
     "algo_steps"        :1024,
-    "steps"             :10000000,
+    "steps"             :30000000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
     "eval_freq"     :500000,
-    "eval_episodes" :50,
+    "eval_episodes" :30,
     #Saving and logging
     "logdir"    :"trained_models/pnp3multi2",
     "record"    :0
