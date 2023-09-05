@@ -387,7 +387,8 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
             obs, reward, done, info = env.step(action)
             is_successful = not info['f']
             distance_error = info['d']
-            visualize_infotext(action, env, info)
+            if arg_dict["vinfo"] == True:
+                visualize_infotext(action, env, info)
 
 
             if (arg_dict["record"] > 0) and (len(images) < 800):

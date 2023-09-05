@@ -40,7 +40,7 @@
     #Train
     "train_framework"   :"tensorflow",
     "algo"              :"ppo2",
-    "num_networks" : 1,
+    "num_networks" : 3,
     "max_episode_steps" :512,
     "algo_steps"        :512,
     "steps"             :30000000,
