@@ -3195,3 +3195,203 @@ class GripperPickAndPlace():
 
         self.network_rewards[2] += reward
         return reward
+
+class FaMaR(ThreeStagePnP):
+
+    def reset(self):
+        self.last_owner = None
+        self.last_find_dist  = None
+        self.last_lift_dist  = None
+        self.last_move_dist  = None
+        self.last_place_dist = None
+        self.last_rot_dist = None
+        self.subgoaloffset_dist = None
+        self.was_near = False
+        self.current_network = 0
+        self.network_rewards = [0] * self.num_networks
+    
+    def compute(self, observation=None):
+
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, goal_position], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute, self.rotate_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_near_goal(object_position, goal_position) or self.was_near:
+            self.current_network = 2
+            self.was_near = True
+        return self.current_network
+    
+    def find_compute(self, gripper, object):
+        dist = self.task.calc_distance(gripper[:3], object[:3])
+        if self.last_find_dist is None:
+            self.last_find_dist = dist
+        
+        reward = self.last_find_dist - dist
+        
+        self.last_find_dist = dist
+        self.network_rewards[self.current_network] += reward
+        return reward
+    
+    def move_compute(self, object, goal):
+        object_XY = object[:3]
+        goal_XY   = goal[:3]
+        dist = self.task.calc_distance(object_XY, goal_XY)
+        if self.last_move_dist is None:
+           self.last_move_dist = dist
+        
+        reward = self.last_move_dist - dist
+        
+        self.last_move_dist = dist
+        self.network_rewards[self.current_network] += reward
+        return reward
+    
+    
+    def rotate_compute(self, object, goal):
+        dist = self.task.calc_distance(object, goal)
+        if self.last_place_dist is None:
+            self.last_place_dist = dist
+        reward = self.last_place_dist - dist
+
+        rot = self.task.calc_rot_quat(object, goal)
+        if self.last_rot_dist is None: 
+            self.last_rot_dist = rot
+        rewardrot = self.last_rot_dist - rot
+        
+        reward = reward + rewardrot
+
+        self.last_place_dist = dist
+        self.last_rot_dist = rot
+        self.network_rewards[self.current_network] += reward
+        return reward
+    
+    def transform_compute(self, object, goal, offsetgoal):
+        dist = self.task.calc_distance(object, goal)
+        if self.last_place_dist is None:
+            self.last_place_dist = dist
+        rewarddist = self.last_place_dist - dist
+
+        rot = self.task.calc_rot_quat(object, goal)
+        if self.last_rot_dist is None:
+            self.last_rot_dist = rot
+        rewardrot = self.last_rot_dist - rot
+
+        dist = self.task.calc_distance(object, offsetgoal)
+        if self.subgoaloffset_dist is None:
+           self.subgoaloffset_dist  = dist
+        rewardsubgoaloffset = self.subgoaloffset_dist + dist
+        
+        reward = rewarddist + rewardrot + rewardsubgoaloffset
+
+        self.last_place_dist = dist
+        self.last_rot_dist = rot
+        self.network_rewards[self.current_network] += reward
+        return reward
+
+    def object_near_goal(self, object, goal):
+        distance  = self.task.calc_distance(goal, object)
+        if distance < 0.1:
+            return True
+        return False
+    
+    def subgoal_offset(self, goal_position,offset):
+        
+        subgoal = [goal_position[0]-offset[0],goal_position[1]-offset[1],goal_position[2]-offset[2],goal_position[3],goal_position[4],goal_position[5],goal_position[6]]
+        return subgoal
+
+
+class FaROaM(FaMaR):
+    
+    def compute(self, observation=None):
+
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.rotate_compute, self.move_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])) or self.was_near:
+            self.current_network = 2
+            self.was_near = True
+        return self.current_network
+
+class FaMOaR(FaMaR):
+    
+    def compute(self, observation=None):
+
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute, self.rotate_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])) or self.was_near:
+            self.current_network = 2
+            self.was_near = True
+        return self.current_network
+
+class FaMOaT(FaMaR):
+    
+    def compute(self, observation=None):
+
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.3,0.0,0.0])], [object_position, goal_position,self.subgoal_offset(goal_position,[0.3,0.0,0.0])]][owner]
+        reward = [self.find_compute,self.move_compute, self.transform_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])) or self.was_near:
+            self.current_network = 2
+            self.was_near = True
+        return self.current_network
+
+class FaROaT(FaMaR):
+    
+    def compute(self, observation=None):
+
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.3,0.0,0.0])], [object_position, goal_position,self.subgoal_offset(goal_position,[0.3,0.0,0.0])]][owner]
+        reward = [self.find_compute,self.rotate_compute, self.transform_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])) or self.was_near:
+            self.current_network = 2
+            self.was_near = True
+        return self.current_network
