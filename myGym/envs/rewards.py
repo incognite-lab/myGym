@@ -3043,8 +3043,7 @@ class FourStagePnPRot(ThreeStagePnPRot):
         if distance < 0.1:
             return True
         return False
-
-
+    
 class TwoStagePnPBgrip(TwoStagePnP):
 
     def gripper_reached_object(self, gripper, object):

@@ -1,0 +1,1302 @@
+<?xml version="1.0" ?>
+<robot name="complete">
+	<link name="torso:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/torso_iam_fb80b350.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.026368 -0.075212 0.525308"/>
+			<material name="torso:11_color">
+				<color rgba="0.270588 0.270588 0.270588 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/torso_iam_fb80b350.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.026368 -0.075212 0.525308"/>
+		</collision>
+		<inertial>
+			<mass value="0.607828"/>
+			<inertia ixx="0.006338" ixy="0.000004" ixz="0.000248" iyy="0.005208" iyz="0.000001" izz="0.002162"/>
+			<origin rpy="0 0 0" xyz="0.01632 -0.000121 0.649656"/>
+		</inertial>
+	</link>
+	<link name="right_shoulder:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_shoulder_up_iam_34db21c8.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.062271 0.032843 -0.74045"/>
+			<material name="right_shoulder:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_shoulder_up_iam_34db21c8.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.062271 0.032843 -0.74045"/>
+		</collision>
+		<inertial>
+			<mass value="0.084038"/>
+			<inertia ixx="0.000026" ixy="-0.000001" ixz="-0.000002" iyy="0.000034" iyz="-0" izz="0.000033"/>
+			<origin rpy="0 0 0" xyz="0.005637 0.000876 0.033153"/>
+		</inertial>
+	</link>
+	<joint name="r_shoulder_z_rjoint" type="revolute">
+		<parent link="torso:11"/>
+		<child link="right_shoulder:11"/>
+		<origin rpy="0 0 -0.20444" xyz="0.026783 -0.049912 0.748809"/>
+		<axis xyz="0 0 1"/>
+		<limit effort="30" lower="-1.745" upper="2.182" velocity="1"/>
+	</joint>
+	<link name="right_collarbone:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_upper_arm_iam_e3e9c979.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.0285 -0.054827 -0.000102"/>
+			<material name="right_collarbone:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_upper_arm_iam_e3e9c979.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.0285 -0.054827 -0.000102"/>
+		</collision>
+		<inertial>
+			<mass value="0.024811"/>
+			<inertia ixx="0.000014" ixy="-0" ixz="0" iyy="0.000011" iyz="-0.000001" izz="0.000019"/>
+			<origin rpy="0 0 0" xyz="-0 -0.041345 -0.002364"/>
+		</inertial>
+	</link>
+	<joint name="r_shoulder_y_rjoint" type="revolute">
+		<parent link="right_shoulder:11"/>
+		<child link="right_collarbone:11"/>
+		<origin rpy="0 0 0.20444" xyz="0.026211 -0.018056 0.037"/>
+		<axis xyz="0 -1 0"/>
+		<limit effort="30" lower="-3.142" upper="3.124" velocity="1"/>
+	</joint>
+	<link name="right_upper_arm:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_lower_arm1_iam_65a34910.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.044001 -0.021 -0.139458"/>
+			<material name="right_upper_arm:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_lower_arm1_iam_65a34910.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.044001 -0.021 -0.139458"/>
+		</collision>
+		<inertial>
+			<mass value="0.189729"/>
+			<inertia ixx="0.000851" ixy="0" ixz="0" iyy="0.000851" iyz="-0.000005" izz="0.000048"/>
+			<origin rpy="0 0 0" xyz="-0.02306 -0.000321 -0.0866"/>
+		</inertial>
+	</link>
+	<joint name="r_arm_x_rjoint" type="revolute">
+		<parent link="right_collarbone:11"/>
+		<child link="right_upper_arm:11"/>
+		<origin rpy="0 0 0" xyz="0.0245 -0.073664 -0.022853"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="-3.002" upper="1.8675" velocity="1"/>
+	</joint>
+	<link name="right_lower_arm:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_wrist_iam_771ea33e.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.0168 -0.0018 -0.123873"/>
+			<material name="right_lower_arm:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_wrist_iam_771ea33e.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.0168 -0.0018 -0.123873"/>
+		</collision>
+		<inertial>
+			<mass value="0.076793"/>
+			<inertia ixx="0.000104" ixy="-0" ixz="-0" iyy="0.000095" iyz="-0.000002" izz="0.000021"/>
+			<origin rpy="0 0 0" xyz="0 0.022485 -0.081055"/>
+		</inertial>
+	</link>
+	<joint name="r_elbow_y_rjoint" type="revolute">
+		<parent link="right_upper_arm:11"/>
+		<child link="right_lower_arm:11"/>
+		<origin rpy="0 0 0" xyz="-0.023001 -0.024001 -0.1732"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-1.745" upper="1.745" velocity="1"/>
+	</joint>
+	<link name="right_wrist:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_wrist_iam_81504746.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.000319 0.006617 -0.070181"/>
+			<material name="right_wrist:11_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_wrist_iam_81504746.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.000319 0.006617 -0.070181"/>
+		</collision>
+		<inertial>
+			<mass value="0.028397"/>
+			<inertia ixx="0.000043" ixy="-0" ixz="0.000004" iyy="0.000058" iyz="-0.000007" izz="0.000029"/>
+			<origin rpy="0 0 0" xyz="0.000031 -0.011056 -0.0675"/>
+		</inertial>
+	</link>
+	<joint name="r_wrist_z_rjoint" type="revolute">
+		<parent link="right_lower_arm:11"/>
+		<child link="right_wrist:11"/>
+		<origin rpy="0 0 0.028946" xyz="0 0.0102 -0.12605"/>
+		<axis xyz="0 0 1"/>
+		<limit effort="30" lower="-1.571" upper="1.571" velocity="1"/>
+	</joint>
+	<link name="gripper"> <!--gripper-->
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_palm_iam_583b22df.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.022933 0.001906 -0.017233"/>
+			<material name="gripper_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_palm_iam_583b22df.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.022933 0.001906 -0.017233"/>
+		</collision>
+		<inertial>
+			<mass value="0.005332"/>
+			<inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
+			<origin rpy="0 0 0" xyz="-0.029511 0.002253 -0.023968"/>
+		</inertial>
+	</link>
+	<joint name="r_wrist_x_gjoint" type="revolute">
+		<parent link="right_wrist:11"/>
+		<child link="gripper"/>
+		<origin rpy="-0.433097 0 0" xyz="0.023416 0.006052 -0.070337"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="0" upper="0.872665" velocity="1"/>
+	</joint>
+	<link name="finger_segment:23">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006681 -0.015507 -0.007416"/>
+			<material name="finger_segment:23_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006681 -0.015507 -0.007416"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.004909 0.000556 -0.005751"/>
+		</inertial>
+	</link>
+	<joint name="r_indexfingers_x_rjoint" type="revolute">
+		<parent link="gripper"/>
+		<child link="finger_segment:23"/>
+		<origin rpy="-0.578103 0.062904 -3.141593" xyz="-0.001139 0.006226 -0.040004"/>
+		<axis xyz="0.998022 0.00962907 0.0621208"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="finger_segment:13">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006181 -0.015507 -0.007417"/>
+			<material name="finger_segment:13_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006181 -0.015507 -0.007417"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
+	</link>
+	<joint name="r_indexfinger_1st_x" type="fixed">
+		<parent link="finger_segment:23"/>
+		<child link="finger_segment:13"/>
+		<origin rpy="-0.095246 0 0" xyz="-0.0005 0 -0.015999"/>
+		<axis xyz="0.998022 0.00962907 0.0621208"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="fingertip:13">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/fingertip_ipt_8417b8a9.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.005514 0.000374 -0.010171"/>
+			<material name="fingertip:13_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/fingertip_ipt_8417b8a9.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.005514 0.000374 -0.010171"/>
+		</collision>
+		<inertial>
+			<mass value="0.000008"/>
+			<inertia ixx="0" ixy="-0" ixz="-0" iyy="0" iyz="-0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005013 0.000408 -0.010216"/>
+		</inertial>
+	</link>
+	<joint name="endeffector_joint" type="revolute"><!--r_indexfinger_2nd_x-->
+		<parent link="finger_segment:13"/>
+		<child link="fingertip:13"/>
+		<origin rpy="-0.109614 0 0" xyz="0 -0 -0.016"/>
+		<axis xyz="0.998022 0.00962907 0.0621208"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="endeffector"><!--finger_segment:22-->
+		<visual>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006681 -0.015507 -0.007416"/>
+			<material name="finger_segment:22_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006681 -0.015507 -0.007416"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.004909 0.000556 -0.005751"/>
+		</inertial>
+	</link>
+	<joint name="r_ringfingers_x" type="fixed">
+		<parent link="gripper"/>
+		<child link="endeffector"/>
+		<origin rpy="-0.569851 -0.062904 -3.141593" xyz="-0.035879 0.006226 -0.040569"/>
+		<axis xyz="0.998022 -0.00962907 -0.0621208"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="finger_segment:12">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006181 -0.015507 -0.007417"/>
+			<material name="finger_segment:12_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006181 -0.015507 -0.007417"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005752"/>
+		</inertial>
+	</link>
+	<joint name="r_ringfinger_1st_x" type="fixed">
+		<parent link="endeffector"/>
+		<child link="finger_segment:12"/>
+		<origin rpy="-0.095245 0 0" xyz="-0.0005 0 -0.016"/>
+		<axis xyz="0.998022 -0.00962907 -0.0621208"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="fingertip:12">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/fingertip_ipt_8417b8a9.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.005514 0.000373 -0.010171"/>
+			<material name="fingertip:12_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/fingertip_ipt_8417b8a9.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.005514 0.000373 -0.010171"/>
+		</collision>
+		<inertial>
+			<mass value="0.000008"/>
+			<inertia ixx="0" ixy="-0" ixz="-0" iyy="0" iyz="-0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005013 0.000407 -0.010215"/>
+		</inertial>
+	</link>
+	<joint name="r_ringfinger_2nd_x" type="fixed">
+		<parent link="finger_segment:12"/>
+		<child link="fingertip:12"/>
+		<origin rpy="-0.109614 0 0" xyz="0 -0 -0.016"/>
+		<axis xyz="0.998022 -0.00962907 -0.0621208"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="finger_segment:21">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006681 -0.015507 -0.007417"/>
+			<material name="finger_segment:21_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006681 -0.015507 -0.007417"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.004909 0.000556 -0.005752"/>
+		</inertial>
+	</link>
+	<joint name="r_thumb_x" type="fixed">
+		<parent link="gripper"/>
+		<child link="finger_segment:21"/>
+		<origin rpy="1.915504 0 0" xyz="-0.0275 0.0199 -0.00842"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="finger_segment:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006181 -0.015507 -0.007416"/>
+			<material name="finger_segment:11_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006181 -0.015507 -0.007416"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000557 -0.005751"/>
+		</inertial>
+	</link>
+	<joint name="r_thumb_1st_x" type="fixed">
+		<parent link="finger_segment:21"/>
+		<child link="finger_segment:11"/>
+		<origin rpy="-0.095246 0 0" xyz="-0.0005 -0.000001 -0.016001"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="fingertip:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/fingertip_ipt_8417b8a9.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.005514 0.000374 -0.010171"/>
+			<material name="fingertip:11_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/fingertip_ipt_8417b8a9.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.005514 0.000374 -0.010171"/>
+		</collision>
+		<inertial>
+			<mass value="0.000008"/>
+			<inertia ixx="0" ixy="-0" ixz="-0" iyy="0" iyz="-0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005013 0.000408 -0.010216"/>
+		</inertial>
+	</link>
+	<joint name="r_thumb_2nd_x" type="fixed">
+		<parent link="finger_segment:11"/>
+		<child link="fingertip:11"/>
+		<origin rpy="-0.109614 0 0" xyz="0 0.000001 -0.015999"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="right_hip_up:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_hip_up_iam_f46f7684.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.05 -0.018 -0.002769"/>
+			<material name="right_hip_up:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_hip_up_iam_f46f7684.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.05 -0.018 -0.002769"/>
+		</collision>
+		<inertial>
+			<mass value="0.026572"/>
+			<inertia ixx="0.00001" ixy="-0" ixz="0.000004" iyy="0.000043" iyz="0" izz="0.00004"/>
+			<origin rpy="0 0 0" xyz="0.005067 0.00002 -0.012737"/>
+		</inertial>
+	</link>
+	<joint name="r_hip_z" type="revolute">
+		<parent link="torso:11"/>
+		<child link="right_hip_up:11"/>
+		<origin rpy="0 0 0" xyz="0.010783 -0.055212 0.519208"/>
+		<axis xyz="0 0 1"/>
+		<limit effort="30" lower="-0.698132" upper="0.698132" velocity="1"/>
+	</joint>
+	<link name="right_hip_low:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_hip_up2_iam_f4f7d16a.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.0031 -0.023 -0.025201"/>
+			<material name="right_hip_low:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_hip_up2_iam_f4f7d16a.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.0031 -0.023 -0.025201"/>
+		</collision>
+		<inertial>
+			<mass value="0.178341"/>
+			<inertia ixx="0.000077" ixy="-0.000001" ixz="0.000001" iyy="0.000157" iyz="-0.000001" izz="0.00013"/>
+			<origin rpy="0 0 0" xyz="0.04747 0.000227 -0.015465"/>
+		</inertial>
+	</link>
+	<joint name="r_hip_x" type="fixed">
+		<parent link="right_hip_up:11"/>
+		<child link="right_hip_low:11"/>
+		<origin rpy="0.000512 0 0" xyz="-0.046 0 -0.0414"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="-0.418879" upper="1.22173" velocity="1"/>
+	</joint>
+	<link name="right_thigh:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/Thigh_right_complete_iam_6502f197.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.04583 -0.056 -0.070383"/>
+			<material name="right_thigh:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/Thigh_right_complete_iam_6502f197.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.04583 -0.056 -0.070383"/>
+		</collision>
+		<inertial>
+			<mass value="0.177251"/>
+			<inertia ixx="0.000918" ixy="0.000001" ixz="-0.000093" iyy="0.000883" iyz="0.000003" izz="0.000125"/>
+			<origin rpy="0 0 0" xyz="-0.029925 -0.02577 -0.151364"/>
+		</inertial>
+	</link>
+	<joint name="r_hip_y" type="fixed">
+		<parent link="right_hip_low:11"/>
+		<child link="right_thigh:11"/>
+		<origin rpy="0 0.017985 0" xyz="0.0692 0.0261 -0"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-1.570796" upper="0.5585" velocity="1"/>
+	</joint>
+	<link name="right_shank:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_shank_iam_7a73fe91.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.004901 -0.056 -0.081799"/>
+			<material name="right_shank:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_shank_iam_7a73fe91.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.004901 -0.056 -0.081799"/>
+		</collision>
+		<inertial>
+			<mass value="0.084704"/>
+			<inertia ixx="0.000448" ixy="0" ixz="0.000025" iyy="0.000404" iyz="0" izz="0.000078"/>
+			<origin rpy="0 0 0" xyz="0.015999 -0.026 -0.104866"/>
+		</inertial>
+	</link>
+	<joint name="r_knee_y" type="fixed">
+		<parent link="right_thigh:11"/>
+		<child link="right_shank:11"/>
+		<origin rpy="0 -0.017619 0" xyz="-0.048258 0.0001 -0.214642"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-1.53589" upper="1.29154" velocity="1"/>
+	</joint>
+	<link name="right_ankle:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_ankle_iam_f4f7d16a.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.0661 0.0031 -0.011201"/>
+			<material name="right_ankle:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_ankle_iam_f4f7d16a.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.0661 0.0031 -0.011201"/>
+		</collision>
+		<inertial>
+			<mass value="0.178341"/>
+			<inertia ixx="0.000077" ixy="0.000001" ixz="-0.000001" iyy="0.000157" iyz="-0.000001" izz="0.00013"/>
+			<origin rpy="0 0 0" xyz="-0.02173 0.025873 0.015465"/>
+		</inertial>
+	</link>
+	<joint name="r_ankle_y" type="fixed">
+		<parent link="right_shank:11"/>
+		<child link="right_ankle:11"/>
+		<origin rpy="0 -0.000292 0" xyz="0.03924 -0.052 -0.216472"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-0.785398" upper="0.785398" velocity="1"/>
+	</joint>
+	<link name="right_foot:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_foot_iam_3ff7356a.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.004 -0.024 -0.009365"/>
+			<material name="right_foot:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_foot_iam_3ff7356a.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.004 -0.024 -0.009365"/>
+		</collision>
+		<inertial>
+			<mass value="0.072801"/>
+			<inertia ixx="0.000097" ixy="0.000003" ixz="-0.000001" iyy="0.000283" iyz="-0.000003" izz="0.000362"/>
+			<origin rpy="0 0 0" xyz="0.074125 -0.00893 -0.031819"/>
+		</inertial>
+	</link>
+	<joint name="r_ankle_x" type="fixed">
+		<parent link="right_ankle:11"/>
+		<child link="right_foot:11"/>
+		<origin rpy="-0.014983 0 0" xyz="-0.0709 0.0261 0"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="-0.785398" upper="0.785398" velocity="1"/>
+	</joint>
+	<link name="left_hip_up:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_hip_up_MIR_iam_386ac7b2.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.05 -0.018 -0.0007"/>
+			<material name="left_hip_up:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_hip_up_MIR_iam_386ac7b2.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.05 -0.018 -0.0007"/>
+		</collision>
+		<inertial>
+			<mass value="0.072012"/>
+			<inertia ixx="0.000028" ixy="0" ixz="0.00001" iyy="0.000117" iyz="-0" izz="0.000108"/>
+			<origin rpy="0 0 0" xyz="0.005067 -0.000001 -0.012736"/>
+		</inertial>
+	</link>
+	<joint name="l_hip_z" type="fixed">
+		<parent link="torso:11"/>
+		<child link="left_hip_up:11"/>
+		<origin rpy="0 0 0" xyz="0.010783 0.054788 0.519208"/>
+		<axis xyz="0 0 1"/>
+		<limit effort="30" lower="-0.698132" upper="0.698132" velocity="1"/>
+	</joint>
+	<link name="left_hip_low:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_hip_up2_MIR_iam_b8a74a0a.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.0031 -0.023 -0.025201"/>
+			<material name="left_hip_low:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_hip_up2_MIR_iam_b8a74a0a.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.0031 -0.023 -0.025201"/>
+		</collision>
+		<inertial>
+			<mass value="0.17834"/>
+			<inertia ixx="0.000077" ixy="-0.000001" ixz="0.000001" iyy="0.000157" iyz="-0.000001" izz="0.00013"/>
+			<origin rpy="0 0 0" xyz="0.04747 0.00023 -0.015465"/>
+		</inertial>
+	</link>
+	<joint name="l_hip_x" type="fixed">
+		<parent link="left_hip_up:11"/>
+		<child link="left_hip_low:11"/>
+		<origin rpy="0 0 0" xyz="-0.046 0 -0.0414"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="-1.22173" upper="0.418879" velocity="1"/>
+	</joint>
+	<link name="left_thigh:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/Thigh_left_complete_iam_5a6ba909.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.04583 -0.056 -0.100647"/>
+			<material name="left_thigh:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/Thigh_left_complete_iam_5a6ba909.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.04583 -0.056 -0.100647"/>
+		</collision>
+		<inertial>
+			<mass value="0.177251"/>
+			<inertia ixx="0.000918" ixy="0.000001" ixz="-0.000093" iyy="0.000883" iyz="0.000003" izz="0.000125"/>
+			<origin rpy="0 0 0" xyz="-0.029925 -0.02577 -0.151365"/>
+		</inertial>
+	</link>
+	<joint name="l_hip_y" type="fixed">
+		<parent link="left_hip_low:11"/>
+		<child link="left_thigh:11"/>
+		<origin rpy="0 0.018214 0" xyz="0.0692 0.0261 0"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-1.57" upper="0.698132" velocity="1"/>
+	</joint>
+	<link name="left_shank:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_shank_MIR_iam_a2a9b5d0.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.004901 -0.056 -0.03453"/>
+			<material name="left_shank:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_shank_MIR_iam_a2a9b5d0.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.004901 -0.056 -0.03453"/>
+		</collision>
+		<inertial>
+			<mass value="0.084704"/>
+			<inertia ixx="0.000448" ixy="0" ixz="0.000025" iyy="0.000404" iyz="0" izz="0.000078"/>
+			<origin rpy="0 0 0" xyz="0.015999 -0.026 -0.104866"/>
+		</inertial>
+	</link>
+	<joint name="l_knee_y" type="fixed">
+		<parent link="left_thigh:11"/>
+		<child link="left_shank:11"/>
+		<origin rpy="0 -0.019054 0" xyz="-0.048258 0.0018 -0.214642"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-1.53589" upper="1.29154" velocity="1"/>
+	</joint>
+	<link name="left_ankle:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_ankle_MIR_iam_c5a384f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.0661 -0.0491 0.025201"/>
+			<material name="left_ankle:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_ankle_MIR_iam_c5a384f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.0661 -0.0491 0.025201"/>
+		</collision>
+		<inertial>
+			<mass value="0.179549"/>
+			<inertia ixx="0.000078" ixy="-0" ixz="-0.000001" iyy="0.000158" iyz="0.000001" izz="0.000132"/>
+			<origin rpy="0 0 0" xyz="-0.021584 -0.026039 0.015361"/>
+		</inertial>
+	</link>
+	<joint name="l_ankle_y" type="fixed">
+		<parent link="left_shank:11"/>
+		<child link="left_ankle:11"/>
+		<origin rpy="0 0.00084 0" xyz="0.03924 0 -0.216473"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-0.785398" upper="0.785398" velocity="1"/>
+	</joint>
+	<link name="left_foot:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/left_foot_iam_620666ef.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.004 -0.024 -0.033621"/>
+			<material name="left_foot:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/left_foot_iam_620666ef.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.004 -0.024 -0.033621"/>
+		</collision>
+		<inertial>
+			<mass value="0.072801"/>
+			<inertia ixx="0.000097" ixy="-0.000003" ixz="-0.000001" iyy="0.000283" iyz="0.000003" izz="0.000362"/>
+			<origin rpy="0 0 0" xyz="0.074087 0.008929 -0.031819"/>
+		</inertial>
+	</link>
+	<joint name="l_ankle_x" type="fixed">
+		<parent link="left_ankle:11"/>
+		<child link="left_foot:11"/>
+		<origin rpy="0 0 0" xyz="-0.0709 -0.0261 0"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="-0.785398" upper="0.785398" velocity="1"/>
+	</joint>
+	<link name="neck:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/neck_iam_61141f4f.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.015583 -0.0205 0"/>
+			<material name="neck:11_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/neck_iam_61141f4f.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.015583 -0.0205 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.090439"/>
+			<inertia ixx="0.00006" ixy="-0" ixz="-0" iyy="0.000056" iyz="-0.000001" izz="0.000019"/>
+			<origin rpy="0 0 0" xyz="0 0.000266 0.050352"/>
+		</inertial>
+	</link>
+	<joint name="head_z" type="fixed">
+		<parent link="torso:11"/>
+		<child link="neck:11"/>
+		<origin rpy="0 0 0" xyz="0.001283 -0.000212 0.756309"/>
+		<axis xyz="0 0 1"/>
+		<limit effort="30" lower="-3.124" upper="3.142" velocity="1"/>
+	</joint>
+	<link name="head:21">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/head_iam_b9cf2ea.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.003998 -0.016462 0.04478"/>
+			<material name="head:21_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/head_iam_b9cf2ea.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.003998 -0.016462 0.04478"/>
+		</collision>
+		<inertial>
+			<mass value="0.294137"/>
+			<inertia ixx="0.001424" ixy="-0" ixz="0.000083" iyy="0.00159" iyz="-0.000002" izz="0.001485"/>
+			<origin rpy="0 0 0" xyz="0.01525 -0.023771 0.09423"/>
+		</inertial>
+	</link>
+	<joint name="head_y" type="fixed">
+		<parent link="neck:11"/>
+		<child link="head:21"/>
+		<origin rpy="0 0 0" xyz="0 0.023001 0.0745"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-1.553" upper="1.379" velocity="1"/>
+	</joint>
+	<link name="left_shoulder:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/left_shoulder_up_iam_1ca4d925.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.014919 0.097299 -0.01461"/>
+			<material name="left_shoulder:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/left_shoulder_up_iam_1ca4d925.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.014919 0.097299 -0.01461"/>
+		</collision>
+		<inertial>
+			<mass value="0.084038"/>
+			<inertia ixx="0.000026" ixy="-0.000001" ixz="-0.000002" iyy="0.000034" iyz="-0" izz="0.000033"/>
+			<origin rpy="0 0 0" xyz="0.005702 0.000175 0.033153"/>
+		</inertial>
+	</link>
+	<joint name="l_shoulder_z" type="fixed">
+		<parent link="torso:11"/>
+		<child link="left_shoulder:11"/>
+		<origin rpy="0 0 0.019617" xyz="0.026783 0.049488 0.748809"/>
+		<axis xyz="0 0 1"/>
+		<limit effort="30" lower="-2.182" upper="1.745" velocity="1"/>
+	</joint>
+	<link name="left_collarbone:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/left_upper_arm_iam_49d50008.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.00032 -0.000277 0.000298"/>
+			<material name="left_collarbone:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/left_upper_arm_iam_49d50008.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.00032 -0.000277 0.000298"/>
+		</collision>
+		<inertial>
+			<mass value="0.024811"/>
+			<inertia ixx="0.000014" ixy="0" ixz="0" iyy="0.000011" iyz="0.000001" izz="0.000019"/>
+			<origin rpy="0 0 0" xyz="-0 0.041345 -0.002364"/>
+		</inertial>
+	</link>
+	<joint name="l_shoulder_y" type="fixed">
+		<parent link="left_shoulder:11"/>
+		<child link="left_collarbone:11"/>
+		<origin rpy="0 -0.00445 -0.019538" xyz="0.022445 0.022567 0.037"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-3.124" upper="3.142" velocity="1"/>
+	</joint>
+	<link name="left_upper_arm:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/left_lower_arm_iam_5be2a521.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.044837 -0.009349 -0.161585"/>
+			<material name="left_upper_arm:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/left_lower_arm_iam_5be2a521.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.044837 -0.009349 -0.161585"/>
+		</collision>
+		<inertial>
+			<mass value="0.192388"/>
+			<inertia ixx="0.00085" ixy="0" ixz="-0.00005" iyy="0.000853" iyz="0.000001" izz="0.000052"/>
+			<origin rpy="0 0 0" xyz="-0.028636 -0.000703 -0.084224"/>
+		</inertial>
+	</link>
+	<joint name="l_arm_x" type="fixed">
+		<parent link="left_collarbone:11"/>
+		<child link="left_upper_arm:11"/>
+		<origin rpy="0.000683 -0.051282 -0.000035" xyz="0.0245 0.073663 -0.022853"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="-1.8675" upper="3.002" velocity="1"/>
+	</joint>
+	<link name="left_lower_arm:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/right_wrist_MIR_iam_dcfe6de3.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.000017 -0.010775 -0.12546"/>
+			<material name="left_lower_arm:11_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/right_wrist_MIR_iam_dcfe6de3.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.000017 -0.010775 -0.12546"/>
+		</collision>
+		<inertial>
+			<mass value="0.076791"/>
+			<inertia ixx="0.000104" ixy="-0" ixz="-0" iyy="0.000095" iyz="0.000002" izz="0.000021"/>
+			<origin rpy="0 0 0" xyz="0 -0.022485 -0.081055"/>
+		</inertial>
+	</link>
+	<joint name="l_elbow_y" type="fixed">
+		<parent link="left_upper_arm:11"/>
+		<child link="left_lower_arm:11"/>
+		<origin rpy="0 0.055976 0" xyz="-0.034583 0.023066 -0.169859"/>
+		<axis xyz="0 -1 0"/>
+		<limit effort="30" lower="-1.745" upper="1.745" velocity="1"/>
+	</joint>
+	<link name="left_wrist:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/left_wrist_iam_c75e4b6f.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.000319 0.006617 0.070682"/>
+			<material name="left_wrist:11_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/left_wrist_iam_c75e4b6f.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.000319 0.006617 0.070682"/>
+		</collision>
+		<inertial>
+			<mass value="0.028361"/>
+			<inertia ixx="0.000038" ixy="-0" ixz="-0" iyy="0.000039" iyz="0.000007" izz="0.000015"/>
+			<origin rpy="0 0 0" xyz="0.00007 -0.011053 0.067769"/>
+		</inertial>
+	</link>
+	<joint name="l_wrist_z" type="fixed">
+		<parent link="left_lower_arm:11"/>
+		<child link="left_wrist:11"/>
+		<origin rpy="3.141593 0 0.028703" xyz="0 -0.010201 -0.12555"/>
+		<axis xyz="0 0 -1"/>
+		<limit effort="30" lower="-1.571" upper="1.571" velocity="1"/>
+	</joint>
+	<link name="left_palm:11">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/left_palm_iam_b92c61b5.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.023233 0.001906 0.017234"/>
+			<material name="left_palm:11_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/left_palm_iam_b92c61b5.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.023233 0.001906 0.017234"/>
+		</collision>
+		<inertial>
+			<mass value="0.005222"/>
+			<inertia ixx="0.000001" ixy="0" ixz="-0" iyy="0.000002" iyz="-0" izz="0.000002"/>
+			<origin rpy="0 0 0" xyz="-0.027199 0.000117 0.017191"/>
+		</inertial>
+	</link>
+	<joint name="l_wrist_x" type="fixed">
+		<parent link="left_wrist:11"/>
+		<child link="left_palm:11"/>
+		<origin rpy="0.460941 0 0" xyz="0.023416 0.006052 0.070837"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="-0.872665" upper="0" velocity="1"/>
+	</joint>
+	<link name="finger_segment:24">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.015691 -0.015508 -0.007416"/>
+			<material name="finger_segment:24_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.015691 -0.015508 -0.007416"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="-0.004101 0.000556 -0.005752"/>
+		</inertial>
+	</link>
+	<joint name="l_thumb_x" type="fixed">
+		<parent link="left_palm:11"/>
+		<child link="finger_segment:24"/>
+		<origin rpy="-1.130534 0 -3.141593" xyz="-0.028 0.0199 0.00842"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="finger_segment:14">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006181 -0.015507 -0.007417"/>
+			<material name="finger_segment:14_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006181 -0.015507 -0.007417"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
+	</link>
+	<joint name="l_thumb_1st_x" type="fixed">
+		<parent link="finger_segment:24"/>
+		<child link="finger_segment:14"/>
+		<origin rpy="-0.095246 0 0" xyz="-0.00951 0 -0.016"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="fingertip:14">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/fingertip_ipt_8417b8a9.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.005514 0.000374 -0.010171"/>
+			<material name="fingertip:14_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/fingertip_ipt_8417b8a9.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.005514 0.000374 -0.010171"/>
+		</collision>
+		<inertial>
+			<mass value="0.000008"/>
+			<inertia ixx="0" ixy="-0" ixz="-0" iyy="0" iyz="-0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005013 0.000408 -0.010216"/>
+		</inertial>
+	</link>
+	<joint name="l_thumb_2nd_x" type="fixed">
+		<parent link="finger_segment:14"/>
+		<child link="fingertip:14"/>
+		<origin rpy="-0.109614 0 0" xyz="0 -0 -0.016"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="finger_segment:25">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.015691 -0.015506 -0.007417"/>
+			<material name="finger_segment:25_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.015691 -0.015506 -0.007417"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="-0.004101 0.000556 -0.005752"/>
+		</inertial>
+	</link>
+	<joint name="l_indexfingers_x" type="fixed">
+		<parent link="left_palm:11"/>
+		<child link="finger_segment:25"/>
+		<origin rpy="2.492946 0.062904 0" xyz="-0.001439 0.006226 0.040004"/>
+		<axis xyz="0.99794 -0.0170003 -0.0618655"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="finger_segment:15">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006181 -0.015507 -0.007416"/>
+			<material name="finger_segment:15_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006181 -0.015507 -0.007416"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
+	</link>
+	<joint name="l_indexfinger_1st_x" type="fixed">
+		<parent link="finger_segment:25"/>
+		<child link="finger_segment:15"/>
+		<origin rpy="-0.095245 0 0" xyz="-0.00951 0 -0.016"/>
+		<axis xyz="0.99794 -0.0170003 -0.0618655"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="fingertip:15">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/fingertip_ipt_8417b8a9.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.005514 0.000374 -0.010171"/>
+			<material name="fingertip:15_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/fingertip_ipt_8417b8a9.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.005514 0.000374 -0.010171"/>
+		</collision>
+		<inertial>
+			<mass value="0.000008"/>
+			<inertia ixx="0" ixy="-0" ixz="-0" iyy="0" iyz="-0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005013 0.000408 -0.010216"/>
+		</inertial>
+	</link>
+	<joint name="l_indexfinger_2nd_x" type="fixed">
+		<parent link="finger_segment:15"/>
+		<child link="fingertip:15"/>
+		<origin rpy="-0.109614 0 0" xyz="0 -0 -0.016"/>
+		<axis xyz="0.99794 -0.0170003 -0.0618655"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="finger_segment:26">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.015691 -0.015507 -0.007416"/>
+			<material name="finger_segment:26_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.015691 -0.015507 -0.007416"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="-0.004101 0.000556 -0.005751"/>
+		</inertial>
+	</link>
+	<joint name="l_ringfingers_x" type="fixed">
+		<parent link="left_palm:11"/>
+		<child link="finger_segment:26"/>
+		<origin rpy="2.499505 -0.062904 0" xyz="-0.036179 0.006226 0.04057"/>
+		<axis xyz="0.998051 0.00234199 0.0623629"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="finger_segment:16">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006181 -0.015508 -0.007416"/>
+			<material name="finger_segment:16_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/finger_segment_ipt_50d2a7f4.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="-0.006181 -0.015508 -0.007416"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
+	</link>
+	<joint name="l_ringfinger_1st_x" type="fixed">
+		<parent link="finger_segment:26"/>
+		<child link="finger_segment:16"/>
+		<origin rpy="-0.095246 0 0" xyz="-0.00951 0 -0.016"/>
+		<axis xyz="0.998051 0.00234199 0.0623629"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+	<link name="fingertip:16">
+		<visual>
+			<geometry>
+				<mesh filename="meshes/fingertip_ipt_8417b8a9.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.005514 0.000374 -0.010171"/>
+			<material name="fingertip:16_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="meshes/fingertip_ipt_8417b8a9.STL" scale="0.001 0.001 0.001"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.005514 0.000374 -0.010171"/>
+		</collision>
+		<inertial>
+			<mass value="0.000008"/>
+			<inertia ixx="0" ixy="-0" ixz="-0" iyy="0" iyz="-0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005013 0.000408 -0.010216"/>
+		</inertial>
+	</link>
+	<joint name="l_ringfinger_2nd_x" type="fixed">
+		<parent link="finger_segment:16"/>
+		<child link="fingertip:16"/>
+		<origin rpy="-0.109613 0 0" xyz="-0 -0 -0.015999"/>
+		<axis xyz="0.998051 0.00234199 0.0623629"/>
+		<limit effort="30" lower="-1.309" upper="0" velocity="1"/>
+	</joint>
+</robot>
+
