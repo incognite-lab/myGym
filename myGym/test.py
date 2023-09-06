@@ -46,13 +46,13 @@ def visualize_trajectories (info,action):
                         basePosition=info['o']['actual_state'],
                 )
 
-                visualr = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[0,1,0,.5])
-                p.createMultiBody(
-                        baseVisualShapeIndex=visualr,
-                        baseCollisionShapeIndex=collision,
-                        baseMass=0,
-                        basePosition=info['o']['additional_obs']['endeff_xyz'],
-                )
+                #visualr = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[0,1,0,.5])
+                #p.createMultiBody(
+                #        baseVisualShapeIndex=visualr,
+                #        baseCollisionShapeIndex=collision,
+                #        baseMass=0,
+                #        basePosition=info['o']['additional_obs']['endeff_xyz'],
+                #)
 
                 visuala = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[1,0,0,.3])
                 p.createMultiBody(
@@ -387,7 +387,8 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
             obs, reward, done, info = env.step(action)
             is_successful = not info['f']
             distance_error = info['d']
-            visualize_infotext(action, env, info)
+            if arg_dict["vinfo"] == True:
+                visualize_infotext(action, env, info)
 
 
             if (arg_dict["record"] > 0) and (len(images) < 800):
@@ -434,9 +435,9 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
 def main():
     parser = get_parser()
     parser.add_argument("-ct", "--control", default="slider", help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
-    parser.add_argument("-vs", "--vsampling", default=False, help="Visualize sampling area. Valid arguments: True, False")
-    parser.add_argument("-vt", "--vtrajectory", default=False, help="Visualize gripper trajectgory. Valid arguments: True, False")
-    parser.add_argument("-vn", "--vinfo", default=False, help="Visualize info. Valid arguments: True, False")
+    parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
+    parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectgory.")
+    parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")      
     arg_dict = get_arguments(parser)
 
