@@ -236,7 +236,7 @@ class TaskModule():
         finished = None
         if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip']:
             finished = self.check_distance_threshold(self._observation)  
-        if self.task_type in ['pnprot','pnpswipe','FMRT']:
+        if self.task_type in ['pnprot','pnpswipe','FMRT', 'compositional']:
             finished = self.check_distrot_threshold(self._observation)  
         if self.task_type in ['push', 'throw']:
             self.check_distance_threshold(self._observation)

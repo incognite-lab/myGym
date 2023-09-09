@@ -23,6 +23,7 @@ class Reward:
         self.num_networks = env.num_networks
         #self.check_num_networks()
         self.network_rewards = [0] * self.num_networks
+        self.use_magnet = True
 
     def network_switch_control(self, observation):
         if self.env.num_networks <= 1:
@@ -67,6 +68,9 @@ class Reward:
             plt.gcf().set_size_inches(8, 6)
             plt.savefig(save_dir + "/reward_over_episodes_episode{}.png".format(self.env.episode_number))
             plt.close()
+
+    def get_magnetization_status(self):
+        return self.use_magnet
 
 
 class DistanceReward(Reward):
@@ -3205,12 +3209,14 @@ class FaMaR(ThreeStagePnP):
         self.last_place_dist = None
         self.last_rot_dist = None
         self.subgoaloffset_dist = None
+        self.last_leave_dist = None
         self.was_near = False
         self.current_network = 0
         self.network_rewards = [0] * self.num_networks
+        self.use_magnet = True
+        self.has_left = False
     
     def compute(self, observation=None):
-
         owner = self.decide(observation)
         goal_position, object_position, gripper_position = self.get_positions(observation)
         target = [[gripper_position,object_position], [object_position, goal_position], [object_position, goal_position]][owner]
@@ -3230,49 +3236,69 @@ class FaMaR(ThreeStagePnP):
         return self.current_network
     
     def find_compute(self, gripper, object):
+        self.env.p.addUserDebugText("find object", [0.63,1,0.5], lifeTime=0.5, textColorRGB=[125,0,0])
+        self.env.robot.set_magnetization(True)
+        self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
         dist = self.task.calc_distance(gripper[:3], object[:3])
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.65,1,0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
         if self.last_find_dist is None:
             self.last_find_dist = dist
         
         reward = self.last_find_dist - dist
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
         
         self.last_find_dist = dist
         self.network_rewards[self.current_network] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
     
     def move_compute(self, object, goal):
+        self.env.robot.set_magnetization(False)
+        self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
+        self.env.p.addUserDebugLine(object[:3], goal[:3], lifeTime=0.1)
         object_XY = object[:3]
         goal_XY   = goal[:3]
         dist = self.task.calc_distance(object_XY, goal_XY)
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.65,1,0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
         if self.last_move_dist is None:
            self.last_move_dist = dist
         
         reward = self.last_move_dist - dist
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
         
         self.last_move_dist = dist
         self.network_rewards[self.current_network] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
     
     
     def rotate_compute(self, object, goal):
+        self.env.p.addUserDebugText("rotate", [0.63,1,0.5], lifeTime=0.1, textColorRGB=[125,125,0])
+        self.env.robot.set_magnetization(False)
         dist = self.task.calc_distance(object, goal)
+        self.env.p.addUserDebugLine(object[:3], goal[:3], lifeTime=0.1)
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.65,1,0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
         if self.last_place_dist is None:
             self.last_place_dist = dist
         reward = self.last_place_dist - dist
 
         rot = self.task.calc_rot_quat(object, goal)
+        self.env.p.addUserDebugText("Rotation: {}".format(round(rot,3)), [0.65,1,0.6], lifeTime=0.5, textColorRGB=[0, 222, 100])
         if self.last_rot_dist is None: 
             self.last_rot_dist = rot
         rewardrot = self.last_rot_dist - rot
         
         reward = reward + rewardrot
-
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
         self.last_place_dist = dist
         self.last_rot_dist = rot
         self.network_rewards[self.current_network] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
     
     def transform_compute(self, object, goal, offsetgoal):
+        self.env.p.addUserDebugText("leave", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        self.env.robot.set_magnetization(True)
         dist = self.task.calc_distance(object, goal)
         if self.last_place_dist is None:
             self.last_place_dist = dist
@@ -3294,6 +3320,29 @@ class FaMaR(ThreeStagePnP):
         self.last_rot_dist = rot
         self.network_rewards[self.current_network] += reward
         return reward
+    
+    def leave_compute(self, gripper, object):
+        self.env.p.addUserDebugText("leave", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
+        self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
+        self.env.robot.set_magnetization(False)
+        self.env.robot.release_all_objects()
+        dist = self.task.calc_distance(gripper[:3], object[:3])
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.65,1,0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        if self.last_leave_dist is None:
+            self.last_leave_dist = dist
+        reward = dist - self.last_leave_dist
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
+        self.last_leave_dist = dist
+        self.network_rewards[self.current_network] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        return reward
+    
+    def left_out_of_threshold(self, gripper, object, threshold = 0.2):
+        distance = self.task.calc_distance(gripper ,object)
+        if distance > threshold:
+            return True
+        return False
+    
 
     def object_near_goal(self, object, goal):
         distance  = self.task.calc_distance(goal, object)
@@ -3393,4 +3442,33 @@ class FaROaT(FaMaR):
         if self.object_near_goal(object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])) or self.was_near:
             self.current_network = 2
             self.was_near = True
+        return self.current_network
+    
+
+class FaMaLaFaR(FaMaR):
+    def check_num_networks(self):
+        assert self.num_networks <= 4, "Find&move&leave&find&rotate reward can work with maximum 4 networks"
+
+    def compute(self, observation=None):
+
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, goal_position], [gripper_position, object_position], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute, self.leave_compute, self.rotate_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position) and self.current_network == 0:
+            self.current_network = 1
+        if self.object_above_goal(object_position, goal_position) and self.has_left == False:
+            self.current_network = 2
+        if self.left_out_of_threshold(gripper_position, goal_position, threshold = 0.3) and self.current_network == 2:
+            self.current_network = 0
+            self.has_left = True
+        if self.gripper_reached_object(gripper_position, object_position) and self.has_left:
+            self.current_network = 3
         return self.current_network
