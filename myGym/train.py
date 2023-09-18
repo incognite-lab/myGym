@@ -9,37 +9,37 @@ import json, commentjson
 import gym
 from myGym import envs
 import myGym.utils.cfg_comparator as cfg
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-from stable_baselines.common.policies import MlpPolicy
-from stable_baselines.common import make_vec_env
-from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines.bench import Monitor
-from stable_baselines import results_plotter
-from stable_baselines.her import GoalSelectionStrategy, HERGoalEnvWrapper
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+#from stable_baselines.common.policies import MlpPolicy
+#from stable_baselines.common import make_vec_env
+#from stable_baselines.common.vec_env import DummyVecEnv
+#from stable_baselines.bench import Monitor
+#from stable_baselines import results_plotter
+#from stable_baselines.her import GoalSelectionStrategy, HERGoalEnvWrapper
 # For now I am importing both with slightly modified names P-PyTorch T-TensorFlow
-from stable_baselines import PPO1 as PPO1_T, PPO2 as PPO2_T, HER as HER_T, SAC as SAC_T, DDPG as DDPG_T
-from stable_baselines import TD3 as TD3_T, A2C as A2C_T, ACKTR as ACKTR_T, TRPO as TRPO_T, GAIL as GAIL_T
-try:
-    from stable_baselines3 import PPO as PPO_P, A2C as A2C_P, SAC as SAC_P, TD3 as TD3_P
-except:
-    print("Torch isn't probably installed correctly")
+#from stable_baselines import PPO1 as PPO1_T, PPO2 as PPO2_T, HER as HER_T, SAC as SAC_T, DDPG as DDPG_T
+#from stable_baselines import TD3 as TD3_T, A2C as A2C_T, ACKTR as ACKTR_T, TRPO as TRPO_T, GAIL as GAIL_T
+#try:
+#    from stable_baselines3 import PPO as PPO_P, A2C as A2C_P, SAC as SAC_P, TD3 as TD3_P
+#except:
+#    print("Torch isn't probably installed correctly")
 
-from myGym.stable_baselines_mygym.algo import MyAlgo
-from myGym.stable_baselines_mygym.reference import REFER
-from myGym.stable_baselines_mygym.multi_ppo2 import MultiPPO2
-from myGym.stable_baselines_mygym.multi_acktr import MultiACKTR
-from myGym.stable_baselines_mygym.policies import MyMlpPolicy
-from myGym.stable_baselines_mygym.TorchPPO import TorchPPO
-from myGym.stable_baselines_mygym.TorchPPOpolicies import TorchMlpPolicy
+#from myGym.stable_baselines_mygym.algo import MyAlgo
+#from myGym.stable_baselines_mygym.reference import REFER
+#from myGym.stable_baselines_mygym.multi_ppo2 import MultiPPO2
+#from myGym.stable_baselines_mygym.multi_acktr import MultiACKTR
+#from myGym.stable_baselines_mygym.policies import MyMlpPolicy
+#from myGym.stable_baselines_mygym.TorchPPO import TorchPPO
+#from myGym.stable_baselines_mygym.TorchPPOpolicies import TorchMlpPolicy
 
 
-from stable_baselines.gail import ExpertDataset, generate_expert_traj
-from stable_baselines.sac.policies import MlpPolicy as MlpPolicySAC
-from stable_baselines.ddpg.policies import MlpPolicy as MlpPolicyDDPG
-from stable_baselines.td3.policies import MlpPolicy as MlpPolicyTD3
+#from stable_baselines.gail import ExpertDataset, generate_expert_traj
+#from stable_baselines.sac.policies import MlpPolicy as MlpPolicySAC
+#from stable_baselines.ddpg.policies import MlpPolicy as MlpPolicyDDPG
+#from stable_baselines.td3.policies import MlpPolicy as MlpPolicyTD3
 
 # Import helper classes and functions for monitoring
-from myGym.utils.callbacks import ProgressBarManager, SaveOnBestTrainingRewardCallback,  PlottingCallback, CustomEvalCallback
+#from myGym.utils.callbacks import ProgressBarManager, SaveOnBestTrainingRewardCallback,  PlottingCallback, CustomEvalCallback
 
 # This is global variable for the type of engine we are working with
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
