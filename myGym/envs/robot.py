@@ -1,3 +1,4 @@
+from re import S
 import pkg_resources
 from myGym.utils.vector import Vector
 import numpy as np
@@ -46,7 +47,7 @@ class Robot:
         self.robot_path = self.robot_dict[robot]['path']
         self.position = np.array(position) + self.robot_dict[robot].get('position',np.zeros(len(position)))
         self.orientation = self.p.getQuaternionFromEuler(np.array(orientation) +
-                                                         self.robot_dict[robot].get('orientation',np.zeros(len(orientation))))
+                                                       self.robot_dict[robot].get('orientation',np.zeros(len(orientation))))
         self.name = robot
         self.max_velocity = max_velocity
         self.max_force = max_force
@@ -55,6 +56,7 @@ class Robot:
         self.use_fixed_end_effector_orn = use_fixed_end_effector_orn
         self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(end_effector_orn)
         self.dimension_velocity = dimension_velocity
+        self.use_magnet = False
         self.motor_names = []
         self.motor_indices = []
         self.link_names = []
@@ -159,6 +161,7 @@ class Robot:
         if len(contact_points)> 0:
             return True
         return False
+    
 
     def reset(self, random_robot=False):
         """
@@ -580,6 +583,10 @@ class Robot:
             #When gripper is not in robot action it will magnetize objects
                 self.gripper_active = True
                 self.magnetize_object(env_objects["actual_state"])
+            elif "compositional" in self.task_type:
+                if self.use_magnet:
+                    self.gripper_active = True
+                    self.magnetize_object(env_objects["actual_state"])
             #    else:
             #        self.gripper_active = False
             #        self.release_all_objects()
@@ -626,6 +633,9 @@ class Robot:
             #self.p.changeVisualShape(object.uid, -1, rgbaColor=[255, 0, 0, 1])
         self.magnetized_objects = {}
         self.gripper_active = False
+
+    def set_magnetization(self, value):
+        self.use_magnet = value
 
     def get_accurate_gripper_position(self):
         """

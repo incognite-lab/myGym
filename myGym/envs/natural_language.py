@@ -39,6 +39,7 @@ class TaskType(Enum):
     TURN = auto(),
     SWITCH = auto(),
     FMRT = auto(),
+    COMPOSITIONAL = auto(),
 
     def to_string(self) -> str:
         return self.name.lower()
