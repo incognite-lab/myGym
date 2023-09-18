@@ -102,7 +102,7 @@ def visualize_weights(root_dir, weight_layer):
     taskname = ''.join(e for e in root_dir if e.isalnum())
     taskname = taskname[-5:]
     layername = layername[5:]
-    title = "Task: {}, Layer: {},Nets:{}, Samples: {},Features:{}".format(taskname, layername,nets,data.shape[0],data.shape[1])
+    title = "Task: {}, Layer: {},#Nets:{}, #Samples: {},#Dimensions:{}".format(taskname, layername,nets,data.shape[0],data.shape[1])
     
     # Create a figure with two subplots
     fig = plt.figure(figsize=(20, 9))
@@ -113,11 +113,11 @@ def visualize_weights(root_dir, weight_layer):
     for target in unique_targets:
         indices = find_indices(targets, target)
         #indices = np.where(targets == target)
-        ax1.scatter(tsne_results[indices, 0], tsne_results[indices, 1],s=3, label=str(target))
+        ax1.scatter(tsne_results[indices, 0], tsne_results[indices, 1],s=30, label=str(target))
     ax1.set_title(title)
     ax1.set_xlabel('Dimension 1')
     ax1.set_ylabel('Dimension 2')
-    ax1.legend(fontsize="20")
+    ax1.legend(fontsize="25")
 
     # Second subplot
     ax2 = fig.add_subplot(1, 2, 2)
