@@ -2480,6 +2480,217 @@ class ThreeStagePnP(TwoStagePnP):
             return True
         return False
 
+class DropReward2Stage(PokeReachReward):
+    
+    def __init__(self, env, task):
+        super(PokeReachReward, self).__init__(env, task)
+        self.dist_offset               = 0.05
+
+        self.last_points               = None 
+        self.was_dropped               = False
+        self.point_was_reached         = False
+        self.touching                  = None
+        self.was_thrown                = False
+        self.wrong_drop                = False
+        self.throw_penalty             = 0
+        self.drop_penalty              = 0
+        self.point_above_target        = None
+        self.up                        = 0.25
+        self.right_place               = False
+        self.drop_episode              = None
+        self.get_bonus                 = False
+    
+    def reset(self):
+        self.env.task.current_task     = 0
+        self.last_points               = None
+        self.touching                  = None
+        self.was_thrown                = False
+        self.wrong_drop                = False
+        self.right_place               = False
+        if self.env.episode_steps <= 1:
+            self.drop_episode              = None
+            self.point_above_target        = None
+            self.was_dropped               = False
+            self.point_was_reached         = False
+            self.get_bonus                 = False
+
+    def compute(self, observation=None):
+        owner = self.decide(observation)
+        # print("drop episode", self.drop_episode, "owner", owner)
+
+        # print(self.env.task.current_task, self.env.episode_steps)
+        goal_pos, obj_pos, robot = self.set_points(observation)
+        obj_last_pos, robot_last = self.last_points if self.last_points != None else [obj_pos, robot]
+        if self.env.episode_steps == 1 and "gripper" not in self.env.robot_action:
+            self.point_above_target  = goal_pos + np.array([0., 0., self.up]) 
+            self.env.robot.magnetize_object(self.env.task_objects["actual_state"])
+        
+        self.env.p.addUserDebugLine(robot, [1,1,1], lineColorRGB=(255, 255, 255), lineWidth = 1, lifeTime = 0.1)
+
+        self.touching = observation["additional_obs"]["touch"][0]
+
+        owner = self.decide(observation)     
+
+        if owner == 0:
+            # print(1)
+            reward = self.reward_move_object([obj_pos, obj_last_pos], self.point_above_target)
+        elif "gripper" in self.env.robot_action:
+            # print(2)
+            reward = self.drop_reward([robot, robot_last],
+                                      [obj_pos, obj_last_pos],
+                                      goal_pos)
+        else:
+            reward = self.reward_move_object([robot, robot_last], self.point_above_target) + 1
+            self.env.p.addUserDebugLine(robot, self.point_above_target, lineColorRGB=(255, 255, 255), lineWidth = 1, lifeTime = 0.1)
+            # print(3)
+
+        self.check_task([robot, robot_last],[obj_pos, obj_last_pos], goal_pos)
+        
+        self.task.check_goal()
+        reward -= self.penalty_failed()
+        if self.get_bonus:
+            reward += 1000
+            self.get_bonus = False
+        self.rewards_history.append(reward)
+        # print(reward, end = " ")
+        self.set_last_positions(obj_pos, robot)
+        if self.was_dropped and self.drop_episode == None and self.env.env_objects["actual_state"] not in self.env.robot.magnetized_objects.keys():
+            self.drop_episode = self.env.episode_steps
+        # print(reward)
+        self.env.p.addUserDebugText(f"reward: {reward}", [0.5, 0.5, 0.5], textSize=2.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
+        # print("reward",r/eward)
+        return reward
+    
+
+    def reward_move_object(self, obj_pos: list, goal: 'numpy.ndarray') -> float:
+        """
+        Params:
+            :param obj_pos: list of two arrays, current possition and last possition of object.
+            :param goal: (array), the point where we want to place an object.
+        Returns:
+            :return reward: (float), reward of moving an object to given point.
+        """
+        reward = 0.
+        cur_dist = self.get_distance(obj_pos[0], goal)
+        last_dist= self.get_distance(obj_pos[1], goal)
+        if last_dist < cur_dist and False:
+            reward = self.lin_penalty(cur_dist, min_penalty = -6)
+        else:
+            # reward = self.exp_eval(cur_dist, max_r = 5)
+            # reward = self.lin_eval(cur_dist)
+            reward = (last_dist - cur_dist) / last_dist
+        return reward
+
+    def is_free_falling(self, cur_pos: 'numpy.ndarray', last_pos: 'numpy.ndarray', threshold: float = 45.) -> bool:
+        """
+        Params:
+            :param cur_pos: (array) current possition of object,
+            :param last_pos: (array) last possition of object.
+        Returns:
+            :return reward: (bool) True if object is free falling else False.
+        """
+        angle = self.get_angle_2vec(np.array([0, 0, -1]), cur_pos - last_pos)
+        if fabs(angle) < threshold and cur_pos[-1] < last_pos[-1] and not self.touching:
+            return True
+        else:
+            return False
+
+    def check_task(self, robot: list, obj_pos: list, target_pos: 'numpy.ndarray'):
+        """
+        Params:
+            :param obj_pos: list of two arrays, current possition and last possition of object.
+            :param target_pos: list 
+        Controlls if task was compleated correctly.
+        Contrlolls:
+        - if object was dropped to target,
+        - if wasn't thrown.
+        """
+        # assert "gripper" in self.env.robot_action, "This task or reward require to use gripper action (ex absolute_gripper)!"
+    
+        # if sqrt(sum((target_pos[:-1]-obj_pos[0][:-1])**2)) < 0.2 and obj_pos[0][-1] < 0.07:
+        # print(obj_pos)
+        # if obj_pos[0][-1] < 0.07  and self.env.episode_steps > 30:
+        #     print("yahoooooo")
+        # print(self.drop_episode)
+        if self.drop_episode != None and self.env.episode_steps > self.drop_episode + 20:
+            self.right_place = True
+        self.is_free_falling(obj_pos[0], obj_pos[1])
+        if not self.touching and self.get_distance(obj_pos[0], robot[0]) > 0.05:
+            if self.is_free_falling(obj_pos[0], obj_pos[1]):
+                if sqrt(sum((target_pos[:-1] - obj_pos[0][:-1])**2)) >= 0.5:
+                    self.wrong_drop = True
+            else:
+                self.was_thrown = True
+
+    def is_failed(self):
+        if self.was_thrown:
+            self.env.episode_info   = "Object was thrown!"
+            self.env.episode_over   = True
+            self.env.episode_failed = True
+        if self.wrong_drop:
+            self.env.episode_info   = "Object was dropped in wrong place!"
+            self.env.episode_over   = True
+            self.env.episode_failed = True
+
+    def penalty_failed(self) -> float:
+        penalty = 0.
+        if self.was_thrown:
+            penalty = -self.throw_penalty * ((512 - self.env.episode_steps)/512)
+        if self.wrong_drop:
+            penalty = -self.drop_penalty * ((512 - self.env.episode_steps)/512)
+        return penalty
+
+    def drop_reward(self, robot_pos: list, obj_pos: list, goal_pos: 'numpy.ndarray') -> float:
+        """
+        Params:
+            :param robot_pos: list of two arrays, current possition and last possition of robot.
+            :param obj_pos: list of two arrays, current possition and last possition of object.
+            :param goal_pos: array of goal possition 
+        Returns:
+            :return reward: (float) reward for dropping
+        """
+        
+        reward = 0.
+        reward += 0.1 * self.reward_move_object(robot_pos, goal_pos)
+        if self.touching:
+            reward += 0.5 * self.reward_move_object(obj_pos, goal_pos)
+            reward -= 10
+        else:
+            reward += 100 
+        return reward
+    
+    def decide(self, observation=None) -> int:
+        """
+        Params:
+            :param observation: (list) Observation of the environment.
+        Returns:
+            :return reward: (int) owner.
+        """
+        owner = 0
+        goal_pos, cube_pos, robot = self.set_points(observation)
+        point_above_target  = goal_pos + np.array([0., 0., self.up])
+        if self.get_distance(point_above_target, cube_pos) <= 0.1 or self.point_was_reached:
+            owner = 1
+            if not self.point_was_reached:
+                self.get_bonus = True
+            self.point_was_reached = True
+        return owner
+
+    def get_angle_2vec(self, vec1: "numpy.ndarray", vec2: "numpy.ndarray") -> float:
+        """
+        Params:
+            :param vec1: array, first vector
+            :param vec2: array, second vector
+        Returns:
+            :return angle: angle (degree: from -180 to 180) between two givven vectors
+        """
+        scal_prod = sum(vec1*vec2)
+        leng_prod = sqrt(sum(vec1**2)) * sqrt(sum(vec2**2))
+        if scal_prod == 0 and leng_prod == 0:
+            return 0. 
+        return acos(scal_prod/leng_prod)*180/pi
+
+
 class ThreeStagePnPRot(ThreeStagePnP):
 
     def reset(self):
