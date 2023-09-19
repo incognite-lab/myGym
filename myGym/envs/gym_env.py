@@ -166,8 +166,13 @@ class GymEnv(CameraEnv):
         reward_classes = {
             "1-network": {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
                           "distractor": VectorReward, "poke": PokeReachReward, "push": PushReward, "switch": SwitchReward,
+<<<<<<< HEAD
                           "btn": ButtonReward, "turn": TurnReward, "pnp": SingleStagePnP, "dropmag": DropReward2Stage},
             "2-network": {"dropmag": DropReward2Stage, "poke": DualPoke, "pnp": TwoStagePnP, "pnpbgrip": TwoStagePnPBgrip},
+=======
+                          "btn": ButtonReward, "turn": TurnReward, "pnp": SingleStagePnP},
+            "2-network": {"poke": DualPoke, "pnp": TwoStagePnP, "pnpbgrip": TwoStagePnPBgrip, "push": TwoStagePushReward},
+>>>>>>> e541067c2dd51aa257c9742feda2bb4182e25c8a
             "3-network": {"pnp": ThreeStagePnP, "pnprot": ThreeStagePnPRot, "pnpswipe": ThreeStageSwipe, "FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
                           "pnpswiperot": ThreeStageSwipeRot},
             "4-network": {"pnp": FourStagePnP, "pnprot": FourStagePnPRot, "FMLFR": FaMaLaFaR}}
