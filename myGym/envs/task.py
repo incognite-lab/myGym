@@ -228,6 +228,26 @@ class TaskModule():
             closest_points = self.env.p.getClosestPoints(o1.get_uid(), o2.get_uid(), threshold, idx, -1)
         return closest_points if len(closest_points) > 0 else False
 
+    def drop_magnetic(self):
+        """
+        Release the object if required point was reached and controls if task was compleated.
+        Returns:
+            :return: (bool)  
+        """
+        if self.env.reward.point_was_reached:
+            if not self.env.reward.was_dropped:
+                self.env.episode_over = False
+                self.env.robot.release_all_objects()
+                self.env.task.subtask_over = True
+                self.current_task = 0
+                self.env.reward.was_dropped = True
+        # print("drop episode", self.env.reward.drop_episode, "episode steps", self.env.episode_steps)
+        if self.env.reward.drop_episode and self.env.reward.drop_episode + 35 < self.env.episode_steps:
+            self.end_episode_success()
+            return True
+        else: 
+            return False
+
     def check_goal(self):
         """
         Check if goal of the task was completed successfully
@@ -238,6 +258,9 @@ class TaskModule():
             finished = self.check_distance_threshold(self._observation)  
         if self.task_type in ['pnprot','pnpswipe','FMRT', 'compositional']:
             finished = self.check_distrot_threshold(self._observation)  
+        if self.task_type == "dropmag":
+            self.check_distance_threshold(self._observation)
+            finished = self.drop_magnetic()
         if self.task_type in ['push', 'throw']:
             self.check_distance_threshold(self._observation)
             finished = self.check_points_distance_threshold()
