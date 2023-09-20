@@ -2236,6 +2236,14 @@ class TwoStagePushReward(PokeReachReward):
             self.last_gripper_move = self.gripper_move 
         reward = self.last_gripper_move - self.gripper_move   
         self.last_gripper_move = self.gripper_move
+
+        if self.last_cube_move == None:
+            self.last_cube_move = self.cube_move
+        # cube_rew = self.last_cube_move - self.cube_move
+        # if cube_rew > 0:
+        #     reward += cube_rew * 10
+        #     print("cube_rew = ", cube_rew)
+        self.last_cube_move = self.cube_move
         return reward
 
     def approach_rew(self, target_pos, cube_pos, grip_pos):
@@ -2269,13 +2277,15 @@ class TwoStagePushReward(PokeReachReward):
 
         return dist
     
-    def check_cube_position(self, cube_position): # check if cube is on the table
+    def check_cube_position(self, cube_position): # check if cube is not on the table
         # table diagonal coordinates
         # -0.75; 0.05
         # 0.75; 1.05
         if cube_position[0] > 0.75 or cube_position[0] < -0.75 or cube_position[1] > 1.05 or cube_position[1] < 0.05:
-            return False
-        return True
+            print("reset")
+            self.env.episode_failed = True
+            return True
+        return False
 
     def set_variables_push(self, target_position,cube_position,gripper_position):
   
@@ -2326,7 +2336,8 @@ class TwoStagePushReward(PokeReachReward):
     def compute(self, observation=None):  
         target_position, cube_position, gripper_position = self.get_positions_push(observation)
         self.set_variables_push(target_position, cube_position, gripper_position) 
-
+        
+        self.env.episode_over = self.check_cube_position(cube_position)
         vector1 = [self.x_cube - self.x_target, self.y_cube - self.y_target, self.z_cube - self.z_target]
         vector2 = [self.x_cube - self.x_gripper, self.y_cube - self.y_gripper, self.z_cube - self.z_gripper]
         
@@ -2344,7 +2355,7 @@ class TwoStagePushReward(PokeReachReward):
         target = [[target_position, cube_position, gripper_position],[target_position, cube_position ,gripper_position]][stage]
 
         reward = [self.approach_rew, self.move_rew][stage](*target) + stage
-      
+        
         # if self.check_cube_position(cube_position) == False: #in purpose to slow gripper 
         #     reward = -1
         #     print("cube is not on the table reward = ", reward)
@@ -2364,12 +2375,12 @@ class TwoStagePushReward(PokeReachReward):
         return reward
     
     def decide(self, observation=None):
+
         if self.angle != None and self.proj_length != None and self.dist_grip_to_cube != None:
             if self.angle < 135 or self.proj_length > 0.03 or self.dist_grip_to_cube > 0.11:
                 self.current_network = 0
             else:
                 self.current_network = 1
-                print("stage: 1")
         else:
             self.current_network = 0
         
