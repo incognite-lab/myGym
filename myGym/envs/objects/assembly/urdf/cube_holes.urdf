@@ -5,8 +5,8 @@
             <restitution value="0.5" />
 	          <rolling_friction value="0.03"/>
             <spinning_friction value="0.03"/>
-            <rolling_friction value="0.53"/>
-            <spinning_friction value="0.53"/>
+            <rolling_friction value="0.03"/>
+            <spinning_friction value="0.03"/>
     </contact>
     <inertial>
       <origin rpy="0 0 0" xyz="0.0001 0.0 0.0"/>

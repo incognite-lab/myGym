@@ -391,7 +391,7 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
                 visualize_infotext(action, env, info)
 
 
-            if (arg_dict["record"] > 0) and (len(images) < 800):
+            if (arg_dict["record"] > 0) and (len(images) < 8000):
                 render_info = env.render(mode="rgb_array", camera_id = arg_dict["camera"])
                 image = render_info[arg_dict["camera"]]["image"]
                 images.append(image)
