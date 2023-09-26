@@ -6,11 +6,11 @@
 "render"    :"opengl",
 "seed"      :1,
 "camera"    :0,
-"gui"       :0,
+"gui"       :1,
 "visualize" :0,
 "visgym"    :0,
 #Robot
-"robot"         :"tiago_simple",
+"robot"         :"tiago",
 "robot_action"  :"absolute_gripper",
 "robot_init"    :[0.0, 0.4, 0.6],
 "max_velocity"  :20,

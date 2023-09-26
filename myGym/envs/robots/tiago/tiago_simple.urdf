@@ -496,7 +496,7 @@
       <material name="LightGrey"/>
     </collision>
   </link>
-  <joint name="torso_lift_rjoint" type="prismatic">
+  <joint name="torso_lift_joint" type="fixed">
     <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.597"/>
     <parent link="torso_fixed_link"/>
     <child link="torso_lift_link"/>
@@ -579,12 +579,12 @@
       </geometry>
       <material name="White"/>
     </visual>
-    <collision>
+  <!--  <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="meshes/arm/arm_1_collision.dae" scale="1 1 1"/>
       </geometry>
-    </collision>
+    </collision> -->
   </link>
   <joint name="arm_1_rjoint" type="revolute">
     <parent link="torso_lift_link"/>
