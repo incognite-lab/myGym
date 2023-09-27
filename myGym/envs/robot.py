@@ -593,11 +593,11 @@ class Robot:
             #else:
             #    self.apply_action_joints(action)
         
-                if len(self.magnetized_objects):
+            if len(self.magnetized_objects):
             #pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
             #ori_diff = np.array(self.end_effector_ori) - np.array(self.end_effector_prev_ori)
-                    for key,val in self.magnetized_objects.items():
-                        self.p.changeConstraint(val, self.get_position(),self.get_orientation())
+                for key,val in self.magnetized_objects.items():
+                    self.p.changeConstraint(val, self.get_position(),self.get_orientation())
                 #self.p.resetBasePositionAndOrientation(val,self.end_effector_pos,self.end_effector_ori)
             #self.end_effector_prev_pos = self.end_effector_pos
             #self.end_effector_prev_ori = self.end_effector_ori
@@ -609,6 +609,7 @@ class Robot:
         if len(self.magnetized_objects) == 0 :
             
             if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
+                print("actual_state object is:", object)
                 self.p.changeVisualShape(object.uid, -1, rgbaColor=[.8, .1 , 0.1, 0.5])
                 #self.end_effector_prev_pos = self.end_effector_pos
                 #self.end_effector_prev_ori = self.end_effector_ori
