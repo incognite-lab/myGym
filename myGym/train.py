@@ -1,4 +1,5 @@
 import random
+import copy
 
 import pkg_resources
 import os, sys, time, yaml
@@ -277,9 +278,39 @@ def get_arguments(parser):
         if value is not None and key is not "config":
             if key in ["robot_init"]:
                 arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
+            elif key in ["task_objects"]:
+                arg_dict[key] = task_objects_replacement(value, arg_dict[key], arg_dict["task_type"])
             else:
                 arg_dict[key] = value
     return arg_dict
+
+
+def task_objects_replacement(task_objects_new, task_objects_old, task_type):
+    """
+    If task_objects is given as a parameter, this method converts string into a proper format depending on task_type (null init for task_type reach)
+
+    [{"init":{"obj_name":"null"}, "goal":{"obj_name":"cube_holes","fixed":1,"rand_rot":0, "sampling_area":[-0.5, 0.2, 0.3, 0.6, 0.1, 0.4]}}]
+    """
+    ret = copy.deepcopy(task_objects_old)
+    if len(task_objects_new) > len(task_objects_old):
+        msg = "More objects given than there are subtasks."
+        raise Exception(msg)
+    dest = "" #init or goal
+    if task_type == "reach":
+        dest = "goal"
+    else:
+        dest = "init"
+    for i in range(len(task_objects_new)):
+        ret[i][dest]["obj_name"] = task_objects_new[i]
+
+    print("TASK OBJECTS  PRINTED HERE:")
+    print("TASK OBJECTS  PRINTED HERE:")
+    print("TASK OBJECTS  PRINTED HERE:")
+    print(ret)
+    return ret
+
+
+
 
 def process_natural_language_command(cmd, env, output_relative_path=os.path.join("envs", "examples", "natural_language.txt")):
     env.reset()

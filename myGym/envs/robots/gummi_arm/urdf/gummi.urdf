@@ -75,22 +75,24 @@
           rgba="0.79216 0.81961 0.93333 1" />
       </material>
     </visual>
+    <!--
     <collision>
       <origin
-        xyz="0 0 0"
+        xyz="0 0 1"
         rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://gummi_arm/meshes/shoulder_preroll.stl" />
       </geometry>
     </collision>
+    -->
   </link>
   <joint
     name="shoulder_yaw_rjoint"
     type="revolute">
     <origin
-      xyz="-0.00027025 -0.10997 0.008"
-      rpy="0 0 0" />
+      xyz="-0.00027025 -0.10997 0.03"
+      rpy="0 0 0" /> <!-- -0.00027025 -0.10997 0.008 -->
     <parent
       link="base_link" />
     <child
