@@ -302,11 +302,6 @@ def task_objects_replacement(task_objects_new, task_objects_old, task_type):
         dest = "init"
     for i in range(len(task_objects_new)):
         ret[i][dest]["obj_name"] = task_objects_new[i]
-
-    print("TASK OBJECTS  PRINTED HERE:")
-    print("TASK OBJECTS  PRINTED HERE:")
-    print("TASK OBJECTS  PRINTED HERE:")
-    print(ret)
     return ret
 
 
