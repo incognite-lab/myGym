@@ -4039,7 +4039,7 @@ class FaMaLaFaR(FaMaR):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         if self.gripper_reached_object(gripper_position, object_position) and self.current_network == 0:
             self.current_network = 1
-        if self.object_above_goal(object_position, goal_position) and self.has_left == False:
+        if self.object_near_goal(object_position, goal_position) and self.has_left == False and self.current_network == 1:
             self.current_network = 2
         if self.left_out_of_threshold(gripper_position, goal_position, threshold = 0.3) and self.current_network == 2:
             self.current_network = 0

@@ -440,7 +440,6 @@ def main():
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")      
     arg_dict = get_arguments(parser)
-
     model_logdir = os.path.dirname(arg_dict.get("model_path",""))
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
