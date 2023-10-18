@@ -420,7 +420,7 @@ class TaskModule():
         return self.create_trajectory(fx=linemaker_x, fy=linemaker_y, fz=linemaker_z, t=t)
 
 
-    def create_circular_trajectory(self, center, radius, rot_vector, arc=np.pi, step=0.01):
+    def create_circular_trajectory(self, center, radius, rot_vector = [0.0, 0.0, 0.0], arc=np.pi, step=0.01, direction = 1):
         """Creates a 2D circular trajectory in 3D space.
         params: center ([x,y,z]), radius (float): self-explanatory
                 rot_vector ([x,y,z]): Axis of rotation. Angle of rotation is norm of rot_vector
@@ -431,7 +431,7 @@ class TaskModule():
         theta = np.linalg.norm(v)
 
         # creation of non-rotated circle of given radius located at [0,0,0]
-        base_circle = np.asarray([np.cos(phi) * radius, np.sin(phi) * radius, [0] * len(phi)])
+        base_circle = np.array([np.cos(phi) * radius, np.sin(phi) * radius, [0] * len(phi)])*direction
         rotation = np.eye(3)
         print(theta)
         if theta != 0.0:
@@ -441,7 +441,6 @@ class TaskModule():
                         (1 - np.cos(theta)) * np.matmul(self.skew_symmetric(normalized_v),
                                                         self.skew_symmetric(normalized_v)))
         rotated = np.asarray([[], [], []])
-        print(rotation)
         for i in range(len(phi)):
             rotated_v = np.asarray([np.matmul(rotation, base_circle[:3, i])])
             rotated = np.append(rotated, np.transpose(rotated_v), axis=1)

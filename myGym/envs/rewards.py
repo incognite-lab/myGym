@@ -3845,7 +3845,6 @@ class FaMaR(ThreeStagePnP):
         """
         self.env.robot.set_magnetization(magnetization)
         self.env.p.addUserDebugText("transform", [0.7, 0.7, 0.7], lifeTime=0.1, textColorRGB=[125, 125, 0])
-        self.env.p.addUserDebugLine(trajectory[:3, 0], trajectory[:3, -1])
         dist_g = self.task.calc_distance(object, goal)
         if self.last_place_dist is None:
             self.last_place_dist = dist_g
@@ -4116,6 +4115,41 @@ class SwitchRewardNew(FaMaR):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         #print("goal:", goal_position)
         #print("gripper:", gripper_position)
+        if self.gripper_reached_object(gripper_position, self.subgoal_offset(goal_position, [0.2, 0.0, -0.2])):
+            self.current_network = 1
+        return self.current_network
+
+
+
+class TurnRewardNew(FaMaR):
+    def check_num_networks(self):
+        assert self.num_networks <= 2, "Switch reward can work with maximum of 2 networks"
+
+
+    def gripper_reached_object(self, gripper, object):
+        if self.task.calc_distance(gripper, object) <= 0.1:
+            return True
+        return False
+
+    def compute(self, observation=None):
+        owner = self.decide(observation)
+        # print("owner = ", owner)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        transform_circle = self.task.create_circular_trajectory(self.subgoal_offset(goal_position, [0.0, 0.0, -0.18])[:3], 0.2, arc =np.pi, direction = -1)
+        target = [[gripper_position, self.subgoal_offset(goal_position, [0.2, 0.0, -0.18])],
+                  [gripper_position, self.subgoal_offset(goal_position, [-0.2, 0, -0.18]), transform_circle]][owner]
+        reward = [self.find_compute, self.transform_compute_test][owner](*target)
+        self.env.p.addUserDebugLine(self.subgoal_offset(goal_position, [0.2, 0.0, -0.18])[:3],
+                                    self.subgoal_offset(goal_position, [-0.2, 0.0, -0.18])[:3])
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        # print("goal:", goal_position)
+        # print("gripper:", gripper_position)
         if self.gripper_reached_object(gripper_position, self.subgoal_offset(goal_position, [0.2, 0.0, -0.2])):
             self.current_network = 1
         return self.current_network
