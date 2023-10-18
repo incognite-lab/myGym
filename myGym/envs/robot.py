@@ -584,7 +584,7 @@ class Robot:
                 self.gripper_active = True
                 self.magnetize_object(env_objects["actual_state"])
             elif "compositional" in self.task_type:
-                if self.use_magnet:
+                if self.use_magnet and env_objects["actual_state"] != self:
                     self.gripper_active = True
                     self.magnetize_object(env_objects["actual_state"])
             #    else:
@@ -609,7 +609,6 @@ class Robot:
         if len(self.magnetized_objects) == 0 :
             
             if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
-                print("actual_state object is:", object)
                 self.p.changeVisualShape(object.uid, -1, rgbaColor=[.8, .1 , 0.1, 0.5])
                 #self.end_effector_prev_pos = self.end_effector_pos
                 #self.end_effector_prev_ori = self.end_effector_ori

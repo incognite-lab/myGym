@@ -2813,9 +2813,13 @@ class ThreeStagePnP(TwoStagePnP):
         #self.env.p.addUserDebugLine(gripper, object, lifeTime=0.1)
         #if self.current_network == 0:
         #    self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+        #print("GRIPPER IN REACHED OBJECT:", gripper)
+        #print("OBJECT IN REACHED OBJECT:", object)
         if "gripper" in self.env.robot_action:
+            print("calculating distance")
             if self.task.calc_distance(gripper, object) <= 0.1:
                 self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[200, 10, 0, .7])
+                print("Returning true:")
                 return True
             else:
                 self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[255, 0, 0, 1])
@@ -3830,7 +3834,7 @@ class FaMaR(ThreeStagePnP):
         return reward
 
 
-    def transform_compute_test(self, object, goal, trajectory, magnetization):
+    def transform_compute_test(self, object, goal, trajectory, magnetization = True):
         """Calculate reward based on following a trajectory
         params: object: self-explanatory
                 goal: self-explanatory
@@ -3839,17 +3843,20 @@ class FaMaR(ThreeStagePnP):
         Reward is calculated based on distance of object from goal and square distance of object from trajectory.
         That way, object tries to approach goal while trying to stay on trajectory path.
         """
-
         self.env.robot.set_magnetization(magnetization)
         self.env.p.addUserDebugText("transform", [0.7, 0.7, 0.7], lifeTime=0.1, textColorRGB=[125, 125, 0])
+        self.env.p.addUserDebugLine(trajectory[:3, 0], trajectory[:3, -1])
         dist_g = self.task.calc_distance(object, goal)
         if self.last_place_dist is None:
             self.last_place_dist = dist_g
+
         rewarddist = self.last_place_dist - dist_g
         self.env.p.addUserDebugText(f"RewardDist:{rewarddist}", [0.61, 1, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
+
         pos = object[:3]
         dist_t, self.last_traj_idx = self.task.trajectory_distance(trajectory, pos, self.last_traj_idx, 10)
         self.env.p.addUserDebugText(f"Traj_Dist:{dist_t}", [0.61, 1, 0.45], lifeTime=0.5, textColorRGB=[0, 125, 0])
+
         reward = rewarddist - 20*dist_t**2
         self.env.p.addUserDebugText(f"reward:{reward}", [0.61, 1, 0.35], lifeTime=0.5, textColorRGB=[0, 125, 0])
         self.network_rewards[self.current_network] += reward
@@ -4014,7 +4021,7 @@ class FaMOaT(FaMaR):
         owner = self.decide(observation)
         goal_position, object_position, gripper_position = self.get_positions(observation)
         #[object_position, goal_position, self.task.create_line(self.subgoal_offset(goal_position), [0.3,0.0,0.0], goal_position), True]
-        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.3,0.0,0.0])], [object_position, goal_position, self.task.create_line(self.subgoal_offset(goal_position, [0.3,0.0,0.0]),  goal_position), True]][owner]
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.3,0.0,0.0])], [object_position, goal_position, self.task.create_line(self.subgoal_offset(goal_position, [0.3,0.0,0.0]),  goal_position)]][owner]
         reward = [self.find_compute,self.move_compute, self.transform_compute_test][owner](*target)
         self.last_owner = owner
         self.task.check_goal()
@@ -4055,7 +4062,7 @@ class FaROaT(FaMaR):
 
 class FaMaLaFaR(FaMaR):
     def check_num_networks(self):
-        assert self.num_networks <= 4, "Find&move&leave&find&rotate reward can work with maximum 4 networks"
+        assert self.num_networks <= 4, "Find&move&leave&find&rotate reward can work with maximum of 4 networks"
 
     def compute(self, observation=None):
 
@@ -4080,3 +4087,36 @@ class FaMaLaFaR(FaMaR):
         if self.gripper_reached_object(gripper_position, object_position) and self.has_left:
             self.current_network = 3
         return self.current_network
+
+class SwitchRewardNew(FaMaR):
+    def check_num_networks(self):
+        assert self.num_networks <= 2, "Switch reward can work with maximum of 2 networks"
+
+    def gripper_reached_object(self, gripper, object):
+        if self.task.calc_distance(gripper, object) <= 0.1:
+            return True
+        return False
+
+
+    def compute(self, observation=None):
+        owner = self.decide(observation)
+        #print("owner = ", owner)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        transform_line = self.task.create_line(self.subgoal_offset(goal_position, [0.15, 0, -0.2]), self.subgoal_offset(goal_position, [-0.2, 0, -0.2]))
+        target = [[gripper_position, self.subgoal_offset(goal_position, [0.2, 0.0, -0.2])],
+               [gripper_position, self.subgoal_offset(goal_position, [-0.2, 0, 0]), transform_line]][owner]
+        reward = [self.find_compute, self.transform_compute_test][owner](*target)
+        self.env.p.addUserDebugLine(self.subgoal_offset(goal_position, [0.2, 0.0, -0.2])[:3], self.subgoal_offset(goal_position, [-0.2, 0.0, -0.2])[:3])
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        #print("goal:", goal_position)
+        #print("gripper:", gripper_position)
+        if self.gripper_reached_object(gripper_position, self.subgoal_offset(goal_position, [0.2, 0.0, -0.2])):
+            self.current_network = 1
+        return self.current_network
+

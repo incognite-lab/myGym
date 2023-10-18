@@ -320,9 +320,13 @@ class TaskModule():
         Returns: 
             :return dist: (float) Distance between 2 float arrays
         """
+        #print("gripper_position:", obj1[:3])
+        #print("goal_position_offset:", obj2[:3])
         #TODO
+
         if self.distance_type == "euclidean":
             dist = np.linalg.norm(np.asarray(obj1[:3]) - np.asarray(obj2[:3]))
+            #print("Calculated distance:", dist)
         elif self.distance_type == "manhattan":
             dist = cityblock(obj1, obj2)
         return dist
