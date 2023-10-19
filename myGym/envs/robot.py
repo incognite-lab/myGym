@@ -583,7 +583,7 @@ class Robot:
             #When gripper is not in robot action it will magnetize objects
                 self.gripper_active = True
                 self.magnetize_object(env_objects["actual_state"])
-            elif "compositional" in self.task_type:
+            elif self.task_type in ["compositional", "fmot"]:
                 if self.use_magnet and env_objects["actual_state"] != self:
                     self.gripper_active = True
                     self.magnetize_object(env_objects["actual_state"])

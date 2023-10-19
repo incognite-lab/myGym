@@ -39,6 +39,7 @@ class TaskType(Enum):
     TURN = auto(),
     SWITCH = auto(),
     FMRT = auto(),
+    FMOT = auto(),
     COMPOSITIONAL = auto(),
 
     def to_string(self) -> str:
@@ -62,7 +63,7 @@ class TaskType(Enum):
 
     @staticmethod
     def get_pattern_push_task_types() -> List:
-        return [TaskType.PUSH, TaskType.PNP, TaskType.PNPROT, TaskType.PNPSWIPE, TaskType.PNPBGRIP, TaskType.THROW, TaskType.POKE, TaskType.FMRT]
+        return [TaskType.PUSH, TaskType.PNP, TaskType.PNPROT, TaskType.PNPSWIPE, TaskType.PNPBGRIP, TaskType.THROW, TaskType.POKE, TaskType.FMRT, TaskType.FMOT]
 
 
 class VirtualObject:
