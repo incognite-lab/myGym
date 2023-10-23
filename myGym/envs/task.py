@@ -26,6 +26,7 @@ class TaskModule():
                  vae_path=None, yolact_path=None, yolact_config=None, distance_type='euclidean',
                  logdir=currentdir, env=None, number_tasks=None):
         self.task_type = task_type
+        print("task_type", self.task_type)
         self.distance_type = distance_type
         self.number_tasks = number_tasks
         self.current_task = 0
@@ -253,11 +254,11 @@ class TaskModule():
         """
         
         finished = None
-        if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip']:
+        if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip', "fmot"]:
             finished = self.check_distance_threshold(self._observation)  
         if self.task_type in ['pnprot','pnpswipe','FMRT', 'compositional']:
             finished = self.check_distrot_threshold(self._observation)  
-        if self.task_type == "dropmag":
+        if self.task_type in ["dropmag"]: #FMOT should be compositional
             self.check_distance_threshold(self._observation)
             finished = self.drop_magnetic()
         if self.task_type in ['push', 'throw']:
@@ -382,6 +383,7 @@ class TaskModule():
     def trajectory_distance(self, trajectory, point, last_nearest_index, n=10):
         """Compute the distance of point from a trajectory, n points around the last nearest point"""
         index1, index2 = last_nearest_index - (int(n / 2)), last_nearest_index + int(n / 2)
+        print("indexes:", index1, index2)
         if (index1) < 0:  # index can't be less than zero
             index1 -= last_nearest_index - (int(n / 2))
             index2 -= last_nearest_index - (int(n / 2))
@@ -427,7 +429,6 @@ class TaskModule():
                 arc (radians): 2pi means full circle, 1 pi means half a circle etc...
         """
         phi = np.arange(0, arc, step)
-        v = np.asarray(rot_vector)
         theta = np.linalg.norm(v)
 
         # creation of non-rotated circle of given radius located at [0,0,0]
@@ -442,12 +443,16 @@ class TaskModule():
                                                         self.skew_symmetric(normalized_v)))
         rotated = np.asarray([[], [], []])
         for i in range(len(phi)):
-            rotated_v = np.asarray([np.matmul(rotation, base_circle[:3, i])])
             rotated = np.append(rotated, np.transpose(rotated_v), axis=1)
         # moving circle to its center
         move = np.asarray(center)
         final_circle = np.transpose(np.transpose(rotated) + move)
         return final_circle
+
+
+    def create_circular_trajectory_v2(self, point1, point2, radius, direction):
+        pass
+
 
     def generate_new_goal(self, object_area_borders, camera_id):
         """

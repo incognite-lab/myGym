@@ -2728,6 +2728,7 @@ class ThreeStagePnP(TwoStagePnP):
         super(ThreeStagePnP, self).__init__(env, task)
         self.was_above = False
         self.last_traj_idx = 0
+        self.last_traj_dist = 0
 
     def check_num_networks(self):
         assert self.num_networks == 3, "ThreeStagePnP reward can work with maximum 3 networks"
@@ -3779,7 +3780,7 @@ class GripperPickAndPlace():
         self.network_rewards[2] += reward
         return reward
 
-class FaMaR(ThreeStagePnP):
+class Protoactions(ThreeStagePnP):
 
     def reset(self):
         self.last_owner = None
@@ -3796,6 +3797,7 @@ class FaMaR(ThreeStagePnP):
         self.use_magnet = True
         self.has_left = False
         self.last_traj_idx = 0
+        self.last_traj_dist = 0
     
     def compute(self, observation=None):
         owner = self.decide(observation)
@@ -3826,11 +3828,11 @@ class FaMaR(ThreeStagePnP):
             self.last_find_dist = dist
         
         reward = self.last_find_dist - dist
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
         
         self.last_find_dist = dist
         self.network_rewards[self.current_network] += reward
-        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,0.6,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
 
 
@@ -3849,15 +3851,22 @@ class FaMaR(ThreeStagePnP):
         if self.last_place_dist is None:
             self.last_place_dist = dist_g
 
-        rewarddist = self.last_place_dist - dist_g
-        self.env.p.addUserDebugText(f"RewardDist:{rewarddist}", [0.61, 1, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        reward_g_dist = self.last_place_dist - dist_g #distance from goal
+        self.env.p.addUserDebugText(f"RewardDist:{reward_g_dist}", [0.61, 1, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
 
         pos = object[:3]
         dist_t, self.last_traj_idx = self.task.trajectory_distance(trajectory, pos, self.last_traj_idx, 10)
-        self.env.p.addUserDebugText(f"Traj_Dist:{dist_t}", [0.61, 1, 0.45], lifeTime=0.5, textColorRGB=[0, 125, 0])
 
-        reward = rewarddist - 20*dist_t**2
+        self.env.p.addUserDebugText(f"Traj_Dist:{dist_t}", [0.61, 1, 0.45], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        if self.last_traj_dist is None:
+            self.last_traj_dist = dist_t
+        reward_t_dist = self.last_traj_dist - dist_t #distance from trajectory
+        reward = reward_g_dist + 4*reward_t_dist
+        self.env.p.addUserDebugLine(trajectory[:3,0], trajectory[:3, -1], lifeTime = 0.1)
         self.env.p.addUserDebugText(f"reward:{reward}", [0.61, 1, 0.35], lifeTime=0.5, textColorRGB=[0, 125, 0])
+
+        self.last_place_dist = dist_g
+        self.last_traj_dist = dist_t
         self.network_rewards[self.current_network] += reward
         return reward
 
@@ -3874,11 +3883,11 @@ class FaMaR(ThreeStagePnP):
            self.last_move_dist = dist
         
         reward = self.last_move_dist - dist
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
-        
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61, 0.8,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
+        self.env.p.addUserDebugLine(object[:3], goal[:3], lifeTime = 0.1)
         self.last_move_dist = dist
         self.network_rewards[self.current_network] += reward
-        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65, 0.6,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
     
     
@@ -3969,7 +3978,7 @@ class FaMaR(ThreeStagePnP):
         return subgoal
 
 
-class FaROaM(FaMaR):
+class FaROaM(Protoactions):
     
     def compute(self, observation=None):
 
@@ -3991,7 +4000,7 @@ class FaROaM(FaMaR):
             self.was_near = True
         return self.current_network
 
-class FaMOaR(FaMaR):
+class FaMOaR(Protoactions):
     
     def compute(self, observation=None):
 
@@ -4013,7 +4022,7 @@ class FaMOaR(FaMaR):
             self.was_near = True
         return self.current_network
 
-class FaMOaT(FaMaR):
+class FaMOaT(Protoactions):
     
     def compute(self, observation=None):
 
@@ -4036,7 +4045,7 @@ class FaMOaT(FaMaR):
             self.was_near = True
         return self.current_network
 
-class FaROaT(FaMaR):
+class FaROaT(Protoactions):
     
     def compute(self, observation=None):
 
@@ -4059,7 +4068,7 @@ class FaROaT(FaMaR):
         return self.current_network
     
 
-class FaMaLaFaR(FaMaR):
+class FaMaLaFaR(Protoactions):
     def check_num_networks(self):
         assert self.num_networks <= 4, "Find&move&leave&find&rotate reward can work with maximum of 4 networks"
 
@@ -4087,7 +4096,7 @@ class FaMaLaFaR(FaMaR):
             self.current_network = 3
         return self.current_network
 
-class SwitchRewardNew(FaMaR):
+class SwitchRewardNew(Protoactions):
     def check_num_networks(self):
         assert self.num_networks <= 2, "Switch reward can work with maximum of 2 networks"
 
@@ -4121,7 +4130,7 @@ class SwitchRewardNew(FaMaR):
 
 
 
-class TurnRewardNew(FaMaR):
+class TurnRewardNew(Protoactions):
     def check_num_networks(self):
         assert self.num_networks <= 2, "Switch reward can work with maximum of 2 networks"
 
