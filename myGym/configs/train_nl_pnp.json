@@ -43,10 +43,10 @@
 "yolact_config" :null,
 #Train
 "train_framework"   :"tensorflow",
-"algo"              :"multi",
+"algo"              :"multiacktr",
 "num_networks"      :3,
-"max_episode_steps" :1024,
-"algo_steps"        :1024,
+"max_episode_steps" :128,
+"algo_steps"        :128,
 "steps"             :1000000,
 "pretrained_model"  :null,
 "multiprocessing"   :false,
