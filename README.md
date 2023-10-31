@@ -254,7 +254,7 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 | Jaco arm  | arm  |  two finger |  13 | jaco  |
 | Gummiarm  | arm  | passive palm  |  13 | gummi  |
 | Human Support Robot (HSR) | arm | gripper | 7 | hsr |
-| ABB Yumi  | dualarm  | two finger  |  12 | yummi  |
+| ABB Yumi  | dualarm  | two finger  |  12 | yumi  |
 | ReachyLeachy  | dualarm  | passive palms  |  14 | reachy_and_leachy |
 | Pepper  | humanoid | --  |  20 | WIP  |
 | Thiago | humanoid  | --  |  19 | WIP  |
@@ -266,7 +266,7 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 |---|---|---|---|
 | Tabledesk | manipulation  | Reach,Press, Switch, Turn, PicknPlace | table |
 | Drawer | manipulation  | Pick, Place, PicknPlace  | drawer |
-| Fridge | manipulation  | Push, Open, Close, Pick | fridge |
+| Fridge | manipulation  | Push, Pick | fridge |
 | Baskets | manipulation  | Throw, Hit | baskets |
 | Darts | manipulation  | Throw, Hit | darts |
 | Football | manipulation  | Throw, Hit | football |
