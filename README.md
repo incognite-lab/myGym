@@ -16,6 +16,7 @@ We keep training the current state-of-the-art algorithms to provide baselines fo
 [![Generic badge](https://img.shields.io/badge/Docs-Yes-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://shields.io/)
 
+## Learn more about the toolbox in our [documentation](https://mygym.readthedocs.io/en/latest/)
 
 ## Advantages
 
@@ -108,12 +109,6 @@ If everything is correct, the toolbox will train for two minutes without GUI and
 | Randomizers  | Light, Texture, Size, Camera position |
 | Baselines  | Tensorflow, Pytorch |
 | Physics  | Bullet, Mujoco deprecated from version 2.0 |
-
-
-
-
-Learn more about the toolbox in our [documentation](https://mygym.readthedocs.io/en/latest/)
-
 
 ## Test the environments prior training
 
