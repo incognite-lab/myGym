@@ -429,6 +429,7 @@ class TaskModule():
                 arc (radians): 2pi means full circle, 1 pi means half a circle etc...
         """
         phi = np.arange(0, arc, step)
+        v = np.asarray(rot_vector)
         theta = np.linalg.norm(v)
 
         # creation of non-rotated circle of given radius located at [0,0,0]
@@ -443,6 +444,7 @@ class TaskModule():
                                                         self.skew_symmetric(normalized_v)))
         rotated = np.asarray([[], [], []])
         for i in range(len(phi)):
+            rotated_v = np.asarray([np.matmul(rotation, base_circle[:3, i])])
             rotated = np.append(rotated, np.transpose(rotated_v), axis=1)
         # moving circle to its center
         move = np.asarray(center)
