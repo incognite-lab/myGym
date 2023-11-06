@@ -169,7 +169,7 @@ class GymEnv(CameraEnv):
                           "btn": ButtonReward, "turn": TurnReward, "pnp": SingleStagePnP},
             "2-network": {"poke": DualPoke, "pnp": TwoStagePnP, "pnpbgrip": TwoStagePnPBgrip, "push": TwoStagePushReward, "switch": SwitchRewardNew,
                           "turn": TurnRewardNew},
-            "3-network": {"pnp": ThreeStagePnP, "pnprot": ThreeStagePnPRot, "pnpswipe": ThreeStageSwipe, "FMR": Protoactions,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
+            "3-network": {"pnp": ThreeStagePnP, "pnprot": ThreeStagePnPRot, "pnpswipe": ThreeStageSwipe, "FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
                           "pnpswiperot": ThreeStageSwipeRot},
             "4-network": {"pnp": FourStagePnP, "pnprot": FourStagePnPRot, "FMLFR": FaMaLaFaR}}
     

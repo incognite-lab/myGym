@@ -3798,25 +3798,18 @@ class Protoactions(ThreeStagePnP):
         self.has_left = False
         self.last_traj_idx = 0
         self.last_traj_dist = 0
+        self.offset = [0.3,0.0,0.0]
+        self.offsetleft = [0.2,0.0,-0.1]
+        self.offsetright = [-0.2,0.0,-0.1]
+        self.offsetcenter = [0.0,0.0,-0.1]
     
     def compute(self, observation=None):
-        owner = self.decide(observation)
-        goal_position, object_position, gripper_position = self.get_positions(observation)
-        target = [[gripper_position,object_position], [object_position, goal_position], [object_position, goal_position]][owner]
-        reward = [self.find_compute,self.move_compute, self.rotate_compute][owner](*target)
-        self.last_owner = owner
-        self.task.check_goal()
-        self.rewards_history.append(reward)
-        return reward
+        #inherit and define your sequence of protoactions here
+        pass
 
     def decide(self, observation=None):
-        goal_position, object_position, gripper_position = self.get_positions(observation)
-        if self.gripper_reached_object(gripper_position, object_position):
-            self.current_network = 1
-        if self.object_near_goal(object_position, goal_position) or self.was_near:
-            self.current_network = 2
-            self.was_near = True
-        return self.current_network
+        #inherit and define subgoals checking and network switching here
+        pass
     
     def find_compute(self, gripper, object):
         self.env.p.addUserDebugText("find object", [0.63,1,0.5], lifeTime=0.5, textColorRGB=[125,0,0])
@@ -3977,36 +3970,12 @@ class Protoactions(ThreeStagePnP):
         subgoal = [goal_position[0]-offset[0],goal_position[1]-offset[1],goal_position[2]-offset[2],goal_position[3],goal_position[4],goal_position[5],goal_position[6]]
         return subgoal
 
-
-class FaROaM(Protoactions):
+class FaMaR(Protoactions):
     
     def compute(self, observation=None):
-
         owner = self.decide(observation)
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])], [object_position, goal_position]][owner]
-        reward = [self.find_compute,self.rotate_compute, self.move_compute][owner](*target)
-        self.last_owner = owner
-        self.task.check_goal()
-        self.rewards_history.append(reward)
-        return reward
-
-    def decide(self, observation=None):
-        goal_position, object_position, gripper_position = self.get_positions(observation)
-        if self.gripper_reached_object(gripper_position, object_position):
-            self.current_network = 1
-        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])) or self.was_near:
-            self.current_network = 2
-            self.was_near = True
-        return self.current_network
-
-class FaMOaR(Protoactions):
-    
-    def compute(self, observation=None):
-
-        owner = self.decide(observation)
-        goal_position, object_position, gripper_position = self.get_positions(observation)
-        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])], [object_position, goal_position]][owner]
+        target = [[gripper_position,object_position], [object_position, goal_position], [object_position, goal_position]][owner]
         reward = [self.find_compute,self.move_compute, self.rotate_compute][owner](*target)
         self.last_owner = owner
         self.task.check_goal()
@@ -4017,7 +3986,51 @@ class FaMOaR(Protoactions):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         if self.gripper_reached_object(gripper_position, object_position):
             self.current_network = 1
-        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])) or self.was_near:
+        if self.object_near_goal(object_position, goal_position) or self.was_near:
+            self.current_network = 2
+            self.was_near = True
+        return self.current_network
+
+class FaROaM(Protoactions):
+    
+    def compute(self, observation=None):
+
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,self.offset)], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.rotate_compute, self.move_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,self.offset)) or self.was_near:
+            self.current_network = 2
+            self.was_near = True
+        return self.current_network
+
+class FaMOaR(Protoactions):
+    
+    def compute(self, observation=None):
+
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,self.offset)], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute, self.rotate_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,self.offset)) or self.was_near:
             self.current_network = 2
             self.was_near = True
         return self.current_network
@@ -4029,7 +4042,7 @@ class FaMOaT(Protoactions):
         owner = self.decide(observation)
         goal_position, object_position, gripper_position = self.get_positions(observation)
         #[object_position, goal_position, self.task.create_line(self.subgoal_offset(goal_position), [0.3,0.0,0.0], goal_position), True]
-        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.3,0.0,0.0])], [object_position, goal_position, self.task.create_line(self.subgoal_offset(goal_position, [0.3,0.0,0.0]),  goal_position)]][owner]
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,self.offset)], [object_position, goal_position, self.task.create_line(self.subgoal_offset(goal_position, [0.3,0.0,0.0]),  goal_position)]][owner]
         reward = [self.find_compute,self.move_compute, self.transform_compute_test][owner](*target)
         self.last_owner = owner
         self.task.check_goal()
@@ -4040,7 +4053,7 @@ class FaMOaT(Protoactions):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         if self.gripper_reached_object(gripper_position, object_position):
             self.current_network = 1
-        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,[0.3,0.0,0.0])) or self.was_near:
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,self.offset)) or self.was_near:
             self.current_network = 2
             self.was_near = True
         return self.current_network
@@ -4051,8 +4064,8 @@ class FaROaT(Protoactions):
 
         owner = self.decide(observation)
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.3,0.0,0.0])], [object_position, goal_position,self.subgoal_offset(goal_position,[0.3,0.0,0.0])]][owner]
-        reward = [self.find_compute,self.rotate_compute, self.transform_compute][owner](*target)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position, self.offset)], [object_position, goal_position,self.subgoal_offset(goal_position,[0.3,0.0,0.0])]][owner]
+        reward = [self.find_compute,self.rotate_compute, self.transform_compute_test][owner](*target)
         self.last_owner = owner
         self.task.check_goal()
         self.rewards_history.append(reward)
@@ -4062,7 +4075,7 @@ class FaROaT(Protoactions):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         if self.gripper_reached_object(gripper_position, object_position):
             self.current_network = 1
-        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])) or self.was_near:
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,self.offset)) or self.was_near:
             self.current_network = 2
             self.was_near = True
         return self.current_network
@@ -4109,12 +4122,14 @@ class SwitchRewardNew(Protoactions):
     def compute(self, observation=None):
         owner = self.decide(observation)
         #print("owner = ", owner)
+        self.offsetleft=[0.2,0.0,-0.3]
+        self.offsetright=[-0.2,0.0,-0.3]
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        transform_line = self.task.create_line(self.subgoal_offset(goal_position, [0.15, 0, -0.2]), self.subgoal_offset(goal_position, [-0.2, 0, -0.2]))
-        target = [[gripper_position, self.subgoal_offset(goal_position, [0.2, 0.0, -0.2])],
-               [gripper_position, self.subgoal_offset(goal_position, [-0.2, 0, 0]), transform_line]][owner]
+        transform_line = self.task.create_line(self.subgoal_offset(goal_position, self.offsetleft), self.subgoal_offset(goal_position, self.offsetright))
+        target = [[gripper_position, self.subgoal_offset(goal_position, self.offsetleft)],
+               [gripper_position, self.subgoal_offset(goal_position, self.offsetright), transform_line]][owner]
         reward = [self.find_compute, self.transform_compute_test][owner](*target)
-        self.env.p.addUserDebugLine(self.subgoal_offset(goal_position, [0.2, 0.0, -0.2])[:3], self.subgoal_offset(goal_position, [-0.2, 0.0, -0.2])[:3])
+        self.env.p.addUserDebugLine(self.subgoal_offset(goal_position, self.offsetleft)[:3], self.subgoal_offset(goal_position, self.offsetright)[:3])
         self.last_owner = owner
         self.task.check_goal()
         self.rewards_history.append(reward)
@@ -4124,7 +4139,7 @@ class SwitchRewardNew(Protoactions):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         #print("goal:", goal_position)
         #print("gripper:", gripper_position)
-        if self.gripper_reached_object(gripper_position, self.subgoal_offset(goal_position, [0.2, 0.0, -0.2])):
+        if self.gripper_reached_object(gripper_position, self.subgoal_offset(goal_position, self.offsetleft)):
             self.current_network = 1
         return self.current_network
 
@@ -4143,13 +4158,16 @@ class TurnRewardNew(Protoactions):
     def compute(self, observation=None):
         owner = self.decide(observation)
         # print("owner = ", owner)
+        self.offsetleft=[0.2,0.0,-0.1]
+        self.offsetright=[-0.2,0.0,-0.1]
+        self.offsetcenter=[0.0,0.0,-0.1]
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        transform_circle = self.task.create_circular_trajectory(self.subgoal_offset(goal_position, [0.0, 0.0, -0.18])[:3], 0.2, arc =np.pi, direction = -1)
-        target = [[gripper_position, self.subgoal_offset(goal_position, [0.2, 0.0, -0.18])],
-                  [gripper_position, self.subgoal_offset(goal_position, [-0.2, 0, -0.18]), transform_circle]][owner]
+        transform_circle = self.task.create_circular_trajectory(self.subgoal_offset(goal_position, self.offsetcenter)[:3], 0.2, arc =np.pi, direction = -1)
+        target = [[gripper_position, self.subgoal_offset(goal_position, self.offsetleft)],
+                  [gripper_position, self.subgoal_offset(goal_position, self.offsetright), transform_circle]][owner]
         reward = [self.find_compute, self.transform_compute_test][owner](*target)
-        self.env.p.addUserDebugLine(self.subgoal_offset(goal_position, [0.2, 0.0, -0.18])[:3],
-                                    self.subgoal_offset(goal_position, [-0.2, 0.0, -0.18])[:3])
+        self.env.p.addUserDebugLine(self.subgoal_offset(goal_position, self.offsetleft)[:3],
+                                    self.subgoal_offset(goal_position, self.offsetright)[:3])
         self.last_owner = owner
         self.task.check_goal()
         self.rewards_history.append(reward)
@@ -4159,7 +4177,7 @@ class TurnRewardNew(Protoactions):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         # print("goal:", goal_position)
         # print("gripper:", gripper_position)
-        if self.gripper_reached_object(gripper_position, self.subgoal_offset(goal_position, [0.2, 0.0, -0.2])):
+        if self.gripper_reached_object(gripper_position, self.subgoal_offset(goal_position, self.offsetleft)):
             self.current_network = 1
         return self.current_network
 
