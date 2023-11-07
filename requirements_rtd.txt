@@ -9,8 +9,8 @@ cython
 dill
 flake8
 imageio==2.8
-tensorflow>=1.15.0
-tensorflow-gpu>=1.15.0
+tensorflow==1.15.0
+tensorflow-gpu==1.15.0
 tqdm
 notebook
 matplotlib==3.1.3
