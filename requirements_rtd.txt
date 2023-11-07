@@ -1,6 +1,6 @@
 sphinx-argparse==0.2.5
-torch==1.7.1
-torchvision==0.8.2
+torch==1.13.1
+torchvision==0.14.1
 numpy
 matplotlib
 pillow==6.2.1
