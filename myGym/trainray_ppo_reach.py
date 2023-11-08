@@ -1,4 +1,5 @@
 from ray.rllib.algorithms.ppo import PPOConfig
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.tune.logger import pretty_print
 from train import get_parser, get_arguments, AVAILABLE_SIMULATION_ENGINES
 import os
@@ -8,6 +9,127 @@ from ray.tune.registry import register_env
 from myGym.envs.gym_env import GymEnv
 import numpy as np
 import time
+
+class MyCallbacks(DefaultCallbacks):
+    def on_episode_start(
+        self,
+        *,
+        worker: RolloutWorker,
+        base_env: BaseEnv,
+        policies: Dict[str, Policy],
+        episode: Episode,
+        env_index: int,
+        **kwargs,
+    ):
+        # Make sure this episode has just been started (only initial obs
+        # logged so far).
+        assert episode.length == 0, (
+            "ERROR: `on_episode_start()` callback should be called right "
+            "after env reset!"
+        )
+        # Create lists to store angles in
+        episode.user_data["pole_angles"] = []
+        episode.hist_data["pole_angles"] = []
+
+    def on_episode_step(
+        self,
+        *,
+        worker: RolloutWorker,
+        base_env: BaseEnv,
+        policies: Dict[str, Policy],
+        episode: Episode,
+        env_index: int,
+        **kwargs,
+    ):
+        # Make sure this episode is ongoing.
+        assert episode.length > 0, (
+            "ERROR: `on_episode_step()` callback should not be called right "
+            "after env reset!"
+        )
+        pole_angle = abs(episode.last_observation_for()[2])
+        raw_angle = abs(episode.last_raw_obs_for()[2])
+        assert pole_angle == raw_angle
+        episode.user_data["pole_angles"].append(pole_angle)
+
+        # Sometimes our pole is moving fast. We can look at the latest velocity
+        # estimate from our environment and log high velocities.
+        if np.abs(episode.last_info_for()["pole_angle_vel"]) > 0.25:
+            print("This is a fast pole!")
+
+    def on_episode_end(
+        self,
+        *,
+        worker: RolloutWorker,
+        base_env: BaseEnv,
+        policies: Dict[str, Policy],
+        episode: Episode,
+        env_index: int,
+        **kwargs,
+    ):
+        # Check if there are multiple episodes in a batch, i.e.
+        # "batch_mode": "truncate_episodes".
+        if worker.config.batch_mode == "truncate_episodes":
+            # Make sure this episode is really done.
+            assert episode.batch_builder.policy_collectors["default_policy"].batches[
+                -1
+            ]["dones"][-1], (
+                "ERROR: `on_episode_end()` should only be called "
+                "after episode is done!"
+            )
+        pole_angle = np.mean(episode.user_data["pole_angles"])
+        episode.custom_metrics["pole_angle"] = pole_angle
+        episode.hist_data["pole_angles"] = episode.user_data["pole_angles"]
+
+    def on_sample_end(self, *, worker: RolloutWorker, samples: SampleBatch, **kwargs):
+        # We can also do our own sanity checks here.
+        assert (
+            samples.count == 2000
+        ), f"I was expecting 2000 here, but got {samples.count}!"
+
+    def on_train_result(self, *, algorithm, result: dict, **kwargs):
+        # you can mutate the result dict to add new fields to return
+        result["callback_ok"] = True
+
+        # Normally, RLlib would aggregate any custom metric into a mean, max and min
+        # of the given metric.
+        # For the sake of this example, we will instead compute the variance and mean
+        # of the pole angle over the evaluation episodes.
+        pole_angle = result["custom_metrics"]["pole_angle"]
+        var = np.var(pole_angle)
+        mean = np.mean(pole_angle)
+        result["custom_metrics"]["pole_angle_var"] = var
+        result["custom_metrics"]["pole_angle_mean"] = mean
+        # We are not interested in these original values
+        del result["custom_metrics"]["pole_angle"]
+        del result["custom_metrics"]["num_batches"]
+
+    def on_learn_on_batch(
+        self, *, policy: Policy, train_batch: SampleBatch, result: dict, **kwargs
+    ) -> None:
+        result["sum_actions_in_train_batch"] = train_batch["actions"].sum()
+        # Log the sum of actions in the train batch.
+        print(
+            "policy.learn_on_batch() result: {} -> sum actions: {}".format(
+                policy, result["sum_actions_in_train_batch"]
+            )
+        )
+
+    def on_postprocess_trajectory(
+        self,
+        *,
+        worker: RolloutWorker,
+        episode: Episode,
+        agent_id: str,
+        policy_id: str,
+        policies: Dict[str, Policy],
+        postprocessed_batch: SampleBatch,
+        original_batches: Dict[str, Tuple[Policy, SampleBatch]],
+        **kwargs,
+    ):
+        if "num_batches" not in episode.custom_metrics:
+            episode.custom_metrics["num_batches"] = 0
+        episode.custom_metrics["num_batches"] += 1
+
 
 def main():
     #Start time counter and print it
@@ -69,7 +191,9 @@ def main():
         result = algo.train()
         print(pretty_print(result))
 
-        if i % 10000 == 0:
+        if i % 1000 == 0:
+            action = algo.compute_single_action(obs)
+            obs, reward, terminated, truncated, info = env.step(action)
             checkpoint_dir = algo.save()
             print(f"Checkpoint saved in directory {checkpoint_dir}")
     #Print start time minus end time
