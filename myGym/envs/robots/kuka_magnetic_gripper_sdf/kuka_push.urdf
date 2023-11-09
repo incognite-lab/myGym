@@ -330,16 +330,16 @@
       <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
     </inertial>
     <visual>
-      <origin rpy="1.57 0 0" xyz="0 0 0.048"/>
+      <origin rpy="0 1.57 0" xyz="0 0 0.2"/>
       <geometry> 
-        <mesh filename="meshes/slider_old.stl" scale=".001 .001 .001"/>
+        <mesh filename="meshes/dice_paddle.stl" scale=".002 .002 .002"/>
       </geometry>
       <material name="LightGrey"/>
     </visual>
     <collision>
-      <origin rpy="1.57 0 0" xyz="0 0 0.048"/>
+      <origin rpy="0 1.57 0" xyz="0 0 0.2"/>
       <geometry>
-        <mesh filename="meshes/slider_old.stl" scale=".001 .001 .001"/>
+        <mesh filename="meshes/dice_paddle.stl" scale=".002 .002 .002"/>
       </geometry>
     </collision>
   </link>

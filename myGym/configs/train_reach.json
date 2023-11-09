@@ -6,11 +6,11 @@
 "render"    :"opengl",
 "seed"      :1,
 "camera"    :0,
-"gui"       :0,
+"gui"       :1,
 "visualize" :0,
 "visgym"    :0,
 #Robot
-"robot"         :"kuka",
+"robot"         :"kuka_throw",
 "robot_action"  :"joints",
 "robot_init"    :[0.0, 0.4, 0.6],
 "max_velocity"  :10,
@@ -21,7 +21,8 @@
 "task_type"             :"reach",
 "natural_language"      :0,
 "task_objects"          :[{"init":{"obj_name":"null"},
-                           "goal":{"obj_name":"cube_holes","fixed":1,"rand_rot":0, "sampling_area":[-0.5, 0.2, 0.3, 0.6, 0.1, 0.4]}}],
+                           "goal":{"obj_name":"dice","fixed":0,"rand_rot":0, "sampling_area":[-0.5, 0.2, 0.3, 0.6, 0.1, 0.4]},
+                           "dice":{"obj_name":"dice","fixed":1,"rand_rot":0, "sampling_area":[-0.5, 0.2, 0.3, 0.6, 0.1, 0.4]}}],
 "used_objects"          :{"num_range":[0,0], "obj_list":[]},
 // Observation
 // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
