@@ -141,8 +141,9 @@ class GymEnv(CameraEnv):
             self.reach_gesture = True
             self.task_type = "reach"
 
-        self.nl = NaturalLanguage(self)
         self.nl_mode = natural_language
+        if self.nl_mode:
+            self.nl = NaturalLanguage(self)
         self.nl_text_id = None
         self.training = training
         if self.nl_mode:
@@ -331,8 +332,6 @@ class GymEnv(CameraEnv):
                 self.task_objects = dict(ChainMap(*self.task_objects))
                 if subtask_objects:
                     self.task_objects["distractor"] = subtask_objects
-
-                self.nl.get_venv().set_objects(task_objects=self.task_objects)
             else:
                 init_objects = []
                 if not self.reach_gesture:
@@ -343,7 +342,7 @@ class GymEnv(CameraEnv):
                 for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=self.task_type != "reach", excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
                     goal_objects[i].set_color(c)
 
-                if self.training or (not self.training and self.reach_gesture):
+                if self.training or (not self.training and self.reach_gesture) and self.nl_mode:
                     # setting the objects and generating a description based on them
                     self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
                     self.nl.generate_subtask_with_random_description()
@@ -365,10 +364,11 @@ class GymEnv(CameraEnv):
                                 print("\"pick the orange cube and place it to the same position as the pink cube\"")
                                 print("Pay attention to the fact that colors, task and objects in your case can be different!")
                                 print("To leave the program use Ctrl + Z!")
-                            self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
-                            # resetting the objects to remove the knowledge about whether an object is an init or a goal
-                            self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-                            self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
+                            if self.nl:
+                                self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
+                                # resetting the objects to remove the knowledge about whether an object is an init or a goal
+                                self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
+                                self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
                             success = True
                             break
                         except:
