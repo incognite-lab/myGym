@@ -3,7 +3,7 @@
 	<link name="torso:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/torso_iam_fb80b350.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/torso_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.026368 -0.075212 0.525308"/>
 			<material name="torso:11_color">
@@ -12,7 +12,7 @@
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/torso_iam_fb80b350.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/torso_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.026368 -0.075212 0.525308"/>
 		</collision>
@@ -54,16 +54,16 @@
 	<link name="head:21">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/head_simplified.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/head_half_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="-0.003998 -0.016462 0.04478"/>
+			<origin rpy="0 0 0" xyz="-0.003998 -0.016462 0.09478"/>
 			<material name="head:21_color">
 				<color rgba="0.74902 0.74902 0.74902 1"/>
 			</material>
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/head_simplified.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/head_half_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.003998 -0.016462 0.04478"/>
 		</collision>
