@@ -25,7 +25,7 @@
     <link name="neck:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/neck_iam_61141f4f.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/neck_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.015583 -0.0205 0"/>
 			<material name="neck:11_color">
@@ -34,7 +34,7 @@
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/neck_iam_61141f4f.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/neck_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.015583 -0.0205 0"/>
 		</collision>
@@ -56,7 +56,7 @@
 			<geometry>
 				<mesh filename="meshes/head_half_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="-0.003998 -0.016462 0.09478"/>
+			<origin rpy="0 0 0" xyz="-0.003998 -0.016462 0.04478"/>
 			<material name="head:21_color">
 				<color rgba="0.74902 0.74902 0.74902 1"/>
 			</material>
@@ -83,7 +83,7 @@
 	<link name="right_shoulder:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_shoulder_up_iam_34db21c8.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_shoulder_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.062271 0.032843 -0.74045"/>
 			<material name="right_shoulder:11_color">
@@ -92,7 +92,7 @@
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/right_shoulder_up_iam_34db21c8.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_shoulder_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.062271 0.032843 -0.74045"/>
 		</collision>
@@ -112,7 +112,7 @@
 	<link name="right_collarbone:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_upper_arm_iam_e3e9c979.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_upper_arm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.0285 -0.054827 -0.000102"/>
 			<material name="right_collarbone:11_color">
@@ -121,7 +121,7 @@
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/right_upper_arm_iam_e3e9c979.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_upper_arm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.0285 -0.054827 -0.000102"/>
 		</collision>
@@ -141,16 +141,16 @@
 	<link name="right_upper_arm:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_lower_arm1_iam_65a34910.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_lower_arm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.044001 -0.021 -0.139458"/>
 			<material name="right_upper_arm:11_color">
 				<color rgba="0.176471 0.176471 0.176471 1"/>
 			</material>
 		</visual>
-		<collision>
+		<collision>meshes/right_lower_arm1_iam_65a34910.STL
 			<geometry>
-				<mesh filename="meshes/right_lower_arm1_iam_65a34910.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_lower_arm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.044001 -0.021 -0.139458"/>
 		</collision>
@@ -170,7 +170,7 @@
 	<link name="right_lower_arm:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_wrist_iam_771ea33e.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_lowerarm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.0168 -0.0018 -0.123873"/>
 			<material name="right_lower_arm:11_color">
@@ -179,7 +179,7 @@
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/right_wrist_iam_771ea33e.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_lowerarm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.0168 -0.0018 -0.123873"/>
 		</collision>
@@ -199,7 +199,7 @@
 	<link name="right_wrist:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_wrist_iam_81504746.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_wrist_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.000319 0.006617 -0.070181"/>
 			<material name="right_wrist:11_color">
@@ -208,7 +208,7 @@
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/right_wrist_iam_81504746.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_wrist_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.000319 0.006617 -0.070181"/>
 		</collision>
@@ -228,7 +228,7 @@
 	<link name="gripper"> <!--gripper-->
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_palm_iam_583b22df.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_palm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.022933 0.001906 -0.017233"/>
 			<material name="gripper_color">
@@ -237,7 +237,7 @@
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/right_palm_iam_583b22df.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_palm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.022933 0.001906 -0.017233"/>
 		</collision>
@@ -305,7 +305,7 @@
 			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
 		</inertial>
 	</link>
-	<joint name="r_indexfinger_1st_x" type="fixed">
+	<joint name="r_indexfinger_1st_gjoint" type="revolute">
 		<parent link="finger_segment:23"/>
 		<child link="finger_segment:13"/>
 		<origin rpy="-0.095246 0 0" xyz="-0.0005 0 -0.015999"/>
@@ -334,7 +334,7 @@
 			<origin rpy="0 0 0" xyz="0.005013 0.000408 -0.010216"/>
 		</inertial>
 	</link>
-	<joint name="endeffector_joint" type="revolute"><!--r_indexfinger_2nd_x-->
+	<joint name="endeffector_gjoint" type="revolute"><!--r_indexfinger_2nd_x-->
 		<parent link="finger_segment:13"/>
 		<child link="fingertip:13"/>
 		<origin rpy="-0.109614 0 0" xyz="0 -0 -0.016"/>
@@ -363,7 +363,7 @@
 			<origin rpy="0 0 0" xyz="0.004909 0.000556 -0.005751"/>
 		</inertial>
 	</link>
-	<joint name="r_ringfingers_x" type="fixed">
+	<joint name="r_ringfingers_x_gjoint" type="revolute">
 		<parent link="gripper"/>
 		<child link="endeffector"/>
 		<origin rpy="-0.569851 -0.062904 -3.141593" xyz="-0.035879 0.006226 -0.040569"/>
@@ -392,7 +392,7 @@
 			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005752"/>
 		</inertial>
 	</link>
-	<joint name="r_ringfinger_1st_x" type="fixed">
+	<joint name="r_ringfinger_1st_x_gjoint" type="revolute">
 		<parent link="endeffector"/>
 		<child link="finger_segment:12"/>
 		<origin rpy="-0.095245 0 0" xyz="-0.0005 0 -0.016"/>
@@ -421,7 +421,7 @@
 			<origin rpy="0 0 0" xyz="0.005013 0.000407 -0.010215"/>
 		</inertial>
 	</link>
-	<joint name="r_ringfinger_2nd_x" type="fixed">
+	<joint name="r_ringfinger_2nd_x_gjoint" type="revolute">
 		<parent link="finger_segment:12"/>
 		<child link="fingertip:12"/>
 		<origin rpy="-0.109614 0 0" xyz="0 -0 -0.016"/>
@@ -450,7 +450,7 @@
 			<origin rpy="0 0 0" xyz="0.004909 0.000556 -0.005752"/>
 		</inertial>
 	</link>
-	<joint name="r_thumb_x" type="fixed">
+	<joint name="r_thumb_x_gjoint" type="revolute">
 		<parent link="gripper"/>
 		<child link="finger_segment:21"/>
 		<origin rpy="1.915504 0 0" xyz="-0.0275 0.0199 -0.00842"/>
@@ -479,7 +479,7 @@
 			<origin rpy="0 0 0" xyz="0.005409 0.000557 -0.005751"/>
 		</inertial>
 	</link>
-	<joint name="r_thumb_1st_x" type="fixed">
+	<joint name="r_thumb_1st_x_gjoint" type="revolute">
 		<parent link="finger_segment:21"/>
 		<child link="finger_segment:11"/>
 		<origin rpy="-0.095246 0 0" xyz="-0.0005 -0.000001 -0.016001"/>
@@ -508,7 +508,7 @@
 			<origin rpy="0 0 0" xyz="0.005013 0.000408 -0.010216"/>
 		</inertial>
 	</link>
-	<joint name="r_thumb_2nd_x" type="fixed">
+	<joint name="r_thumb_2nd_x_gjoint" type="revolute">
 		<parent link="finger_segment:11"/>
 		<child link="fingertip:11"/>
 		<origin rpy="-0.109614 0 0" xyz="0 0.000001 -0.015999"/>
@@ -518,7 +518,7 @@
 	<link name="left_shoulder:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/left_shoulder_up_iam_1ca4d925.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/left_shoulder_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="0.014919 0.097299 -0.01461"/>
 			<material name="left_shoulder:11_color">
@@ -527,7 +527,7 @@
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/left_shoulder_up_iam_1ca4d925.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/left_shoulder_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="0.014919 0.097299 -0.01461"/>
 		</collision>
@@ -547,7 +547,7 @@
 	<link name="left_collarbone:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/left_upper_arm_iam_49d50008.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/left_upper_arm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.00032 -0.000277 0.000298"/>
 			<material name="left_collarbone:11_color">
@@ -556,7 +556,7 @@
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/left_upper_arm_iam_49d50008.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/left_upper_arm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.00032 -0.000277 0.000298"/>
 		</collision>
@@ -576,19 +576,13 @@
 	<link name="left_upper_arm:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/left_lower_arm_iam_5be2a521.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/left_lower_arm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.044837 -0.009349 -0.161585"/>
 			<material name="left_upper_arm:11_color">
 				<color rgba="0.176471 0.176471 0.176471 1"/>
 			</material>
 		</visual>
-		<collision>
-			<geometry>
-				<mesh filename="meshes/left_lower_arm_iam_5be2a521.STL" scale="0.001 0.001 0.001"/>
-			</geometry>
-			<origin rpy="0 0 0" xyz="-0.044837 -0.009349 -0.161585"/>
-		</collision>
 		<inertial>
 			<mass value="0.192388"/>
 			<inertia ixx="0.00085" ixy="0" ixz="-0.00005" iyy="0.000853" iyz="0.000001" izz="0.000052"/>
@@ -605,19 +599,13 @@
 	<link name="left_lower_arm:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_wrist_MIR_iam_dcfe6de3.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/left_lowerarm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="0.000017 -0.010775 -0.12546"/>
 			<material name="left_lower_arm:11_color">
 				<color rgba="0.176471 0.176471 0.176471 1"/>
 			</material>
 		</visual>
-		<collision>
-			<geometry>
-				<mesh filename="meshes/right_wrist_MIR_iam_dcfe6de3.STL" scale="0.001 0.001 0.001"/>
-			</geometry>
-			<origin rpy="0 0 0" xyz="0.000017 -0.010775 -0.12546"/>
-		</collision>
 		<inertial>
 			<mass value="0.076791"/>
 			<inertia ixx="0.000104" ixy="-0" ixz="-0" iyy="0.000095" iyz="0.000002" izz="0.000021"/>
@@ -627,14 +615,14 @@
 	<joint name="l_elbow_y" type="fixed">
 		<parent link="left_upper_arm:11"/>
 		<child link="left_lower_arm:11"/>
-		<origin rpy="0 0.055976 0" xyz="-0.034583 0.023066 -0.169859"/>
+		<origin rpy="0 -1.405976 0" xyz="-0.034583 0.023066 -0.169859"/>
 		<axis xyz="0 -1 0"/>
-		<limit effort="30" lower="-1.745" upper="1.745" velocity="1"/>
+		<limit effort="30" lower="1.545" upper="1.745" velocity="1"/>
 	</joint>
 	<link name="left_wrist:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/left_wrist_iam_c75e4b6f.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/left_wrist_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.000319 0.006617 0.070682"/>
 			<material name="left_wrist:11_color">
@@ -643,7 +631,7 @@
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/left_wrist_iam_c75e4b6f.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/left_wrist_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.000319 0.006617 0.070682"/>
 		</collision>
@@ -663,7 +651,7 @@
 	<link name="left_palm:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/left_palm_iam_b92c61b5.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/left_palm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.023233 0.001906 0.017234"/>
 			<material name="left_palm:11_color">
@@ -672,7 +660,7 @@
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/left_palm_iam_b92c61b5.STL" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/left_palm_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.023233 0.001906 0.017234"/>
 		</collision>
