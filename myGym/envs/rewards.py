@@ -71,7 +71,7 @@ class Reward:
 
     def get_magnetization_status(self):
         return self.use_magnet
-
+    
 
 class DistanceReward(Reward):
     """
@@ -3780,7 +3780,11 @@ class GripperPickAndPlace():
         self.network_rewards[2] += reward
         return reward
 
-class Protoactions(ThreeStagePnP):
+##### READY FOR RDDL #########
+
+# PROTOREWARDS
+
+class Protoactions(Reward):
 
     def reset(self):
         self.last_owner = None
@@ -3791,6 +3795,7 @@ class Protoactions(ThreeStagePnP):
         self.last_rot_dist = None
         self.subgoaloffset_dist = None
         self.last_leave_dist = None
+        self.prev_object_position = None
         self.was_near = False
         self.current_network = 0
         self.network_rewards = [0] * self.num_networks
@@ -3802,6 +3807,10 @@ class Protoactions(ThreeStagePnP):
         self.offsetleft = [0.2,0.0,-0.1]
         self.offsetright = [-0.2,0.0,-0.1]
         self.offsetcenter = [0.0,0.0,-0.1]
+        self.grip_threshold = 0.05
+        self.near_threshold = 0.1
+        self.lift_threshold = 0.1
+        self_above_threshold = 0.1
     
     def compute(self, observation=None):
         #inherit and define your sequence of protoactions here
@@ -3829,7 +3838,7 @@ class Protoactions(ThreeStagePnP):
         return reward
 
 
-    def transform_compute_test(self, object, goal, trajectory, magnetization = True):
+    def transform_compute(self, object, goal, trajectory, magnetization = True):
         """Calculate reward based on following a trajectory
         params: object: self-explanatory
                 goal: self-explanatory
@@ -3908,34 +3917,6 @@ class Protoactions(ThreeStagePnP):
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
     
-    def transform_compute(self, object, goal, offsetgoal):
-        self.env.p.addUserDebugText("transform", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
-        self.env.robot.set_magnetization(True)
-        dist = self.task.calc_distance(object, goal)
-        if self.last_place_dist is None:
-            self.last_place_dist = dist
-        rewarddist = self.last_place_dist - dist
-
-        rot = self.task.calc_rot_quat(object, goal)
-        if self.last_rot_dist is None:
-            self.last_rot_dist = rot
-        rewardrot = self.last_rot_dist - rot
-
-        dist = self.task.calc_distance(object, offsetgoal)
-        if self.subgoaloffset_dist is None:
-           self.subgoaloffset_dist  = dist
-        rewardsubgoaloffset = self.subgoaloffset_dist + dist
-        
-        reward = rewarddist + rewardrot + rewardsubgoaloffset
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61, 1, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
-
-        self.last_place_dist = dist
-        self.last_rot_dist = rot
-        self.network_rewards[self.current_network] += reward
-        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65, 1, 0.7], lifeTime=0.5,
-                                    textColorRGB=[0, 0, 125])
-        return reward
-    
     def leave_compute(self, gripper, object):
         self.env.p.addUserDebugText("leave", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
         self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
@@ -3952,12 +3933,48 @@ class Protoactions(ThreeStagePnP):
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
     
+
+    # PREDICATES
+
+    def get_positions(self, observation):
+        goal_position = observation["goal_state"]
+        object_position = observation["actual_state"]
+        gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
+        gripper_position = observation["additional_obs"][gripper_name][:3]
+        if self.prev_object_position is None:
+            self.prev_object_position = object_position
+        return goal_position,object_position,gripper_position
+    
+    def gripper_reached_object(self, gripper, object):
+        if self.task.calc_distance(gripper, object) <= self.grip_threshold:
+            self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+            return True
+        return False
+
+    def object_lifted(self, object, object_before_lift):
+        lifted_position = [object_before_lift[0], object_before_lift[1], object_before_lift[2]+0.1] # position of object before lifting but hightened with its height
+        self.task.calc_distance(object, lifted_position)
+        if object[2] < self.lift_threshold:
+            self.lifted = False # object has fallen
+            self.object_before_lift = object
+        else:
+            self.lifted = True
+            return True
+        return False
+
+    def object_above_goal(self, object, goal):
+        goal_XY   = [goal[0], goal[1], goal[2]+0.2]
+        object_XY = object
+        distance  = self.task.calc_distance(goal_XY, object_XY)
+        if distance < self.above_threshhold:
+            return True
+        return False
+    
     def left_out_of_threshold(self, gripper, object, threshold = 0.2):
         distance = self.task.calc_distance(gripper ,object)
         if distance > threshold:
             return True
         return False
-    
 
     def object_near_goal(self, object, goal):
         distance  = self.task.calc_distance(goal, object)
@@ -3969,6 +3986,9 @@ class Protoactions(ThreeStagePnP):
         
         subgoal = [goal_position[0]-offset[0],goal_position[1]-offset[1],goal_position[2]-offset[2],goal_position[3],goal_position[4],goal_position[5],goal_position[6]]
         return subgoal
+
+
+# RDDL
 
 class FaMaR(Protoactions):
     
@@ -4042,8 +4062,9 @@ class FaMOaT(Protoactions):
         owner = self.decide(observation)
         goal_position, object_position, gripper_position = self.get_positions(observation)
         #[object_position, goal_position, self.task.create_line(self.subgoal_offset(goal_position), [0.3,0.0,0.0], goal_position), True]
-        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,self.offset)], [object_position, goal_position, self.task.create_line(self.subgoal_offset(goal_position, [0.3,0.0,0.0]),  goal_position)]][owner]
-        reward = [self.find_compute,self.move_compute, self.transform_compute_test][owner](*target)
+        transform_line = self.task.create_line(self.subgoal_offset(goal_position, self.offset), goal_position)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,self.offset)], [object_position, goal_position, transform_line]][owner]
+        reward = [self.find_compute,self.move_compute, self.transform_compute][owner](*target)
         self.last_owner = owner
         self.task.check_goal()
         self.rewards_history.append(reward)
@@ -4064,8 +4085,9 @@ class FaROaT(Protoactions):
 
         owner = self.decide(observation)
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position, self.offset)], [object_position, goal_position,self.subgoal_offset(goal_position,[0.3,0.0,0.0])]][owner]
-        reward = [self.find_compute,self.rotate_compute, self.transform_compute_test][owner](*target)
+        transform_line = self.task.create_line(self.subgoal_offset(goal_position, self.offset), goal_position)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position, self.offset)], [object_position, goal_position, transform_line]][owner]
+        reward = [self.find_compute,self.rotate_compute, self.transform_compute][owner](*target)
         self.last_owner = owner
         self.task.check_goal()
         self.rewards_history.append(reward)
@@ -4128,7 +4150,7 @@ class SwitchRewardNew(Protoactions):
         transform_line = self.task.create_line(self.subgoal_offset(goal_position, self.offsetleft), self.subgoal_offset(goal_position, self.offsetright))
         target = [[gripper_position, self.subgoal_offset(goal_position, self.offsetleft)],
                [gripper_position, self.subgoal_offset(goal_position, self.offsetright), transform_line]][owner]
-        reward = [self.find_compute, self.transform_compute_test][owner](*target)
+        reward = [self.find_compute, self.transform_compute][owner](*target)
         self.env.p.addUserDebugLine(self.subgoal_offset(goal_position, self.offsetleft)[:3], self.subgoal_offset(goal_position, self.offsetright)[:3])
         self.last_owner = owner
         self.task.check_goal()
@@ -4165,7 +4187,7 @@ class TurnRewardNew(Protoactions):
         transform_circle = self.task.create_circular_trajectory(self.subgoal_offset(goal_position, self.offsetcenter)[:3], 0.2, arc =np.pi, direction = -1)
         target = [[gripper_position, self.subgoal_offset(goal_position, self.offsetleft)],
                   [gripper_position, self.subgoal_offset(goal_position, self.offsetright), transform_circle]][owner]
-        reward = [self.find_compute, self.transform_compute_test][owner](*target)
+        reward = [self.find_compute, self.transform_compute][owner](*target)
         self.env.p.addUserDebugLine(self.subgoal_offset(goal_position, self.offsetleft)[:3],
                                     self.subgoal_offset(goal_position, self.offsetright)[:3])
         self.last_owner = owner

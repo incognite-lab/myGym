@@ -10,10 +10,10 @@
 "visualize" :0,
 "visgym"    :0,
 #Robot
-"robot"         :"nico_upper",
+"robot"         :"nico_upper_rh6d",
 "robot_action"  :"joints",
 "robot_init"    :[0.4, 0.4, 0.5],
-"max_velocity"  :0.5,
+"max_velocity"  :1,
 "max_force"     :100,
 "action_repeat" :1,
 

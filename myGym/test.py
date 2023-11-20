@@ -152,6 +152,7 @@ def detect_key(keypress,arg_dict,action):
 
 def test_env(env, arg_dict):
     arg_dict["vsampling"] = 1
+    arg_dict["vinfo"] = 0
     spawn_objects = False
     env.render("human")
     #env.reset()
@@ -287,7 +288,7 @@ def test_env(env, arg_dict):
 
             
 
-            #print (f"Action:{action}")
+            print (f"Action:{action}")
             observation, reward, done, info = env.step(action)
             
             if arg_dict["vtrajectory"] == True:
