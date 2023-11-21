@@ -91,6 +91,7 @@ class GymEnv(CameraEnv):
                  yolact_config=None,
                  natural_language=False,
                  training=True,
+                 publish_to_ros=False,
                  **kwargs
                  ):
 
@@ -157,6 +158,8 @@ class GymEnv(CameraEnv):
         if self.reach_gesture and not self.nl_mode:
             raise Exception("Reach gesture task can't be started without natural language mode")
 
+        self.publish_to_ros = publish_to_ros
+
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 
     def _init_task_and_reward(self):
@@ -172,7 +175,7 @@ class GymEnv(CameraEnv):
             "3-network": {"pnp": ThreeStagePnP, "pnprot": ThreeStagePnPRot, "pnpswipe": ThreeStageSwipe, "FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
                           "pnpswiperot": ThreeStageSwipeRot},
             "4-network": {"pnp": FourStagePnP, "pnprot": FourStagePnPRot, "FMLFR": FaMaLaFaR}}
-    
+
         scheme = "{}-network".format(str(self.num_networks))
         assert self.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
         self.task = t.TaskModule(task_type=self.task_type,
@@ -207,7 +210,8 @@ class GymEnv(CameraEnv):
                   "init_joint_poses": self.robot_init_joint_poses, "max_velocity": self.max_velocity,
                   "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
                   "pybullet_client": self.p}
-        self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
+        # self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
+        self.robot = robot.ROSRobot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
         if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
 
     def _load_urdf(self, path, fixedbase=True, maxcoords=True):
@@ -464,6 +468,7 @@ class GymEnv(CameraEnv):
             :return self._observation: (list) Observation data from the environment after this step
             :return reward: (float) Reward value assigned to this step
             :return done: (bool) Whether this stop is episode's final
+            :return truncated: (bool) Whether this stop is episode's final
             :return info: (dict) Additional information about step
         """
         self._apply_action_robot(action)
@@ -482,7 +487,7 @@ class GymEnv(CameraEnv):
         if self.task.subtask_over:
             self.reset(only_subtask=True)
         # return self._observation, reward, done, info
-        return self.flatten_obs(self._observation.copy()), reward, done, info
+        return self.flatten_obs(self._observation.copy()), reward, done, not done, info
 
     def compute_reward(self, achieved_goal, desired_goal, info):
         # @TODO: Reward computation for HER, argument for .compute()
