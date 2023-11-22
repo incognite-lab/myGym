@@ -1,5 +1,9 @@
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
+from ray.rllib.evaluation import Episode, RolloutWorker
+from ray.rllib.policy import Policy
+from ray.rllib.policy.sample_batch import SampleBatch
+from ray.rllib.env.base_env import BaseEnv
 from ray.tune.logger import pretty_print
 from train import get_parser, get_arguments, AVAILABLE_SIMULATION_ENGINES
 import os
@@ -9,6 +13,11 @@ from ray.tune.registry import register_env
 from myGym.envs.gym_env import GymEnv
 import numpy as np
 import time
+
+from typing import Dict, Tuple
+import argparse
+import gymnasium as gym
+
 
 class MyCallbacks(DefaultCallbacks):
     def on_episode_start(
@@ -138,10 +147,6 @@ def main():
     parser = get_parser()
     arg_dict = get_arguments(parser)
 
-    # Check if we chose one of the existing engines
-    if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
-        print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
-        return
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
@@ -170,7 +175,7 @@ def main():
                      "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"]}
 
-    env_arguments["gui_on"] = False
+    env_arguments["gui_on"] = True
 
     # Register OpenAI gym env in gymnasium
     def env_creator(env_config):
@@ -192,8 +197,8 @@ def main():
         print(pretty_print(result))
 
         if i % 1000 == 0:
-            action = algo.compute_single_action(obs)
-            obs, reward, terminated, truncated, info = env.step(action)
+            #action = algo.compute_single_action(obs)
+            #obs, reward, terminated, truncated, info = env.step(action)
             checkpoint_dir = algo.save()
             print(f"Checkpoint saved in directory {checkpoint_dir}")
     #Print start time minus end time
