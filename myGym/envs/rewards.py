@@ -206,6 +206,70 @@ class ComplexDistanceReward(DistanceReward):
         return norm_diff
 
 
+class DiceReward(Reward):
+    """
+    Reward class for reward signal calculation based on distance differences between 2 objects
+
+    Parameters:
+        :param env: (object) Environment, where the training takes place
+        :param task: (object) Task that is being trained, instance of a class TaskModule
+    """
+    def __init__(self, env, task):
+        super(DistanceReward, self).__init__(env, task)
+        self.prev_obj1_position = None
+        self.prev_obj2_position = None
+        self.moved  = False
+
+    def decide(self, observation=None):
+        return random.randint(0, self.env.num_networks-1)
+
+    def compute(self, observation):
+        """
+        Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
+
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        o1 = observation["actual_state"]
+        o2 = observation["goal_state"]
+        reward = 1.0
+        #self.task.check_distance_threshold(observation)
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+        self.prev_dice_position = None
+        self.moved  = False
+
+    def has_moved(self, dice_position):
+        """
+        Calculate change in the distance between 2 objects in previous and in current step. Normalize the change by the value of distance in previous step.
+
+        Params:
+            :param obj1_position: (list) Position of the first object
+            :param obj2_position: (list) Position of the second object
+        Returns:
+            :return norm_diff: (float) Normalized difference of distances between 2 objects in previsous and in current step
+        """
+        if self.prev_obj1_position is None or self.prev_obj2_position is None:
+            self.prev_dice_position = dice_position
+        self.prev_diff = self.task.calc_distance(self.prev_obj1_position, self.prev_obj2_position)
+
+        current_diff = self.task.calc_distance(obj1_position, obj2_position)
+        norm_diff = (self.prev_diff - current_diff) / self.prev_diff
+
+        self.prev_obj1_position = obj1_position
+        self.prev_obj2_position = obj2_position
+
+        return norm_diff
+
+
 class SparseReward(Reward):
     """
     Reward class for sparse reward signal

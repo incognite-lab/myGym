@@ -422,11 +422,11 @@ class GymEnv(CameraEnv):
             self.highlight_active_object(o, "done")
 
     def flatten_obs(self, obs):
-        """ Returns the input obs dict as flattened list """
+        """ Returns the input obs dict as flattened list 
         if len(obs["additional_obs"].keys()) != 0 and not self.dataset:
             obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
         if not self.dataset:
-            obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])
+            obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])"""
         return obs
 
     def _set_cameras(self):

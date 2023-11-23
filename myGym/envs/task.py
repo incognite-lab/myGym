@@ -7,6 +7,7 @@ import pkg_resources
 import cv2
 import random
 from scipy.spatial.distance import cityblock
+from scipy.spatial.transform import Rotation
 from pyquaternion import Quaternion
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
@@ -215,6 +216,51 @@ class TaskModule():
             return True
         return False
 
+    
+    def get_dice_value(self, quaternion):
+        def noramalize(q):
+            return q/np.linalg.norm(q)
+        
+        faces = np.array([
+            [0,0,1],
+            [0,1,0],
+            [1,0,0],
+            [0,0,-1],
+            [0,-1,0],
+            [-1,0,0],
+        ])
+
+        rot_mtx = Rotation.from_quat(noramalize(quaternion)).as_matrix()
+
+        rotated_faces = np.dot(rot_mtx, faces.T).T
+
+        top_face_index = np.argmax(rotated_faces[:,2])
+        
+        face_nums = [2, 5, 1, 4, 6, 3] #states that first face has number 2 on it, second 5 and so on...
+
+        return face_nums[top_face_index]
+
+    def check_dice_moving(self, observation, threshold=0.1):
+        def calc_still(o1, o2):
+            result = 0
+            for i in range(len(o1)):
+                result+= np.power(o1[i]-o2[i],2)
+            result = np.sqrt(result)
+            
+            return result < 0.000001
+        #print(observation["goal_state"])
+        x = np.array(observation["goal_state"][3:])
+        print(self.get_dice_value(x))
+        if not self.check_distance_threshold(self._observation) and self.env.episode_steps > 25:
+            if calc_still(observation["goal_state"], self.stored_observation):
+                self.stored_observation = observation["goal_state"]
+                return True
+            else:
+                self.stored_observation = observation["goal_state"]
+                return False
+        else:
+            self.stored_observation = observation["goal_state"]
+            return False
 
     def check_points_distance_threshold(self, threshold=0.1):
         o1 = self.env.task_objects["actual_state"]
@@ -270,6 +316,9 @@ class TaskModule():
         if self.task_type == "press":
             self.check_distance_threshold(self._observation)
             finished = self.env.reward.get_angle() >= 1.71
+        if self.task_type == "dice_throw":
+            finished = self.check_dice_moving(self._observation)
+            
         if self.task_type == "turn":
             self.check_distance_threshold(self._observation)
             finished = self.check_turn_threshold()
