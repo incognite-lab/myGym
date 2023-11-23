@@ -165,14 +165,10 @@ class GymEnv(CameraEnv):
             self.has_distractor = True
             self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
         reward_classes = {
-            "1-network": {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
-                          "distractor": VectorReward, "poke": PokeReachReward, "push": PushReward, "switch": SwitchReward,
-                          "btn": ButtonReward, "turn": TurnReward, "pnp": SingleStagePnP},
-            "2-network": {"poke": DualPoke, "pnp": TwoStagePnP, "pnpbgrip": TwoStagePnPBgrip, "push": TwoStagePushReward, "switch": SwitchRewardNew,
-                          "turn": TurnRewardNew},
-            "3-network": {"pnp": ThreeStagePnP, "pnprot": ThreeStagePnPRot, "pnpswipe": ThreeStageSwipe, "FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
-                          "pnpswiperot": ThreeStageSwipeRot},
-            "4-network": {"pnp": FourStagePnP, "pnprot": FourStagePnPRot, "FMLFR": FaMaLaFaR}}
+            "1-network": {},
+            "2-network": {},
+            "3-network": {"FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT},
+            "4-network": {"FMLFR": FaMaLaFaR}}
     
         scheme = "{}-network".format(str(self.num_networks))
         assert self.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
