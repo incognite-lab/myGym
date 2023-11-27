@@ -284,6 +284,24 @@ class Protorewards(Reward):
 
 # RDDL
 
+class FaM(Protorewards):
+    
+    def compute(self, observation=None):
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        return self.current_network
+
 class FaMaR(Protorewards):
     
     def compute(self, observation=None):
@@ -304,6 +322,8 @@ class FaMaR(Protorewards):
             self.current_network = 2
             self.was_near = True
         return self.current_network
+
+
 
 class FaROaM(Protorewards):
     
@@ -335,6 +355,28 @@ class FaMOaR(Protorewards):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,self.offset)], [object_position, goal_position]][owner]
         reward = [self.find_compute,self.move_compute, self.rotate_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,self.offset)) or self.was_near:
+            self.current_network = 2
+            self.was_near = True
+        return self.current_network
+
+class FaMOaM(Protorewards):
+    
+    def compute(self, observation=None):
+
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,self.offset)], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute, self.move_compute][owner](*target)
         self.last_owner = owner
         self.task.check_goal()
         self.rewards_history.append(reward)

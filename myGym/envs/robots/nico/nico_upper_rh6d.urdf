@@ -3,7 +3,7 @@
 	<link name="torso:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/torsofbx.stl" scale="0.01 0.01 0.01"/>
+				<mesh filename="meshes/torso_fbx.stl" scale="0.01 0.01 0.01"/>
 			</geometry>
 			<origin rpy="0 0 3.14" xyz="0.025 0.0 0.615"/>
 			<material name="torso:11_color">
@@ -254,7 +254,7 @@
 	<joint name="endeffector_joint" type="fixed">
     	<parent link="gripper"/>
     	<child link="endeffector"/>
-    	<origin rpy="0 0 0" xyz="-0.025 0.05 -0.04"/>
+    	<origin rpy="0 0 0" xyz="-0.025 0.00 -0.14"/>
 	</joint>
 	
 	<link name="left_shoulder:11">
