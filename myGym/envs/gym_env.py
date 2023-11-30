@@ -12,6 +12,7 @@ from myGym.envs.rewards import *
 import numpy as np
 from itertools import chain
 from gym import spaces
+from scipy.spatial.transform import Rotation
 import random
 
 from myGym.utils.helpers import get_workspace_dict
@@ -166,7 +167,7 @@ class GymEnv(CameraEnv):
         reward_classes = {
             "1-network": {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
                           "distractor": VectorReward, "poke": PokeReachReward, "push": PushReward, "switch": SwitchReward,
-                          "btn": ButtonReward, "turn": TurnReward, "pnp": SingleStagePnP},
+                          "btn": ButtonReward, "turn": TurnReward, "pnp": SingleStagePnP, "dice": DiceReward},
             "2-network": {"poke": DualPoke, "pnp": TwoStagePnP, "pnpbgrip": TwoStagePnPBgrip, "push": TwoStagePushReward},
             "3-network": {"pnp": ThreeStagePnP, "pnprot": ThreeStagePnPRot, "pnpswipe": ThreeStageSwipe, "FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
                           "pnpswiperot": ThreeStageSwipeRot},
@@ -231,9 +232,9 @@ class GymEnv(CameraEnv):
         if self.obs_space == "dict":
             goaldim = int(self.task.obsdim / 2) if self.task.obsdim % 2 == 0 else int(self.task.obsdim / 3)
             self.observation_space = spaces.Dict(
-                {"observation": spaces.Box(low=-10, high=10, shape=(self.task.obsdim,)),
-                 "achieved_goal": spaces.Box(low=-10, high=10, shape=(goaldim,)),
-                 "desired_goal": spaces.Box(low=-10, high=10, shape=(goaldim,))})
+                {"observation": spaces.Box(low=-10, high=10, shape=(1,)),
+                 "achieved_goal": spaces.Box(low=-10, high=10, shape=(1,)),
+                 "desired_goal": spaces.Box(low=-10, high=10, shape=(1,))})
         else:
             observationDim = self.task.obsdim
             observation_high = np.array([100] * observationDim)
@@ -421,12 +422,38 @@ class GymEnv(CameraEnv):
         for o in self.env_objects["distractor"][-2:]:
             self.highlight_active_object(o, "done")
 
+    def get_dice_value(self, quaternion):
+        def noramalize(q):
+            return q/np.linalg.norm(q)
+        
+        faces = np.array([
+            [0,0,1],
+            [0,1,0],
+            [1,0,0],
+            [0,0,-1],
+            [0,-1,0],
+            [-1,0,0],
+        ])
+
+        rot_mtx = Rotation.from_quat(noramalize(quaternion)).as_matrix()
+
+        rotated_faces = np.dot(rot_mtx, faces.T).T
+
+        top_face_index = np.argmax(rotated_faces[:,2])
+        
+        face_nums = [2, 5, 1, 4, 6, 3] #states that first face has number 2 on it, second 5 and so on...
+
+        return face_nums[top_face_index]
+
     def flatten_obs(self, obs):
         """ Returns the input obs dict as flattened list 
         if len(obs["additional_obs"].keys()) != 0 and not self.dataset:
             obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
         if not self.dataset:
             obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])"""
+        res = self.get_dice_value(obs["actual_state"][3:])
+        print("Sending Reward")
+        obs = {"observation" : np.array([res]), "achieved_goal" : np.array([res]), "desired_goal" : np.array([2])}
         return obs
 
     def _set_cameras(self):

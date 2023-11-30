@@ -236,9 +236,9 @@ class TaskModule():
 
         top_face_index = np.argmax(rotated_faces[:,2])
         
-        face_nums = [2, 5, 1, 4, 6, 3] #states that first face has number 2 on it, second 5 and so on...
-
-        return face_nums[top_face_index]
+        #face_nums = [2, 5, 1, 4, 6, 3] #states that first face has number 2 on it, second 5 and so on...
+        #return face_nums[top_face_index]
+        return top_face_index+1
 
     def check_dice_moving(self, observation, threshold=0.1):
         def calc_still(o1, o2):
@@ -247,14 +247,20 @@ class TaskModule():
                 result+= np.power(o1[i]-o2[i],2)
             result = np.sqrt(result)
             
-            return result < 0.000001
+            return result < 0.000005
         #print(observation["goal_state"])
+        if len(observation)<3:
+            print("Invalid",observation)
         x = np.array(observation["goal_state"][3:])
-        print(self.get_dice_value(x))
+        #print(self.get_dice_value(x))
+        
         if not self.check_distance_threshold(self._observation) and self.env.episode_steps > 25:
             if calc_still(observation["goal_state"], self.stored_observation):
-                self.stored_observation = observation["goal_state"]
-                return True
+                if (self.stored_observation == observation["goal_state"]):
+                    return False
+                else:
+                    return True
+                
             else:
                 self.stored_observation = observation["goal_state"]
                 return False

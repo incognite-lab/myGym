@@ -215,7 +215,7 @@ class DiceReward(Reward):
         :param task: (object) Task that is being trained, instance of a class TaskModule
     """
     def __init__(self, env, task):
-        super(DistanceReward, self).__init__(env, task)
+        super(DiceReward, self).__init__(env, task)
         self.prev_obj1_position = None
         self.prev_obj2_position = None
         self.moved  = False
@@ -232,12 +232,12 @@ class DiceReward(Reward):
         Returns:
             :return reward: (float) Reward signal for the environment
         """
-        o1 = observation["actual_state"]
-        o2 = observation["goal_state"]
-        reward = 1.0
+        #print("Observed: ",observation)
+        reward = 0.0
         #self.task.check_distance_threshold(observation)
         self.task.check_goal()
-        self.rewards_history.append(reward)
+        if self.task.check_goal():
+            reward += 1.0
         return reward
 
     def reset(self):
