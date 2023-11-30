@@ -1,31 +1,36 @@
 <?xml version="1.0" ?>
 <robot name="nico_upper">
+	<link name="world" />
 	<link name="torso:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/torso_fbx.stl" scale="0.01 0.01 0.01"/>
+				<mesh filename="meshes/torso_merged_new.stl"/>
 			</geometry>
-			<origin rpy="0 0 3.14" xyz="0.025 0.0 0.615"/>
+			<origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
 			<material name="torso:11_color">
 				<color rgba="0.270588 0.270588 0.270588 1"/>
 			</material>
 		</visual>
 	</link>
+	<joint name="world_to_base_link" type="fixed">
+    	<parent link="world"/>
+    	<child link="torso:11"/>
+  	</joint>
     <link name="neck:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/neck_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/neck_long_new.stl"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="-0.015583 -0.0205 0"/>
+			<origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
 			<material name="neck:11_color">
 				<color rgba="0.74902 0.74902 0.74902 1"/>
 			</material>
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/neck_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/neck_long_new.stl"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="-0.015583 -0.0205 0"/>
+			<origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
 		</collision>
 		<inertial>
 			<mass value="0.090439"/>
@@ -36,25 +41,25 @@
 	<joint name="head_z" type="fixed">
 		<parent link="torso:11"/>
 		<child link="neck:11"/>
-		<origin rpy="0 0 0" xyz="0.001283 -0.000212 0.756309"/>
+		<origin rpy="0 0 0" xyz="-0.02 0.0 0.23"/>
 		<axis xyz="0 0 1"/>
 		<limit effort="30" lower="-3.124" upper="3.142" velocity="1"/>
 	</joint>
 	<link name="head:21">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/headfbx.stl" scale="1 1 1"/>
+				<mesh filename="meshes/headfbx.stl"/>
 			</geometry>
-			<origin rpy="0 0 3.14" xyz="-0.013998 -0.01 -0.5"/>
+			<origin rpy="0 0 3.14" xyz="0 0 -0.5"/>
 			<material name="head:21_color">
 				<color rgba="0.74902 0.74902 0.74902 1"/>
 			</material>
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/head_half_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/headfbx.stl"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="-0.003998 -0.016462 0.04478"/>
+			<origin rpy="0 0 3.14" xyz="0 0 -0.5"/>
 		</collision>
 		<inertial>
 			<mass value="0.294137"/>
@@ -65,7 +70,7 @@
 	<joint name="head_y" type="fixed">
 		<parent link="neck:11"/>
 		<child link="head:21"/>
-		<origin rpy="0 0 0" xyz="0 0.023001 0.0745"/>
+		<origin rpy="0 0 0" xyz="0 0.0 0.11"/>
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="-1.553" upper="1.379" velocity="1"/>
 	</joint>
@@ -94,14 +99,14 @@
 	<joint name="r_shoulder_z_rjoint" type="revolute">
 		<parent link="torso:11"/>
 		<child link="right_shoulder:11"/>
-		<origin rpy="0 0 -0.20444" xyz="0.026783 -0.049912 0.748809"/>
+		<origin rpy="0 0 0" xyz="0.0 -0.045 0.23"/>
 		<axis xyz="0 0 1"/>
 		<limit effort="30" lower="-1.745" upper="2.182" velocity="1"/>
 	</joint>
 	<link name="right_collarbone:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_upper_arm_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_collar_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.0285 -0.054827 -0.000102"/>
 			<material name="right_collarbone:11_color">
@@ -110,7 +115,7 @@
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/right_upper_arm_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_collar_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.0285 -0.054827 -0.000102"/>
 		</collision>
@@ -130,7 +135,7 @@
 	<link name="right_upper_arm:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_lower_arm_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_upper_arm_fbx.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.044001 -0.021 -0.139458"/>
 			<material name="right_upper_arm:11_color">
@@ -139,7 +144,7 @@
 		</visual>
 		<collision>meshes/right_lower_arm1_iam_65a34910.STL
 			<geometry>
-				<mesh filename="meshes/right_lower_arm_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_upper_arm_fbx.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.044001 -0.021 -0.139458"/>
 		</collision>
@@ -282,7 +287,7 @@
 	<joint name="l_shoulder_z" type="fixed">
 		<parent link="torso:11"/>
 		<child link="left_shoulder:11"/>
-		<origin rpy="0 0 0.019617" xyz="0.026783 0.049488 0.748809"/>
+		<origin rpy="0 0 0.019617" xyz="0.0 0.045 0.23"/>
 		<axis xyz="0 0 1"/>
 		<limit effort="30" lower="-2.182" upper="1.745" velocity="1"/>
 	</joint>
