@@ -252,13 +252,14 @@ class TaskModule():
         if len(observation)<3:
             print("Invalid",observation)
         x = np.array(observation["goal_state"][3:])
-        #print(self.get_dice_value(x))
+        
         
         if not self.check_distance_threshold(self._observation) and self.env.episode_steps > 25:
             if calc_still(observation["goal_state"], self.stored_observation):
                 if (self.stored_observation == observation["goal_state"]):
                     return False
                 else:
+                    #print(self.get_dice_value(x))
                     return True
                 
             else:

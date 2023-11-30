@@ -452,7 +452,7 @@ class GymEnv(CameraEnv):
         if not self.dataset:
             obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])"""
         res = self.get_dice_value(obs["actual_state"][3:])
-        print("Sending Reward")
+        #print("Sending Reward")
         obs = {"observation" : np.array([res]), "achieved_goal" : np.array([res]), "desired_goal" : np.array([2])}
         return obs
 

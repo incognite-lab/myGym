@@ -6,7 +6,7 @@
 "render"    :"opengl",
 "seed"      :0,
 "camera"    :0,
-"gui"       :1,
+"gui"       :0,
 "visualize" :0,
 "visgym"    :0,
 #Robot
@@ -41,9 +41,9 @@
 "train_framework"   :"tensorflow",
 "algo"              :"her",
 "num_networks" : 1,
-"max_episode_steps" :512000,
-"algo_steps"        :512000,
-"steps"             :1000000,
+"max_episode_steps" :5120,
+"algo_steps"        :5120,
+"steps"             :100000,
 "pretrained_model"  :null,
 "multiprocessing"   :false,
 #Evaluation
