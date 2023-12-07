@@ -232,7 +232,7 @@ class GymEnv(CameraEnv):
         if self.obs_space == "dict":
             goaldim = int(self.task.obsdim / 2) if self.task.obsdim % 2 == 0 else int(self.task.obsdim / 3)
             self.observation_space = spaces.Dict(
-                {"observation": spaces.Box(low=-10, high=10, shape=(1,)),
+                {"observation": spaces.Box(low=-10, high=10, shape=(7,)),
                  "achieved_goal": spaces.Box(low=-10, high=10, shape=(1,)),
                  "desired_goal": spaces.Box(low=-10, high=10, shape=(1,))})
         else:
@@ -443,7 +443,7 @@ class GymEnv(CameraEnv):
         
         face_nums = [2, 5, 1, 4, 6, 3] #states that first face has number 2 on it, second 5 and so on...
 
-        return face_nums[top_face_index]
+        return top_face_index + 1
 
     def flatten_obs(self, obs):
         """ Returns the input obs dict as flattened list 
@@ -451,9 +451,11 @@ class GymEnv(CameraEnv):
             obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
         if not self.dataset:
             obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])"""
+        #print(obs)
         res = self.get_dice_value(obs["actual_state"][3:])
         #print("Sending Reward")
-        obs = {"observation" : np.array([res]), "achieved_goal" : np.array([res]), "desired_goal" : np.array([2])}
+        obs = {"observation" : obs['goal_state'], "achieved_goal" : np.array([res]), "desired_goal" : np.array([2])}
+        #print(obs)
         return obs
 
     def _set_cameras(self):

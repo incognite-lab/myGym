@@ -112,7 +112,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
 def configure_implemented_combos(env, model_logdir, arg_dict):
     implemented_combos = {"ppo2": {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "ppo": {"tensorflow": [PPO1_T, (MlpPolicy, env),  {"verbose": 1, "tensorboard_log": model_logdir}],},
-                          "her": {"tensorflow": [HER_T, (MlpPolicyDDPG, env, DDPG_T), {"goal_selection_strategy": 'future', "verbose": 1,"tensorboard_log": model_logdir, "n_sampled_goal": 1}]},
+                          "her": {"tensorflow": [HER_T, (MlpPolicyDDPG, env, DDPG_T), {"goal_selection_strategy": 'final', "verbose": 1,"tensorboard_log": model_logdir, "n_sampled_goal": 1}]},
                           "sac": {"tensorflow": [SAC_T, (MlpPolicySAC, env), {"verbose": 1, "tensorboard_log": model_logdir}],},
                           "ddpg": {"tensorflow": [DDPG_T, (MlpPolicyDDPG, env),{"verbose": 1, "tensorboard_log": model_logdir}]},
                           "td3": {"tensorflow": [TD3_T, (MlpPolicyTD3, env), {"verbose": 1, "tensorboard_log": model_logdir}],},
@@ -174,8 +174,8 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
                 kwargs["seed"] = seed
             model = GAIL_T('MlpPolicy', model_name, dataset, **kwargs)
             # Note: in practice, you need to train for 1M steps to have a working policy
-    if arg_dict["algo"] == "her":
-        model = HER_T('MlpPolicy', env, DDPG_T, n_sampled_goal=4, goal_selection_strategy='future', verbose=1)
+    #if arg_dict["algo"] == "her":
+        #model = HER_T('MlpPolicy', env, DDPG_T, n_sampled_goal=1, goal_selection_strategy='future', verbose=1)
         
     start_time = time.time()
     callbacks_list = []
@@ -200,7 +200,9 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     #callbacks_list.append(PlottingCallback(model_logdir))
     #with ProgressBarManager(total_timesteps=arg_dict["steps"]) as progress_callback:
     #    callbacks_list.append(progress_callback)
+    print("learn started")
     model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
+    print("learn ended")
     model.save(os.path.join(model_logdir, model_name))
     print("Training time: {:.2f} s".format(time.time() - start_time))
     print("Training steps: {:} s".format(model.num_timesteps))

@@ -44,6 +44,7 @@ class TaskModule():
         self.vision_module = VisionModule(observation=observation, env=env, vae_path=vae_path, yolact_path=yolact_path, yolact_config=yolact_config)
         self.obsdim = self.check_obs_template()
         self.vision_src = self.vision_module.src
+        self.writebool = False
 
     def reset_task(self):
         """
@@ -257,17 +258,22 @@ class TaskModule():
         if not self.check_distance_threshold(self._observation) and self.env.episode_steps > 25:
             if calc_still(observation["goal_state"], self.stored_observation):
                 if (self.stored_observation == observation["goal_state"]):
-                    return False
+                    return 0
                 else:
-                    #print(self.get_dice_value(x))
-                    return True
+                    if self.writebool:
+                        print(self.get_dice_value(x))
+                        self.writebool = False
+                    if self.get_dice_value(x) == 2:
+                        return 2
+                    return 1
                 
             else:
                 self.stored_observation = observation["goal_state"]
-                return False
+                return 0
         else:
             self.stored_observation = observation["goal_state"]
-            return False
+            self.writebool = True
+            return 0
 
     def check_points_distance_threshold(self, threshold=0.1):
         o1 = self.env.task_objects["actual_state"]
@@ -338,6 +344,8 @@ class TaskModule():
         #    else:
         #        self.env.episode_over = False
         if finished:
+            if self.task_type == "dice_throw":
+                return finished
             self.end_episode_success()
         if self.check_time_exceeded() or self.env.episode_steps == self.env.max_steps:
             self.end_episode_fail("Max amount of steps reached")

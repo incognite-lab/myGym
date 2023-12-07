@@ -235,9 +235,16 @@ class DiceReward(Reward):
         #print("Observed: ",observation)
         reward = 0.0
         #self.task.check_distance_threshold(observation)
-        self.task.check_goal()
-        if self.task.check_goal():
-            reward += 1.0
+        x = self.task.check_goal()
+        #print("RECIEVED:",x)
+        if x:
+            if x > 1:
+                reward = 1.0
+            
+            self.task.end_episode_success()
+        #if reward > 0.5:
+            #print(reward)
+        self.rewards_history.append(reward)
         return reward
 
     def reset(self):
