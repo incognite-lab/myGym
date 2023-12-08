@@ -1,34 +1,34 @@
 <?xml version="1.0" ?>
-<robot name="nico_upper">
+<robot name="nico_upper_rh6d">
 	<link name="world" />
-	<link name="torso:11">
+	<link name="torso">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/torso_merged_new.stl"/>
+				<mesh filename="mesh/torso.stl"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
-			<material name="torso:11_color">
+			<material name="torso_color">
 				<color rgba="0.270588 0.270588 0.270588 1"/>
 			</material>
 		</visual>
 	</link>
 	<joint name="world_to_base_link" type="fixed">
     	<parent link="world"/>
-    	<child link="torso:11"/>
+    	<child link="torso"/>
   	</joint>
-    <link name="neck:11">
+    <link name="neck">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/neck_long_new.stl"/>
+				<mesh filename="mesh/neck.stl"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
-			<material name="neck:11_color">
+			<material name="neck_color">
 				<color rgba="0.74902 0.74902 0.74902 1"/>
 			</material>
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/neck_long_new.stl"/>
+				<mesh filename="mesh/neck.stl"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
 		</collision>
@@ -38,28 +38,28 @@
 			<origin rpy="0 0 0" xyz="0 0.000266 0.050352"/>
 		</inertial>
 	</link>
-	<joint name="head_z" type="fixed">
-		<parent link="torso:11"/>
-		<child link="neck:11"/>
+	<joint name="head_z_rjoint" type="revolute">
+		<parent link="torso"/>
+		<child link="neck"/>
 		<origin rpy="0 0 0" xyz="-0.02 0.0 0.23"/>
 		<axis xyz="0 0 1"/>
 		<limit effort="30" lower="-3.124" upper="3.142" velocity="1"/>
 	</joint>
-	<link name="head:21">
+	<link name="head">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/headfbx.stl"/>
+				<mesh filename="mesh/head.stl"/>
 			</geometry>
-			<origin rpy="0 0 3.14" xyz="0 0 -0.5"/>
-			<material name="head:21_color">
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="head_color">
 				<color rgba="0.74902 0.74902 0.74902 1"/>
 			</material>
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/headfbx.stl"/>
+				<mesh filename="mesh/head.stl"/>
 			</geometry>
-			<origin rpy="0 0 3.14" xyz="0 0 -0.5"/>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
 		</collision>
 		<inertial>
 			<mass value="0.294137"/>
@@ -67,28 +67,28 @@
 			<origin rpy="0 0 0" xyz="0.01525 -0.023771 0.09423"/>
 		</inertial>
 	</link>
-	<joint name="head_y" type="fixed">
-		<parent link="neck:11"/>
-		<child link="head:21"/>
-		<origin rpy="0 0 0" xyz="0 0.0 0.11"/>
+	<joint name="head_y_rjoint" type="revolute">
+		<parent link="neck"/>
+		<child link="head"/>
+		<origin rpy="0 0 0" xyz="0 0.0 0.10"/>
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="-1.553" upper="1.379" velocity="1"/>
 	</joint>
-	<link name="right_shoulder:11">
+	<link name="right_shoulder">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_shoulder_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="mesh/right_shoulder.stl"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="-0.062271 0.032843 -0.74045"/>
-			<material name="right_shoulder:11_color">
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_shoulder_color">
 				<color rgba="0.176471 0.176471 0.176471 1"/>
 			</material>
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/right_shoulder_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="mesh/right_shoulder.stl"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="-0.062271 0.032843 -0.74045"/>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
 		</collision>
 		<inertial>
 			<mass value="0.084038"/>
@@ -97,27 +97,27 @@
 		</inertial>
 	</link>
 	<joint name="r_shoulder_z_rjoint" type="revolute">
-		<parent link="torso:11"/>
-		<child link="right_shoulder:11"/>
+		<parent link="torso"/>
+		<child link="right_shoulder"/>
 		<origin rpy="0 0 0" xyz="0.0 -0.045 0.23"/>
 		<axis xyz="0 0 1"/>
 		<limit effort="30" lower="-1.745" upper="2.182" velocity="1"/>
 	</joint>
-	<link name="right_collarbone:11">
+	<link name="right_collarbone">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_collar_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="mesh/right_collar.stl"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="-0.0285 -0.054827 -0.000102"/>
-			<material name="right_collarbone:11_color">
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_collarbone_color">
 				<color rgba="0.176471 0.176471 0.176471 1"/>
 			</material>
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/right_collar_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="mesh/right_collar.stl"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="-0.0285 -0.054827 -0.000102"/>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
 		</collision>
 		<inertial>
 			<mass value="0.024811"/>
@@ -126,27 +126,27 @@
 		</inertial>
 	</link>
 	<joint name="r_shoulder_y_rjoint" type="revolute">
-		<parent link="right_shoulder:11"/>
-		<child link="right_collarbone:11"/>
-		<origin rpy="0 0 0.20444" xyz="0.026211 -0.018056 0.037"/>
+		<parent link="right_shoulder"/>
+		<child link="right_collarbone"/>
+		<origin rpy="0 0 0" xyz="-0.021 -0.023 0.033"/>
 		<axis xyz="0 -1 0"/>
 		<limit effort="30" lower="-3.142" upper="3.124" velocity="1"/>
 	</joint>
-	<link name="right_upper_arm:11">
+	<link name="right_upper_arm">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_upper_arm_fbx.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="mesh/right_upper_arm.stl"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="-0.044001 -0.021 -0.139458"/>
-			<material name="right_upper_arm:11_color">
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_upper_arm_color">
 				<color rgba="0.176471 0.176471 0.176471 1"/>
 			</material>
 		</visual>
-		<collision>meshes/right_lower_arm1_iam_65a34910.STL
+		<collision>
 			<geometry>
-				<mesh filename="meshes/right_upper_arm_fbx.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="mesh/right_upper_arm.stl"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="-0.044001 -0.021 -0.139458"/>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
 		</collision>
 		<inertial>
 			<mass value="0.189729"/>
@@ -154,28 +154,28 @@
 			<origin rpy="0 0 0" xyz="-0.02306 -0.000321 -0.0866"/>
 		</inertial>
 	</link>
-	<joint name="r_arm_x_rjoint" type="revolute">
-		<parent link="right_collarbone:11"/>
-		<child link="right_upper_arm:11"/>
-		<origin rpy="0 0 0" xyz="0.0245 -0.073664 -0.022853"/>
+	<joint name="r_upperarm_x_rjoint" type="revolute">
+		<parent link="right_collarbone"/>
+		<child link="right_upper_arm"/>
+		<origin rpy="0 0 0" xyz="0.00 -0.073 -0.023"/>
 		<axis xyz="1 0 0"/>
 		<limit effort="30" lower="-3.002" upper="1.8675" velocity="1"/>
 	</joint>
-	<link name="right_lower_arm:11">
+	<link name="right_lower_arm">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_lowerarm_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="mesh/right_lower_arm.stl"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="-0.0168 -0.0018 -0.123873"/>
-			<material name="right_lower_arm:11_color">
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_lower_arm_color">
 				<color rgba="0.176471 0.176471 0.176471 1"/>
 			</material>
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/right_lowerarm_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="mesh/right_lower_arm.stl"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="-0.0168 -0.0018 -0.123873"/>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
 		</collision>
 		<inertial>
 			<mass value="0.076793"/>
@@ -184,9 +184,9 @@
 		</inertial>
 	</link>
 	<joint name="r_elbow_y_rjoint" type="revolute">
-		<parent link="right_upper_arm:11"/>
-		<child link="right_lower_arm:11"/>
-		<origin rpy="0 0 0" xyz="-0.023001 -0.024001 -0.1732"/>
+		<parent link="right_upper_arm"/>
+		<child link="right_lower_arm"/>
+		<origin rpy="0 0 0" xyz="0.0 0 -0.17"/>
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="-1.745" upper="1.745" velocity="1"/>
 	</joint>
@@ -213,7 +213,7 @@
 		</inertial>
 	</link>
 	<joint name="r_wrist_z_rjoint" type="revolute">
-		<parent link="right_lower_arm:11"/>
+		<parent link="right_lower_arm"/>
 		<child link="right_wrist:11"/>
 		<origin rpy="0 0 0.028946" xyz="0 0.0102 -0.12605"/>
 		<axis xyz="0 0 1"/>
@@ -285,7 +285,7 @@
 		</inertial>
 	</link>
 	<joint name="l_shoulder_z" type="fixed">
-		<parent link="torso:11"/>
+		<parent link="torso"/>
 		<child link="left_shoulder:11"/>
 		<origin rpy="0 0 0.019617" xyz="0.0 0.045 0.23"/>
 		<axis xyz="0 0 1"/>

@@ -112,7 +112,7 @@
 	<link name="right_collarbone:11">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/right_upper_arm_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="meshes/right_collar_simple.stl" scale="0.001 0.001 0.001"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="-0.0285 -0.054827 -0.000102"/>
 			<material name="right_collarbone:11_color">
