@@ -1,4 +1,16 @@
 <?xml version="1.0" ?>
+<!-- =================================================================================== -->
+<!-- |    This document was manually created   and the meshes resized and repositioned | -->
+<!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
+<!-- =================================================================================== -->
+<!--
+  Copyright (c) 2023, Michal Vavrecka
+  All rights reserved.
+
+  This work is licensed under the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 Unported License.
+  To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/3.0/ or send a letter to
+  Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+-->
 <robot name="nico_upper_rh6d">
 	<link name="world" />
 	<link name="torso">
@@ -99,7 +111,7 @@
 	<joint name="r_shoulder_z_rjoint" type="revolute">
 		<parent link="torso"/>
 		<child link="right_shoulder"/>
-		<origin rpy="0 0 0" xyz="0.0 -0.045 0.23"/>
+		<origin rpy="0 0 0" xyz="0.005 -0.045 0.23"/>
 		<axis xyz="0 0 1"/>
 		<limit effort="30" lower="-1.745" upper="2.182" velocity="1"/>
 	</joint>
@@ -350,34 +362,34 @@
 	</joint>
 
 
-	<link name="left_shoulder:11">
+	<link name="left_shoulder">
 		<visual>
 			<geometry>
-				<mesh filename="meshes/left_shoulder_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="mesh/right_shoulder.stl"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="0.014919 0.097299 -0.01461"/>
-			<material name="left_shoulder:11_color">
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_shoulder_color">
 				<color rgba="0.176471 0.176471 0.176471 1"/>
 			</material>
 		</visual>
 		<collision>
 			<geometry>
-				<mesh filename="meshes/left_shoulder_simple.stl" scale="0.001 0.001 0.001"/>
+				<mesh filename="mesh/right_shoulder.stl"/>
 			</geometry>
-			<origin rpy="0 0 0" xyz="0.014919 0.097299 -0.01461"/>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
 		</collision>
 		<inertial>
 			<mass value="0.084038"/>
 			<inertia ixx="0.000026" ixy="-0.000001" ixz="-0.000002" iyy="0.000034" iyz="-0" izz="0.000033"/>
-			<origin rpy="0 0 0" xyz="0.005702 0.000175 0.033153"/>
+			<origin rpy="0 0 0" xyz="0.005637 0.000876 0.033153"/>
 		</inertial>
 	</link>
-	<joint name="l_shoulder_z" type="fixed">
+	<joint name="l_shoulder_z_rjoint" type="revolute">
 		<parent link="torso"/>
-		<child link="left_shoulder:11"/>
-		<origin rpy="0 0 0.019617" xyz="0.0 0.045 0.23"/>
+		<child link="left_shoulder"/>
+		<origin rpy="0 0 0" xyz="0.0 0.045 0.23"/>
 		<axis xyz="0 0 1"/>
-		<limit effort="30" lower="-2.182" upper="1.745" velocity="1"/>
+		<limit effort="30" lower="-1.745" upper="2.182" velocity="1"/>
 	</joint>
 	<link name="left_collarbone:11">
 		<visual>
@@ -402,7 +414,7 @@
 		</inertial>
 	</link>
 	<joint name="l_shoulder_y" type="fixed">
-		<parent link="left_shoulder:11"/>
+		<parent link="left_shoulder"/>
 		<child link="left_collarbone:11"/>
 		<origin rpy="0 -0.00445 -0.019538" xyz="0.022445 0.022567 0.037"/>
 		<axis xyz="0 1 0"/>
