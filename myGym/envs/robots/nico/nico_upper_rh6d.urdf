@@ -55,7 +55,7 @@
 		<child link="neck"/>
 		<origin rpy="0 0 0" xyz="-0.02 0.0 0.23"/>
 		<axis xyz="0 0 1"/>
-		<limit effort="30" lower="-3.124" upper="3.142" velocity="1"/>
+		<limit effort="30" lower="-1.5708" upper="1.5708" velocity="1"/>
 	</joint>
 	<link name="head">
 		<visual>
@@ -84,7 +84,7 @@
 		<child link="head"/>
 		<origin rpy="0 0 0" xyz="0 0.0 0.105"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-1.553" upper="1.379" velocity="1"/>
+		<limit effort="30" lower="-0.8726" upper="0.4363" velocity="1"/>
 	</joint>
 	<link name="right_shoulder">
 		<visual>
@@ -113,7 +113,7 @@
 		<child link="right_shoulder"/>
 		<origin rpy="0 0 0" xyz="0.005 -0.045 0.23"/>
 		<axis xyz="0 0 1"/>
-		<limit effort="30" lower="-1.745" upper="2.182" velocity="1"/>
+		<limit effort="30" lower="-0.4363" upper="1.3963" velocity="1"/>
 	</joint>
 	<link name="right_collarbone">
 		<visual>
@@ -142,7 +142,7 @@
 		<child link="right_collarbone"/>
 		<origin rpy="0 0 0" xyz="-0.021 -0.023 0.033"/>
 		<axis xyz="0 -1 0"/>
-		<limit effort="30" lower="-3.142" upper="3.124" velocity="1"/>
+		<limit effort="30" lower="-0.5236" upper="3.1416" velocity="1"/>
 	</joint>
 	<link name="right_upper_arm">
 		<visual>
@@ -171,7 +171,7 @@
 		<child link="right_upper_arm"/>
 		<origin rpy="0 0 0" xyz="0.00 -0.073 -0.023"/>
 		<axis xyz="1 0 0"/>
-		<limit effort="30" lower="-3.002" upper="1.8675" velocity="1"/>
+		<limit effort="30" lower="0" upper="1.2217" velocity="1"/>
 	</joint>
 	<link name="right_lower_arm">
 		<visual>
@@ -200,7 +200,7 @@
 		<child link="right_lower_arm"/>
 		<origin rpy="0 0 0" xyz="0.0 0 -0.17"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-1.745" upper="1.745" velocity="1"/>
+		<limit effort="30" lower="-1.57" upper="0" velocity="1"/>
 	</joint>
 	<link name="right_wrist">
 		<visual>
@@ -344,21 +344,21 @@
 		<child link="middlefinger"/>
 		<origin rpy="0 0 0" xyz="0 0 -0.06"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-1.57" upper="0" velocity="1"/>
+		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
 	</joint>
 		<joint name="litlefinger_rjoint" type="revolute">
 		<parent link="gripper"/>
 		<child link="littlefinger"/>
 		<origin rpy="0 0 0" xyz="0.00 0.02 -0.06"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-1.57" upper="0" velocity="1"/>
+		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
 	</joint>
 	<joint name="indexfinger_rjoint" type="revolute">
 		<parent link="gripper"/>
 		<child link="indexfinger"/>
 		<origin rpy="0 0 0" xyz="0.00 -0.02 -0.06"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-1.57" upper="0" velocity="1"/>
+		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
 	</joint>
 
 
