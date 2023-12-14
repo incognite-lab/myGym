@@ -233,11 +233,12 @@ class DiceReward(Reward):
             :return reward: (float) Reward signal for the environment
         """
         #print("Observed: ",observation)
-        reward = 0.0
+        reward = -0.0
         #self.task.check_distance_threshold(observation)
         x = self.task.check_goal()
         #print("RECIEVED:",x)
         if x:
+            reward = 0.0
             if x > 1:
                 reward = 1.0
             
