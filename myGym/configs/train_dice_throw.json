@@ -6,7 +6,7 @@
 "render"    :"opengl",
 "seed"      :0,
 "camera"    :0,
-"gui"       :0,
+"gui"       :1,
 "visualize" :0,
 "visgym"    :0,
 #Robot
@@ -20,8 +20,8 @@
 #Task
 "task_type"             :"dice_throw",
 "natural_language"      :0,
-"task_objects"          :[{"init":{"obj_name":"null"},
-                           "goal":{"obj_name":"dice","fixed":0,"rand_rot":1, "sampling_area":[-0.6, -0.6, 0.4, 0.4, 0.87, 0.87]}}],
+"task_objects"          :[{"init":{"obj_name":"dice","fixed":0,"rand_rot":1, "sampling_area":[-0.6, -0.6, 0.4, 0.4, 0.87, 0.87]},
+                           "goal":{"obj_name":"dice","fixed":0,"rand_rot":0, "sampling_area":[-1.4, -1.4, 1.4, 1.4, 0.07, 0.07]}}],
 "used_objects"          :{"num_range":[0,0], "obj_list":[]},
 // Observation
 // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"

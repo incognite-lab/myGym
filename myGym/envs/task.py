@@ -234,7 +234,6 @@ class TaskModule():
         rot_mtx = Rotation.from_quat(noramalize(quaternion)).as_matrix()
 
         rotated_faces = np.dot(rot_mtx, faces.T).T
-
         top_face_index = np.argmax(rotated_faces[:,2])
         
         #face_nums = [2, 5, 1, 4, 6, 3] #states that first face has number 2 on it, second 5 and so on...
@@ -252,27 +251,30 @@ class TaskModule():
         #print(observation["goal_state"])
         if len(observation)<3:
             print("Invalid",observation)
-        x = np.array(observation["goal_state"][3:])
+        x = np.array(observation["actual_state"][3:])
+        
         #print(observation)
         
         if not self.check_distance_threshold(self._observation) and self.env.episode_steps > 25:
-            if calc_still(observation["goal_state"], self.stored_observation):
-                if (self.stored_observation == observation["goal_state"]):
+            if calc_still(observation["actual_state"], self.stored_observation):
+                if (self.stored_observation == observation["actual_state"]):
                     return 0
                 else:
                     if self.writebool:
                         print(self.get_dice_value(x))
+                        print(observation)
                         self.writebool = False
                     if self.get_dice_value(x) == 2:
                         return 2
                     return 1
                 
             else:
-                self.stored_observation = observation["goal_state"]
+                self.stored_observation = observation["actual_state"]
                 return 0
         else:
-            self.stored_observation = observation["goal_state"]
+            self.stored_observation = observation["actual_state"]
             self.writebool = True
+            #print(self.get_dice_value(x))
             return 0
 
     def check_points_distance_threshold(self, threshold=0.1):

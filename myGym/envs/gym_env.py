@@ -444,6 +444,31 @@ class GymEnv(CameraEnv):
         face_nums = [2, 5, 1, 4, 6, 3] #states that first face has number 2 on it, second 5 and so on...
 
         return top_face_index + 1
+    
+    def quaternion_mult(self, q1, q2):
+        w1, x1, y1, z1 = q1
+        w2, x2, y2, z2 = q2
+
+        w = w1*w2 - x1*x2 - y1*y2 - z1*z2
+        x = w1*x2 + x1*w2 + y1*z2 - z1*y2
+        y = w1*y2 - x1*z2 + y1*w2 + z1*x2
+        z = w1*z2 + x1*y2 - y1*x2 + z1*w2
+        return np.array([w,x,y,z])
+
+    def q_inv(self, q):
+        w, x, y, z = q
+        norm = w**2 + x**2 + y**2 + z**2
+        return np.array([w,-x,-y,-z])/norm
+
+    def rotate(self, vec, quat):
+        
+        w, x, y, z = quat
+        norm = w**2 + x**2 + y**2 + z**2
+        quat = quat/norm
+        qcon = self.q_inv(quat)
+        rvect = self.quaternion_mult(quat, np.concatenate(([0], vec)))
+        rvect = self.quaternion_mult(rvect, qcon)[1:]
+        return rvect
 
     def flatten_obs(self, obs):
         """ Returns the input obs dict as flattened list 
@@ -452,9 +477,15 @@ class GymEnv(CameraEnv):
         if not self.dataset:
             obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])"""
         #print(obs)
-        res = self.get_dice_value(obs["goal_state"][3:])
+        vec = self.rotate(np.array([0,1,0]) ,np.array(obs["actual_state"][3:]))
+        print(vec)
+        mult = np.matmul(np.array([0, 1, 0]),vec)
+        rad = np.arccos(mult)
+        
+        res = np.degrees(rad)
+        print(res)
         #print("Sending Reward")
-        obs = {"observation" : obs['goal_state'], "achieved_goal" : np.array([res]), "desired_goal" : np.array([2])}
+        obs = {"observation" : obs['actual_state'], "achieved_goal" : np.array([res]), "desired_goal" : np.array([0])}
         #print(obs)
         return obs
 
