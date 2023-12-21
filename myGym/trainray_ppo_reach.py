@@ -175,7 +175,7 @@ def main():
                      "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"]}
 
-    env_arguments["gui_on"] = True
+    env_arguments["gui_on"] = False
 
     # Register OpenAI gym env in gymnasium
     def env_creator(env_config):
@@ -192,11 +192,11 @@ def main():
     )
 
     #Train
-    for i in range(51000):
+    for i in range(200):
         result = algo.train()
         print(pretty_print(result))
 
-        if i % 1000 == 0:
+        if i % 100 == 0:
             #action = algo.compute_single_action(obs)
             #obs, reward, terminated, truncated, info = env.step(action)
             checkpoint_dir = algo.save()
