@@ -12,7 +12,8 @@ import pybullet_data
 import pkg_resources
 import random
 import getkey
-
+import signal
+from utils.nicomotors import NicoMotors
 
 
 clear = lambda: os.system('clear')
@@ -151,6 +152,19 @@ def detect_key(keypress,arg_dict,action):
     return action
 
 def test_env(env, arg_dict):
+    real_robot = True
+    motors = NicoMotors()
+    dofs = motors.dofs()
+    try:
+        motors.open()
+    except:
+        print('motors are not operational')
+    
+    for k in dofs:
+        motors.enableTorque(k)
+        torque = True
+    
+    
     arg_dict["vsampling"] = 0
     arg_dict["vinfo"] = 0
     spawn_objects = False
@@ -290,7 +304,10 @@ def test_env(env, arg_dict):
 
             print (f"Action:{action}")
             observation, reward, done, info = env.step(action)
-            
+            if real_robot:
+                for k in dofs:
+                    motors.setPositionDg(k,int(values[k]))
+
             if arg_dict["vtrajectory"] == True:
                 visualize_trajectories(info,action)
             if arg_dict["vinfo"] == True:

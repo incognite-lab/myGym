@@ -12,9 +12,9 @@
     #Robot
     "robot"         :"nico_upper_rh6d",
     "robot_action"  :"joints",
-    "robot_init"    :[0.3, 0.3, 0.5],
-    "max_velocity"  :3,
-    "max_force"     :20,
+    "robot_init"    :[0.5, 0.1, 0.6],
+    "max_velocity"  :20,
+    "max_force"     :100,
     "action_repeat" :1,
     #Task
     "task_type"             :"FM",
