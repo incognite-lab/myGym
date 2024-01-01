@@ -41,6 +41,7 @@ class BaseEnv(gym.Env):
         self.show_bounding_boxes_gui = show_bounding_boxes_gui
         self.changing_light_gui = changing_light_gui
         self.shadows_on_gui = shadows_on_gui
+        self.static_scene_objects = {}
 
         # Set episode information
         self.episode_start_time = None

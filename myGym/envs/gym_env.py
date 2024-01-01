@@ -4,6 +4,7 @@ from typing import List
 from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
+from myGym.envs.igibson_predicates import *
 from myGym.envs.base_env import CameraEnv
 from collections import ChainMap
 
@@ -186,14 +187,14 @@ class GymEnv(CameraEnv):
         """
         Set-up environment scene. Load static objects, apply textures. Load robot.
         """
-        self._add_scene_object_uid(self._load_urdf(path="rooms/plane.urdf"), "floor")
+        self._add_scene_object_uid(self._load_static_scene_urdf(path="rooms/plane.urdf", name="floor"), "floor")
         if self.visgym:
             self._add_scene_object_uid(self._load_urdf(path="rooms/room.urdf"), "gym")
             #self._change_texture("gym", self._load_texture("verticalmaze.jpg"))
             [self._add_scene_object_uid(self._load_urdf(path="rooms/visual/" + self.workspace_dict[w]['urdf']), w)
              for w in self.workspace_dict if w != self.workspace]
         self._add_scene_object_uid(
-            self._load_urdf(path="rooms/collision/" + self.workspace_dict[self.workspace]['urdf']), self.workspace)
+            self._load_static_scene_urdf(path="rooms/collision/" + self.workspace_dict[self.workspace]['urdf'], name=self.workspace), self.workspace)
         ws_texture = self.workspace_dict[self.workspace]['texture'] if get_module_type(
             self.obs_type) != "vae" else "grey.png"
         if ws_texture: self._change_texture(self.workspace, self._load_texture(ws_texture))
@@ -211,9 +212,15 @@ class GymEnv(CameraEnv):
     def _load_urdf(self, path, fixedbase=True, maxcoords=True):
         transform = self.workspace_dict[self.workspace]['transform']
         return self.p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", path)),
-                               transform['position'], self.p.getQuaternionFromEuler(transform['orientation']),
+                               transform['position'],  self.p.getQuaternionFromEuler(transform['orientation']),
                                useFixedBase=fixedbase,
                                useMaximalCoordinates=maxcoords)
+    
+    def _load_static_scene_urdf(self, path, name, fixedbase=True):
+        transform = self.workspace_dict[self.workspace]['transform']
+        object = env_object.EnvObject(pkg_resources.resource_filename("myGym", os.path.join("envs", path)), transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase)
+        self.static_scene_objects[name] = object
+        return object.uid
 
     def _change_texture(self, name, texture_id):
         self.p.changeVisualShape(self.get_scene_object_uid_by_name(name), -1,

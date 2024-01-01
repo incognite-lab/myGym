@@ -224,7 +224,7 @@ class EnvObject:
         Get 3D axis-aligned bounding box of object
 
         Returns:
-            :return bounding_box: (list) Center and 8 coordinates of vertices of the bounding box
+            :return bounding_box: (list) 8 coordinates of vertices of the bounding box and Center 
         """
         bounding_box = []
         diag = self.p.getAABB(self.uid)
