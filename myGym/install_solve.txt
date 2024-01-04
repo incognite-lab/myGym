@@ -13,4 +13,4 @@ did not work.
 
 #My solution:
 brew install mpich
-onda install -c conda-forge mpi4py mpich
+conda install -c conda-forge mpi4py mpich
