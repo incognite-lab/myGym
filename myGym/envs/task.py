@@ -264,7 +264,7 @@ class TaskModule():
                         print(self.get_dice_value(x))
                         print(observation)
                         self.writebool = False
-                    if self.get_dice_value(x) == 2:
+                    if self.get_dice_value(x) == 6:
                         return 2
                     return 1
                 
@@ -347,6 +347,9 @@ class TaskModule():
         #        self.env.episode_over = False
         if finished:
             if self.task_type == "dice_throw":
+                
+                if finished == 1:
+                    self.end_episode_fail("Finished with wrong dice result thrown")
                 return finished
             self.end_episode_success()
         if self.check_time_exceeded() or self.env.episode_steps == self.env.max_steps:

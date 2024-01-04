@@ -477,16 +477,20 @@ class GymEnv(CameraEnv):
         if not self.dataset:
             obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])"""
         #print(obs)
-        vec = self.rotate(np.array([0,1,0]) ,np.array(obs["actual_state"][3:]))
-        print(vec)
-        mult = np.matmul(np.array([0, 1, 0]),vec)
-        rad = np.arccos(mult)
+        vec = self.rotate(np.array([1,0,0]) ,np.array(obs["actual_state"][3:]))     #this array must be se manually, [0,0,1] for 1, [1,0,0] for 6, [0,0,-1] for 2
         
-        res = np.degrees(rad)
-        print(res)
+        #print(obs["actual_state"][:3])
+        div = vec - np.array([0,0,1])
+        res = np.matmul(div, div)
+        
+        mult = np.matmul(np.array([0,0,1]),vec)
+        rad = np.arccos(mult)
+        deg = np.degrees(rad)
+        #print(deg)
+        
         #print("Sending Reward")
         obs = {"observation" : obs['actual_state'], "achieved_goal" : np.array([res]), "desired_goal" : np.array([0])}
-        #print(obs)
+        #print(obs)y
         return obs
 
     def _set_cameras(self):
