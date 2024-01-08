@@ -17,6 +17,22 @@ We keep training the current state-of-the-art algorithms to provide baselines fo
 [![Generic badge](https://img.shields.io/badge/Docs-Yes-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://shields.io/)
 
+## Rllib version doc
+
+For Ray Rllib branch please follow this instruxctions:
+
+create mygymrl fro rllib.yml file
+
+`conda env create -f ./myGym/rllib.yml`
+
+`conda activate mygymrl`
+
+`python setup.py develop`
+
+`pip install ray==2.7.2`
+
+
+
 
 ## Advantages
 

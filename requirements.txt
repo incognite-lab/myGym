@@ -17,7 +17,6 @@ packaging==21.0
 pandas==1.0.1
 Pillow==9.2.0
 pybullet==2.6.6
-#pycocotools==2.0.4
 PyYAML==6.0
 protobuf==3.19.0
 scikit_learn==1.0.2
