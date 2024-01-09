@@ -87,31 +87,6 @@ class DevelopWrapper(_develop):
     def _post_install(self):
         print("no task post-install tasks")
 
-
-class EnvironmentMaker(Command):
-    description = "run a custom compile command"
-    user_options = [
-        ("environment-name=", "e", "environment name")
-    ]
-
-    def run(self):
-        if self.environment_name != "":
-            name = self.environment_name
-        else:
-            name = "crow_simulation"
-            inp = input(f"Select name for the conda environment (default: '{name}'): ")
-            if inp != "":
-                name = inp
-        import os
-        run(f"conda env create -f environment.yml -n {name}".split(" "))
-
-    def initialize_options(self):
-        self.environment_name = ""
-
-    def finalize_options(self):
-        pass
-
-
 setup(
     name=packageName,
     # version=version,
@@ -131,7 +106,6 @@ setup(
         'build_py': BuildWrapper,
         'install': InstallWrapper,
         'develop': DevelopWrapper,
-        'make_env': EnvironmentMaker
     },
     classifiers=[
         "Programming Language :: Python :: 3",

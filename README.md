@@ -30,7 +30,7 @@ create mygymrl fro rllib.yml file
 `python setup.py develop`
 
 `pip install ray==2.7.2`
-
+`pip install ray[tune]`
 
 
 
