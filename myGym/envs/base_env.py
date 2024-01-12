@@ -80,10 +80,13 @@ class BaseEnv(gym.Env):
         Connect to the PyBullet physics server in SHARED_MEMORY, GUI or DIRECT mode
         """
         if self.gui_on:
-            self.p = bc.BulletClient(connection_mode=pybullet.GUI)
-            # if (self.p < 0):
-            #     self.p = bc.BulletClient(connection_mode=p.GUI)
-            self._set_gui_mode()
+            try:
+                self.p = bc.BulletClient(connection_mode=pybullet.GUI)
+                # if (self.p < 0):
+                #     self.p = bc.BulletClient(connection_mode=p.GUI)
+                self._set_gui_mode()
+            except: #multithread training allows only one gui instance
+                self.p = bc.BulletClient(connection_mode=pybullet.DIRECT)
         else:
             self.p = bc.BulletClient(connection_mode=pybullet.DIRECT)
         self.p.setPhysicsEngineParameter(enableFileCaching=0)
