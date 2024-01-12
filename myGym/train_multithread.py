@@ -20,15 +20,6 @@ from gymnasium.wrappers import EnvCompatibility
 from ray.tune.registry import register_env
 from myGym.envs.gym_env import GymEnv
 
-
-# Import helper classes and functions for monitoring
-#from myGym.utils.callbacks import ProgressBarManager, SaveOnBestTrainingRewardCallback,  PlottingCallback, CustomEvalCallback
-
-# This is global variable for the type of engine we are working with
-AVAILABLE_SIMULATION_ENGINES = ["pybullet"]
-AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
-
-
 def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
     if model_logdir is None:
         model_logdir = arg_dict["logdir"]
@@ -76,79 +67,6 @@ def configure_env(arg_dict, for_train=True):
 
 def env_creator(env_config):
         return EnvCompatibility(GymEnv(**env_config))    
-
-
-def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None):
-    model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
-    conf_pth   = os.path.join(model_logdir, "train.json")
-    model_path = os.path.join(model_logdir, "best_model.zip")
-    arg_dict["model_path"] = model_path
-    seed = arg_dict.get("seed", None)
-    with open(conf_pth, "w") as f:
-        json.dump(arg_dict, f, indent=4)
-
-    model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
-    model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
-    if seed is not None:
-        np.random.seed(seed)
-        random.seed(seed)
-        model_kwargs["seed"] = seed
-    if pretrained_model:
-        if not os.path.isabs(pretrained_model):
-            pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
-        env = model_args[1]
-        vec_env = DummyVecEnv([lambda: env])
-        model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env)
-    else:
-        model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0](*model_args, **model_kwargs)
-
-    if arg_dict["algo"] == "gail":
-        # Multi processing: (using MPI)
-        if arg_dict["train_framework"] == 'tensorflow':
-            # Generate expert trajectories (train expert)
-            generate_expert_traj(model, model_name, n_timesteps=3000, n_episodes=100)
-            # Load the expert dataset
-            dataset = ExpertDataset(expert_path=model_name+'.npz', traj_limitation=10, verbose=1)
-            kwargs = {"verbose":1}
-            if seed is not None:
-                kwargs["seed"] = seed
-            model = GAIL_T('MlpPolicy', model_name, dataset, **kwargs)
-            # Note: in practice, you need to train for 1M steps to have a working policy
-
-    start_time = time.time()
-    callbacks_list = []
-    if pretrained_model:
-        model_logdir = pretrained_model.split('/')
-        model_logdir = model_logdir[:-1]
-        model_logdir = "/".join(model_logdir)
-        auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env, engine=arg_dict["engine"], multiprocessing=arg_dict["multiprocessing"])
-    else:
-        auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env, engine=arg_dict["engine"], multiprocessing=arg_dict["multiprocessing"])
-    callbacks_list.append(auto_save_callback)
-    if arg_dict["eval_freq"]:
-        #eval_env = configure_env(arg_dict, model_logdir, for_train=False)
-        eval_env = env
-        eval_callback = CustomEvalCallback(eval_env, log_path=model_logdir,
-                                           eval_freq=arg_dict["eval_freq"],
-                                           algo_steps=arg_dict["algo_steps"],
-                                           n_eval_episodes=arg_dict["eval_episodes"],                                           
-                                           record=arg_dict["record"],
-                                           camera_id=arg_dict["camera"])
-        callbacks_list.append(eval_callback)
-    #callbacks_list.append(PlottingCallback(model_logdir))
-    #with ProgressBarManager(total_timesteps=arg_dict["steps"]) as progress_callback:
-    #    callbacks_list.append(progress_callback)
-    model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
-    model.save(os.path.join(model_logdir, model_name))
-    print("Training time: {:.2f} s".format(time.time() - start_time))
-    print("Training steps: {:} s".format(model.num_timesteps))
-
-    # info_keywords in monitor class above is neccessary for pybullet to save_results
-    # when using the info_keywords for mujoco we get an error
-    if arg_dict["engine"] == "pybullet":
-        save_results(arg_dict, model_name, env, model_logdir)
-    return model
-
 
 def configure_implemented_combos(arg_dict):
     implemented_combos = {"ppo": PPOConfig, "sac": SACConfig, "marwil": MARWILConfig, "appo":APPOConfig}
@@ -224,39 +142,7 @@ def get_arguments(parser):
                 arg_dict[key] = value
     return arg_dict, args
 
-
-def main():
-    parser = get_parser()
-    arg_dict, args = get_arguments(parser)
-    ray.init(local_mode=True)
-    
-    # Check if we chose one of the existing engines
-    if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
-        print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
-        return
-    if not os.path.isabs(arg_dict["logdir"]):
-        arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
-    os.makedirs(arg_dict["logdir"], exist_ok=True)
-    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["task_type"],arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["algo"])))
-    model_logdir = model_logdir_ori
-    add = 2
-    while True:
-        try:
-            os.makedirs(model_logdir, exist_ok=False)
-            break
-        except:
-            model_logdir = "_".join((model_logdir_ori, str(add)))
-            add += 1
-
-    num_steps = arg_dict["steps"]
-    algo_steps = arg_dict["algo_steps"]
-    arg_dict = configure_env(arg_dict, for_train=1)
-    register_env('GymEnv-v0', env_creator)
-    if not args.ray_tune:
-        assert arg_dict["algo"] == "ppo", "Training without ray tune only works with PPO (rllib limitation)"
-    algorithm = configure_implemented_combos(arg_dict)
-    arg_dict.pop("algo")
-
+def train(args, arg_dict, algorithm, num_steps, algo_steps):
     if not args.ray_tune:
         # manual training with train loop using PPO and fixed learning rate
         print("Running manual train loop without Ray Tune.")
@@ -289,6 +175,41 @@ def main():
         # if args.as_test:
         #     print("Checking if learning goals were achieved")
         #     check_learning_achieved(results, args.stop_reward)
+
+
+def main():
+    parser = get_parser()
+    arg_dict, args = get_arguments(parser)
+    ray.init(local_mode=True)
+    
+    # Check if we chose one of the existing engines
+    if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
+        print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
+        return
+    if not os.path.isabs(arg_dict["logdir"]):
+        arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
+    os.makedirs(arg_dict["logdir"], exist_ok=True)
+    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["task_type"],arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["algo"])))
+    model_logdir = model_logdir_ori
+    add = 2
+    while True:
+        try:
+            os.makedirs(model_logdir, exist_ok=False)
+            break
+        except:
+            model_logdir = "_".join((model_logdir_ori, str(add)))
+            add += 1
+
+    num_steps = arg_dict["steps"]
+    algo_steps = arg_dict["algo_steps"]
+    arg_dict = configure_env(arg_dict, for_train=1)
+    register_env('GymEnv-v0', env_creator)
+    if not args.ray_tune:
+        assert arg_dict["algo"] == "ppo", "Training without ray tune only works with PPO (rllib limitation)"
+    algorithm = configure_implemented_combos(arg_dict)
+    arg_dict.pop("algo")
+    train(args, arg_dict, algorithm, num_steps, algo_steps)
+
 
 if __name__ == "__main__":
     main()
