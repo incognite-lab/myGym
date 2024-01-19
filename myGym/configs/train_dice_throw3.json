@@ -39,15 +39,15 @@
 "yolact_config" :null,
 #Train
 "train_framework"   :"tensorflow",
-"algo"              :"her",
+"algo"              :"ppo",
 "num_networks" : 1,
 "max_episode_steps" :5120,
 "algo_steps"        :5120,
-"steps"             :10000000,
+"steps"             :100000,
 "pretrained_model"  :null,
 "multiprocessing"   :false,
 #Evaluation
-"eval_freq"     :500000,
+"eval_freq"     :50000,
 "eval_episodes" :100,
 #Saving and logging
 "logdir"    :"trained_models/dice_throw",
