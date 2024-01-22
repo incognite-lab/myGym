@@ -50,7 +50,7 @@
 			<origin rpy="0 0 0" xyz="0 0.000266 0.050352"/>
 		</inertial>
 	</link>
-	<joint name="head_z_rjoint" type="revolute">
+	<joint name="head_z_rjoint" type="fixed">
 		<parent link="torso"/>
 		<child link="neck"/>
 		<origin rpy="0 0 0" xyz="-0.02 0.0 0.23"/>
@@ -79,7 +79,7 @@
 			<origin rpy="0 0 0" xyz="0.01525 -0.023771 0.09423"/>
 		</inertial>
 	</link>
-	<joint name="head_y_rjoint" type="revolute">
+	<joint name="head_y_rjoint" type="fixed">
 		<parent link="neck"/>
 		<child link="head"/>
 		<origin rpy="0 0 0" xyz="0 0.0 0.105"/>
@@ -339,21 +339,21 @@
 			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
 		</inertial>
 	</link>
-	<joint name="middlefinger_rjoint" type="revolute">
+	<joint name="middlefinger_rjoint" type="fixed">
 		<parent link="gripper"/>
 		<child link="middlefinger"/>
 		<origin rpy="0 0 0" xyz="0 0 -0.06"/>
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
 	</joint>
-		<joint name="litlefinger_rjoint" type="revolute">
+		<joint name="litlefinger_rjoint" type="fixed">
 		<parent link="gripper"/>
 		<child link="littlefinger"/>
 		<origin rpy="0 0 0" xyz="0.00 0.02 -0.06"/>
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
 	</joint>
-	<joint name="indexfinger_rjoint" type="revolute">
+	<joint name="indexfinger_rjoint" type="fixed">
 		<parent link="gripper"/>
 		<child link="indexfinger"/>
 		<origin rpy="0 0 0" xyz="0.00 -0.02 -0.06"/>
@@ -384,7 +384,7 @@
 			<origin rpy="0 0 0" xyz="0.005637 0.000876 0.033153"/>
 		</inertial>
 	</link>
-	<joint name="l_shoulder_z_rjoint" type="revolute">
+	<joint name="l_shoulder_z_rjoint" type="fixed">
 		<parent link="torso"/>
 		<child link="left_shoulder"/>
 		<origin rpy="0 0 0" xyz="0.0 0.045 0.23"/>
