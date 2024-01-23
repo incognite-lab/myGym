@@ -170,7 +170,7 @@
 		<parent link="right_collarbone"/>
 		<child link="right_upper_arm"/>
 		<origin rpy="0 0 0" xyz="0.00 -0.073 -0.023"/>
-		<axis xyz="1 0 0"/>
+		<axis xyz="-1 0 0"/>
 		<limit effort="30" lower="0" upper="1.2217" velocity="1"/>
 	</joint>
 	<link name="right_lower_arm">
@@ -198,9 +198,9 @@
 	<joint name="r_elbow_y_rjoint" type="revolute">
 		<parent link="right_upper_arm"/>
 		<child link="right_lower_arm"/>
-		<origin rpy="0 0 0" xyz="0.0 0 -0.17"/>
+		<origin rpy="0 3.14 0" xyz="0.0 0 -0.17"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-1.57" upper="0" velocity="1"/>
+		<limit effort="30" lower="0.8726" upper="3.1416" velocity="1"/>
 	</joint>
 	<link name="right_wrist">
 		<visual>
@@ -227,7 +227,7 @@
 	<joint name="r_wrist_z_rjoint" type="revolute">
 		<parent link="right_lower_arm"/>
 		<child link="right_wrist"/>
-		<origin rpy="0 0 0" xyz="0 0 -0.105"/>
+		<origin rpy="0 0 1.57" xyz="0 0 -0.105"/>
 		<axis xyz="0 0 1"/>
 		<limit effort="30" lower="-1.571" upper="1.571" velocity="1"/>
 	</joint>
@@ -258,7 +258,7 @@
 		<child link="gripper"/>
 		<origin rpy="0 0 0" xyz="0 0 -0.10"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-.5" upper="0.5" velocity="1"/>
+		<limit effort="30" lower="-.78" upper="0.78" velocity="1"/>
 	</joint>
 	<link name="endeffector">
     	<visual>
