@@ -346,30 +346,20 @@ def test_env(env, arg_dict):
             elif arg_dict["control"] == "random":
                 action = env.action_space.sample()
 
-            
-            
-            deg = np.rad2deg(action)
-            print (f"Action:{deg}")
             observation, reward, done, info = env.step(action)
             
             if real_robot:
-                defaultSpeed = 0.1
-
-                safe = { # standard position
-                'r_shoulder_z':0.0,
-                'r_shoulder_y':90.0,
-                'r_arm_x':0.0,
-                'r_elbow_y':120.0,
-                'r_wrist_z':0.0,
-                'r_wrist_x':-56.0
-            }
+                defaultSpeed = 0.01
+                #jointaction = info['o']["additional_obs"]["joints_angles"]
+                jointaction = env.env.robot.joint_poses
+                deg = np.rad2deg(jointaction)
                 robot.setAngle('r_shoulder_z',deg[0],defaultSpeed)
                 robot.setAngle('r_shoulder_y',deg[1],defaultSpeed)
                 robot.setAngle('r_arm_x',deg[2],defaultSpeed)
                 robot.setAngle('r_elbow_y',deg[3],defaultSpeed)
                 robot.setAngle('r_wrist_z',deg[4],defaultSpeed)
                 robot.setAngle('r_wrist_x',deg[5],defaultSpeed)
-                time.sleep(0.05)
+                time.sleep(0.06)
 
             if arg_dict["vtrajectory"] == True:
                 visualize_trajectories(info,action)

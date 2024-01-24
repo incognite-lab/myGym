@@ -284,6 +284,18 @@ class Protorewards(Reward):
 
 # RDDL
 
+class F(Protorewards):
+    
+    def compute(self, observation=None):
+        owner = 0
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position]][owner]
+        reward = [self.find_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+    
 class FaM(Protorewards):
     
     def compute(self, observation=None):
