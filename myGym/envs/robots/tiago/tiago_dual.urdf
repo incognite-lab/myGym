@@ -1027,7 +1027,7 @@
     <parent link="torso_fixed_link"/>
     <child link="torso_lift_link"/>
     <axis xyz="0 0 1"/>
-    <limit effort="2000" lower="0" upper="0.35" velocity="5"/>
+    <limit effort="2000" lower="0.349" upper="0.35" velocity="5"/>
     <calibration rising="0.0"/>
     <dynamics damping="1000"/>
     <safety_controller k_position="20" k_velocity="20" soft_lower_limit="0.0" soft_upper_limit="0.35"/>
@@ -1246,7 +1246,7 @@
   <joint name="arm_left_1_joint" type="fixed">
     <parent link="torso_lift_link"/>
     <child link="arm_left_1_link"/>
-    <origin rpy="3.14159265359 0 1.57079632679" xyz="0.02556 0.19 -0.171"/>
+    <origin rpy="3.14159265359 0 2.9" xyz="0.02556 0.19 -0.171"/>
     <axis xyz="0 0 1"/>
     <limit effort="43.0" lower="-1.1780972451" upper="1.57079632679" velocity="1.95"/>
     <dynamics damping="1.0" friction="1.0"/>
@@ -1277,7 +1277,7 @@
   <joint name="arm_left_2_joint" type="fixed">
     <parent link="arm_left_1_link"/>
     <child link="arm_left_2_link"/>
-    <origin rpy="1.57079632679 0.0 0.0" xyz="0.125 -0.0195 0.031"/>
+    <origin rpy="1.57079632679 -1.57079632679 0.0" xyz="0.125 -0.0195 0.031"/>
     <axis xyz="0 0 1"/>
     <limit effort="43.0" lower="-1.1780972451" upper="1.57079632679" velocity="1.95"/>
     <dynamics damping="1.0" friction="1.0"/>
@@ -1306,7 +1306,7 @@
   <joint name="arm_left_3_joint" type="fixed">
     <parent link="arm_left_2_link"/>
     <child link="arm_left_3_link"/>
-    <origin rpy="-1.57079632679 3.14159265359 -1.57079632679" xyz="0.0895 0.0 -0.0015"/>
+    <origin rpy="-1.57079632679 2.9 -1.57079632679" xyz="0.0895 0.0 -0.0015"/>
     <axis xyz="0 0 1"/>
     <limit effort="26" lower="-0.785398163397" upper="3.92699081699" velocity="2.35"/>
     <dynamics damping="1.0" friction="1.0"/>
@@ -1338,7 +1338,7 @@
   <joint name="arm_left_4_joint" type="fixed">
     <parent link="arm_left_3_link"/>
     <child link="arm_left_4_link"/>
-    <origin rpy="1.57079632679 -1.57079632679 0.0" xyz="-0.02 -0.027 0.222"/>
+    <origin rpy="1.57079632679 0.785 0.0" xyz="-0.02 -0.027 0.222"/>
     <axis xyz="0 0 1"/>
     <limit effort="26" lower="-0.392699081699" upper="2.35619449019" velocity="2.35"/>
     <dynamics damping="1.0" friction="1.0"/>
@@ -2019,7 +2019,7 @@
   </joint>
   <link name="endeffector">
     <visual>
-      <origin rpy="0 0 0" xyz="0.08 0.0 0.0"/>
+      <origin rpy="0 0 0" xyz="-0.04 0.0 -0.22"/>
       <geometry>
         <sphere radius="0.01"/>
       </geometry>
