@@ -1,4 +1,4 @@
-name: mygym_clean
+name: mygym
 channels:
   - pytorch
   - defaults
