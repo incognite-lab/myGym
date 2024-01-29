@@ -200,7 +200,6 @@ class TaskModule():
             :return: (bool)
         """
         self.current_norm_distance = self.calc_distance(observation["goal_state"], observation["actual_state"])
-        print(self.current_norm_distance)
         return self.current_norm_distance < threshold
     
     def check_distrot_threshold(self, observation, threshold=0.1):
