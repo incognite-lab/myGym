@@ -563,7 +563,7 @@
     <dynamics damping="100"/>
     <safety_controller k_position="0" k_velocity="10" soft_lower_limit="-0.005" soft_upper_limit="0.005"/>
   </joint>
-  <joint name="wheel_right_rjoint" type="continuous">
+  <joint name="wheel_right_joint" type="fixed">
     <parent link="ignore_suspension_right_link"/>
     <child link="wheel_right_link"/>
     <origin rpy="-1.57079632679 0 0" xyz="0 -0.2022 0"/>
@@ -615,7 +615,7 @@
     <dynamics damping="100"/>
     <safety_controller k_position="0" k_velocity="10" soft_lower_limit="-0.005" soft_upper_limit="0.005"/>
   </joint>
-  <joint name="wheel_left_rjoint" type="continuous">
+  <joint name="wheel_left_joint" type="fixed">
     <parent link="ignore_suspension_left_link"/>
     <child link="wheel_left_link"/>
     <origin rpy="-1.57079632679 0 0" xyz="0 0.2022 0"/>
@@ -997,33 +997,9 @@
       </geometry>
       <material name="White"/>
     </visual>
-  
-    <!-- left shoulder collision-->
-    <collision>
-      <origin rpy="0 0 0" xyz="-0.131 0.17 -0.02556"/>
-      <geometry>
-        <mesh filename="package://tiago_description/meshes/torso/torso_lift_collision_shoulder.dae" scale="1 1 1"/>
-      </geometry>
-      <material name="LightGrey"/>
-    </collision>
-    <!-- right shoulder collision-->
-    <collision>
-      <origin rpy="0 0 0" xyz="-0.131 -0.19 -0.02556"/>
-      <geometry>
-        <mesh filename="package://tiago_description/meshes/torso/torso_lift_collision_shoulder.dae" scale="1 1 1"/>
-      </geometry>
-      <material name="LightGrey"/>
-    </collision>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://tiago_description/meshes/torso/torso_lift_collision_neck.dae" scale="1 1 1"/>
-      </geometry>
-      <material name="LightGrey"/>
-    </collision>
   </link>
-  <joint name="torso_lift_rjoint" type="prismatic">
-    <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.597"/>
+  <joint name="torso_lift_joint" type="fixed">
+    <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.95"/>
     <parent link="torso_fixed_link"/>
     <child link="torso_lift_link"/>
     <axis xyz="0 0 1"/>
@@ -1053,7 +1029,7 @@
       <material name="White"/>
     </collision>
   </link>
-  <joint name="head_1_rjoint" type="revolute">
+  <joint name="head_1_joint" type="fixed">
     <parent link="torso_lift_link"/>
     <child link="head_1_link"/>
     <origin rpy="0 0 0" xyz="0.182 0.0 0.0"/>
@@ -1082,7 +1058,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="head_2_rjoint" type="revolute">
+  <joint name="head_2_joint" type="fixed">
     <parent link="head_1_link"/>
     <child link="head_2_link"/>
     <origin rpy="1.57079632679 0 0" xyz="0.005 0.0 0.098"/>
@@ -1736,12 +1712,6 @@
       </geometry>
       <material name="White"/>
     </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://tiago_description/meshes/arm/arm_1_collision.dae" scale="1 -1 1"/>
-      </geometry>
-    </collision>
   </link>
   <joint name="arm_right_1_rjoint" type="revolute">
     <parent link="torso_lift_link"/>
@@ -1749,8 +1719,6 @@
     <origin rpy="0 0 -1.57079632679" xyz="0.02556 -0.19 -0.171"/>
     <axis xyz="0 0 1"/>
     <limit effort="43.0" lower="-1.1780972451" upper="1.57079632679" velocity="1.95"/>
-    <dynamics damping="1.0" friction="1.0"/>
-    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-1.1080972451" soft_upper_limit="1.50079632679"/>
   </joint>
   <link name="arm_right_2_link">
     <inertial>
@@ -1780,8 +1748,6 @@
     <origin rpy="-1.57079632679 0.0 0.0" xyz="0.125 -0.0195 -0.031"/>
     <axis xyz="0 0 1"/>
     <limit effort="43.0" lower="-1.1780972451" upper="1.57079632679" velocity="1.95"/>
-    <dynamics damping="1.0" friction="1.0"/>
-    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-1.1080972451" soft_upper_limit="1.50079632679"/>
   </joint>
   <link name="arm_right_3_link">
     <inertial>
@@ -1809,8 +1775,6 @@
     <origin rpy="-1.57079632679 0.0 1.57079632679" xyz="0.0895 0.0 -0.0015"/>
     <axis xyz="0 0 1"/>
     <limit effort="26" lower="-0.785398163397" upper="3.92699081699" velocity="2.35"/>
-    <dynamics damping="1.0" friction="1.0"/>
-    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-0.715398163397" soft_upper_limit="3.85699081699"/>
   </joint>
   <!--************************-->
   <!--        ELBOW           -->
@@ -1841,8 +1805,6 @@
     <origin rpy="-1.57079632679 -1.57079632679 0.0" xyz="-0.02 -0.027 -0.222"/>
     <axis xyz="0 0 1"/>
     <limit effort="26" lower="-0.392699081699" upper="2.35619449019" velocity="2.35"/>
-    <dynamics damping="1.0" friction="1.0"/>
-    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-0.322699081699" soft_upper_limit="2.28619449019"/>
   </joint>
   <!--************************-->
   <!--        WRIST           -->
@@ -1876,8 +1838,6 @@
     <origin rpy="1.57079632679 -1.57079632679 -1.57079632679" xyz="-0.162 0.02 0.027"/>
     <axis xyz="0 0 1"/>
     <limit effort="3" lower="-2.09439510239" upper="2.09439510239" velocity="1.95"/>
-    <dynamics damping="1.0" friction="1.0"/>
-    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-2.07439510239" soft_upper_limit="2.07439510239"/>
   </joint>
   <link name="arm_right_6_link">
     <inertial>
@@ -1905,8 +1865,6 @@
     <origin rpy="0.0 -1.57079632679 -1.57079632679" xyz="0 0 0.15"/>
     <axis xyz="0 0 1"/>
     <limit effort="6.6" lower="-1.41371669412" upper="1.41371669412" velocity="1.76"/>
-    <dynamics damping="1.0" friction="1.0"/>
-    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-1.39371669412" soft_upper_limit="1.39371669412"/>
   </joint>
   <link name="arm_right_7_link">
     <inertial>
@@ -1921,8 +1879,6 @@
     <origin rpy="1.57079632679 0.0 1.57079632679" xyz="0 0 0"/>
     <axis xyz="0 0 1"/>
     <limit effort="6.6" lower="-2.09439510239" upper="2.09439510239" velocity="1.76"/>
-    <dynamics damping="1.0" friction="1.0"/>
-    <safety_controller k_position="20" k_velocity="20" soft_lower_limit="-2.07439510239" soft_upper_limit="2.07439510239"/>
   </joint>
   <!--***********************-->
   <!--        TOOL           -->
