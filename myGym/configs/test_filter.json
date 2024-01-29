@@ -28,7 +28,7 @@
     // additional_obs options (pick none/one/more): "joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"
     "observation"           : {"actual_state":"obj_xyz", "goal_state":"obj_xyz", "additional_obs":["endeff_xyz","touch"]},
     #Distractor
-    "distractors"           :  {"list":null,
+    "distractors"           :  {"list": null,
                                 "moveable":1,
                                 "constant_speed":0,
                                 "movement_dims":3,
