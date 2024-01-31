@@ -232,9 +232,9 @@ class GymEnv(CameraEnv):
         if self.obs_space == "dict":
             goaldim = int(self.task.obsdim / 2) if self.task.obsdim % 2 == 0 else int(self.task.obsdim / 3)
             self.observation_space = spaces.Dict(
-                {"observation": spaces.Box(low=-10, high=10, shape=(7,)),
-                 "achieved_goal": spaces.Box(low=-10, high=10, shape=(1,)),
-                 "desired_goal": spaces.Box(low=-10, high=10, shape=(1,))})
+                {"observation": spaces.Box(low=-10, high=10, shape=(self.task.obsdim,)),
+                 "achieved_goal": spaces.Box(low=-10, high=10, shape=(goaldim,)),
+                 "desired_goal": spaces.Box(low=-10, high=10, shape=(goaldim,))})
         else:
             observationDim = self.task.obsdim
             observation_high = np.array([100] * observationDim)
@@ -471,25 +471,26 @@ class GymEnv(CameraEnv):
         return rvect
 
     def flatten_obs(self, obs):
-        """ Returns the input obs dict as flattened list 
+        """ Returns the input obs dict as flattened list""" 
         if len(obs["additional_obs"].keys()) != 0 and not self.dataset:
             obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
         if not self.dataset:
-            obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])"""
-        #print(obs)
-        vec = self.rotate(np.array([1,0,0]) ,np.array(obs["actual_state"][3:]))     #this array must be se manually, [0,0,1] for 1, [1,0,0] for 6, [0,0,-1] for 2
+            obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])
+    
+        # Code snippet for HER dicethrow
+        #vec = self.rotate(np.array([1,0,0]) ,np.array(obs["actual_state"][3:]))     #this array must be se manually, [0,0,1] for 1, [1,0,0] for 6, [0,0,-1] for 2
         
         #print(obs["actual_state"][:3])
-        div = vec - np.array([0,0,1])
-        res = np.matmul(div, div)
+        #div = vec - np.array([0,0,1])
+        #res = np.matmul(div, div)
         
-        mult = np.matmul(np.array([0,0,1]),vec)
-        rad = np.arccos(mult)
-        deg = np.degrees(rad)
+        #mult = np.matmul(np.array([0,0,1]),vec)
+        #rad = np.arccos(mult)
+        #deg = np.degrees(rad)
         #print(deg)
         
         #print("Sending Reward")
-        obs = {"observation" : obs['actual_state'], "achieved_goal" : np.array([res]), "desired_goal" : np.array([0])}
+        #obs = {"observation" : obs['actual_state'], "achieved_goal" : np.array([res]), "desired_goal" : np.array([0])}
         #print(obs)y
         return obs
 

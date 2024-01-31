@@ -10,18 +10,18 @@
 "visualize" :0,
 "visgym"    :0,
 #Robot
-"robot"         :"kuka_push",
+"robot"         :"kuka",
 "robot_action"  :"joints",
-"robot_init"    :[-0.6, 0.4, 0.8],
+"robot_init"    :[0.0, 0.4, 0.6],
 "max_velocity"  :10,
-"max_force"     :30,
+"max_force"     :200,
 "action_repeat" :1,
 
 #Task
 "task_type"             :"dice_throw",
 "natural_language"      :0,
 "task_objects"          :[{"init":{"obj_name":"null"},
-                           "goal":{"obj_name":"dice","fixed":0,"rand_rot":1, "sampling_area":[-0.6, -0.6, 0.4, 0.4, 0.81, 0.81]}}],
+                           "goal":{"obj_name":"cube_holes","fixed":1,"rand_rot":1, "sampling_area":[-0.5, -0.2, 0.3, 0.6, 0.1, 0.4]}}],
 "used_objects"          :{"num_range":[0,0], "obj_list":[]},
 // Observation
 // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
