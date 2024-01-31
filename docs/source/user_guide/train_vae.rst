@@ -14,10 +14,10 @@ the latent vectors of the actual and the goal scenes.
 
 To train a robot using VAE, set in the config file:
 
-``"reward_type": "2dvu",``
+``"observation"           : {"actual_state":"vae", "goal_state":"vae", "additional_obs":[]},``
 
 
-Setting up the reward type as "2dvu" means that it will automatically use the VAE to encode the images. Therefore, you also need to specify the path to the VAE model:
+You also need to specify the path to the VAE model:
 
 ``"vae_path":"/vae/trained_models/vae_armtop_4/model_best.pth.tar",``
 

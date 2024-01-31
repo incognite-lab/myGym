@@ -110,36 +110,36 @@ def visualize_infotext(action, env, info):
 
 def detect_key(keypress,arg_dict,action):
 
-    if 97 in keypress.keys() and keypress[97] == 1:
+    if 97 in keypress.keys() and keypress[97] == 1: # A
         action[2] += .03
         print(action)
-    if 122 in keypress.keys() and keypress[122] == 1:
+    if 122 in keypress.keys() and keypress[122] == 1: # Z/Y
         action[2] -= .03
         print(action)
-    if 65297 in keypress.keys() and keypress[65297] == 1:
+    if 65297 in keypress.keys() and keypress[65297] == 1: # ARROW UP
         action[1] -= .03
         print(action)
-    if 65298 in keypress.keys() and keypress[65298] == 1:
+    if 65298 in keypress.keys() and keypress[65298] == 1: # ARROW DOWN
         action[1] += .03
         print(action)
-    if 65295 in keypress.keys() and keypress[65295] == 1:
+    if 65295 in keypress.keys() and keypress[65295] == 1: # ARROW LEFT
         action[0] += .03
         print(action)
-    if 65296 in keypress.keys() and keypress[65296] == 1:
+    if 65296 in keypress.keys() and keypress[65296] == 1: # ARROW RIGHT
         action[0] -= .03
         print(action)
-    if 120 in keypress.keys() and keypress[120] == 1:
+    if 120 in keypress.keys() and keypress[120] == 1: # X
         action[3] -= .03
         action[4] -= .03
         print(action)
-    if 99 in keypress.keys() and keypress[99] == 1:
+    if 99 in keypress.keys() and keypress[99] == 1: # C
         action[3] += .03
         action[4] += .03
         print(action)
-    if 100 in keypress.keys() and keypress[100] == 1:
-        cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
-        change_dynamics(cube[cubecount],lfriction,rfriction,ldamping,adamping)
-        cubecount +=1
+    # if 100 in keypress.keys() and keypress[100] == 1:
+    #     cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
+    #     change_dynamics(cube[cubecount],lfriction,rfriction,ldamping,adamping)
+    #     cubecount +=1
     if "step" in arg_dict["robot_action"]:
         action[:3] = np.multiply(action [:3],10)
     elif "joints" in arg_dict["robot_action"]:
@@ -151,7 +151,6 @@ def detect_key(keypress,arg_dict,action):
     return action
 
 def test_env(env, arg_dict):
-    #arg_dict["gui"] = 1
     spawn_objects = False
     env.render("human")
     #env.reset()
@@ -440,7 +439,6 @@ def main():
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")      
     arg_dict = get_arguments(parser)
-
     model_logdir = os.path.dirname(arg_dict.get("model_path",""))
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:

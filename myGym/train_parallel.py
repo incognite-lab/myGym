@@ -2,7 +2,7 @@ import os
 import threading
 
 algos = [' ppo ',' ppo2 ','sac','trpo']
-api = '/home/michal/code/myGym/myGym'
+api = '~/myGym/myGym'
 configfile = 'configs/train.json'
 script_path = api + '/train.py'
 

@@ -10,10 +10,10 @@
     "visgym"    :0,
     #Robot
     "robot"         :"kuka_push",
-    "robot_action"  :"steps",
+    "robot_action"  :"joints",
     "robot_init"    :[0.0, 0.4, 0.6],
-    "max_velocity"  :10,
-    "max_force"     :200,
+    "max_velocity"  :3,
+    "max_force"     :500,
     "action_repeat" :1,
 
 #Task
@@ -26,7 +26,7 @@
 // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
 // goal_state options (pick one): "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
 // additional_obs options (pick none/one/more): "joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"
-"observation"           : {"actual_state":"endeff_xyz", "goal_state":"obj_xyz", "additional_obs":[]},
+"observation"           : {"actual_state":"obj_6D", "goal_state":"obj_6D", "additional_obs":["endeff_xyz"]},
 #Distractor
 "distractors"            : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
                                        "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
@@ -39,15 +39,15 @@
 #Train
 "train_framework"   :"tensorflow",
 "algo"              :"sac",
-"num_networks" : 1,
+"num_networks" : 2,
 "max_episode_steps" :512,
 "algo_steps"        :512,
-"steps"             :2000000,
+"steps"             :5000000,
 "pretrained_model"  :null,
 "multiprocessing"   :false,
 #Evaluation
 "eval_freq"     :500000,
-"eval_episodes" :100,
+"eval_episodes" :50,
 #Saving and logging
 "logdir"    :"trained_models/switch",
 "record"    :0
