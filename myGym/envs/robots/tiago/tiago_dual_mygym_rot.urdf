@@ -55,7 +55,7 @@
       <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
     </inertial>
   </link>
-  <joint name="baseslide_rjoint" type="prismatic">
+  <joint name="baseslide_rjoint" type="fixed">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
     <parent link="world"/>
     <child link="base_footprint"/>
@@ -630,9 +630,9 @@
   <joint name="arm_right_2_rjoint" type="revolute">
     <parent link="arm_right_1_link"/>
     <child link="arm_right_2_link"/>
-    <origin rpy="-1.57079632679 0.0 0.0" xyz="0.125 -0.0195 -0.031"/>
+    <origin rpy="-1.57079632679 1.57 0.0" xyz="0.125 -0.0195 -0.031"/>
     <axis xyz="0 0 1"/>
-    <limit effort="43.0" lower="-1.1780972451" upper="1.57079632679" velocity="1.95"/>
+    <limit effort="43.0" lower="-3.14" upper="0" velocity="1.95"/>
   </joint>
   <link name="arm_right_3_link">
     <inertial>
@@ -657,7 +657,7 @@
   <joint name="arm_right_3_rjoint" type="revolute">
     <parent link="arm_right_2_link"/>
     <child link="arm_right_3_link"/>
-    <origin rpy="-1.57079632679 0.0 1.57079632679" xyz="0.0895 0.0 -0.0015"/>
+    <origin rpy="-1.57079632679 1.5707 1.57079632679" xyz="0.0895 0.0 -0.0015"/>
     <axis xyz="0 0 1"/>
     <limit effort="26" lower="-0.785398163397" upper="3.92699081699" velocity="2.35"/>
   </joint>
@@ -687,9 +687,9 @@
   <joint name="arm_right_4_rjoint" type="revolute">
     <parent link="arm_right_3_link"/>
     <child link="arm_right_4_link"/>
-    <origin rpy="-1.57079632679 -1.57079632679 0.0" xyz="-0.02 -0.027 -0.222"/>
+    <origin rpy="-1.57079632679 0.78 0.0" xyz="-0.02 -0.027 -0.222"/>
     <axis xyz="0 0 1"/>
-    <limit effort="26" lower="-0.392699081699" upper="2.35619449019" velocity="2.35"/>
+    <limit effort="26" lower="-1.57079632679" upper="0" velocity="2.35"/>
   </joint>
   <!--************************-->
   <!--        WRIST           -->

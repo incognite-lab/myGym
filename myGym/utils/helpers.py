@@ -108,6 +108,7 @@ def get_robot_dict():
                              'tiago': {'path': '/envs/robots/tiago/tiago_pal_gripper.urdf', 'position': np.array([0.0, -0.4, -0.2]),'orientation': [0.0, 0.0, 0 * np.pi]},
                              'tiago_dual': {'path': '/envs/robots/tiago/tiago_dual_mygym.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual_rot': {'path': '/envs/robots/tiago/tiago_dual_mygym_rot.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
+                             'tiago_dual_rotslide': {'path': '/envs/robots/tiago/tiago_dual_mygym_rotslide.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual_hand': {'path': '/envs/robots/tiago/tiago_dual_hand.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_omni_single': {'path': '/envs/robots/tiago/tiago_stanford_right_arm.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_simple': {'path': '/envs/robots/tiago/tiago_simple.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},

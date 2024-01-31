@@ -55,12 +55,12 @@
       <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
     </inertial>
   </link>
-  <joint name="baseslide_rjoint" type="fixed">
+  <joint name="baseslide_rjoint" type="prismatic">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
     <parent link="world"/>
     <child link="base_footprint"/>
     <axis xyz="0 1 0"/>
-    <limit effort="16" lower="-0.5" upper="0.5" velocity="0.05"/>
+    <limit effort="16" lower="-0.2" upper="0.2" velocity="0.05"/>
   </joint>
   <!-- Base -->
   <link name="base_link">
@@ -77,7 +77,7 @@
       <material name="White"/>
     </visual>
   </link>
-  <joint name="baserot_rjoint" type="fixed">
+  <joint name="baserot_rjoint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.1"/>
     <child link="base_link"/>
     <parent link="base_footprint"/>
