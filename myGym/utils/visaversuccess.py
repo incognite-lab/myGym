@@ -227,7 +227,11 @@ def main():
                 leg.append(robot)
     else:
         print("No data to visualize")        
-        
+        meanvalue = np.mean(success,0)
+        variance =  np.std(success,0)
+        plt.plot(steps,meanvalue, color=colors[0], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[0], markersize=4) 
+        plt.fill_between(steps, meanvalue-variance,meanvalue+variance, color=colors[0], alpha=0.2) 
+        plt.show()
     
     #s = list(diff.values())
     #leg = []

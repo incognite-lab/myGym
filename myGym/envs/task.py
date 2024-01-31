@@ -7,6 +7,7 @@ import pkg_resources
 import cv2
 import random
 from scipy.spatial.distance import cityblock
+from scipy.spatial.transform import Rotation
 from pyquaternion import Quaternion
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
@@ -44,6 +45,7 @@ class TaskModule():
         self.vision_module = VisionModule(observation=observation, env=env, vae_path=vae_path, yolact_path=yolact_path, yolact_config=yolact_config)
         self.obsdim = self.check_obs_template()
         self.vision_src = self.vision_module.src
+        self.writebool = False
 
     def reset_task(self):
         """
@@ -215,6 +217,65 @@ class TaskModule():
             return True
         return False
 
+    
+    def get_dice_value(self, quaternion):
+        def noramalize(q):
+            return q/np.linalg.norm(q)
+        
+        faces = np.array([
+            [0,0,1],
+            [0,1,0],
+            [1,0,0],
+            [0,0,-1],
+            [0,-1,0],
+            [-1,0,0],
+        ])
+
+        rot_mtx = Rotation.from_quat(noramalize(quaternion)).as_matrix()
+
+        rotated_faces = np.dot(rot_mtx, faces.T).T
+        top_face_index = np.argmax(rotated_faces[:,2])
+        
+        #face_nums = [2, 5, 1, 4, 6, 3] #states that first face has number 2 on it, second 5 and so on...
+        #return face_nums[top_face_index]
+        return top_face_index+1
+
+    def check_dice_moving(self, observation, threshold=0.1):
+        def calc_still(o1, o2):
+            result = 0
+            for i in range(len(o1)):
+                result+= np.power(o1[i]-o2[i],2)
+            result = np.sqrt(result)
+            
+            return result < 0.000005
+        #print(observation["goal_state"])
+        if len(observation)<3:
+            print("Invalid",observation)
+        x = np.array(observation["actual_state"][3:])
+        
+        #print(observation)
+        
+        if not self.check_distance_threshold(self._observation) and self.env.episode_steps > 25:
+            if calc_still(observation["actual_state"], self.stored_observation):
+                if (self.stored_observation == observation["actual_state"]):
+                    return 0
+                else:
+                    if self.writebool:
+                        print(self.get_dice_value(x))
+                        print(observation)
+                        self.writebool = False
+                    if self.get_dice_value(x) == 6:
+                        return 2
+                    return 1
+                
+            else:
+                self.stored_observation = observation["actual_state"]
+                return 0
+        else:
+            self.stored_observation = observation["actual_state"]
+            self.writebool = True
+            #print(self.get_dice_value(x))
+            return 0
 
     def check_points_distance_threshold(self, threshold=0.1):
         o1 = self.env.task_objects["actual_state"]
@@ -270,6 +331,9 @@ class TaskModule():
         if self.task_type == "press":
             self.check_distance_threshold(self._observation)
             finished = self.env.reward.get_angle() >= 1.71
+        if self.task_type == "dice_throw":
+            finished = self.check_dice_moving(self._observation)
+            
         if self.task_type == "turn":
             self.check_distance_threshold(self._observation)
             finished = self.check_turn_threshold()
@@ -282,6 +346,11 @@ class TaskModule():
         #    else:
         #        self.env.episode_over = False
         if finished:
+            if self.task_type == "dice_throw":
+                
+                if finished == 1:
+                    self.end_episode_fail("Finished with wrong dice result thrown")
+                return finished
             self.end_episode_success()
         if self.check_time_exceeded() or self.env.episode_steps == self.env.max_steps:
             self.end_episode_fail("Max amount of steps reached")

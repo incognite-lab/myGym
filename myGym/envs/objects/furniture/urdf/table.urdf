@@ -15,7 +15,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0 0.0 0.8387"/>
       <geometry>
-        <mesh filename="../obj/table.obj" scale="0.02 0.02 0.02"/>
+        <mesh filename="../obj/table.obj" scale="0.2 0.2 0.2"/>
       </geometry>
        <material name="black">
         <color rgba="0 0 0 1"/>
@@ -24,7 +24,7 @@
     <collision concave="yes">
       <origin rpy="0 0 0" xyz="0.0 0.0 0.8387"/>
       <geometry>
-	 	<mesh filename="../obj/table.obj" scale="0.02 0.02 0.02"/>
+	 	<mesh filename="../obj/table.obj" scale="0.2 0.2 0.2"/>
       </geometry>
     </collision>
   </link>
