@@ -84,5 +84,48 @@
         </geometry>
       <material name="framemat0"/>
     </collision>
+    <visual>
+      <origin rpy="0 0 0" xyz="-1.05 -0.5 .71"/>
+      <geometry>
+				<box size="0.7 1.4 0.02"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="0.8 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0.55 .71"/>
+      <geometry>
+	 	    <box size="1.4 0.7 0.02"/>
+      </geometry>
+    </collision>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.72 0.15 0.35"/>
+      <geometry>
+	    <box size="0.03 0.05 .7"/>
+      </geometry>
+	  <material name="framemat0"/>	 
+    </visual>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-1.38 0.15 0.35"/>
+      <geometry>
+        <box size="0.03 0.05 .7"/>
+      </geometry>
+	  <material name="framemat0"/>
+	  </visual>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.72 -1.15 0.35"/>
+      <geometry>
+        <box size="0.03 0.05 .7"/>
+      </geometry>
+	  <material name="framemat0"/>
+	  </visual>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-1.38 -1.15 0.35"/>
+      <geometry>
+        <box size="0.03 0.05 .7"/>
+      </geometry>
+    <material name="framemat0"/>
+    </visual>
   </link>
 </robot>
