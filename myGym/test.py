@@ -285,8 +285,8 @@ def test_env(env, arg_dict):
                 action = env.action_space.sample()
 
             
-
-            print (f"Action:{action}")
+            deg = np.rad2deg(action)
+            print (f"Action:{deg}")
             observation, reward, done, info = env.step(action)
             
             if arg_dict["vtrajectory"] == True:

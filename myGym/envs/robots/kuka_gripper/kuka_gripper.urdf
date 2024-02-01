@@ -26,14 +26,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_0.obj"/>
+                <mesh filename="meshes/link_0.obj"/>
             </geometry>
             <material name="Grey"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_0.obj"/>
+                <mesh filename="meshes/link_0.obj"/>
             </geometry>
         </collision>
     </link>
@@ -55,14 +55,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_1.obj"/>
+                <mesh filename="meshes/link_1.obj"/>
             </geometry>
             <material name="Blue"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_1.obj"/>
+                <mesh filename="meshes/link_1.obj"/>
             </geometry>
         </collision>
     </link>
@@ -84,14 +84,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_2.obj"/>
+                <mesh filename="meshes/link_2.obj"/>
             </geometry>
             <material name="Blue"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_2.obj"/>
+                <mesh filename="meshes/link_2.obj"/>
             </geometry>
         </collision>
     </link>
@@ -113,14 +113,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_3.obj"/>
+                <mesh filename="meshes/link_3.obj"/>
             </geometry>
             <material name="Orange"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_3.obj"/>
+                <mesh filename="meshes/link_3.obj"/>
             </geometry>
         </collision>
     </link>
@@ -142,14 +142,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_4.obj"/>
+                <mesh filename="meshes/link_4.obj"/>
             </geometry>
             <material name="Blue"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_4.obj"/>
+                <mesh filename="meshes/link_4.obj"/>
             </geometry>
         </collision>
     </link>
@@ -171,14 +171,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_5.obj"/>
+                <mesh filename="meshes/link_5.obj"/>
             </geometry>
             <material name="Blue"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_5.obj"/>
+                <mesh filename="meshes/link_5.obj"/>
             </geometry>
         </collision>
     </link>
@@ -200,14 +200,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_6.obj"/>
+                <mesh filename="meshes/link_6.obj"/>
             </geometry>
             <material name="Orange"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_6.obj"/>
+                <mesh filename="meshes/link_6.obj"/>
             </geometry>
         </collision>
     </link>
@@ -229,14 +229,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_7.obj"/>
+                <mesh filename="meshes/link_7.obj"/>
             </geometry>
             <material name="Grey"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/link_7.obj"/>
+                <mesh filename="meshes/link_7.obj"/>
             </geometry>
         </collision>
     </link>
@@ -268,14 +268,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/base.obj"/>
+                <mesh filename="meshes/base.obj"/>
             </geometry>
             <material name="MLightGrey"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/base.obj"/>
+                <mesh filename="meshes/base.obj"/>
             </geometry>
         </collision>
     </link>
@@ -316,14 +316,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/finger_0.obj" scale="1 0.7 0.7"/>
+                <mesh filename="meshes/finger_0.obj" scale="1 0.7 0.7"/>
             </geometry>
             <material name="LightGrey"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/finger_0.obj" scale="1 0.7 0.7"/>
+                <mesh filename="meshes/finger_0.obj" scale="1 0.7 0.7"/>
             </geometry>
         </collision>
     </link>
@@ -333,7 +333,7 @@
         <child link="finger_01"/>
         <origin rpy="0 0 0" xyz="0 0  0.0768025078369906"/>
         <axis xyz="0 1 0"/>
-        <limit effort="30" upper="-1.5707963267948966" lower="0" velocity="1"/>
+        <limit effort="30" lower="-1.5707963267948966" upper="0" velocity="1"/>
         <dynamics damping="1"/>
     </joint>
     <link name="finger_01">
@@ -350,14 +350,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/finger_1.obj" scale="1 0.7 0.7"/>
+                <mesh filename="meshes/finger_1.obj" scale="1 0.7 0.7"/>
             </geometry>
             <material name="LightGrey"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/finger_1.obj" scale="1 0.7 0.7"/>
+                <mesh filename="meshes/finger_1.obj" scale="1 0.7 0.7"/>
             </geometry>
         </collision>
     </link>
@@ -389,16 +389,16 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/finger_0.obj" scale="1 0.7 0.7"/>
+                <mesh filename="meshes/finger_0.obj" scale="1 0.7 0.7"/>
             </geometry>
             <material name="LightGrey">
-                <texture filename="/meshes/LightGrey.png"/>
+                <texture filename="meshes/LightGrey.png"/>
             </material>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/finger_0.obj" scale="1 0.7 0.7"/>
+                <mesh filename="meshes/finger_0.obj" scale="1 0.7 0.7"/>
             </geometry>
         </collision>
     </link>
@@ -408,7 +408,7 @@
         <child link="finger_11"/>
         <origin rpy="0 0 0" xyz="0 0 0.0768025078369906"/>
         <axis xyz="0 1 0"/>
-        <limit effort="30" upper="-1.5707963267948966" lower="0" velocity="1"/>
+        <limit effort="30" lower="-1.5707963267948966" upper="0" velocity="1"/>
         <dynamics damping="1"/>
     </joint>
     <link name="finger_11">
@@ -425,16 +425,16 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/finger_1.obj" scale="1 0.7 0.7"/>
+                <mesh filename="meshes/finger_1.obj" scale="1 0.7 0.7"/>
             </geometry>
             <material name="LightGrey">
-                <texture filename="/meshes/LightGrey.png"/>
+                <texture filename="meshes/LightGrey.png"/>
             </material>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/finger_1.obj" scale="1 0.7 0.7"/>
+                <mesh filename="meshes/finger_1.obj" scale="1 0.7 0.7"/>
             </geometry>
         </collision>
     </link>
@@ -457,14 +457,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/skin_0.obj" scale ="1 0.3 0.7"/>
+                <mesh filename="meshes/skin_0.obj" scale ="1 0.3 0.7"/>
             </geometry>
             <material name="Blue"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/skin_0.obj" scale ="1 0.3 0.7"/>
+                <mesh filename="meshes/skin_0.obj" scale ="1 0.3 0.7"/>
             </geometry>
         </collision>
     </link>
@@ -487,14 +487,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/skin_0.obj" scale ="1 0.3 0.7"/>
+                <mesh filename="meshes/skin_0.obj" scale ="1 0.3 0.7"/>
             </geometry>
             <material name="Blue"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/skin_0.obj" scale ="1 0.3 0.7"/>
+                <mesh filename="meshes/skin_0.obj" scale ="1 0.3 0.7"/>
             </geometry>
         </collision>
     </link>
@@ -517,14 +517,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/skin_0.obj" scale ="1 0.3 0.3"/>
+                <mesh filename="meshes/skin_0.obj" scale ="1 0.3 0.3"/>
             </geometry>
             <material name="Blue"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/skin_0.obj" scale ="1 0.3 0.3"/>
+                <mesh filename="meshes/skin_0.obj" scale ="1 0.3 0.3"/>
             </geometry>
         </collision>
     </link>
@@ -547,14 +547,14 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/skin_0.obj" scale ="1 0.3 0.3"/>
+                <mesh filename="meshes/skin_0.obj" scale ="1 0.3 0.3"/>
             </geometry>
             <material name="Blue"/>
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
-                <mesh filename="/meshes/skin_0.obj" scale ="1 0.3 0.3"/>
+                <mesh filename="meshes/skin_0.obj" scale ="1 0.3 0.3"/>
             </geometry>
         </collision>
     </link>

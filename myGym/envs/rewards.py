@@ -72,7 +72,6 @@ class Reward:
     def get_magnetization_status(self):
         return self.use_magnet
     
-
 class DistanceReward(Reward):
     """
     Reward class for reward signal calculation based on distance differences between 2 objects
@@ -4098,12 +4097,12 @@ class GripperPickAndPlace():
 
         self.network_rewards[2] += reward
         return reward
-
+      
 ##### READY FOR RDDL #########
 
 # PROTOREWARDS
 
-class Protoactions(Reward):
+class Protorewards(Reward):
 
     def reset(self):
         self.last_owner = None
@@ -4309,7 +4308,37 @@ class Protoactions(Reward):
 
 # RDDL
 
-class FaMaR(Protoactions):
+class F(Protorewards):
+    
+    def compute(self, observation=None):
+        owner = 0
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position]][owner]
+        reward = [self.find_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+    
+class FaM(Protorewards):
+    
+    def compute(self, observation=None):
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        return self.current_network
+
+class FaMaR(Protorewards):
     
     def compute(self, observation=None):
         owner = self.decide(observation)
@@ -4330,7 +4359,9 @@ class FaMaR(Protoactions):
             self.was_near = True
         return self.current_network
 
-class FaROaM(Protoactions):
+
+
+class FaROaM(Protorewards):
     
     def compute(self, observation=None):
 
@@ -4352,7 +4383,7 @@ class FaROaM(Protoactions):
             self.was_near = True
         return self.current_network
 
-class FaMOaR(Protoactions):
+class FaMOaR(Protorewards):
     
     def compute(self, observation=None):
 
@@ -4374,7 +4405,29 @@ class FaMOaR(Protoactions):
             self.was_near = True
         return self.current_network
 
-class FaMOaT(Protoactions):
+class FaMOaM(Protorewards):
+    
+    def compute(self, observation=None):
+
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,self.offset)], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute, self.move_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,self.offset)) or self.was_near:
+            self.current_network = 2
+            self.was_near = True
+        return self.current_network
+
+class FaMOaT(Protorewards):
     
     def compute(self, observation=None):
 
@@ -4398,7 +4451,7 @@ class FaMOaT(Protoactions):
             self.was_near = True
         return self.current_network
 
-class FaROaT(Protoactions):
+class FaROaT(Protorewards):
     
     def compute(self, observation=None):
 
@@ -4422,7 +4475,7 @@ class FaROaT(Protoactions):
         return self.current_network
     
 
-class FaMaLaFaR(Protoactions):
+class FaMaLaFaR(Protorewards):
     def check_num_networks(self):
         assert self.num_networks <= 4, "Find&move&leave&find&rotate reward can work with maximum of 4 networks"
 
@@ -4450,7 +4503,7 @@ class FaMaLaFaR(Protoactions):
             self.current_network = 3
         return self.current_network
 
-class SwitchRewardNew(Protoactions):
+class SwitchRewardNew(Protorewards):
     def check_num_networks(self):
         assert self.num_networks <= 2, "Switch reward can work with maximum of 2 networks"
 
@@ -4486,7 +4539,7 @@ class SwitchRewardNew(Protoactions):
 
 
 
-class TurnRewardNew(Protoactions):
+class TurnRewardNew(Protorewards):
     def check_num_networks(self):
         assert self.num_networks <= 2, "Switch reward can work with maximum of 2 networks"
 
