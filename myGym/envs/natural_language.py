@@ -41,6 +41,7 @@ class TaskType(Enum):
     FMRT = auto(),
     FMOT = auto(),
     COMPOSITIONAL = auto(),
+    DICE_THROW = auto(),
 
     def to_string(self) -> str:
         return self.name.lower()

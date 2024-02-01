@@ -12,6 +12,7 @@ from myGym.envs.rewards import *
 import numpy as np
 from itertools import chain
 from gym import spaces
+from scipy.spatial.transform import Rotation
 import random
 
 from myGym.utils.helpers import get_workspace_dict
@@ -165,10 +166,13 @@ class GymEnv(CameraEnv):
             self.has_distractor = True
             self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
         reward_classes = {
-            "1-network": {"F": F},
-            "2-network": {"FM": FaM},
-            "3-network": {"FMR": FaMaR,"FROM": FaROaM, "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT, "FMOM": FaMOaM},
-            "4-network": {"FMLFR": FaMaLaFaR}}
+            "1-network": {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
+                          "distractor": VectorReward, "poke": PokeReachReward, "push": PushReward, "switch": SwitchReward,
+                          "btn": ButtonReward, "turn": TurnReward, "pnp": SingleStagePnP, "dice": DiceReward, "F": F},
+            "2-network": {"poke": DualPoke, "pnp": TwoStagePnP, "pnpbgrip": TwoStagePnPBgrip, "push": TwoStagePushReward, "switch": SwitchRewardNew, "turn": TurnRewardNew, "FM": FaM},
+            "3-network": {"pnp": ThreeStagePnP, "pnprot": ThreeStagePnPRot, "pnpswipe": ThreeStageSwipe, "FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
+                          "pnpswiperot": ThreeStageSwipeRot, "FMOM": FaMOaM},
+            "4-network": {"pnp": FourStagePnP, "pnprot": FourStagePnPRot, "FMLFR": FaMaLaFaR}}
     
         scheme = "{}-network".format(str(self.num_networks))
         assert self.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
@@ -421,12 +425,76 @@ class GymEnv(CameraEnv):
         for o in self.env_objects["distractor"][-2:]:
             self.highlight_active_object(o, "done")
 
+    def get_dice_value(self, quaternion):
+        def noramalize(q):
+            return q/np.linalg.norm(q)
+        
+        faces = np.array([
+            [0,0,1],
+            [0,1,0],
+            [1,0,0],
+            [0,0,-1],
+            [0,-1,0],
+            [-1,0,0],
+        ])
+
+        rot_mtx = Rotation.from_quat(noramalize(quaternion)).as_matrix()
+
+        rotated_faces = np.dot(rot_mtx, faces.T).T
+
+        top_face_index = np.argmax(rotated_faces[:,2])
+        
+        face_nums = [2, 5, 1, 4, 6, 3] #states that first face has number 2 on it, second 5 and so on...
+
+        return top_face_index + 1
+    
+    def quaternion_mult(self, q1, q2):
+        w1, x1, y1, z1 = q1
+        w2, x2, y2, z2 = q2
+
+        w = w1*w2 - x1*x2 - y1*y2 - z1*z2
+        x = w1*x2 + x1*w2 + y1*z2 - z1*y2
+        y = w1*y2 - x1*z2 + y1*w2 + z1*x2
+        z = w1*z2 + x1*y2 - y1*x2 + z1*w2
+        return np.array([w,x,y,z])
+
+    def q_inv(self, q):
+        w, x, y, z = q
+        norm = w**2 + x**2 + y**2 + z**2
+        return np.array([w,-x,-y,-z])/norm
+
+    def rotate(self, vec, quat):
+        
+        w, x, y, z = quat
+        norm = w**2 + x**2 + y**2 + z**2
+        quat = quat/norm
+        qcon = self.q_inv(quat)
+        rvect = self.quaternion_mult(quat, np.concatenate(([0], vec)))
+        rvect = self.quaternion_mult(rvect, qcon)[1:]
+        return rvect
+
     def flatten_obs(self, obs):
-        """ Returns the input obs dict as flattened list """
+        """ Returns the input obs dict as flattened list""" 
         if len(obs["additional_obs"].keys()) != 0 and not self.dataset:
             obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
         if not self.dataset:
             obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])
+    
+        # Code snippet for HER dicethrow
+        #vec = self.rotate(np.array([1,0,0]) ,np.array(obs["actual_state"][3:]))     #this array must be se manually, [0,0,1] for 1, [1,0,0] for 6, [0,0,-1] for 2
+        
+        #print(obs["actual_state"][:3])
+        #div = vec - np.array([0,0,1])
+        #res = np.matmul(div, div)
+        
+        #mult = np.matmul(np.array([0,0,1]),vec)
+        #rad = np.arccos(mult)
+        #deg = np.degrees(rad)
+        #print(deg)
+        
+        #print("Sending Reward")
+        #obs = {"observation" : obs['actual_state'], "achieved_goal" : np.array([res]), "desired_goal" : np.array([0])}
+        #print(obs)y
         return obs
 
     def _set_cameras(self):

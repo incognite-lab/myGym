@@ -214,7 +214,9 @@ class CustomEvalCallback(EvalCallback):
         #        tf.summary.scalar('value_target', tf.reduce_mean(self.model.value_target))
         #        self.model.summary = tf.summary.merge_all()
         #    self.is_tb_set = True
-        summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/1.Episode_success', simple_value=(success_episodes_num/n_eval_episodes*100))])
+
+        #from HERE
+        '''summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/1.Episode_success', simple_value=(success_episodes_num/n_eval_episodes*100))])
         self.locals['writer'].add_summary(summary, self.num_timesteps)
         summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/3.Mean_distance_error', simple_value=(distance_error_sum / n_eval_episodes))])
         self.locals['writer'].add_summary(summary, self.num_timesteps)
@@ -239,7 +241,8 @@ class CustomEvalCallback(EvalCallback):
                 summary = tf.Summary(value=[tf.Summary.Value(tag='Task{}/Subgoal{}/Success'.format(i,j),
                                                                               simple_value=m)])
                 self.locals['writer'].add_summary(summary, self.num_timesteps)
-
+'''
+        #to HERE
         self.eval_env.reset()
         print ("Evaluation finished successfully")
         return results

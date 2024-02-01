@@ -65,9 +65,9 @@ Clone the repository:
 
 `cd mygym`
 
-Create Python 3.7 conda env (later Python versions does not support TF 0.15.5 neccesary for Stable baselines ):
+Create Python 3.7 conda env as follows (later Python versions does not support TF 0.15.5 neccesary for Stable baselines ):
 
-`conda create -n  mygym Python=3.7`
+`conda env create -f environment.yml `
 
 `conda activate mygym`
 
