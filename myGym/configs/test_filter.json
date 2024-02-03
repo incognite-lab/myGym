@@ -11,7 +11,7 @@
     #Robot
     "robot"         :"kuka",
     "robot_action"  :"step",
-    "robot_init"    :[-0.4, 0.6, 0.4],
+    "robot_init"    :[0, 0.6, 0.4],
     "max_velocity"  :3,
     "max_force"     :100,
     "action_repeat" :1,
@@ -34,7 +34,7 @@
                                 "movement_dims":3,
                                 "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
     #Reward
-    "reward"        :"pnp",
+    "reward"        :"filter",
     "distance_type" :"euclidean",
     "vae_path"      :null,
     "yolact_path"   :null,
@@ -43,7 +43,7 @@
     "train_framework"   :"tensorflow",
     "algo"              :"multippo2",
     "num_networks"      :3,
-    "max_episode_steps" :512,
+    "max_episode_steps" :100000,
     "algo_steps"        :512,
     "steps"             :20000,
     "pretrained_model"  :null,
@@ -53,5 +53,7 @@
     "eval_episodes" :3,
     #Saving and logging
     "logdir"    :"trained_models/debug3n",
-    "record"    :0
+    "record"    :0,
+    #Trajectory
+    "traj_type": "line"
     }

@@ -4203,3 +4203,14 @@ class TurnRewardNew(Protoactions):
             self.current_network = 1
         return self.current_network
 
+
+
+class FilterTestEmptyReward(ThreeStagePnP):
+
+    def find_compute(self, gripper, object):
+        reward = 1
+        return reward
+
+    def decide(self, observation=None):
+        return 0
+

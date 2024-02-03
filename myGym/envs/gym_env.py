@@ -171,7 +171,7 @@ class GymEnv(CameraEnv):
             "2-network": {"poke": DualPoke, "pnp": TwoStagePnP, "pnpbgrip": TwoStagePnPBgrip, "push": TwoStagePushReward, "switch": SwitchRewardNew,
                           "turn": TurnRewardNew},
             "3-network": {"pnp": ThreeStagePnP, "pnprot": ThreeStagePnPRot, "pnpswipe": ThreeStageSwipe, "FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
-                          "pnpswiperot": ThreeStageSwipeRot},
+                          "pnpswiperot": ThreeStageSwipeRot, "filter": FilterTestEmptyReward},
             "4-network": {"pnp": FourStagePnP, "pnprot": FourStagePnPRot, "FMLFR": FaMaLaFaR}}
     
         scheme = "{}-network".format(str(self.num_networks))
