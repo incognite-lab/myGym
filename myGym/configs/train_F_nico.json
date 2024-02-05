@@ -1,7 +1,7 @@
 {
     #Environment
     "env_name"  :"Gym-v0",
-    "workspace" :"table",
+    "workspace" :"table_nico",
     "engine"    :"pybullet",
     "render"    :"opengl",
     "seed"      :1,

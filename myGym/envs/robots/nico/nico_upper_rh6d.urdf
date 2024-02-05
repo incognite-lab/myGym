@@ -264,14 +264,14 @@
     	<visual>
       		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
       		<geometry>
-        		<sphere radius="0.005"/>
+        		<sphere radius="0.01"/>
       		</geometry>
     	</visual>
   	</link>
 	<joint name="endeffector_joint" type="fixed">
     	<parent link="gripper"/>
     	<child link="endeffector"/>
-    	<origin rpy="0 0 0" xyz="0.03 0.00 -0.03"/>
+    	<origin rpy="0 0 0" xyz="0.00 -0.02 -0.11"/>
 	</joint>
 	<link name="middlefinger">
 		<visual>
