@@ -4,4 +4,4 @@
 rm -r ./trained_models/check
 python train.py --config ./configs/train_reach.json --gui 1 --algo ppo2 -b kuka -ba joints --max_episode_steps 256 --algo_steps 256 --steps 20000 --eval_episodes 10 --logdir ./trained_models/check
 #python test.py -cfg ./trained_models/check/reach_table_kuka_joints_ppo2/train.json
-#rm -r ./trained_models/check
+rm -r ./trained_models/check
