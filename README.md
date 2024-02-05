@@ -18,6 +18,21 @@ We keep training the current state-of-the-art algorithms to provide baselines fo
 
 ## Learn more about the toolbox in our [documentation](https://mygym.readthedocs.io/en/latest/)
 
+## myGym 3.7
+
+The latest version introduces new features:
+
+- new robots (Nico, Tiago, HSR)
+- new workspaces (human collaborative, Tiago table, Nico table)
+- new algorithms for multi-step training
+- visualization of multiple tranings in one graph
+- sim2real for Nico robot
+- new compositional rewards
+
+This is the last version of myGym compactible with Stable Baselines and Python 3.7. Next version will be based on TF2 and Torch and Python 3.10.
+
+
+
 ## Advantages
 
 * [Separate modules](https://mygym.readthedocs.io/en/latest/index.html) for fast prototyping (task.py, reward.py, env.py)
@@ -28,11 +43,8 @@ We keep training the current state-of-the-art algorithms to provide baselines fo
 
 ![alt text](myGym/images/results/kuka_reach_yolact_fast.gif "yolact")
 
-* [Customizable distractors](https://mygym.readthedocs.io/en/latest/user_guide/train_with_distractors.html) for real enviroment simulation.
 
-![alt text](myGym/images/workspaces/small_chaotic_distractors.gif "training")
-
-* Human-robot collaboration environments (WIP)
+* Human-robot collaboration environments
 
 ![alt text](myGym/images/workspaces/panda_push.gif "training")
 
