@@ -474,7 +474,7 @@
 	<joint name="l_elbow_y" type="fixed">
 		<parent link="left_upper_arm:11"/>
 		<child link="left_lower_arm:11"/>
-		<origin rpy="0 -1.405976 0" xyz="-0.034583 0.023066 -0.169859"/>
+		<origin rpy="0 -1.695976 0" xyz="-0.034583 0.023066 -0.169859"/>
 		<axis xyz="0 -1 0"/>
 		<limit effort="30" lower="1.545" upper="1.745" velocity="1"/>
 	</joint>

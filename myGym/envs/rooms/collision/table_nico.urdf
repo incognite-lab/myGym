@@ -1,6 +1,9 @@
 
 <?xml version="1.0" ?>
 <robot name="table">
+  <material name="Black">
+    <color rgba="0.0 0.0 0.0 1.0"/>
+   </material>
   <link name="table">
     <contact>
       <lateral_friction value="0.1"/>
@@ -78,22 +81,6 @@
         <box size="0.1 0.1 1.05"/>
       </geometry>
     </collision>
-
-    <visual>
-      <origin rpy="1.57 0 0" xyz="1.4, 6.29 -0.16"/>
-      <geometry>
-        <!--cylinder radius="0.3" length="1"/-->
-        <mesh filename="./obj/stand.obj" scale="0.1 0.1 0.1"/>
-      </geometry>
-    <material name="framemat0"/>
-    </visual>
-    <collision>
-      <origin rpy="1.57 0 0" xyz="1.4, 6.29 -0.16"/>
-      <geometry>
-	 	<mesh filename="./obj/stand.obj" scale="0.1 0.1 0.1"/>
-     <!--cylinder radius="0.3" length="1"/-->
-      </geometry>
-    </collision>
     
     <visual>
       <origin rpy="1.57 0 0" xyz="0, 0.35 1.12"/>
@@ -101,13 +88,25 @@
         <!--cylinder radius="0.3" length="1"/-->
         <mesh filename="./obj/screenboard.obj"/>
       </geometry>
-    <material name="framemat0"/>
     </visual>
     <collision>
-      <origin rpy="1.57 0 0" xyz="0, 0 1"/>
+      <origin rpy="1.57 0 0" xyz="0, 0.35 1.12"/>
       <geometry>
 	 	<mesh filename="./obj/screenboard.obj"/>
      <!--cylinder radius="0.3" length="1"/-->
+      </geometry>
+    </collision>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0.45 1.15"/>
+      <geometry>
+				<box size=".54 .4 0.01"/>
+      </geometry>
+    </visual>
+    <material name="Black"/>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0.55 1.075"/>
+      <geometry>
+	 	<box size="1.5 1 0.05"/>
       </geometry>
     </collision>
     
