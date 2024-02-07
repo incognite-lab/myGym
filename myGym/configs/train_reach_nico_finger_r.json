@@ -13,8 +13,8 @@
 "robot"         :"nico_upper_rh6d",
 "robot_action"  :"joints",
 "robot_init"    :[0.15, 0.15, 0.5],
-"max_velocity"  :0.5,
-"max_force"     :500,
+"max_velocity"  :5,
+"max_force"     :200,
 "action_repeat" :1,
 
 #Task
