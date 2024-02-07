@@ -153,10 +153,42 @@ WIP
 
 Change the robot body (different gripper or hand, fixing or enabling body joints)
 
-Edit this file
+Edit [this file](https://github.com/incognite-lab/myGym/blob/nico-sim2real/myGym/envs/robots/nico/nico_upper_rh6d.urdf)
 
 
+Change the robotic setup (different table or nonmovable objects):
 
+Edit [this file](https://github.com/incognite-lab/myGym/blob/nico-sim2real/myGym/envs/rooms/collision/table_nico.urdf)
+
+
+Change the traning parameters for RL:
+
+Edit and save [this file](https://github.com/incognite-lab/myGym/blob/nico-sim2real/myGym/configs/train_reach_nico_finger_r.json)
+Then run training with new config:
+
+`python train.py --config ./configs/[newconfig.json]`
+
+Change the robotic control mechanism :
+
+Edit [this file](https://github.com/incognite-lab/myGym/blob/nico-sim2real/myGym/sim2real.py)
+
+Section REAL ROBOT CONTROL
+
+# TODO
+
+- [ ] Simplify the installation 
+- [ ] Create branch with patched files for pypot and nicomotion
+- [ ] Set up the correct speed for sim2real 
+- [ ] Set up correct speed for simulator 
+- [ ] Test the PID controller
+- [ ] Test the mover controller
+- [ ] Create ROS controller
+- [ ] Write rewards for biological and legible movements
+- [ ] Write the callibration procedures
+- [ ] Write the code for full body control
+- [ ] Write simplified body controlled without env (PB)
+
+   
 
 
 ## Authors
