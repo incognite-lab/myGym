@@ -11,19 +11,6 @@ from subprocess import run
 
 packageName = "myGym"
 
-print('hi')
-with open('requirements.txt') as f:
-    requirements = [l.strip() for l in f]
-
-# filter non-standard requirements
-reqexp = re.compile(r"[^\w><=\.\s-]")
-nonstandard = list(filter(reqexp.search, requirements))
-requirements = list(filter(lambda w: not(reqexp.search(w)), requirements))
-
-if nonstandard:
-    if sys.argv[1] != "clean":
-        print("Non-standard requirements found. These will have to installed manually. The non-standard requirements are:")
-        print(nonstandard)
 
 with open("README.md", "r") as f:
     long_description = f.read()
@@ -88,29 +75,6 @@ class DevelopWrapper(_develop):
         print("no task post-install tasks")
 
 
-class EnvironmentMaker(Command):
-    description = "run a custom compile command"
-    user_options = [
-        ("environment-name=", "e", "environment name")
-    ]
-
-    def run(self):
-        if self.environment_name != "":
-            name = self.environment_name
-        else:
-            name = "crow_simulation"
-            inp = input(f"Select name for the conda environment (default: '{name}'): ")
-            if inp != "":
-                name = inp
-        import os
-        run(f"conda env create -f environment.yml -n {name}".split(" "))
-
-    def initialize_options(self):
-        self.environment_name = ""
-
-    def finalize_options(self):
-        pass
-
 
 setup(
     name=packageName,
@@ -124,14 +88,12 @@ setup(
     url='',
     download_url='',
     license=license_text,
-    install_requires=requirements,
     include_package_data=True,
     packages=find_packages(),
     cmdclass={
         'build_py': BuildWrapper,
         'install': InstallWrapper,
         'develop': DevelopWrapper,
-        'make_env': EnvironmentMaker
     },
     classifiers=[
         "Programming Language :: Python :: 3",

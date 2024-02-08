@@ -16,6 +16,22 @@ We keep training the current state-of-the-art algorithms to provide baselines fo
 [![Generic badge](https://img.shields.io/badge/Docs-Yes-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://shields.io/)
 
+## Learn more about the toolbox in our [documentation](https://mygym.readthedocs.io/en/latest/)
+
+## myGym 3.7
+
+The latest version introduces new features:
+
+- new robots (Nico, Tiago, HSR)
+- new workspaces (human collaborative, Tiago table, Nico table)
+- new algorithms for multi-step training
+- visualization of multiple tranings in one graph
+- sim2real for Nico robot
+- new compositional rewards
+
+This is the last version of myGym compactible with Stable Baselines and Python 3.7. Next version will be based on TF2 and Torch and Python 3.10.
+
+
 
 ## Advantages
 
@@ -27,11 +43,8 @@ We keep training the current state-of-the-art algorithms to provide baselines fo
 
 ![alt text](myGym/images/results/kuka_reach_yolact_fast.gif "yolact")
 
-* [Customizable distractors](https://mygym.readthedocs.io/en/latest/user_guide/train_with_distractors.html) for real enviroment simulation.
 
-![alt text](myGym/images/workspaces/small_chaotic_distractors.gif "training")
-
-* Human-robot collaboration environments (WIP)
+* Human-robot collaboration environments
 
 ![alt text](myGym/images/workspaces/panda_push.gif "training")
 
@@ -64,9 +77,9 @@ Clone the repository:
 
 `cd mygym`
 
-Create Python 3.7 conda env (later Python versions does not support TF 0.15.5 neccesary for Stable baselines ):
+Create Python 3.7 conda env as follows (later Python versions does not support TF 0.15.5 neccesary for Stable baselines ):
 
-`conda create -n  mygym Python=3.7`
+`conda env create -f environment.yml `
 
 `conda activate mygym`
 
@@ -108,12 +121,6 @@ If everything is correct, the toolbox will train for two minutes without GUI and
 | Randomizers  | Light, Texture, Size, Camera position |
 | Baselines  | Tensorflow, Pytorch |
 | Physics  | Bullet, Mujoco deprecated from version 2.0 |
-
-
-
-
-Learn more about the toolbox in our [documentation](https://mygym.readthedocs.io/en/latest/)
-
 
 ## Test the environments prior training
 
@@ -259,7 +266,7 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 | Jaco arm  | arm  |  two finger |  13 | jaco  |
 | Gummiarm  | arm  | passive palm  |  13 | gummi  |
 | Human Support Robot (HSR) | arm | gripper | 7 | hsr |
-| ABB Yumi  | dualarm  | two finger  |  12 | yummi  |
+| ABB Yumi  | dualarm  | two finger  |  12 | yumi  |
 | ReachyLeachy  | dualarm  | passive palms  |  14 | reachy_and_leachy |
 | Pepper  | humanoid | --  |  20 | WIP  |
 | Thiago | humanoid  | --  |  19 | WIP  |
@@ -271,7 +278,7 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 |---|---|---|---|
 | Tabledesk | manipulation  | Reach,Press, Switch, Turn, PicknPlace | table |
 | Drawer | manipulation  | Pick, Place, PicknPlace  | drawer |
-| Fridge | manipulation  | Push, Open, Close, Pick | fridge |
+| Fridge | manipulation  | Push, Pick | fridge |
 | Baskets | manipulation  | Throw, Hit | baskets |
 | Darts | manipulation  | Throw, Hit | darts |
 | Football | manipulation  | Throw, Hit | football |

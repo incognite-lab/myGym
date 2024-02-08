@@ -20,8 +20,8 @@ watching the scene from the back, front, left, right and top.
 |                |               | PicknPlace     |                |
 +----------------+---------------+----------------+----------------+
 | Fridge         | manipulation  | Reach,Push,    | fridge         |
-|                |               | Open, Close,   |                |
 |                |               | Pick           |                |
+|                |               |                |                |
 +----------------+---------------+----------------+----------------+
 | Baskets        | manipulation  | Throw, Hit     | baskets        |
 +----------------+---------------+----------------+----------------+

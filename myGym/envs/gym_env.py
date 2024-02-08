@@ -12,6 +12,7 @@ from myGym.envs.rewards import *
 import numpy as np
 from itertools import chain
 from gym import spaces
+from scipy.spatial.transform import Rotation
 import random
 
 from myGym.utils.helpers import get_workspace_dict
@@ -142,8 +143,9 @@ class GymEnv(CameraEnv):
             self.reach_gesture = True
             self.task_type = "reach"
 
-        self.nl = NaturalLanguage(self)
         self.nl_mode = natural_language
+        if self.nl_mode:
+            self.nl = NaturalLanguage(self)
         self.nl_text_id = None
         self.training = training
         if self.nl_mode:
@@ -169,11 +171,10 @@ class GymEnv(CameraEnv):
         reward_classes = {
             "1-network": {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
                           "distractor": VectorReward, "poke": PokeReachReward, "push": PushReward, "switch": SwitchReward,
-                          "btn": ButtonReward, "turn": TurnReward, "pnp": SingleStagePnP},
-            "2-network": {"poke": DualPoke, "pnp": TwoStagePnP, "pnpbgrip": TwoStagePnPBgrip, "push": TwoStagePushReward, "switch": SwitchRewardNew,
-                          "turn": TurnRewardNew},
+                          "btn": ButtonReward, "turn": TurnReward, "pnp": SingleStagePnP, "dice": DiceReward, "F": F},
+            "2-network": {"poke": DualPoke, "pnp": TwoStagePnP, "pnpbgrip": TwoStagePnPBgrip, "push": TwoStagePushReward, "switch": SwitchRewardNew, "turn": TurnRewardNew, "FM": FaM},
             "3-network": {"pnp": ThreeStagePnP, "pnprot": ThreeStagePnPRot, "pnpswipe": ThreeStageSwipe, "FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
-                          "pnpswiperot": ThreeStageSwipeRot},
+                          "pnpswiperot": ThreeStageSwipeRot, "FMOM": FaMOaM},
             "4-network": {"pnp": FourStagePnP, "pnprot": FourStagePnPRot, "FMLFR": FaMaLaFaR}}
 
         scheme = "{}-network".format(str(self.num_networks))
@@ -214,6 +215,7 @@ class GymEnv(CameraEnv):
         self.robot = robot.ROSRobot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
         if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
 
+
     def _load_urdf(self, path, fixedbase=True, maxcoords=True):
         transform = self.workspace_dict[self.workspace]['transform']
         return self.p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", path)),
@@ -225,8 +227,10 @@ class GymEnv(CameraEnv):
         self.p.changeVisualShape(self.get_scene_object_uid_by_name(name), -1,
                                  rgbaColor=[1, 1, 1, 1], textureUniqueId=texture_id)
 
+
     def _load_texture(self, name):
         return self.p.loadTexture(pkg_resources.resource_filename("myGym", "/envs/textures/{}".format(name)))
+
 
     def _set_observation_space(self):
         """
@@ -332,8 +336,6 @@ class GymEnv(CameraEnv):
                 self.task_objects = dict(ChainMap(*self.task_objects))
                 if subtask_objects:
                     self.task_objects["distractor"] = subtask_objects
-
-                self.nl.get_venv().set_objects(task_objects=self.task_objects)
             else:
                 init_objects = []
                 if not self.reach_gesture:
@@ -344,7 +346,7 @@ class GymEnv(CameraEnv):
                 for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=self.task_type != "reach", excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
                     goal_objects[i].set_color(c)
 
-                if self.training or (not self.training and self.reach_gesture):
+                if self.training or (not self.training and self.reach_gesture) and self.nl_mode:
                     # setting the objects and generating a description based on them
                     self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
                     self.nl.generate_subtask_with_random_description()
@@ -366,10 +368,11 @@ class GymEnv(CameraEnv):
                                 print("\"pick the orange cube and place it to the same position as the pink cube\"")
                                 print("Pay attention to the fact that colors, task and objects in your case can be different!")
                                 print("To leave the program use Ctrl + Z!")
-                            self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
-                            # resetting the objects to remove the knowledge about whether an object is an init or a goal
-                            self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-                            self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
+                            if self.nl:
+                                self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
+                                # resetting the objects to remove the knowledge about whether an object is an init or a goal
+                                self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
+                                self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
                             success = True
                             break
                         except:
@@ -426,12 +429,76 @@ class GymEnv(CameraEnv):
         for o in self.env_objects["distractor"][-2:]:
             self.highlight_active_object(o, "done")
 
+    def get_dice_value(self, quaternion):
+        def noramalize(q):
+            return q/np.linalg.norm(q)
+        
+        faces = np.array([
+            [0,0,1],
+            [0,1,0],
+            [1,0,0],
+            [0,0,-1],
+            [0,-1,0],
+            [-1,0,0],
+        ])
+
+        rot_mtx = Rotation.from_quat(noramalize(quaternion)).as_matrix()
+
+        rotated_faces = np.dot(rot_mtx, faces.T).T
+
+        top_face_index = np.argmax(rotated_faces[:,2])
+        
+        face_nums = [2, 5, 1, 4, 6, 3] #states that first face has number 2 on it, second 5 and so on...
+
+        return top_face_index + 1
+    
+    def quaternion_mult(self, q1, q2):
+        w1, x1, y1, z1 = q1
+        w2, x2, y2, z2 = q2
+
+        w = w1*w2 - x1*x2 - y1*y2 - z1*z2
+        x = w1*x2 + x1*w2 + y1*z2 - z1*y2
+        y = w1*y2 - x1*z2 + y1*w2 + z1*x2
+        z = w1*z2 + x1*y2 - y1*x2 + z1*w2
+        return np.array([w,x,y,z])
+
+    def q_inv(self, q):
+        w, x, y, z = q
+        norm = w**2 + x**2 + y**2 + z**2
+        return np.array([w,-x,-y,-z])/norm
+
+    def rotate(self, vec, quat):
+        
+        w, x, y, z = quat
+        norm = w**2 + x**2 + y**2 + z**2
+        quat = quat/norm
+        qcon = self.q_inv(quat)
+        rvect = self.quaternion_mult(quat, np.concatenate(([0], vec)))
+        rvect = self.quaternion_mult(rvect, qcon)[1:]
+        return rvect
+
     def flatten_obs(self, obs):
-        """ Returns the input obs dict as flattened list """
+        """ Returns the input obs dict as flattened list""" 
         if len(obs["additional_obs"].keys()) != 0 and not self.dataset:
             obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
         if not self.dataset:
             obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])
+    
+        # Code snippet for HER dicethrow
+        #vec = self.rotate(np.array([1,0,0]) ,np.array(obs["actual_state"][3:]))     #this array must be se manually, [0,0,1] for 1, [1,0,0] for 6, [0,0,-1] for 2
+        
+        #print(obs["actual_state"][:3])
+        #div = vec - np.array([0,0,1])
+        #res = np.matmul(div, div)
+        
+        #mult = np.matmul(np.array([0,0,1]),vec)
+        #rad = np.arccos(mult)
+        #deg = np.degrees(rad)
+        #print(deg)
+        
+        #print("Sending Reward")
+        #obs = {"observation" : obs['actual_state'], "achieved_goal" : np.array([res]), "desired_goal" : np.array([0])}
+        #print(obs)y
         return obs
 
     def _set_cameras(self):

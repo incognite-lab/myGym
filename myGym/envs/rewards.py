@@ -71,8 +71,7 @@ class Reward:
 
     def get_magnetization_status(self):
         return self.use_magnet
-
-
+    
 class DistanceReward(Reward):
     """
     Reward class for reward signal calculation based on distance differences between 2 objects
@@ -202,6 +201,78 @@ class ComplexDistanceReward(DistanceReward):
         self.prev_obj1_position = obj1_position
         self.prev_obj2_position = obj2_position
         self.prev_obj3_position = obj3_position
+
+        return norm_diff
+
+
+class DiceReward(Reward):
+    """
+    Reward class for reward signal calculation based on distance differences between 2 objects
+
+    Parameters:
+        :param env: (object) Environment, where the training takes place
+        :param task: (object) Task that is being trained, instance of a class TaskModule
+    """
+    def __init__(self, env, task):
+        super(DiceReward, self).__init__(env, task)
+        self.prev_obj1_position = None
+        self.prev_obj2_position = None
+        self.moved  = False
+
+    def decide(self, observation=None):
+        return random.randint(0, self.env.num_networks-1)
+
+    def compute(self, observation):
+        """
+        Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
+
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        #print("Observed: ",observation)
+        reward = -0.0
+        #self.task.check_distance_threshold(observation)
+        x = self.task.check_goal()
+        #print("RECIEVED:",x)
+        if x:
+            reward = 0.0
+            if x > 1:
+                reward = 1.0
+            
+            self.task.end_episode_success()
+        #if reward > 0.5:
+            #print(reward)
+        self.rewards_history.append(reward)
+        return reward
+
+    def reset(self):
+        """
+        Reset stored value of distance between 2 objects. Call this after the end of an episode.
+        """
+        self.prev_dice_position = None
+        self.moved  = False
+
+    def has_moved(self, dice_position):
+        """
+        Calculate change in the distance between 2 objects in previous and in current step. Normalize the change by the value of distance in previous step.
+
+        Params:
+            :param obj1_position: (list) Position of the first object
+            :param obj2_position: (list) Position of the second object
+        Returns:
+            :return norm_diff: (float) Normalized difference of distances between 2 objects in previsous and in current step
+        """
+        if self.prev_obj1_position is None or self.prev_obj2_position is None:
+            self.prev_dice_position = dice_position
+        self.prev_diff = self.task.calc_distance(self.prev_obj1_position, self.prev_obj2_position)
+
+        current_diff = self.task.calc_distance(obj1_position, obj2_position)
+        norm_diff = (self.prev_diff - current_diff) / self.prev_diff
+
+        self.prev_obj1_position = obj1_position
+        self.prev_obj2_position = obj2_position
 
         return norm_diff
 
@@ -1569,17 +1640,20 @@ class PushReward(PokeReachReward):
         self.approach     = None
         self.cube_move    = None
         self.gripper_move = None 
+        self.proj_length  = None
 
         self.last_angle        = None  #previouse angle GCT (G-gripper, C-cube, T-target)
         self.last_approach     = None  #previouse gripper distance to cube
         self.last_cube_move    = None  #previouse cube distance to target
         self.last_gripper_move = None  #previouse gripper position to target
+        self.last_proj_length  = None
         self.dist_grip_to_cube = None 
 
         self.k_approach = 1
         self.k_gripper = 1
-        self.k_cube = 2
+        self.k_cube = 0
         self.k_angle = 0
+        self.k_proj = 1
 
     def reset(self):
         self.x_cube = None
@@ -1600,12 +1674,15 @@ class PushReward(PokeReachReward):
         self.last_approach     = None  #previouse gripper distance to cube
         self.last_cube_move    = None  #previouse cube distance to target
         self.last_gripper_move = None  #previouse gripper position to target
-        self.dist_grip_to_cube = None  
+        self.last_proj_length  = None
+        self.dist_grip_to_cube = None 
+        self.proj_length       = None 
 
         self.k_approach = 1
         self.k_gripper = 1
-        self.k_cube = 2
+        self.k_cube = 0
         self.k_angle = 0
+        self.k_proj = 1
 
     def angle_between_vectors(self,vector1, vector2): 
         return np.arccos(self.scalar_multiply(vector1, vector2)/(self.module(vector1)*self.module(vector2))) * 180 / math.pi
@@ -1616,6 +1693,29 @@ class PushReward(PokeReachReward):
     def module(self,vector):
         return math.sqrt(vector[0]*vector[0] + vector[1]*vector[1] + vector[2]*vector[2])
     
+    def dist_to_line(self):
+        x0 = self.x_target
+        y0 = self.y_target
+        z0 = self.z_target
+
+        x1 = self.x_gripper
+        y1 = self.y_gripper
+        z1 = self.z_gripper
+
+        x2 = self.x_cube
+        y2 = self.y_cube
+        z2 = self.z_cube 
+
+        point_on_line = np.array([x1,y1,z1])
+        line_direction = np.array([x2-x1,y2-y1,z2-z1])
+        point = np.array([x0,y0,z0])
+
+        projection = np.dot(point - point_on_line, line_direction) / np.dot(line_direction, line_direction)
+        closest_point = point_on_line + projection * line_direction
+        dist = np.linalg.norm(point - closest_point)
+
+        return dist
+    
     def grip_rew(self): 
         if self.last_gripper_move == None:
             self.last_gripper_move = self.gripper_move
@@ -1625,14 +1725,13 @@ class PushReward(PokeReachReward):
     
     def cube_rew(self):
         # print("moveRew")
-        # if self.last_cube_move == None:
-        #     self.last_cube_move = self.cube_move 
-        # reward = round(self.last_cube_move - self.cube_move,3)  
-        # if reward > 0:
-        #     print("cube move")
-        #     reward += 1
-        # self.last_cube_move = self.cube_move
-        reward = 1 / self.cube_move
+        if self.last_cube_move == None:
+            self.last_cube_move = self.cube_move 
+        reward = round(self.last_cube_move - self.cube_move,3)  
+        if reward > 0:
+            print("cube move")
+            reward += 1
+        self.last_cube_move = self.cube_move
         return reward
 
     def angle_rew(self):
@@ -1648,6 +1747,13 @@ class PushReward(PokeReachReward):
             self.last_approach = self.approach
         reward = round(self.last_approach - self.approach,3)
         self.last_approach = self.approach
+        return reward
+    
+    def proj_rew(self):
+        if self.last_proj_length == None:
+            self.last_proj_length = self.proj_length
+        reward = round(self.last_proj_length - self.proj_length,3)
+        self.last_proj_length = self.proj_length
         return reward
 
     def check_cube_position(self, cube_position): # check if cube is on the table
@@ -1680,7 +1786,12 @@ class PushReward(PokeReachReward):
 
         return target_position,cube_position,gripper_position
     
-    def compute(self, observation=None): 
+    def get_point_grg_push(self, point1: 'numpy.ndarray', point2: 'numpy.ndarray') -> 'numpy.ndarray':
+        dir_unit_vctor = (point2-point1) / np.linalg.norm(point2-point1)
+        point3 = dir_unit_vctor*0.5 + point2
+        return point3
+    
+    def compute(self, observation=None):  
         target_position, cube_position, gripper_position = self.get_positions_push(observation)
         self.set_variables_push(target_position, cube_position, gripper_position)
 
@@ -1689,20 +1800,21 @@ class PushReward(PokeReachReward):
         
         self.angle = round(self.angle_between_vectors(vector1, vector2),2)
 
-        cube_offset_pos = self.get_point_grg(np.array(target_position),np.array(cube_position))
+        cube_offset_pos = self.get_point_grg_push(np.array(target_position),np.array(cube_position))
 
         self.approach = self.task.calc_distance(gripper_position, cube_offset_pos)
         self.cube_move = self.task.calc_distance(target_position, cube_position)
         self.gripper_move = self.task.calc_distance(target_position, gripper_position)
         self.dist_grip_to_cube = self.task.calc_distance(gripper_position, cube_position)
+        self.proj_length = self.dist_to_line()  
         
         if self.approach > 0.1:
             self.k_gripper = 0
-        reward = self.approach_rew() * self.k_approach + self.grip_rew() * self.k_gripper # + self.cube_rew() * self.k_cube + self.angle_rew() * self.k_angle
+        reward = self.approach_rew() * self.k_approach + self.grip_rew() * self.k_gripper + self.cube_rew() * self.k_cube + self.angle_rew() * self.k_angle + self.proj_rew() * self.k_proj
 
-        if self.angle > 160 and self.dist_grip_to_cube < 0.1:
-            print("best position")
-            reward += self.angle / 100 + 1 / self.dist_grip_to_cube
+        # if self.angle > 160 and self.dist_grip_to_cube < 0.1:
+        #     print("best position")
+        #     reward += self.angle / 100 + 1 / self.dist_grip_to_cube
 
         # if self.check_cube_position(cube_position) == False: #in purpose to slow gripper 
         #     reward = -0.5
@@ -2333,6 +2445,11 @@ class TwoStagePushReward(PokeReachReward):
         self.current_network = 0
         self.network_rewards = [0] * self.num_networks
     
+    def get_point_grg_push(self, point1: 'numpy.ndarray', point2: 'numpy.ndarray') -> 'numpy.ndarray':
+        dir_unit_vctor = (point2-point1) / np.linalg.norm(point2-point1)
+        point3 = dir_unit_vctor*0.5 + point2
+        return point3
+    
     def compute(self, observation=None):  
         target_position, cube_position, gripper_position = self.get_positions_push(observation)
         self.set_variables_push(target_position, cube_position, gripper_position) 
@@ -2344,7 +2461,7 @@ class TwoStagePushReward(PokeReachReward):
         self.angle = round(self.angle_between_vectors(vector1, vector2),2)
         self.proj_length = self.dist_to_line()  
 
-        cube_offset_pos = self.get_point_grg(np.array(target_position),np.array(cube_position))
+        cube_offset_pos = self.get_point_grg_push(np.array(target_position),np.array(cube_position))
 
         self.approach = self.task.calc_distance(gripper_position, cube_offset_pos)
         self.cube_move = self.task.calc_distance(target_position, cube_position)
@@ -2385,6 +2502,207 @@ class TwoStagePushReward(PokeReachReward):
             self.current_network = 0
         
         return self.current_network
+
+# PANDA1
+class TwoStagePushRewardPanda(PokeReachReward):
+
+    def __init__(self, env, task):
+        super(TwoStagePushRewardPanda,self).__init__(env, task)
+        self.x_cube = None
+        self.y_cube = None
+        self.z_cube = None
+
+        self.x_gripper = None
+        self.y_gripper = None
+        self.z_gripper = None
+
+        self.x_target = None
+        self.y_target = None
+        self.z_target = None 
+        
+        self.angle        = None
+        self.approach     = None
+        self.cube_move    = None
+        self.gripper_move = None
+        self.proj_length = None
+
+        self.last_approach     = None  #previouse gripper distance to cube
+        self.last_cube_move    = None  #previouse cube distance to target
+        self.last_gripper_move = None  #previouse gripper position to target
+        self.dist_grip_to_cube = None
+
+        self.last_proj_length = None
+
+        self.current_network = 0
+        self.num_networks = env.num_networks
+        self.check_num_networks()
+        # self.network_rewards = [0] * self.num_networks 
+
+    def angle_between_vectors(self,vector1, vector2): 
+        return np.arccos(self.scalar_multiply(vector1, vector2)/(self.module(vector1)*self.module(vector2))) * 180 / math.pi
+    
+    def scalar_multiply(self,vector1, vector2):
+        return vector1[0]*vector2[0]+vector1[1]*vector2[1]+vector1[2]*vector2[2]
+    
+    def module(self,vector):
+        return math.sqrt(vector[0]*vector[0] + vector[1]*vector[1] + vector[2]*vector[2])
+    
+    def move_rew(self, target_pos, cube_pos, grip_pos):  
+        # print("moveRew") 
+        if self.last_gripper_move == None:
+            self.last_gripper_move = self.gripper_move 
+        reward = (self.last_gripper_move - self.gripper_move)   
+        self.last_gripper_move = self.gripper_move
+
+        # if self.last_cube_move == None:
+        #     self.last_cube_move = self.cube_move
+        # cube_rew = self.last_cube_move - self.cube_move
+        # if cube_rew > 0:
+        #     reward += cube_rew * 10
+        #     print("cube_rew = ", cube_rew)
+        self.last_cube_move = self.cube_move
+        return reward
+
+    def approach_rew(self, target_pos, cube_pos, grip_pos):
+        # print("approachRew")
+        if self.last_approach == None:
+            self.last_approach = self.approach
+        reward = self.last_approach - self.approach 
+        self.last_approach = self.approach
+        return reward
+
+    def dist_to_line(self):
+        x0 = self.x_target
+        y0 = self.y_target
+        z0 = self.z_target
+
+        x1 = self.x_gripper
+        y1 = self.y_gripper
+        z1 = self.z_gripper
+
+        x2 = self.x_cube
+        y2 = self.y_cube
+        z2 = self.z_cube 
+
+        point_on_line = np.array([x1,y1,z1])
+        line_direction = np.array([x2-x1,y2-y1,z2-z1])
+        point = np.array([x0,y0,z0])
+
+        projection = np.dot(point - point_on_line, line_direction) / np.dot(line_direction, line_direction)
+        closest_point = point_on_line + projection * line_direction
+        dist = np.linalg.norm(point - closest_point)
+
+        return dist
+    
+    def check_cube_position(self, cube_position): # check if cube is not on the table
+        # table diagonal coordinates
+        # -0.75; 0.05
+        # 0.75; 1.05
+        if cube_position[0] > 0.75 or cube_position[0] < -0.75 or cube_position[1] > 1.05 or cube_position[1] < 0.05:
+            print("reset")
+            self.env.episode_failed = True
+            return True
+        return False
+
+    def set_variables_push(self, target_position,cube_position,gripper_position):
+  
+        self.x_cube = cube_position[0] 
+        self.y_cube = cube_position[1] 
+        self.z_cube = cube_position[2]
+ 
+        self.x_gripper = gripper_position[0] 
+        self.y_gripper = gripper_position[1] 
+        self.z_gripper = gripper_position[2]
+         
+        self.x_target = target_position[0] 
+        self.y_target = target_position[1] 
+        self.z_target = target_position[2]
+
+    def get_positions_push(self, observation):
+
+        target_position = observation["goal_state"]
+        cube_position = observation["actual_state"] 
+        gripper_position = observation["additional_obs"]["endeff_xyz"] 
+
+        return target_position,cube_position,gripper_position
+
+    def check_num_networks(self):
+        assert self.num_networks <= 2, "TwoStagePushReward reward can work with maximum 2 networks"
+
+    def reset(self):
+        self.x_cube = None
+        self.y_cube = None
+        self.z_cube = None
+
+        self.x_gripper = None
+        self.y_gripper = None
+        self.z_gripper = None
+
+        self.x_target = None
+        self.y_target = None
+        self.z_target = None
+
+        self.last_approach     = None  #previouse gripper distance to cube
+        self.last_cube_move    = None  #previouse cube distance to target
+        self.last_gripper_move = None  #previouse gripper position to target
+        self.last_proj_length = None
+
+        self.current_network = 0
+        self.network_rewards = [0] * self.num_networks
+    
+    def compute(self, observation=None):  
+        target_position, cube_position, gripper_position = self.get_positions_push(observation)
+        self.set_variables_push(target_position, cube_position, gripper_position) 
+        
+        if self.check_cube_position(cube_position) == True: #in purpose to slow gripper 
+            # reward = -1
+            self.env.episode_over = True
+            # print("cube is not on the table reward = ", reward)
+            
+        vector1 = [self.x_cube - self.x_target, self.y_cube - self.y_target, self.z_cube - self.z_target]
+        vector2 = [self.x_cube - self.x_gripper, self.y_cube - self.y_gripper, self.z_cube - self.z_gripper]
+        
+        self.angle = round(self.angle_between_vectors(vector1, vector2),2)
+        self.proj_length = self.dist_to_line()  
+
+        # cube_offset_pos = self.get_point_grg(np.array(target_position),np.array(cube_position))
+
+        self.approach = self.task.calc_distance(gripper_position, cube_position) #self.task.calc_distance(gripper_position, cube_offset_pos)
+        self.cube_move = self.task.calc_distance(target_position, cube_position)
+        self.gripper_move = self.task.calc_distance(target_position, gripper_position)
+        # self.dist_grip_to_cube = self.task.calc_distance(gripper_position, cube_position)
+        
+        stage = self.decide(observation)
+        target = [[target_position, cube_position, gripper_position],[target_position, cube_position ,gripper_position]][stage]
+
+        reward = [self.approach_rew, self.move_rew][stage](*target) + stage
+        
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        self.env.p.addUserDebugText(f" {stage},{round(self.angle,1)}, {round(self.proj_length,3)}, {round(self.approach, 3)}", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[1,0,0])
+
+        self.env.p.addUserDebugLine(cube_position, gripper_position, lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
+        self.env.p.addUserDebugLine(target_position, gripper_position, lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
+        self.env.p.addUserDebugLine(cube_position, target_position, lineColorRGB=(1, 0, 0), lineWidth=3, lifeTime=0.05)
+        
+        self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], [self.x_target, self.y_target, 0.5],
+                                        lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=1) 
+        self.env.p.addUserDebugLine([self.x_target, self.y_target, self.z_cube], [self.x_target + 0.1, self.y_target, self.z_cube],
+                                        lineColorRGB=(0, 0.5, 1), lineWidth=3, lifeTime=1) 
+        return reward
+    
+    def decide(self, observation=None):
+
+        if self.proj_length != None and self.approach != None:
+            if self.proj_length > 0.05 or self.approach > 0.05:
+                self.current_network = 0
+            else:
+                self.current_network = 1
+        else:
+            self.current_network = 0
+        
+        return self.current_network
+
 
 class DualPoke(PokeReachReward):
     """
@@ -2728,6 +3046,7 @@ class ThreeStagePnP(TwoStagePnP):
         super(ThreeStagePnP, self).__init__(env, task)
         self.was_above = False
         self.last_traj_idx = 0
+        self.last_traj_dist = 0
 
     def check_num_networks(self):
         assert self.num_networks == 3, "ThreeStagePnP reward can work with maximum 3 networks"
@@ -3778,8 +4097,12 @@ class GripperPickAndPlace():
 
         self.network_rewards[2] += reward
         return reward
+      
+##### READY FOR RDDL #########
 
-class FaMaR(ThreeStagePnP):
+# PROTOREWARDS
+
+class Protorewards(Reward):
 
     def reset(self):
         self.last_owner = None
@@ -3790,31 +4113,30 @@ class FaMaR(ThreeStagePnP):
         self.last_rot_dist = None
         self.subgoaloffset_dist = None
         self.last_leave_dist = None
+        self.prev_object_position = None
         self.was_near = False
         self.current_network = 0
         self.network_rewards = [0] * self.num_networks
         self.use_magnet = True
         self.has_left = False
         self.last_traj_idx = 0
+        self.last_traj_dist = 0
+        self.offset = [0.3,0.0,0.0]
+        self.offsetleft = [0.2,0.0,-0.1]
+        self.offsetright = [-0.2,0.0,-0.1]
+        self.offsetcenter = [0.0,0.0,-0.1]
+        self.grip_threshold = 0.1
+        self.near_threshold = 0.1
+        self.lift_threshold = 0.1
+        self_above_threshold = 0.1
     
     def compute(self, observation=None):
-        owner = self.decide(observation)
-        goal_position, object_position, gripper_position = self.get_positions(observation)
-        target = [[gripper_position,object_position], [object_position, goal_position], [object_position, goal_position]][owner]
-        reward = [self.find_compute,self.move_compute, self.rotate_compute][owner](*target)
-        self.last_owner = owner
-        self.task.check_goal()
-        self.rewards_history.append(reward)
-        return reward
+        #inherit and define your sequence of protoactions here
+        pass
 
     def decide(self, observation=None):
-        goal_position, object_position, gripper_position = self.get_positions(observation)
-        if self.gripper_reached_object(gripper_position, object_position):
-            self.current_network = 1
-        if self.object_near_goal(object_position, goal_position) or self.was_near:
-            self.current_network = 2
-            self.was_near = True
-        return self.current_network
+        #inherit and define subgoals checking and network switching here
+        pass
     
     def find_compute(self, gripper, object):
         self.env.p.addUserDebugText("find object", [0.63,1,0.5], lifeTime=0.5, textColorRGB=[125,0,0])
@@ -3826,15 +4148,15 @@ class FaMaR(ThreeStagePnP):
             self.last_find_dist = dist
         
         reward = self.last_find_dist - dist
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
         
         self.last_find_dist = dist
         self.network_rewards[self.current_network] += reward
-        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,0.6,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
 
 
-    def transform_compute_test(self, object, goal, trajectory, magnetization = True):
+    def transform_compute(self, object, goal, trajectory, magnetization = True):
         """Calculate reward based on following a trajectory
         params: object: self-explanatory
                 goal: self-explanatory
@@ -3849,15 +4171,22 @@ class FaMaR(ThreeStagePnP):
         if self.last_place_dist is None:
             self.last_place_dist = dist_g
 
-        rewarddist = self.last_place_dist - dist_g
-        self.env.p.addUserDebugText(f"RewardDist:{rewarddist}", [0.61, 1, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        reward_g_dist = self.last_place_dist - dist_g #distance from goal
+        self.env.p.addUserDebugText(f"RewardDist:{reward_g_dist}", [0.61, 1, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
 
         pos = object[:3]
         dist_t, self.last_traj_idx = self.task.trajectory_distance(trajectory, pos, self.last_traj_idx, 10)
-        self.env.p.addUserDebugText(f"Traj_Dist:{dist_t}", [0.61, 1, 0.45], lifeTime=0.5, textColorRGB=[0, 125, 0])
 
-        reward = rewarddist - 20*dist_t**2
+        self.env.p.addUserDebugText(f"Traj_Dist:{dist_t}", [0.61, 1, 0.45], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        if self.last_traj_dist is None:
+            self.last_traj_dist = dist_t
+        reward_t_dist = self.last_traj_dist - dist_t #distance from trajectory
+        reward = reward_g_dist + 4*reward_t_dist
+        self.env.p.addUserDebugLine(trajectory[:3,0], trajectory[:3, -1], lifeTime = 0.1)
         self.env.p.addUserDebugText(f"reward:{reward}", [0.61, 1, 0.35], lifeTime=0.5, textColorRGB=[0, 125, 0])
+
+        self.last_place_dist = dist_g
+        self.last_traj_dist = dist_t
         self.network_rewards[self.current_network] += reward
         return reward
 
@@ -3874,11 +4203,11 @@ class FaMaR(ThreeStagePnP):
            self.last_move_dist = dist
         
         reward = self.last_move_dist - dist
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
-        
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61, 0.8,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
+        self.env.p.addUserDebugLine(object[:3], goal[:3], lifeTime = 0.1)
         self.last_move_dist = dist
         self.network_rewards[self.current_network] += reward
-        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65, 0.6,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
     
     
@@ -3906,34 +4235,6 @@ class FaMaR(ThreeStagePnP):
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
     
-    def transform_compute(self, object, goal, offsetgoal):
-        self.env.p.addUserDebugText("transform", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
-        self.env.robot.set_magnetization(True)
-        dist = self.task.calc_distance(object, goal)
-        if self.last_place_dist is None:
-            self.last_place_dist = dist
-        rewarddist = self.last_place_dist - dist
-
-        rot = self.task.calc_rot_quat(object, goal)
-        if self.last_rot_dist is None:
-            self.last_rot_dist = rot
-        rewardrot = self.last_rot_dist - rot
-
-        dist = self.task.calc_distance(object, offsetgoal)
-        if self.subgoaloffset_dist is None:
-           self.subgoaloffset_dist  = dist
-        rewardsubgoaloffset = self.subgoaloffset_dist + dist
-        
-        reward = rewarddist + rewardrot + rewardsubgoaloffset
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61, 1, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
-
-        self.last_place_dist = dist
-        self.last_rot_dist = rot
-        self.network_rewards[self.current_network] += reward
-        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65, 1, 0.7], lifeTime=0.5,
-                                    textColorRGB=[0, 0, 125])
-        return reward
-    
     def leave_compute(self, gripper, object):
         self.env.p.addUserDebugText("leave", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
         self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
@@ -3950,12 +4251,48 @@ class FaMaR(ThreeStagePnP):
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
     
+
+    # PREDICATES
+
+    def get_positions(self, observation):
+        goal_position = observation["goal_state"]
+        object_position = observation["actual_state"]
+        gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
+        gripper_position = observation["additional_obs"][gripper_name][:3]
+        if self.prev_object_position is None:
+            self.prev_object_position = object_position
+        return goal_position,object_position,gripper_position
+    
+    def gripper_reached_object(self, gripper, object):
+        if self.task.calc_distance(gripper, object) <= self.grip_threshold:
+            self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+            return True
+        return False
+
+    def object_lifted(self, object, object_before_lift):
+        lifted_position = [object_before_lift[0], object_before_lift[1], object_before_lift[2]+0.1] # position of object before lifting but hightened with its height
+        self.task.calc_distance(object, lifted_position)
+        if object[2] < self.lift_threshold:
+            self.lifted = False # object has fallen
+            self.object_before_lift = object
+        else:
+            self.lifted = True
+            return True
+        return False
+
+    def object_above_goal(self, object, goal):
+        goal_XY   = [goal[0], goal[1], goal[2]+0.2]
+        object_XY = object
+        distance  = self.task.calc_distance(goal_XY, object_XY)
+        if distance < self.above_threshhold:
+            return True
+        return False
+    
     def left_out_of_threshold(self, gripper, object, threshold = 0.2):
         distance = self.task.calc_distance(gripper ,object)
         if distance > threshold:
             return True
         return False
-    
 
     def object_near_goal(self, object, goal):
         distance  = self.task.calc_distance(goal, object)
@@ -3969,14 +4306,27 @@ class FaMaR(ThreeStagePnP):
         return subgoal
 
 
-class FaROaM(FaMaR):
+# RDDL
+
+class F(Protorewards):
     
     def compute(self, observation=None):
-
+        owner = 0
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position]][owner]
+        reward = [self.find_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+    
+class FaM(Protorewards):
+    
+    def compute(self, observation=None):
         owner = self.decide(observation)
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])], [object_position, goal_position]][owner]
-        reward = [self.find_compute,self.rotate_compute, self.move_compute][owner](*target)
+        target = [[gripper_position,object_position], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute][owner](*target)
         self.last_owner = owner
         self.task.check_goal()
         self.rewards_history.append(reward)
@@ -3986,18 +4336,14 @@ class FaROaM(FaMaR):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         if self.gripper_reached_object(gripper_position, object_position):
             self.current_network = 1
-        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])) or self.was_near:
-            self.current_network = 2
-            self.was_near = True
         return self.current_network
 
-class FaMOaR(FaMaR):
+class FaMaR(Protorewards):
     
     def compute(self, observation=None):
-
         owner = self.decide(observation)
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])], [object_position, goal_position]][owner]
+        target = [[gripper_position,object_position], [object_position, goal_position], [object_position, goal_position]][owner]
         reward = [self.find_compute,self.move_compute, self.rotate_compute][owner](*target)
         self.last_owner = owner
         self.task.check_goal()
@@ -4008,20 +4354,21 @@ class FaMOaR(FaMaR):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         if self.gripper_reached_object(gripper_position, object_position):
             self.current_network = 1
-        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])) or self.was_near:
+        if self.object_near_goal(object_position, goal_position) or self.was_near:
             self.current_network = 2
             self.was_near = True
         return self.current_network
 
-class FaMOaT(FaMaR):
+
+
+class FaROaM(Protorewards):
     
     def compute(self, observation=None):
 
         owner = self.decide(observation)
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        #[object_position, goal_position, self.task.create_line(self.subgoal_offset(goal_position), [0.3,0.0,0.0], goal_position), True]
-        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.3,0.0,0.0])], [object_position, goal_position, self.task.create_line(self.subgoal_offset(goal_position, [0.3,0.0,0.0]),  goal_position)]][owner]
-        reward = [self.find_compute,self.move_compute, self.transform_compute_test][owner](*target)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,self.offset)], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.rotate_compute, self.move_compute][owner](*target)
         self.last_owner = owner
         self.task.check_goal()
         self.rewards_history.append(reward)
@@ -4031,18 +4378,87 @@ class FaMOaT(FaMaR):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         if self.gripper_reached_object(gripper_position, object_position):
             self.current_network = 1
-        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,[0.3,0.0,0.0])) or self.was_near:
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,self.offset)) or self.was_near:
             self.current_network = 2
             self.was_near = True
         return self.current_network
 
-class FaROaT(FaMaR):
+class FaMOaR(Protorewards):
     
     def compute(self, observation=None):
 
         owner = self.decide(observation)
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,[0.3,0.0,0.0])], [object_position, goal_position,self.subgoal_offset(goal_position,[0.3,0.0,0.0])]][owner]
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,self.offset)], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute, self.rotate_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,self.offset)) or self.was_near:
+            self.current_network = 2
+            self.was_near = True
+        return self.current_network
+
+class FaMOaM(Protorewards):
+    
+    def compute(self, observation=None):
+
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,self.offset)], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute, self.move_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,self.offset)) or self.was_near:
+            self.current_network = 2
+            self.was_near = True
+        return self.current_network
+
+class FaMOaT(Protorewards):
+    
+    def compute(self, observation=None):
+
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        #[object_position, goal_position, self.task.create_line(self.subgoal_offset(goal_position), [0.3,0.0,0.0], goal_position), True]
+        transform_line = self.task.create_line(self.subgoal_offset(goal_position, self.offset), goal_position)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position,self.offset)], [object_position, goal_position, transform_line]][owner]
+        reward = [self.find_compute,self.move_compute, self.transform_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        if self.gripper_reached_object(gripper_position, object_position):
+            self.current_network = 1
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,self.offset)) or self.was_near:
+            self.current_network = 2
+            self.was_near = True
+        return self.current_network
+
+class FaROaT(Protorewards):
+    
+    def compute(self, observation=None):
+
+        owner = self.decide(observation)
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        transform_line = self.task.create_line(self.subgoal_offset(goal_position, self.offset), goal_position)
+        target = [[gripper_position,object_position], [object_position, self.subgoal_offset(goal_position, self.offset)], [object_position, goal_position, transform_line]][owner]
         reward = [self.find_compute,self.rotate_compute, self.transform_compute][owner](*target)
         self.last_owner = owner
         self.task.check_goal()
@@ -4053,13 +4469,13 @@ class FaROaT(FaMaR):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         if self.gripper_reached_object(gripper_position, object_position):
             self.current_network = 1
-        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,[0.2,0.2,0.2])) or self.was_near:
+        if self.object_near_goal(object_position, self.subgoal_offset(goal_position,self.offset)) or self.was_near:
             self.current_network = 2
             self.was_near = True
         return self.current_network
     
 
-class FaMaLaFaR(FaMaR):
+class FaMaLaFaR(Protorewards):
     def check_num_networks(self):
         assert self.num_networks <= 4, "Find&move&leave&find&rotate reward can work with maximum of 4 networks"
 
@@ -4087,7 +4503,7 @@ class FaMaLaFaR(FaMaR):
             self.current_network = 3
         return self.current_network
 
-class SwitchRewardNew(FaMaR):
+class SwitchRewardNew(Protorewards):
     def check_num_networks(self):
         assert self.num_networks <= 2, "Switch reward can work with maximum of 2 networks"
 
@@ -4100,12 +4516,14 @@ class SwitchRewardNew(FaMaR):
     def compute(self, observation=None):
         owner = self.decide(observation)
         #print("owner = ", owner)
+        self.offsetleft=[0.2,0.0,-0.3]
+        self.offsetright=[-0.2,0.0,-0.3]
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        transform_line = self.task.create_line(self.subgoal_offset(goal_position, [0.15, 0, -0.2]), self.subgoal_offset(goal_position, [-0.2, 0, -0.2]))
-        target = [[gripper_position, self.subgoal_offset(goal_position, [0.2, 0.0, -0.2])],
-               [gripper_position, self.subgoal_offset(goal_position, [-0.2, 0, 0]), transform_line]][owner]
-        reward = [self.find_compute, self.transform_compute_test][owner](*target)
-        self.env.p.addUserDebugLine(self.subgoal_offset(goal_position, [0.2, 0.0, -0.2])[:3], self.subgoal_offset(goal_position, [-0.2, 0.0, -0.2])[:3])
+        transform_line = self.task.create_line(self.subgoal_offset(goal_position, self.offsetleft), self.subgoal_offset(goal_position, self.offsetright))
+        target = [[gripper_position, self.subgoal_offset(goal_position, self.offsetleft)],
+               [gripper_position, self.subgoal_offset(goal_position, self.offsetright), transform_line]][owner]
+        reward = [self.find_compute, self.transform_compute][owner](*target)
+        self.env.p.addUserDebugLine(self.subgoal_offset(goal_position, self.offsetleft)[:3], self.subgoal_offset(goal_position, self.offsetright)[:3])
         self.last_owner = owner
         self.task.check_goal()
         self.rewards_history.append(reward)
@@ -4115,13 +4533,13 @@ class SwitchRewardNew(FaMaR):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         #print("goal:", goal_position)
         #print("gripper:", gripper_position)
-        if self.gripper_reached_object(gripper_position, self.subgoal_offset(goal_position, [0.2, 0.0, -0.2])):
+        if self.gripper_reached_object(gripper_position, self.subgoal_offset(goal_position, self.offsetleft)):
             self.current_network = 1
         return self.current_network
 
 
 
-class TurnRewardNew(FaMaR):
+class TurnRewardNew(Protorewards):
     def check_num_networks(self):
         assert self.num_networks <= 2, "Switch reward can work with maximum of 2 networks"
 
@@ -4134,13 +4552,16 @@ class TurnRewardNew(FaMaR):
     def compute(self, observation=None):
         owner = self.decide(observation)
         # print("owner = ", owner)
+        self.offsetleft=[0.2,0.0,-0.1]
+        self.offsetright=[-0.2,0.0,-0.1]
+        self.offsetcenter=[0.0,0.0,-0.1]
         goal_position, object_position, gripper_position = self.get_positions(observation)
-        transform_circle = self.task.create_circular_trajectory(self.subgoal_offset(goal_position, [0.0, 0.0, -0.18])[:3], 0.2, arc =np.pi, direction = -1)
-        target = [[gripper_position, self.subgoal_offset(goal_position, [0.2, 0.0, -0.18])],
-                  [gripper_position, self.subgoal_offset(goal_position, [-0.2, 0, -0.18]), transform_circle]][owner]
-        reward = [self.find_compute, self.transform_compute_test][owner](*target)
-        self.env.p.addUserDebugLine(self.subgoal_offset(goal_position, [0.2, 0.0, -0.18])[:3],
-                                    self.subgoal_offset(goal_position, [-0.2, 0.0, -0.18])[:3])
+        transform_circle = self.task.create_circular_trajectory(self.subgoal_offset(goal_position, self.offsetcenter)[:3], 0.2, arc =np.pi, direction = -1)
+        target = [[gripper_position, self.subgoal_offset(goal_position, self.offsetleft)],
+                  [gripper_position, self.subgoal_offset(goal_position, self.offsetright), transform_circle]][owner]
+        reward = [self.find_compute, self.transform_compute][owner](*target)
+        self.env.p.addUserDebugLine(self.subgoal_offset(goal_position, self.offsetleft)[:3],
+                                    self.subgoal_offset(goal_position, self.offsetright)[:3])
         self.last_owner = owner
         self.task.check_goal()
         self.rewards_history.append(reward)
@@ -4150,7 +4571,7 @@ class TurnRewardNew(FaMaR):
         goal_position, object_position, gripper_position = self.get_positions(observation)
         # print("goal:", goal_position)
         # print("gripper:", gripper_position)
-        if self.gripper_reached_object(gripper_position, self.subgoal_offset(goal_position, [0.2, 0.0, -0.2])):
+        if self.gripper_reached_object(gripper_position, self.subgoal_offset(goal_position, self.offsetleft)):
             self.current_network = 1
         return self.current_network
 

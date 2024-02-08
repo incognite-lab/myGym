@@ -20,7 +20,7 @@ Gummiarm     arm      passive palm    6   gummi
 Reachy       arm      passive palm    8   reachy
 Leachy       arm      passive palm    8   leachy
 ReachyLeachy dualarm  passive palms   16  reachy_and_leachy
-ABB Yumi     dualarm  two finger      24  yummi
+ABB Yumi     dualarm  two finger      24  yumi
 Pepper       humanoid –               –   –
 Thiago       humanoid –               –   –
 Atlas        humanoid –               –   –

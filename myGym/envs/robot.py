@@ -1,10 +1,13 @@
-from re import S
-import pkg_resources
-from myGym.utils.vector import Vector
-import numpy as np
 import math
-from myGym.utils.helpers import get_robot_dict
+from re import S
 from warnings import warn
+
+import numpy as np
+import pkg_resources
+
+from myGym.utils.helpers import get_robot_dict
+from myGym.utils.vector import Vector
+
 try:
     from zmq_comm.pub_sub import ParamPublisher
 except ImportError:
@@ -345,6 +348,7 @@ class Robot:
         self.end_effector_orn = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
         self.gripper_pos = self.p.getLinkState(self.robot_uid, self.gripper_index)[0]
         self.gripper_orn = self.p.getLinkState(self.robot_uid, self.gripper_index)[1]
+        self.joint_poses = joint_poses
 
     def _move_gripper(self, action):
         """
@@ -589,7 +593,7 @@ class Robot:
             #When gripper is not in robot action it will magnetize objects
                 self.gripper_active = True
                 self.magnetize_object(env_objects["actual_state"])
-            elif "compositional" in self.task_type:
+            elif self.task_type in ["compositional", "fmot"]:
                 if self.use_magnet and env_objects["actual_state"] != self:
                     self.gripper_active = True
                     self.magnetize_object(env_objects["actual_state"])
@@ -611,7 +615,7 @@ class Robot:
         #    for joint_index in range(self.gripper_index, self.end_effector_index + 1):
         #        self.p.resetJointState(self.robot_uid, joint_index, self.p.getJointInfo(self.robot_uid, joint_index)[9])
 
-    def magnetize_object(self, object, distance_threshold=.05):
+    def magnetize_object(self, object, distance_threshold=.1):
         if len(self.magnetized_objects) == 0 :
 
             if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
