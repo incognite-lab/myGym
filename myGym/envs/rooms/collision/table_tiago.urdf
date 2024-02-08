@@ -78,7 +78,7 @@
       <material name="framemat0"/>
     </visual>
     <collision>
-      <origin rpy="1.57 0 0" xyz="-1 -0.3 1"/>
+      <origin rpy="1.57 0 0" xyz="-.9 -0.18 .7"/>
         <geometry>
           <mesh filename="./obj/kallax.obj" scale="1 1 1"/>
         </geometry>
