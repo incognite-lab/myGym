@@ -1,0 +1,16 @@
+#Problem I've encountered during installation of mygym:
+
+error: Setup script exited with error: Cannot compile MPI programs. Check your configuration!!!
+
+after seeing:
+error: Setup script exited with error: Cannot compile MPI programs. Check your configuration!!!
+in installation log
+
+#Provided solution:
+sudo apt install libopenmpi-dev
+
+did not work.
+
+#My solution:
+brew install mpich
+onda install -c conda-forge mpi4py mpich

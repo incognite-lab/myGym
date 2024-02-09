@@ -4,6 +4,7 @@
     "workspace" :"table",
     "engine"    :"pybullet",
     "render"    :"opengl",
+    "seed"      :1,
     "camera"    :0,
     "gui"       :0,
     "visualize" :0,
@@ -17,11 +18,12 @@
     "action_repeat" :1,
     #Task
     "task_type"             :"pnp",
+    "natural_language"      :0,
     "task_objects"          :[{"init":{"obj_name":"cube_holes","fixed":0,"rand_rot":0, "sampling_area":[-0.38,-0.38,0.62,0.62,0.1,0.1]},
                            "goal":{"obj_name":"cube_target","fixed":1,"rand_rot":0, "sampling_area":[0.0,0.0,0.5,0.5,0.1,0.1]}},
                            {"init":{"obj_name":"cube_holes","fixed":0,"rand_rot":0, "sampling_area":[-0.38,-0.38,0.42,0.42,0.1,0.1]},
                            "goal":{"obj_name":"cube_target","fixed":1,"rand_rot":0, "sampling_area":[0.0,0.0,0.5,0.5,0.2,0.2]}}],
-    "color_dict"            : {"cube_holes":[[0.2,0.5,0.2,1]], "cube_target":[[0.3,0.3,0.3,1]]},
+    "color_dict"            : {"cube_holes":["green"], "target":["gray"]},
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
     // Observation
     // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"

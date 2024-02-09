@@ -1,4 +1,5 @@
 import random
+import copy
 
 import pkg_resources
 import os, sys, time, yaml
@@ -40,6 +41,7 @@ import myGym.utils.cfg_comparator as cfg
 
 # Import helper classes and functions for monitoring
 #from myGym.utils.callbacks import ProgressBarManager, SaveOnBestTrainingRewardCallback,  PlottingCallback, CustomEvalCallback
+from myGym.envs.natural_language import NaturalLanguage
 
 # This is global variable for the type of engine we are working with
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
@@ -84,7 +86,10 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "active_cameras": arg_dict["camera"], "color_dict":arg_dict.get("color_dict", {}),
                      "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
                      "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
-                     "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"]}
+                     "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"],
+                     "natural_language": bool(arg_dict["natural_language"]),
+                     "training": bool(for_train)
+                     }
     if for_train:
         env_arguments["gui_on"] = arg_dict["gui"]
     else:
@@ -257,6 +262,12 @@ def get_parser():
     parser.add_argument("-yp", "--yolact_path", type=str, help="Path to a trained Yolact in 3dvu reward type")
     parser.add_argument("-yc", "--yolact_config", type=str, help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
     parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
+    #Language
+    # parser.add_argument("-nl", "--natural_language", type=str, default="",
+    #                     help="If passed, instead of training the script will produce a natural language output "
+    #                          "of the given type, save it to the predefined file (for communication with other scripts) "
+    #                          "and exit the program (without the actual training taking place). Expected values are \"description\" "
+    #                          "(generate a task description) or \"new_tasks\" (generate new tasks)")
     return parser
 
 def get_arguments(parser):
@@ -267,10 +278,45 @@ def get_arguments(parser):
         if value is not None and key is not "config":
             if key in ["robot_init"]:
                 arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
+            elif key in ["task_objects"]:
+                arg_dict[key] = task_objects_replacement(value, arg_dict[key], arg_dict["task_type"])
             else:
                 arg_dict[key] = value
     return arg_dict
 
+
+def task_objects_replacement(task_objects_new, task_objects_old, task_type):
+    """
+    If task_objects is given as a parameter, this method converts string into a proper format depending on task_type (null init for task_type reach)
+
+    [{"init":{"obj_name":"null"}, "goal":{"obj_name":"cube_holes","fixed":1,"rand_rot":0, "sampling_area":[-0.5, 0.2, 0.3, 0.6, 0.1, 0.4]}}]
+    """
+    ret = copy.deepcopy(task_objects_old)
+    if len(task_objects_new) > len(task_objects_old):
+        msg = "More objects given than there are subtasks."
+        raise Exception(msg)
+    dest = "" #init or goal
+    if task_type == "reach":
+        dest = "goal"
+    else:
+        dest = "init"
+    for i in range(len(task_objects_new)):
+        ret[i][dest]["obj_name"] = task_objects_new[i]
+    return ret
+
+
+
+
+def process_natural_language_command(cmd, env, output_relative_path=os.path.join("envs", "examples", "natural_language.txt")):
+    env.reset()
+    nl = NaturalLanguage(env)
+
+    if cmd in ["description", "new_tasks"]:
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_relative_path), "w") as file:
+            file.write(nl.generate_task_description() if cmd == "description" else "\n".join(nl.generate_new_tasks()))
+    else:
+        msg = f"Unknown natural language command: {cmd}"
+        raise Exception(msg)
 
 def main():
     parser = get_parser()

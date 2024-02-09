@@ -1,0 +1,92 @@
+END USER LICENSE AGREEMENT FOR QIBULLET SOFTWARE RESOURCES
+
+The terms of this End User License Agreement (hereinafter the “EULA“) constitute an agreement between You, or the legal entity you represent (hereinafter referred to as “YOU“) and SOFTBANK ROBOTICS EUROPE SAS, having its registered office at 43 rue du Colonel Pierre Avia, 75015 Paris, France - registered with the Trade and Companies Register of Paris under number 483 185 807 (hereinafter referred to as “SBRE“), regarding the use of QiBullet (the “Software“). 
+ 
+PLEASE READ THIS EULA CAREFULLY BEFORE DOWNLOADING, INSTALLING, CONFIGURING, ACCESSING AND/OR USING THE SOFTWARE RESOURCES.
+ANY DOWNLOAD, INSTALLATION, CONFIGURATION, ACCESS AND/OR USE OF THE SOFTWARE RESOURCES WILL BE DEEMED AS AN ACCEPTANCE OF THIS EULA AND WILL BIND YOU TO THE OBLIGATIONS CONTAINED HEREIN.
+ 
+BY PRESSING “Y” OR USING THE SOFTWARE RESOURCES, YOU ARE BOUND BY THE TERMS OF THIS EULA. IF YOU PRESS “N”, YOU WILL NOT BE ABLE TO USE THE SOFTWARE RESOURCES. 
+ 
+1. DEFINITIONS
+1.1 “Documentation” refers to any explanatory materials or other materials and/or specifications provided along with the Software Resources or made available online on any related website (if any).
+
+1.2 “Installer” means the compiled code that, upon acceptance, will install the Meshes on your device.
+
+1.3 “Meshes” refers to the files contained in the relevant folder, that will be used for simulation purposes.
+
+1.4 “Software Resources” refers to both Installer and Meshes.
+ 
+2. USE RIGHTS AND OBLIGATIONS
+2.1 Subject to Your compliance with all the terms and conditions of this EULA, SBRE hereby grants YOU a limited, non-exclusive, revocable, non-sub-licensable and non-transferable license to install and use the Software Resources.
+ 
+2.2 YOU are liable for any use of the Software Resources in conformity with these EULA terms.
+
+2.3 YOU are responsible for informing SBRE of any potential defects (including any bugs, glitches, any other forms of malfunctions) discovered when using the Software Resources.
+ 
+3. RESTRICTIONS ON USE
+3.1. These Software Resources are licensed, not sold, to YOU by SBRE. YOU must use the Software Resources only as expressly permitted in this EULA and thus, these Software Resources cannot be sold. SBRE and its licensors reserve all rights, titles, ownership and interests related to the Software Resources except otherwise expressly and limitatively granted herein. This EULA does not grant YOU any rights, titles, ownership and interests to any SBRE and/or its licensors trademarks, tradenames and logos.
+ 
+3.2. Except as and only to the extent expressly permitted by applicable law, YOU agree not to, directly or indirectly:
+(a) modify, reverse engineer, recreate, decompile or disassemble, attempt to derive the source code, decrypt, translate, or create derivative works, of the Installer, in full or in part, past, current or future versions, or on any format whatsoever;
+(b) sub-license, rent, lease or otherwise transfer any rights in the Software Resources, in whole or in part;
+(c) copy (other than the authorized backup copy) and/or publish the Software Resources, in full or in part, past, current, future version or on any format whatsoever for others to copy. The terms under which copying and distributing copies of third-party open source code may be allowed are governed by the applicable license. The list of third parties open source software components is available upon written request to SBRE or on any dedicated webpage (if any);
+(d) use or patch any unauthorized by SBRE, illegal, counterfeit or modified hardware or software with the Software Resources. If in doubt, it is Your responsibility to obtain said authorization with SBRE regarding the suitability of the said modified hardware or software YOU intend to use the Software Resources with;
+(e) adapt the Software Resources;
+(f) use the Meshes in any other format than the one provided by SBRE;
+(g) use the Software Resources in any way that is against all laws, including local laws of the country or region in which YOU reside;
+(h) use the Software Resources in a way that infringes any copyright or any other right, including but not limited to third party software license terms, as described in Article 7;
+(i) use the Software Resources in any illegal, illicit, defaming, pornographical or detrimental way.
+  
+4. DURATION OF LICENSE 
+4.1 This EULA is effective until terminated. Therefore, Your rights will automatically lapse, without written prior notice from SBRE, if YOU fail to comply with the terms of this EULA.
+ 
+4.2 Upon termination, YOU must cease all use of the Software Resources and destroy all copies, full or partial of the Software Resources. Any termination of this EULA shall not release YOU from any of Your obligations, prescribed by this EULA, which survive by their nature.
+YOU will have no recourse against SBRE, or its affiliates, officers, directors, employees, agents and stockholders, nor against its licensors, for Your inability to use the Software Resources.
+
+5. UPDATES
+5.1. SBRE reserves the right to carry out updates on, produce new versions of, modify, and improve the Software at any time and without prior notice.
+The terms of this EULA also apply to any updates, upgrades, unless such updates or upgrades are covered by a separate license, in which case the terms of such separate license shall prevail. SBRE may require that YOU accept separate contract terms to be allowed to use these updates, new versions, modifications, etc.
+ 
+5.2. Updates and upgrades are highly recommended and SBRE will not be liable for any consequences arising from Your decision not to upgrade or update the Software.
+ 
+6. THIRD PARTY SOFTWARES
+6.1 The Software includes third party software. The list of applicable third party software included in the Software, along with all the applicable licenses agreement, is available upon request. YOU undertake to contact SBRE, prior to the acceptance of the current EULA.
+
+6.2 YOU hereby agree to abide by the related applicable terms and conditions. Such terms and conditions may be changed, as per the relevant third party license agreement. YOU hereby acknowledge and agree that the third party software is provided “as is” and that in no event, shall SBRE be liable for the said third party software, their applicable license agreement content, such change and its arising consequences.
+ 
+7. LIMITED WARRANTIES AND LIMITATION OF LIABILITY
+7.1 AS FAR AS PERMITTED BY APPLICABLE LAW:
+THE SOFTWARE RESOURCES ARE PROVIDED AS IS, AND SBRE AND ITS LICENSORS (COLLECTIVELY REFERRED TO AS “SBRE” FOR THE PURPOSE OF CLAUSE 7) DO NOT WARRANT THAT THE USE OF THE SOFTWARE RESOURCES, FUNCTIONALITY, THE OPERATION AND/OR CONTENT WILL BE UNINTERRUPTED, ACCURATE, COMPLETE, FREE FROM ANY SOFTWARE VIRUS OR OTHER HARMFUL COMPONENT.
+SBRE DOES NOT WARRANT THE INTERNAL CHARACTERISTICS, THE COMPATIBILITY OF THE SOFTWARE RESOURCES WITH OTHER SOFTWARE, THE ACCURACY, ADEQUACY, OR COMPLETENESS OF THE SOFTWARE RESOURCES AND ITS RESULT, AND DISCLAIMS LIABILITY FOR ERRORS OR OMISSIONS, UNLESS IT ENDANGERS THE PURPOSE OF THIS AGREEMENT.
+SBRE DISCLAIMS ANY REPRESENTATIONS, WARRANTIES OR CONDITIONS, EXPRESS OR IMPLIED, INCLUDING THOSE OF PERFORMANCE, MERCHANTABILITY, SATISFACTION, QUALITY OR FITNESS FOR A PARTICULAR PURPOSE, OF THE SOFTWARE RESOURCES AND ITS RESULTS.
+ 
+7.2 TO THE EXTENT OF THE APPLICABLE LAW, IN NO EVENT WILL SBRE BE LIABLE FOR:
+ANY DAMAGE (INCLUDING BUT NOT LIMITED TO, INDIRECT, PUNITIVE, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES, COST OF PROCURING SUBSTITUTE SERVICES, LOSS OF PROFIT, CORRUPTION OR LOSS OF DATA, BUSINESS OR ANY OTHER LOSSES OR DAMAGES) ARISING FROM THE PROVISION OR USE OF THE SOFTWARE RESOURCES, REGARDLESS OF WHETHER SUCH CLAIMS ARE BASED ON CONTRACT, TORT, STRICT LIABILITY, OR OTHERWISE, OR WHETHER SBRE HAD KNOWLEDGE OF POSSIBLE DAMAGES OR LOSSES RESULTING FROM THE USE THEREOF.
+WITHOUT LIMITING THE FOREGOING, THIS LIMITATION OF LIABILITY INCLUDES, BUT IS NOT LIMITED TO, THE UNAVAILABILITY OF THE SOFTWARE OR SOFTWARE RESOURCES, UNAUTHORIZED ACCESS, ANY FAILURE OF PERFORMANCE, INTERRUPTION, ERROR, OMISSION, DEFECT, DELAY IN OPERATION OR TRANSMISSION, COMPUTER VIRUS, USE OF THE SOFTWARE OR SOFTWARE RESOURCES WITH INCOMPATIBLE SOFTWARE OR HARDWARE.
+IN NO EVENT SHALL SBRE’S CUMULATIVE LIABILITY TO YOU FOR ALL DAMAGES (OTHER THAN MAY BE REQUIRED BY APPLICABLE LAW IN CASES INVOLVING PERSONAL INJURY OR DEATH) EXCEED ONE HUNDRED EUROS (€ 100).
+ 
+8. VIOLATION OF LICENSE – TERMINATION OF RIGHTS
+If YOU fail, or SBRE reasonably suspects that YOU have failed to comply with any of the provisions of this EULA, SBRE may take any action to protect its interests such as (i) disabling access to or use of some part or all the Software or Software Resources; (ii) closing Your SBRE account; (iii) and/or terminating Your rights under this EULA, without limiting SBRE’S other rights and remedies, all of which are expressly reserved.
+ 
+9. OWNERSHIP OF INTELLECTUAL PROPERTY RIGHTS
+Your only right to use the Software Resources is by virtue of this EULA and YOU acknowledge that all intellectual property rights in or relating to the Software and all parts of the Software, including the Software Resources, are and shall remain the exclusive property of SBRE and/or its licensors.
+YOU agree that YOU will not remove or alter any copyright notices or similar proprietary devices, including without limitation any electronic watermarks or other identifiers that may be incorporated in the Software and the Software Resources.
+ 
+10. GOVERNING LAW, RELEVANT JURISDICTION AND SEVERABILITY
+All matters arising from or relating to the Software and the Software Resources and this EULA, shall be governed by the laws of France, without regard to conflict of laws.
+This EULA will not be governed by the United Nations Convention of Contracts for the International Sale of Goods, the application of which is expressly excluded. Any arising dispute related to this EULA shall be submitted to the exclusive competence of the relevant courts of SBRE’s headquarters.
+If for any reason a relevant jurisdiction ﬁnds any provision, or portion thereof, to be unenforceable, the remaining provisions shall continue in full force and effect.
+ 
+11. MISCELLANEOUS
+11.1 This EULA constitutes the entire agreement between YOU and SBRE with respect to the Software Resources and supersedes all prior or current understandings regarding its subject matter.
+No failure to exercise, nor any delay in exercising, on the part of SBRE, any right or remedy under this EULA or under any applicable law, shall operate as a waiver thereof, nor shall any single or partial exercise of any right or remedy prevent any further or future exercise thereof or the exercise of any other right or remedy.
+The rights and remedies of SBRE provided for by this EULA terms are cumulative and not exclusive of any rights or remedies provided by law.
+SBRE may assign this EULA and/or any of its rights and obligations attached hereunder to any third party in order to comply with any applicable law, regulation or any directive issued by a competent regulatory authority, or due to any transaction regarding the transfer or disposal of whole, or part, of SBRE’s assets (i.e: transfer, merger, acquisition).
+ 
+11.2 SBRE reserves the right to delegate its right to engage legal action on its behalf to a third party
+ 
+11.3 The title of each article appearing on these EULA terms is given as information only and does not necessarily prejudice their content or their reach.
+ 
+11.4 In the event of a conflict between the English and any other language besides English versions of this EULA, the English version shall prevail.
+ 
+11.5 For any question, please contact support@softbankrobotics.com.

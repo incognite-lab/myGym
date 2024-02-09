@@ -2,7 +2,6 @@
 ![alt text](myGym/images/mygymlogo.png "myGym")
 
 
-
 We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks  with increasing complexity and test your network on them. We also included an automatic evaluation and benchmark tool for your developed model. We have pretained the Yolact network for visual recognition of all objects in the simulator, so that you can reward your networks based on visual sensors only. 
 
 We keep training the current state-of-the-art algorithms to provide baselines for the tasks in the toolbox. There is also a leaderboard showing algorithms with the best generalization capability, tested on the tasks in our basic curriculum. From version 2.0 it is possible to train multiple networks within one task and switch between them based on reward or adaptively. The number of neteworks is specified in config file.
@@ -17,9 +16,9 @@ We keep training the current state-of-the-art algorithms to provide baselines fo
 [![Generic badge](https://img.shields.io/badge/Docs-Yes-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://shields.io/)
 
-## Rllib version doc
+## Install env
 
-For Ray Rllib branch please follow this instruxctions:
+For Ray Rllib branch please follow this instructions:
 
 create mygymrl fro rllib.yml file
 
@@ -124,12 +123,6 @@ If everything is correct, the toolbox will train for two minutes without GUI and
 | Randomizers  | Light, Texture, Size, Camera position |
 | Baselines  | Tensorflow, Pytorch |
 | Physics  | Bullet, Mujoco deprecated from version 2.0 |
-
-
-
-
-Learn more about the toolbox in our [documentation](https://mygym.readthedocs.io/en/latest/)
-
 
 ## Test the environments prior training
 
@@ -275,7 +268,7 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 | Jaco arm  | arm  |  two finger |  13 | jaco  |
 | Gummiarm  | arm  | passive palm  |  13 | gummi  |
 | Human Support Robot (HSR) | arm | gripper | 7 | hsr |
-| ABB Yumi  | dualarm  | two finger  |  12 | yummi  |
+| ABB Yumi  | dualarm  | two finger  |  12 | yumi  |
 | ReachyLeachy  | dualarm  | passive palms  |  14 | reachy_and_leachy |
 | Pepper  | humanoid | --  |  20 | WIP  |
 | Thiago | humanoid  | --  |  19 | WIP  |
@@ -287,7 +280,7 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 |---|---|---|---|
 | Tabledesk | manipulation  | Reach,Press, Switch, Turn, PicknPlace | table |
 | Drawer | manipulation  | Pick, Place, PicknPlace  | drawer |
-| Fridge | manipulation  | Push, Open, Close, Pick | fridge |
+| Fridge | manipulation  | Push, Pick | fridge |
 | Baskets | manipulation  | Throw, Hit | baskets |
 | Darts | manipulation  | Throw, Hit | darts |
 | Football | manipulation  | Throw, Hit | football |

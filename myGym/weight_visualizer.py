@@ -31,6 +31,13 @@ def visualize_weights(root_dir, weight_layer):
         
         for filename in filenames:
             if "train.json" in filename:
+                #open and read train.json
+                #with open(os.path.join(dirpath, filename)) as f:
+                #    traindata = json.load(f)
+                #    #if exist key 'task' reads the value
+                #    if 'task' in traindata:
+                #        task = traindata['task']
+                #        #print(task)
                 nets+=1
             if filename.endswith('.zip'):
                 zip_path = os.path.join(dirpath, filename)
@@ -70,7 +77,9 @@ def visualize_weights(root_dir, weight_layer):
                             targets.append(str('multi' + dirpath[-1]))
                         else:
                             algotargets.append(str(algos[algoindex]))
-                            targets.append(str('single'))
+                            targetname = ''.join(e for e in dirpath if e.isalnum())
+                            targetname = targetname[17:22]
+                            targets.append(str(targetname))
 
                 # Delete the temporary directory
                 shutil.rmtree(temp_dir)
@@ -93,7 +102,7 @@ def visualize_weights(root_dir, weight_layer):
     taskname = ''.join(e for e in root_dir if e.isalnum())
     taskname = taskname[-5:]
     layername = layername[5:]
-    title = "Task: {}, Layer: {},Nets:{}, Samples: {},Features:{}".format(taskname, layername,nets,data.shape[0],data.shape[1])
+    title = "Task: {}, Layer: {},#Nets:{}, #Samples: {},#Dimensions:{}".format(taskname, layername,nets,data.shape[0],data.shape[1])
     
     # Create a figure with two subplots
     fig = plt.figure(figsize=(20, 9))
@@ -104,11 +113,11 @@ def visualize_weights(root_dir, weight_layer):
     for target in unique_targets:
         indices = find_indices(targets, target)
         #indices = np.where(targets == target)
-        ax1.scatter(tsne_results[indices, 0], tsne_results[indices, 1],s=3, label=str(target))
+        ax1.scatter(tsne_results[indices, 0], tsne_results[indices, 1],s=30, label=str(target))
     ax1.set_title(title)
     ax1.set_xlabel('Dimension 1')
     ax1.set_ylabel('Dimension 2')
-    ax1.legend()
+    ax1.legend(fontsize="25")
 
     # Second subplot
     ax2 = fig.add_subplot(1, 2, 2)
@@ -120,7 +129,7 @@ def visualize_weights(root_dir, weight_layer):
     ax2.set_title(title)
     ax2.set_xlabel('Dimension 1')
     ax2.set_ylabel('Dimension 2')
-    ax2.legend()
+    ax2.legend(fontsize="20")
     
     plt.tight_layout() 
     #plt.show()

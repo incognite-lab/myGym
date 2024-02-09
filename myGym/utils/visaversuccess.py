@@ -22,16 +22,7 @@ def natural_keys(text):
 
 def cfgString2Dict(cfg_raw):
     """
-    Converts a string with configuration parameters separated by a space
-    into a dictionary.
-​
-    Parameters
-    ----------
-    cfg_raw : str
-​
-    Returns
-    -------
-    dict
+    x
     """
     return {key: value for key, _, value, _ in re.findall(
         r"(\w+\s?)(=\s?)([^=]+)( (?=\w+\s?=)|$)", cfg_raw)}

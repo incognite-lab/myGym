@@ -1,15 +1,16 @@
 {
 #Environment
 "env_name"  :"Gym-v0",
-"workspace" :"table",
+"workspace" :"collabtable",
 "engine"    :"pybullet",
 "render"    :"opengl",
+"seed"      :1,
 "camera"    :0,
 "gui"       :1,
 "visualize" :0,
 "visgym"    :0,
 #Robot
-"robot"         :"kuka_push",
+"robot"         :"kuka",
 "robot_action"  :"step",
 "robot_init"    :[-0.4, 0.4, 0.4],
 "max_velocity"  :1,
@@ -17,6 +18,7 @@
 "action_repeat" :1,
 #Task
 "task_type"             :"reach",
+"natural_language"      :0,
 "task_objects"          :[{"init":{"obj_name":"null"},
                            "goal":{"obj_name":"cube_holes","fixed":1,"rand_rot":0, "sampling_area":[-0.5, -0.2, 0.5, 0.7, 0.1, 0.3]}},
                           {"init":{"obj_name":"null"},

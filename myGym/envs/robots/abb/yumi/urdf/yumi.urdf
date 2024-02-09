@@ -68,7 +68,7 @@
   </link>
   <!--///////////////////////////////////// RIGHT ARM ////////////////////////////////  -->
   <!-- joint between body and link_1_r -->
-  <joint name="yumi_joint_1_r" type="revolute">
+  <joint name="yumi_rjoint_1_r" type="revolute">
     <parent link="yumi_body"/>
     <child link="yumi_link_1_r"/>
     <origin rpy="-0.9795   -0.5682   -2.3155" xyz="0.05355 -0.0725 0.41492"/>
@@ -98,7 +98,7 @@
     </collision>
   </link>
   <!-- joint between link_1_r and link_2_r -->
-  <joint name="yumi_joint_2_r" type="revolute">
+  <joint name="yumi_rjoint_2_r" type="revolute">
     <parent link="yumi_link_1_r"/>
     <child link="yumi_link_2_r"/>
     <origin rpy="1.57079632679 0.0 0.0" xyz="0.03 0.0 0.1"/>
@@ -128,7 +128,7 @@
     </collision>
   </link>
   <!-- joint between link_2_r and link_3_r -->
-  <joint name="yumi_joint_7_r" type="revolute">
+  <joint name="yumi_rjoint_7_r" type="revolute">
     <parent link="yumi_link_2_r"/>
     <child link="yumi_link_3_r"/>
     <origin rpy="-1.57079632679 0.0 0.0" xyz="-0.03 0.17283 0.0"/>
@@ -158,7 +158,7 @@
     </collision>
   </link>
   <!-- joint between link_3_r and link_4_r -->
-  <joint name="yumi_joint_3_r" type="revolute">
+  <joint name="yumi_rjoint_3_r" type="revolute">
     <parent link="yumi_link_3_r"/>
     <child link="yumi_link_4_r"/>
     <origin rpy="1.57079632679 -1.57079632679 0.0" xyz="-0.04188 0.0 0.07873"/>
@@ -188,7 +188,7 @@
     </collision>
   </link>
   <!-- joint between link_4_r and link_5_r -->
-  <joint name="yumi_joint_4_r" type="revolute">
+  <joint name="yumi_rjoint_4_r" type="revolute">
     <parent link="yumi_link_4_r"/>
     <child link="yumi_link_5_r"/>
     <origin rpy="-1.57079632679 0.0 0.0" xyz="0.0405 0.16461 0.0"/>
@@ -218,7 +218,7 @@
     </collision>
   </link>
   <!-- joint between link_5_r and link_6_r -->
-  <joint name="yumi_joint_5_r" type="revolute">
+  <joint name="yumi_rjoint_5_r" type="revolute">
     <parent link="yumi_link_5_r"/>
     <child link="yumi_link_6_r"/>
     <origin rpy="1.57079632679 0.0 0.0" xyz="-0.027 0 0.10039"/>
@@ -248,7 +248,7 @@
     </collision>
   </link>
   <!-- joint between link_6_r and link_7_r -->
-  <joint name="yumi_joint_6_r" type="revolute">
+  <joint name="yumi_rjoint_6_r" type="revolute">
     <parent link="yumi_link_6_r"/>
     <child link="yumi_link_7_r"/>
     <origin rpy="-1.57079632679 0.0 0.0" xyz="0.027 0.029 0.0"/>
@@ -279,7 +279,7 @@
   </link>
   <!--///////////////////////////////////// LEFT ARM ////////////////////////////////  -->
   <!-- joint between body and link_1_l -->
-  <joint name="yumi_joint_1_l" type="revolute">
+  <joint name="yumi_rjoint_1_l" type="revolute">
     <parent link="yumi_body"/>
     <child link="yumi_link_1_l"/>
     <origin rpy="0.9781 -0.5716 2.3180" xyz="0.05355 0.07250 0.41492"/>
@@ -309,7 +309,7 @@
     </collision>
   </link>
   <!-- joint between link_1_l and link_2_l -->
-  <joint name="yumi_joint_2_l" type="revolute">
+  <joint name="yumi_rjoint_2_l" type="revolute">
     <parent link="yumi_link_1_l"/>
     <child link="yumi_link_2_l"/>
     <origin rpy="1.57079632679 0.0 0.0" xyz="0.03 0.0 0.1"/>
@@ -339,7 +339,7 @@
     </collision>
   </link>
   <!-- joint between link_2_l and link_3_l -->
-  <joint name="yumi_joint_7_l" type="revolute">
+  <joint name="yumi_rjoint_7_l" type="revolute">
     <parent link="yumi_link_2_l"/>
     <child link="yumi_link_3_l"/>
     <origin rpy="-1.57079632679 0.0 0.0" xyz="-0.03 0.17283 0.0"/>
@@ -369,7 +369,7 @@
     </collision>
   </link>
   <!-- joint between link_3_l and link_4_l -->
-  <joint name="yumi_joint_3_l" type="revolute">
+  <joint name="yumi_rjoint_3_l" type="revolute">
     <parent link="yumi_link_3_l"/>
     <child link="yumi_link_4_l"/>
     <origin rpy="1.57079632679 -1.57079632679 0.0" xyz="-0.04188 0.0 0.07873"/>
@@ -399,7 +399,7 @@
     </collision>
   </link>
   <!-- joint between link_4_l and link_5_l -->
-  <joint name="yumi_joint_4_l" type="revolute">
+  <joint name="yumi_rjoint_4_l" type="revolute">
     <parent link="yumi_link_4_l"/>
     <child link="yumi_link_5_l"/>
     <origin rpy="-1.57079632679 0.0 0.0" xyz="0.0405 0.16461 0.0"/>
@@ -429,7 +429,7 @@
     </collision>
   </link>
   <!-- joint between link_5_l and link_6_l -->
-  <joint name="yumi_joint_5_l" type="revolute">
+  <joint name="yumi_rjoint_5_l" type="revolute">
     <parent link="yumi_link_5_l"/>
     <child link="yumi_link_6_l"/>
     <origin rpy="1.57079632679 0.0 0.0" xyz="-0.027 0 0.10039"/>
@@ -459,7 +459,7 @@
     </collision>
   </link>
   <!-- joint between link_6_l and link_7_l -->
-  <joint name="yumi_joint_6_l" type="revolute">
+  <joint name="yumi_rjoint_6_l" type="revolute">
     <parent link="yumi_link_6_l"/>
     <child link="yumi_link_7_l"/>
     <origin rpy="-1.57079632679 0.0 0.0" xyz="0.027 0.029 0.0"/>
@@ -662,7 +662,7 @@
     </collision>
   </link>
   <!-- joint between base and right finger -->
-  <joint name="gripper_r_joint" type="prismatic">
+  <joint name="gripper_r_gjoint" type="prismatic">
     <parent link="gripper_r_base"/>
     <child link="gripper_r_finger_r"/>
     <origin rpy="0 0 0" xyz="0 -0.0065 0.0837"/>
@@ -692,7 +692,7 @@
     </collision>
   </link>
   <!-- joint between base and left finger -->
-  <joint name="gripper_r_joint_m" type="prismatic">
+  <joint name="gripper_r_gjoint_m" type="prismatic">
     <parent link="gripper_r_base"/>
     <child link="gripper_r_finger_l"/>
     <origin rpy="0 0 3.14159265359" xyz="0 0.0065 0.0837"/>
@@ -774,7 +774,7 @@
     </collision>
   </link>
   <!-- joint between base and right finger -->
-  <joint name="gripper_l_joint" type="prismatic">
+  <joint name="gripper_l_gjoint" type="prismatic">
     <parent link="gripper"/>
     <child link="gripper_l_finger_r"/>
     <origin rpy="0 0 0" xyz="0 -0.0065 0.0837"/>
@@ -804,16 +804,16 @@
     </collision>
   </link>
   <!-- joint between base and left finger -->
-  <joint name="gripper_l_joint_m" type="prismatic">
+  <joint name="gripper_l_gjoint_m" type="prismatic">
     <parent link="gripper"/>
-    <child link="end_effector"/>
+    <child link="endeffector"/>
     <origin rpy="0 0 3.14159265359" xyz="0 0.0065 0.0837"/>
     <axis xyz="-1 0 0"/>
     <limit effort="20" lower="0" upper="0.025" velocity="2"/>
     <dynamics damping="1.0"/>
     <mimic joint="gripper_l_joint"/>
   </joint>
-  <link name="end_effector"> <!--gripper_l_finger_l-->
+  <link name="endeffector"> <!--gripper_l_finger_l-->
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="0.01"/>

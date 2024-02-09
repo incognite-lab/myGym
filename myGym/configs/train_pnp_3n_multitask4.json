@@ -18,6 +18,7 @@
     "action_repeat" :1,
     #Task
     "task_type"             :"pnp",
+    "natural_language"      :0,
     "task_objects"          :[{"init":{"obj_name":"tower1","fixed":0,"rand_rot":0, "sampling_area":[-0.4,0.4,0.4,0.7,0.1,0.1]},
                            "goal":{"obj_name":"towertarget","fixed":1,"rand_rot":0, "sampling_area":[0.0,0.0,0.5,0.5,0.1,0.1]}},
                            {"init":{"obj_name":"tower2","fixed":0,"rand_rot":0, "sampling_area":[-0.4,0.4,0.4,0.7,0.1,0.1]},
@@ -26,7 +27,7 @@
                            "goal":{"obj_name":"towertarget","fixed":1,"rand_rot":0, "sampling_area":[0.0,0.0,0.5,0.5,0.3,0.3]}},
                            {"init":{"obj_name":"tower4","fixed":0,"rand_rot":0, "sampling_area":[-0.4,0.4,0.4,0.7,0.1,0.1]},
                            "goal":{"obj_name":"towertarget","fixed":1,"rand_rot":0, "sampling_area":[0.0,0.0,0.5,0.5,0.3,0.4]}}],
-    "color_dict"            : {"cube_holes":[[0.2,0.5,0.2,1]], "cube_target":[[0.3,0.3,0.3,1]]},
+    "color_dict"            : {"cube_holes":["green"], "target":["gray"]},
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
     // Observation
     // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"

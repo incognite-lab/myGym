@@ -29,7 +29,7 @@
       <inertia ixx="0.0061063308908" ixy="0.0" ixz="0.0" iyy="0.0061063308908" iyz="0.0" izz="0.01125"/>
     </inertial>
   </link>
-  <joint name="shoulder_pan_joint" type="revolute">
+  <joint name="shoulder_pan_rjoint" type="revolute">
     <parent link="base_link"/>
     <child link="shoulder_link"/>
     <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.1273"/>
@@ -57,7 +57,7 @@
       <inertia ixx="0.0314743125769" ixy="0.0" ixz="0.0" iyy="0.0314743125769" iyz="0.0" izz="0.021875625"/>
     </inertial>
   </link>
-  <joint name="shoulder_lift_joint" type="revolute">
+  <joint name="shoulder_lift_rjoint" type="revolute">
     <parent link="shoulder_link"/>
     <child link="upper_arm_link"/>
     <origin rpy="0.0 1.57079632679 0.0" xyz="0.0 0.220941 0.0"/>
@@ -85,7 +85,7 @@
       <inertia ixx="0.421753803798" ixy="0.0" ixz="0.0" iyy="0.421753803798" iyz="0.0" izz="0.036365625"/>
     </inertial>
   </link>
-  <joint name="elbow_joint" type="revolute">
+  <joint name="elbow_rjoint" type="revolute">
     <parent link="upper_arm_link"/>
     <child link="forearm_link"/>
     <origin rpy="0.0 0.0 0.0" xyz="0.0 -0.1719 0.612"/>
@@ -113,7 +113,7 @@
       <inertia ixx="0.111069694097" ixy="0.0" ixz="0.0" iyy="0.111069694097" iyz="0.0" izz="0.010884375"/>
     </inertial>
   </link>
-  <joint name="wrist_1_joint" type="revolute">
+  <joint name="wrist_1_rjoint" type="revolute">
     <parent link="forearm_link"/>
     <child link="wrist_1_link"/>
     <origin rpy="0.0 1.57079632679 0.0" xyz="0.0 0.0 0.5723"/>
@@ -141,7 +141,7 @@
       <inertia ixx="0.0051082479567" ixy="0.0" ixz="0.0" iyy="0.0051082479567" iyz="0.0" izz="0.0055125"/>
     </inertial>
   </link>
-  <joint name="wrist_2_joint" type="revolute">
+  <joint name="wrist_2_rjoint" type="revolute">
     <parent link="wrist_1_link"/>
     <child link="wrist_2_link"/>
     <origin rpy="0.0 0.0 0.0" xyz="0.0 0.1149 0.0"/>
@@ -169,7 +169,7 @@
       <inertia ixx="0.0051082479567" ixy="0.0" ixz="0.0" iyy="0.0051082479567" iyz="0.0" izz="0.0055125"/>
     </inertial>
   </link>
-  <joint name="wrist_3_joint" type="revolute">
+  <joint name="wrist_3_rjoint" type="revolute">
     <parent link="wrist_2_link"/>
     <child link="wrist_3_link"/>
     <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.1157"/>
