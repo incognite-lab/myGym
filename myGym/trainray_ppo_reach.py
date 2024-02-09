@@ -5,6 +5,7 @@ from ray.rllib.policy import Policy
 from ray.rllib.policy.sample_batch import SampleBatch
 from ray.rllib.env.base_env import BaseEnv
 from ray.tune.logger import pretty_print
+from ray import tune
 from train import get_parser, get_arguments, AVAILABLE_SIMULATION_ENGINES
 import os
 import gymnasium as gym

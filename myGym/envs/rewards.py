@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from stable_baselines import results_plotter
+#from stable_baselines import results_plotter
 import os
 import math
 from math import sqrt
@@ -47,8 +47,8 @@ class Reward:
         save_dir = os.path.join(self.env.logdir, "rewards")
         os.makedirs(save_dir, exist_ok=True)
         if self.env.episode_steps > 0:
-            results_plotter.EPISODES_WINDOW=50
-            results_plotter.plot_curves([(np.arange(self.env.episode_steps),np.asarray(self.rewards_history[-self.env.episode_steps:]))],'step','Step rewards')
+            #results_plotter.EPISODES_WINDOW=50
+            #results_plotter.plot_curves([(np.arange(self.env.episode_steps),np.asarray(self.rewards_history[-self.env.episode_steps:]))],'step','Step rewards')
             plt.ylabel("reward")
             plt.gcf().set_size_inches(8, 6)
             plt.savefig(save_dir + "/reward_over_steps_episode{}.png".format(self.env.episode_number))
@@ -61,8 +61,8 @@ class Reward:
         save_dir = os.path.join(self.env.logdir, "rewards")
         os.makedirs(save_dir, exist_ok=True)
         if self.env.episode_number > 0:
-            results_plotter.EPISODES_WINDOW=10
-            results_plotter.plot_curves([(np.arange(self.env.episode_number),np.asarray(self.env.episode_final_reward[-self.env.episode_number:]))],'episode','Episode rewards')
+            #results_plotter.EPISODES_WINDOW=10
+            #results_plotter.plot_curves([(np.arange(self.env.episode_number),np.asarray(self.env.episode_final_reward[-self.env.episode_number:]))],'episode','Episode rewards')
             plt.ylabel("reward")
             plt.gcf().set_size_inches(8, 6)
             plt.savefig(save_dir + "/reward_over_episodes_episode{}.png".format(self.env.episode_number))

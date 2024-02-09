@@ -9,6 +9,7 @@ import ray
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms.sac.sac import SACConfig
 from ray.rllib.algorithms.appo import APPOConfig
+from ray.rllib.algorithms.ddpg import DDPGConfig
 from ray.rllib.algorithms.marwil import MARWILConfig
 from ray.rllib.evaluation import Episode, RolloutWorker
 from ray.rllib.policy import Policy
@@ -69,7 +70,7 @@ def env_creator(env_config):
         return EnvCompatibility(GymEnv(**env_config))    
 
 def configure_implemented_combos(arg_dict):
-    implemented_combos = {"ppo": PPOConfig, "sac": SACConfig, "marwil": MARWILConfig, "appo":APPOConfig}
+    implemented_combos = {"ppo": PPOConfig, "sac": SACConfig, "marwil": MARWILConfig, "appo":APPOConfig, "ddpg":DDPGConfig}
     return implemented_combos[arg_dict["algo"]]
 
 def get_parser():
@@ -149,9 +150,10 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps):
         # use fixed learning rate instead of grid search (needs tune)
         algo = (
             algorithm()
-            .rollouts(num_rollout_workers=12) # You can try to increase or decrease based on your systems specs
+            .rollouts(num_rollout_workers=12, batch_mode="complete_episodes") # You can try to increase or decrease based on your systems specs
             .resources(num_gpus=1) # You can try to increase or decrease based on your systems specs
             .environment(env='GymEnv-v0', env_config=arg_dict)
+            .training(train_batch_size=256)
             .build()
         )
         # run manual training loop and print results after each iteration

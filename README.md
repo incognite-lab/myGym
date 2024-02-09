@@ -23,13 +23,11 @@ For Ray Rllib branch please follow this instruxctions:
 
 create mygymrl fro rllib.yml file
 
-`conda env create -f ./myGym/rllib.yml`
+`conda env create -f ./rllib.yml`
 
 `conda activate mygymrl`
 
 `python setup.py develop`
-
-`pip install ray==2.7.2`
 
 `pip install ray[tune]`
 

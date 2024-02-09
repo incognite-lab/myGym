@@ -11,19 +11,6 @@ from subprocess import run
 
 packageName = "myGym"
 
-print('hi')
-with open('requirements.txt') as f:
-    requirements = [l.strip() for l in f]
-
-# filter non-standard requirements
-reqexp = re.compile(r"[^\w><=\.\s-]")
-nonstandard = list(filter(reqexp.search, requirements))
-requirements = list(filter(lambda w: not(reqexp.search(w)), requirements))
-
-if nonstandard:
-    if sys.argv[1] != "clean":
-        print("Non-standard requirements found. These will have to installed manually. The non-standard requirements are:")
-        print(nonstandard)
 
 with open("README.md", "r") as f:
     long_description = f.read()
@@ -87,6 +74,8 @@ class DevelopWrapper(_develop):
     def _post_install(self):
         print("no task post-install tasks")
 
+
+
 setup(
     name=packageName,
     # version=version,
@@ -99,7 +88,6 @@ setup(
     url='',
     download_url='',
     license=license_text,
-    install_requires=requirements,
     include_package_data=True,
     packages=find_packages(),
     cmdclass={
@@ -109,7 +97,7 @@ setup(
     },
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.10",
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Education",
         "Intended Audience :: Information Technology",
@@ -118,4 +106,3 @@ setup(
         "Topic :: Scientific/Engineering :: Human Machine Interfaces"
     ]
 )
-

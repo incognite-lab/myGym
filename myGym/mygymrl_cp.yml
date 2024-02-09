@@ -1,6 +1,0 @@
-name: mygymrl
-channels:
-  - defaults
-dependencies:
-  - python=3.7
-prefix: /home/michal/code/miniconda3/envs/mygymrl
