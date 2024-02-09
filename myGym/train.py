@@ -75,7 +75,7 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
     #    plt.show()
 
 def configure_env(arg_dict, model_logdir=None, for_train=True):
-    env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
+    env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"], "framework":"stable_baselines",
                      "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
                      "robot_action": arg_dict["robot_action"],"max_velocity": arg_dict["max_velocity"], 
                      "max_force": arg_dict["max_force"],"task_type": arg_dict["task_type"],
@@ -103,7 +103,10 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
         if arg_dict["engine"] == "mujoco":
             env = VecMonitor(env, model_logdir) if arg_dict["multiprocessing"] else Monitor(env, model_logdir)
         elif arg_dict["engine"] == "pybullet":
-            env = Monitor(env, model_logdir, info_keywords=tuple('d'))
+           try:
+                env = Monitor(env, model_logdir, info_keywords=tuple('d'))
+           except:
+                pass
 
     if arg_dict["algo"] == "her":
         env = HERGoalEnvWrapper(env)

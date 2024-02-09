@@ -74,8 +74,6 @@ class Reward:
     
 
 
-##### READY FOR RDDL #########
-
 # PROTOREWARDS
 
 class Protorewards(Reward):
@@ -101,7 +99,7 @@ class Protorewards(Reward):
         self.offsetleft = [0.2,0.0,-0.1]
         self.offsetright = [-0.2,0.0,-0.1]
         self.offsetcenter = [0.0,0.0,-0.1]
-        self.grip_threshold = 0.05
+        self.grip_threshold = 0.1
         self.near_threshold = 0.1
         self.lift_threshold = 0.1
         self_above_threshold = 0.1
@@ -233,8 +231,8 @@ class Protorewards(Reward):
     def get_positions(self, observation):
         goal_position = observation["goal_state"]
         object_position = observation["actual_state"]
-        gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
-        gripper_position = observation["additional_obs"][gripper_name][:3]
+        #gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
+        gripper_position = self.env.robot.get_accurate_gripper_position() #observation["additional_obs"][gripper_name][:3]
         if self.prev_object_position is None:
             self.prev_object_position = object_position
         return goal_position,object_position,gripper_position
@@ -284,6 +282,18 @@ class Protorewards(Reward):
 
 # RDDL
 
+class F(Protorewards):
+    
+    def compute(self, observation=None):
+        owner = 0
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position]][owner]
+        reward = [self.find_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+    
 class FaM(Protorewards):
     
     def compute(self, observation=None):
@@ -538,4 +548,3 @@ class TurnRewardNew(Protorewards):
         if self.gripper_reached_object(gripper_position, self.subgoal_offset(goal_position, self.offsetleft)):
             self.current_network = 1
         return self.current_network
-

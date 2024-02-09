@@ -4,7 +4,6 @@ from typing import List
 from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
-from myGym.envs.igibson_predicates import *
 from myGym.envs.base_env import CameraEnv
 from collections import ChainMap
 
@@ -12,7 +11,6 @@ from myGym.envs.env_object import EnvObject
 from myGym.envs.rewards import *
 import numpy as np
 from itertools import chain
-from gymnasium import spaces
 import random
 
 from myGym.utils.helpers import get_workspace_dict
@@ -65,6 +63,7 @@ class GymEnv(CameraEnv):
     def __init__(self,
                  task_objects,
                  observation,
+                 framework="ray",
                  workspace="table",
                  dimension_velocity=0.05,
                  used_objects=None,
@@ -112,6 +111,7 @@ class GymEnv(CameraEnv):
         self.color_dict             = color_dict
         self.task_type              = task_type
         self.task_objects_dict     = task_objects
+        self.framework = framework
         self.task_objects = []
         self.env_objects = []
         self.vae_path = vae_path
@@ -166,9 +166,11 @@ class GymEnv(CameraEnv):
             self.has_distractor = True
             self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
         reward_classes = {
-            "1-network": {},
-            "2-network": {"FM": FaM},
-            "3-network": {"FMR": FaMaR,"FROM": FaROaM, "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT, "FMOM": FaMOaM},
+            "1-network": {"F": F, "switch": SwitchRewardNew, "turn": TurnRewardNew, "FM": FaM, "FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
+                          "FMOM": FaMOaM, "FMLFR": FaMaLaFaR},
+            "2-network": {"switch": SwitchRewardNew, "turn": TurnRewardNew, "FM": FaM},
+            "3-network": {"FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
+                          "FMOM": FaMOaM},
             "4-network": {"FMLFR": FaMaLaFaR}}
     
         scheme = "{}-network".format(str(self.num_networks))
@@ -235,6 +237,10 @@ class GymEnv(CameraEnv):
         """
         Set observation space type, dimensions and range
         """
+        if self.framework == "ray":
+            from gymnasium import spaces
+        else:
+            from gym import spaces
         self._init_task_and_reward()
         if self.obs_space == "dict":
             goaldim = int(self.task.obsdim / 2) if self.task.obsdim % 2 == 0 else int(self.task.obsdim / 3)
@@ -252,6 +258,10 @@ class GymEnv(CameraEnv):
         """
         Set action space dimensions and range
         """
+        if self.framework == "ray":
+            from gymnasium import spaces
+        else:
+            from gym import spaces
         action_dim = self.robot.get_action_dimension()
         if "step" in self.robot_action:
             self.action_low = np.array([-1] * action_dim)

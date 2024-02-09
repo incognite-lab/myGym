@@ -457,7 +457,7 @@ class VolumeMesh:
         matrix = np.zeros(grid_size, dtype=np.uint8)
 
         for vox in voxelgrid.get_voxels():
-            matrix[vox.grid_index[0], vox.grid_index[1], vox.grid_index[2]] = 1
+              matrix[(*vox.grid_index,)] = 1
 
         return matrix
 
