@@ -5,7 +5,6 @@ channels:
   - conda-forge
 dependencies:
   - hdf5==1.12.1
-  - numpy-base==1.26.4
   - pip==23.3
   - python=3.10.13
   - scipy==1.11.3
