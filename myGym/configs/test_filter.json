@@ -43,7 +43,7 @@
     "train_framework"   :"tensorflow",
     "algo"              :"multippo2",
     "num_networks"      :3,
-    "max_episode_steps" :100000,
+    "max_episode_steps" :1000000,
     "algo_steps"        :512,
     "steps"             :20000,
     "pretrained_model"  :null,
@@ -55,5 +55,6 @@
     "logdir"    :"trained_models/debug3n",
     "record"    :0,
     #Trajectory
-    "traj_type": "line"
+    "traj_type": "line",
+    "dt": 0.1
     }

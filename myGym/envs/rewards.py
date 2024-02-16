@@ -4212,5 +4212,27 @@ class FilterTestEmptyReward(ThreeStagePnP):
         return reward
 
     def decide(self, observation=None):
-        return 0
+        return 101
+
+
+    def compute(self, observation=None):
+        """
+        Compute reward signal based on distance between 2 objects. The position of the objects must be present in observation.
+
+        Params:
+            :param observation: (list) Observation of the environment
+        Returns:
+            :return reward: (float) Reward signal for the environment
+        """
+        owner = 0
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position], [object_position, goal_position], [object_position, goal_position]][owner]
+        reward = [self.find_compute,self.move_compute, self.place_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+
+
 

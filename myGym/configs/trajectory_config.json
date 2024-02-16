@@ -1,0 +1,12 @@
+{
+    #Default positions for line, spline and circle (all in meters)
+    "positions" :[{"type" : "line", "start": "-1.2 0.8 1", "end": "1.2 1.2 0.5"},
+      {"type" : "circle", "center": "0 1 1", "radius": "0.5", "plane": "1 2 0.5"},
+      {"type": "spline",
+      "points": ["1 0 2", "0.4 1.1 0.3", "-0.2 0.85 0.7", "-1.5 0.8 0.9", "-1.7 0.4 0.71", "-2 0.9 1.2", "-1.5 0.8 1.3"]}
+      ],
+    #Default starting and ending object orientation (axis(meters), theta(degrees))
+    "rotations": {"q_start": "0 1 0 0", "q_end": "0 1 0 120"},
+    #Default stdev of position and orientation noise (meters, degrees)
+    "noise": {"position": "0.02", "orientation": "4"}
+}

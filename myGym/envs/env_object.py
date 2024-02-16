@@ -1,6 +1,7 @@
 import os, inspect
 import atexit
 
+
 import xml.etree.ElementTree as ET
 from shutil import copyfile
 import pybullet
@@ -317,6 +318,11 @@ class EnvObject:
             :return self.uid: Object's unique ID
         """
         return self.uid
+
+    def slerp_interpolate(self, q2, n):
+        """
+        
+        """
 
     @staticmethod
     def get_random_object_position(boarders):

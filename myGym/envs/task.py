@@ -273,6 +273,9 @@ class TaskModule():
         if self.task_type == "turn":
             self.check_distance_threshold(self._observation)
             finished = self.check_turn_threshold()
+        if self.env.reward.decide() == 101:
+            self.check_distance_threshold(self._observation)
+            finished = False
         self.last_distance = self.current_norm_distance
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
