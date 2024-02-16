@@ -61,7 +61,7 @@
       </geometry>
     </collision>
     <collision>
-      <origin rpy="0.000 0 0" xyz="-0.65 0.95 0.525"/>
+      <origin rpy="0.000 0 0" xyz="-0.675 0.885 0.525"/>
       <geometry>
         <box size="0.1 0.1 1.05"/>
       </geometry>
@@ -73,26 +73,67 @@
       </geometry>
 	  </collision>
     <collision>
-      <origin rpy="0.000 0 0" xyz="0.65 0.95 0.525"/>
+      <origin rpy="0.000 0 0" xyz="0.675 0.885 0.525"/>
       <geometry>
         <box size="0.1 0.1 1.05"/>
       </geometry>
     </collision>
-
     <visual>
-      <origin rpy="1.57 0 0" xyz="1.4, 6.29 -0.16"/>
+      <origin rpy="1.57 0 0" xyz="-.9 -0.18 .7"/>
+        <geometry>
+          <mesh filename="./obj/kallax.obj" scale="1 1 1"/>
+        </geometry>
+      <material name="framemat0"/>
+    </visual>
+    <collision>
+      <origin rpy="1.57 0 0" xyz="-.9 -0.18 .7"/>
+        <geometry>
+          <mesh filename="./obj/kallax.obj" scale="1 1 1"/>
+        </geometry>
+      <material name="framemat0"/>
+    </collision>
+    <visual>
+      <origin rpy="0 0 0" xyz="-1.05 -0.5 .71"/>
       <geometry>
-        <!--cylinder radius="0.3" length="1"/-->
-        <mesh filename="./obj/stand.obj" scale="0.1 0.1 0.1"/>
+				<box size="0.7 1.4 0.02"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="0.8 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0.55 .71"/>
+      <geometry>
+	 	    <box size="1.4 0.7 0.02"/>
+      </geometry>
+    </collision>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.72 0.15 0.35"/>
+      <geometry>
+	    <box size="0.03 0.05 .7"/>
+      </geometry>
+	  <material name="framemat0"/>	 
+    </visual>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-1.38 0.15 0.35"/>
+      <geometry>
+        <box size="0.03 0.05 .7"/>
+      </geometry>
+	  <material name="framemat0"/>
+	  </visual>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.72 -1.15 0.35"/>
+      <geometry>
+        <box size="0.03 0.05 .7"/>
+      </geometry>
+	  <material name="framemat0"/>
+	  </visual>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-1.38 -1.15 0.35"/>
+      <geometry>
+        <box size="0.03 0.05 .7"/>
       </geometry>
     <material name="framemat0"/>
     </visual>
-    <collision>
-      <origin rpy="1.57 0 0" xyz="1.4, 6.29 -0.16"/>
-      <geometry>
-	 	<mesh filename="./obj/stand.obj" scale="0.1 0.1 0.1"/>
-     <!--cylinder radius="0.3" length="1"/-->
-      </geometry>
-    </collision>
   </link>
 </robot>
