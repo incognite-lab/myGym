@@ -53,7 +53,7 @@
       </geometry>
     </collision>
     <collision>
-      <origin rpy="0.000 0 0" xyz="-0.675 0.885 0.525"/>
+      <origin rpy="0.000 0 0" xyz="-0.675 0.885 0.35"/>
       <geometry>
         <box size="0.05 0.03 .7"/>
       </geometry>
@@ -65,24 +65,10 @@
       </geometry>
 	  </collision>
     <collision>
-      <origin rpy="0.000 0 0" xyz="0.675 0.885 0.525"/>
+      <origin rpy="0.000 0 0" xyz="0.675 0.885 0.35"/>
       <geometry>
         <box size="0.05 0.03 .7"/>
       </geometry>
-    </collision>
-    <visual>
-      <origin rpy="1.57 0 0" xyz="-.9 -0.18 .7"/>
-        <geometry>
-          <mesh filename="./obj/kallax.obj" scale="1 1 1"/>
-        </geometry>
-      <material name="framemat0"/>
-    </visual>
-    <collision>
-      <origin rpy="1.57 0 0" xyz="-.9 -0.18 .7"/>
-        <geometry>
-          <mesh filename="./obj/kallax.obj" scale="1 1 1"/>
-        </geometry>
-      <material name="framemat0"/>
     </collision>
     <visual>
       <origin rpy="0 0 0" xyz="-1.05 -0.5 .71"/>
@@ -127,5 +113,77 @@
       </geometry>
     <material name="framemat0"/>
     </visual>
+        <visual>
+      <origin rpy="0.000 0 0" xyz="-0.90 0.18 1.10"/>
+      <geometry>
+	    <box size="0.39 0.04 .77"/>
+      </geometry>	 
+    </visual>
+    <collision>
+      <origin rpy="0.000 0 0" xyz="-0.90 0.18 1.10"/>
+      <geometry>
+	    <box size="0.39 0.04 .77"/>
+      </geometry>	 
+    </collision>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.55 1.10"/>
+      <geometry>
+	    <box size="0.39 0.04 .77"/>
+      </geometry>	 
+    </visual>
+    <collision>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.55 1.10"/>
+      <geometry>
+	    <box size="0.39 0.04 .77"/>
+      </geometry>	 
+    </collision>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 1.10"/>
+      <geometry>
+	    <box size="0.39 0.02 .77"/>
+      </geometry>	 
+    </visual>
+    <collision>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 1.10"/>
+      <geometry>
+	    <box size="0.39 0.02 .77"/>
+      </geometry>	 
+    </collision>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 1.10"/>
+      <geometry>
+	    <box size="0.39 0.77 .02"/>
+      </geometry>	 
+    </visual>
+    <collision>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 1.10"/>
+      <geometry>
+	    <box size="0.39 0.77 .02"/>
+      </geometry>	 
+    </collision>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 1.47"/>
+      <geometry>
+	    <box size="0.39 0.77 .04"/>
+      </geometry>	 
+    </visual>
+    <collision>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 1.47"/>
+      <geometry>
+	    <box size="0.39 0.77 .04"/>
+      </geometry>	 
+    </collision>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 0.73"/>
+      <geometry>
+	    <box size="0.39 0.77 .04"/>
+      </geometry>	 
+    </visual>
+    <collision>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 0.73"/>
+      <geometry>
+	    <box size="0.39 0.77 .04"/>
+      </geometry>	 
+    </collision>
   </link>
 </robot>

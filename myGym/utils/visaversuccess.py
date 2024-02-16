@@ -139,12 +139,12 @@ def multiDictDiff_bykey(dict_list):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pth", default='./trained_models/pnp4nd')
-    parser.add_argument("-task", default='pnrmulti')
-    parser.add_argument("-robot", default=["kuka"], nargs='*')
-    parser.add_argument("-common", default='pnprot_table_kuka_joints')
-    parser.add_argument("-algo", default=["multiacktr","multippo2","ppo2","ppo","acktr","sac","ddpg","a2c","acer","trpo"], nargs='*')
-    parser.add_argument("-xlabel", type=int, default=1)
+    parser.add_argument("--pth", default='./trained_models/pnp4nd')
+    parser.add_argument("--task", default='pnrmulti')
+    parser.add_argument("--robot", default=["kuka"], nargs='*')
+    parser.add_argument("--common", default='pnprot_table_kuka_joints')
+    parser.add_argument("--algo", default=["multiacktr","multippo2","ppo2","ppo","acktr","sac","ddpg","a2c","acer","trpo"], nargs='*')
+    parser.add_argument("--xlabel", type=int, default=1)
     args = parser.parse_args()
 
     return args
