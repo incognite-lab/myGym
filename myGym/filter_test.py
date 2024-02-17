@@ -23,6 +23,7 @@ from pyquaternion import Quaternion
 import sys
 from scipy.interpolate import splprep, splev
 import matplotlib.pyplot as plt
+from myGym.envs.particle_filter import ParticleFilter3D
 
 
 
@@ -259,15 +260,29 @@ def create_trajectory_points(parameters, n):
     return ground_truth, noisy_data, rotations, noisy_rotations
 
 
-def visualize_errors(ground_truth, noisy_data):
-    #visualization of position errors
-    diffs = []
+def visualize_errors(ground_truth, noisy_data, estimates):
+    """
+    visualization of position errors
+    """
+    diffs_meas = []
+    diffs_est = []
     for i in range(ground_truth.shape[0]):
-        diffs.append(np.linalg.norm(ground_truth[i, :] - noisy_data[i, :]))
-        #diffs.append(np.sqrt(np.dot(ground_truth[i, :], noisy_data[i, :])))
-    diffs = np.array(diffs)
-    k = np.arange(len(diffs))
-    plt.plot(k, diffs)
+        diffs_meas.append(np.linalg.norm(ground_truth[i, :] - noisy_data[i, :]))
+        diffs_est.append(np.linalg.norm(ground_truth[i, :] - estimates[i]))
+    diffs_meas = np.array(diffs_meas)
+    diffs_est = np.array(diffs_est)
+    k = np.arange(len(diffs_meas))
+    measured_avg = np.average(diffs_meas)
+    estimated_avg = np.average(diffs_est)
+
+    #Plotting results
+    fig, ax = plt.subplots()
+    ax.text(.01, .9, 'Measurement error average: ' + str(round(measured_avg, 5)), transform = ax.transAxes)
+    plt.text(.01, .8, 'Estimate error average: ' + str(round(estimated_avg, 5)), transform = ax.transAxes)
+    ax.plot(k, diffs_est, label = "Estimate error")
+    plt.plot(k, diffs_meas, label="Measurement error")
+    plt.title("Position error evaluation")
+    plt.legend()
     plt.show()
 
 
@@ -288,8 +303,22 @@ def visualize_rot_errors(rotations, noisy_rotations):
     plt.show()
 
 
+def compute_n(trajectory):
+    """Depending on the total length of the trajectory, determine how many discretization points should be used"""
+
+
 def polynomial(coeffs):
     return lambda x: sum(a*x**i for i, a in enumerate(coeffs))
+
+
+def move_particles(ids, positions):
+    """Removes particle batch from visualization"""
+    for i in range(len(ids)):
+        p.resetBasePositionAndOrientation(ids[i], positions[i, :], [1, 0, 0, 0])
+
+def move_estimate(id, position):
+    """Moves estimate sphere in visual environment"""
+    p.resetBasePositionAndOrientation(id, position, [1, 0, 0, 0])
 
 
 def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations):
@@ -300,15 +329,47 @@ def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations):
     env.p.setGravity(0, 0, 0)
     n = ground_truth.shape[0] #Number of points
     iter = 0
+    position_filter = ParticleFilter3D(1500, 0.02, 0.025)
+    last_particle_batch = None
+    estimate_id = None
+    print("Goal_id:", env.task_objects["goal_state"].uid)
+    print("Actual state id:", env.task_objects["actual_state"].uid)
+    measurements = []
     for i in range(50):
         #arg_dict["max_episode_steps"]
         #env.task_objects["actual_state"].setGravity()
         for e in range(20000):
-            if e%300 == 0:
+            if e%2 == 0:
                 if iter >= n:
                     break
                 env.task_objects["actual_state"].set_position(ground_truth[iter, :])
-                env.task_objects["goal_state"].set_position(noisy_data[iter])
+                env.task_objects["goal_state"].set_position(noisy_data[iter, :])
+
+                if len(measurements) == 0:
+                    position_filter.apply_first_measurement(noisy_data[iter, :])
+                    last_particle_batch = visualize_particles(position_filter)
+                    measurements.append(position_filter.particles)
+                    estimate_id = visualize_estimate(position_filter)
+                    continue
+                #1) Predict movement
+                position_filter.predict()
+                move_particles(last_particle_batch, position_filter.particles)
+                #time.sleep(0.5)
+                #2) Update based on measurement
+                position_filter.update(noisy_data[iter, :])
+                move_particles(last_particle_batch, position_filter.particles)
+                #time.sleep(0.5)
+                #3) Compute estimate
+                position_filter.state_estimate()
+                move_particles(last_particle_batch, position_filter.particles)
+                #time.sleep(0.5)
+                move_estimate(estimate_id, position_filter.estimate)
+                #time.sleep(0.25)
+                #4) Resample particles
+                position_filter.resample()
+                move_particles(last_particle_batch, position_filter.particles)
+                #time.sleep(0.5)
+
                 rot = rotations[iter]
                 noisy_rot = noisy_rotations[iter]
                 q = np.concatenate((rot.imaginary, [rot.scalar])).flatten()
@@ -321,8 +382,16 @@ def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations):
             action = [0, 0, 0]
             obs, reward, done, info = env.step(action)
             time.sleep(0.001)
+
+    return position_filter
         #print(env.task_objects)
 
+
+def visualize_estimate(particle_filter):
+    position = particle_filter.estimate
+    shape_id = p.createVisualShape(p.GEOM_SPHERE, radius = 0.02, rgbaColor = [0.2, 0.2, 0.2, 0.5])
+    particle_id = p.createMultiBody(baseVisualShapeIndex = shape_id, basePosition = position)
+    return particle_id
 
 
 def visualize_trajectory(ground_truth, noisy_data):
@@ -332,15 +401,29 @@ def visualize_trajectory(ground_truth, noisy_data):
             p.addUserDebugLine(ground_truth[i, :], ground_truth[i+1, :])
 
 
+def visualize_particles(particle_filter):
+    positions = particle_filter.particles.tolist()
+    #p.addUserDebugPoints(pointPositions = positions, pointColorsRGB=[20, 20, 20])
+    particle_id = p.createVisualShape(p.GEOM_SPHERE, radius=0.001)
+
+    #for i in range(particle_filter.particles.shape[0]):
+        #position = particle_filter.particles[i, :]
+        #p.createMultiBody(baseVisualShapeIndex = particle_id, basePosition = position)
+    particles_id = p.createMultiBody(baseVisualShapeIndex=particle_id, batchPositions=positions)
+    return particles_id
+
+
 if __name__ == "__main__":
     params = get_input()
-    ground_truth, noisy_data, rotations, noisy_rotations = create_trajectory_points(params, 40)
+    ground_truth, noisy_data, rotations, noisy_rotations = create_trajectory_points(params, 250)
     arg_dict = get_arg_dict()
     env = visualize_env(arg_dict)
     env.reset()
     visualize_trajectory(ground_truth, noisy_data)
     #visualize_errors(ground_truth, noisy_data)
     #visualize_rot_errors(rotations, noisy_rotations)
-    vis_anim(ground_truth, noisy_data, rotations, noisy_rotations)
+    resulting_pos_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations)
+    visualize_errors(ground_truth, noisy_data, resulting_pos_filter.estimates)
+    sys.exit()
 
 
