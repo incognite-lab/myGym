@@ -25,7 +25,8 @@ from scipy.interpolate import splprep, splev
 import matplotlib.pyplot as plt
 from myGym.envs.particle_filter import ParticleFilter3D
 
-
+#Global variable
+velocity = 0.5
 
 def get_arg_dict():
     #Retreive arguments from config test_filter.json
@@ -109,7 +110,7 @@ def get_input():
             trajectory_dict["type"] = "line"
             trajectory_dict["start"] = input("Enter starting point coordinates x,y,z (format 'x y z'): ")
             trajectory_dict["end"] = input("Enter ending point coordinates x,y,z (format 'x y z'): ")
-            trajectory_dict["stdv"] = input("Enter position noise standard deviation in meters: ")
+
         elif type == 2:
             trajectory_dict["type"] = "circle"
             trajectory_dict["center"] = input("Enter center coordinates x,y,z (format 'x y z'): ")
@@ -133,12 +134,14 @@ def get_input():
         elif type == 4:
             trajectory_dict["type"] = None
             return trajectory_dict
+        trajectory_dict["stdv"] = input("Enter position noise standard deviation in meters: ")
+        trajectory_dict["q_start"] = input("Enter starting rotation in axis-angle representation (format 'x y z theta')")
+        trajectory_dict["q_end"] = input("Enter ending rotation in axis-angle representation [rad] (format 'x y z theta')")
+        trajectory_dict["q_stdv"] = input("Enter rotation noise standard deviation in radians")
     else:
         type = int(input("Enter trajectory type (1 for line, 2 for circle, 3 for spatial spline: )"))
         trajectory_dict = get_parameters_from_config(type)
-    #trajectory_dict["q_start"] = input("Enter starting rotation in axis-angle representation (format 'x y z theta')")
-    #trajectory_dict["q_end"] = input("Enter ending rotation in axis-angle representation [rad] (format 'x y z theta')")
-    #trajectory_dict["q_stdv"] = input("Enter rotation noise standard deviation in radians")
+
     return trajectory_dict
 
 
@@ -171,6 +174,15 @@ def create_circle(radius, center, normal, n):
     return trajectory
 
 
+def trajectory_length(trajectory):
+    """Compute the total length of the trajectory"""
+    last_idx = trajectory.shape[0]
+    diffs = trajectory[:last_idx - 1, :] - trajectory[1:last_idx]
+    dists = np.linalg.norm(diffs, axis = 1)
+    return np.sum(dists)
+
+
+
 def fit_polynomial(points, n):
     """
     Make a polynomial of degree len(points) -1. Resulting trajectory will have n points
@@ -191,7 +203,7 @@ def fit_polynomial(points, n):
     trajectory[:, 0] = fitx(time)
     trajectory[:, 1] = fity(time)
     trajectory[:, 2] = fitz(time)
-    print("Trajectory = ", trajectory)
+    #print("Trajectory = ", trajectory)
     return trajectory
 
 
@@ -206,7 +218,6 @@ def add_rotation_noise(rotations, sigma_q):
         rot_euler[1] += np.random.randn()*sigma_q
         rot_euler[2] += np.random.randn()*sigma_q
         q_noisy = np.array(p.getQuaternionFromEuler(rot_euler))
-        print("q_noisy:", q_noisy)
         quat_noisy = Quaternion(imaginary = q_noisy[:3], real = q_noisy[3])
         noisy_rotations.append(quat_noisy)
     return noisy_rotations
@@ -216,6 +227,7 @@ def create_trajectory_points(parameters, n):
     #TODO: From retreived trajectory parameters, create set of n 6D points on the trajectory along with noisy data.
     ground_truth = np.zeros((n, 3))
     noisy_data = np.zeros((n, 3))
+    new_n = 0
     if parameters["type"] == None:
         ground_truth, noisy_data, rotations, noisy_rotations = np.zeros(n), np.zeros(n), np.zeros(n), np.zeros(n)
     elif parameters["type"] == "line":
@@ -223,6 +235,9 @@ def create_trajectory_points(parameters, n):
         start = np.array(list(map(float, parameters["start"].split())))
         end = np.array(list(map(float, parameters["end"].split())))
         ground_truth[:, :3] = np.linspace(start, end, n)
+        #trajectory_length(ground_truth) > n*0.1*velocity:
+        new_n = int(trajectory_length(ground_truth)/(velocity * 0.1))
+        ground_truth = np.linspace(start, end, new_n)
 
     elif parameters["type"] == "circle":
         # Ground truth position points circle
@@ -230,26 +245,36 @@ def create_trajectory_points(parameters, n):
         center = np.array(list(map(float, parameters["center"].split())))
         norm = np.array(list(map(float, parameters["plane"].split())))
         ground_truth[:, :3] = create_circle(radius, center, norm, n)
+        #if trajectory_length(ground_truth) > n*0.1*velocity:
+        new_n = int(trajectory_length(ground_truth)/(velocity * 0.1))
+        ground_truth = create_circle(radius, center, norm, new_n)
+
     elif parameters["type"] == "spline":
         points_amount = len(parameters["points"])
         point_list = np.zeros((points_amount, 3))
         for i in range(points_amount):
             point_list[i, :] = np.array(list(map(float, parameters["points"][i].split())))
         ground_truth[:, :3] = fit_polynomial(point_list, n)
+        #if trajectory_length(ground_truth) > n*0.1*velocity:
+        new_n = int(trajectory_length(ground_truth)/(velocity * 0.1))
+        ground_truth = fit_polynomial(point_list, new_n)
+
     else:
         ground_truth = np.zeros((n, 3))
 
+
+
     if parameters["type"] is not None:
         # Ground truth rotation quaternions
-        print("type:", parameters["type"])
+        #print("type:", parameters["type"])
         q1 = np.array(list(map(float, parameters["q_start"].split())))
         q2 = np.array(list(map(float, parameters["q_end"].split())))
         q_start = Quaternion(axis=q1[:3], angle=np.deg2rad(q1[3]))
         q_end = Quaternion(axis=q2[:3], angle=np.deg2rad(q2[3]))
         rotations = []
-        for rot in Quaternion.intermediates(q_start, q_end, n):
+        for rot in Quaternion.intermediates(q_start, q_end, new_n):
             rotations.append(rot)
-        print("ROTATIONS:", rotations)
+        #print("ROTATIONS:", rotations)
         sigma_q = np.deg2rad(float(parameters["q_stdv"]))
         sigma = float(parameters["stdv"])
         #Adding noise to position and rotation
@@ -270,44 +295,45 @@ def visualize_errors(ground_truth, noisy_data, estimates):
         diffs_meas.append(np.linalg.norm(ground_truth[i, :] - noisy_data[i, :]))
         diffs_est.append(np.linalg.norm(ground_truth[i, :] - estimates[i]))
     diffs_meas = np.array(diffs_meas)
-    diffs_est = np.array(diffs_est)
+    plot_comparison(diffs_meas, diffs_est, "Position error evaluation")
+
+
+def plot_comparison(diffs_meas, diffs_est, title):
+    diffs_meas = np.array(diffs_meas)
     k = np.arange(len(diffs_meas))
     measured_avg = np.average(diffs_meas)
     estimated_avg = np.average(diffs_est)
 
-    #Plotting results
+    # Plotting results
     fig, ax = plt.subplots()
-    ax.text(.01, .9, 'Measurement error average: ' + str(round(measured_avg, 5)), transform = ax.transAxes)
-    plt.text(.01, .8, 'Estimate error average: ' + str(round(estimated_avg, 5)), transform = ax.transAxes)
-    ax.plot(k, diffs_est, label = "Estimate error")
+    ax.text(.01, .95, 'Measurement error average: ' + str(round(measured_avg, 5)), transform=ax.transAxes)
+    plt.text(.01, .9, 'Estimate error average: ' + str(round(estimated_avg, 5)), transform=ax.transAxes)
+    ax.plot(k, diffs_est, label="Estimate error")
     plt.plot(k, diffs_meas, label="Measurement error")
-    plt.title("Position error evaluation")
+    plt.title(title)
     plt.legend()
     plt.show()
 
 
-def visualize_rot_errors(rotations, noisy_rotations):
+def visualize_rot_errors(rotations, noisy_rotations, estimates):
     """
     Visualization of rotation errors
     """
-    diffs = []
-    print("rotations", rotations)
-    print("noisy rotations", noisy_rotations)
+    diffs_meas = []
+    diffs_est = []
+    #print("Ground truth rotations:", rotations)
+    #print("Estimated rotations:", estimates)
+    #for i in range(10, len(rotations), 1):
+        #print("timestep", i ,": truth rotation:", np.rad2deg(quat_to_euler(rotations[i])), "|", "quaternion:", rotations[i])
+        #print()
     for i in range(len(rotations)):
-        diffs.append(Quaternion.absolute_distance(rotations[i], noisy_rotations[i]))
-        # diffs.append(np.sqrt(np.dot(ground_truth[i, :], noisy_data[i, :])))
-    diffs = np.array(diffs)
-    k = np.arange(len(diffs))
-    plt.plot(k, diffs)
-    plt.title("Rotation errors")
-    plt.show()
-
-
-def compute_n(trajectory):
-    """Depending on the total length of the trajectory, determine how many discretization points should be used"""
+        diffs_meas.append(Quaternion.absolute_distance(rotations[i], noisy_rotations[i]))
+        diffs_est.append(Quaternion.absolute_distance(rotations[i], euler_to_quat(estimates[i])))
+    plot_comparison(diffs_meas, diffs_est, "Rotation error evaluation")
 
 
 def polynomial(coeffs):
+    """Return function which calculates polynomial of given coefficients at x"""
     return lambda x: sum(a*x**i for i, a in enumerate(coeffs))
 
 
@@ -316,20 +342,54 @@ def move_particles(ids, positions):
     for i in range(len(ids)):
         p.resetBasePositionAndOrientation(ids[i], positions[i, :], [1, 0, 0, 0])
 
+
 def move_estimate(id, position):
     """Moves estimate sphere in visual environment"""
     p.resetBasePositionAndOrientation(id, position, [1, 0, 0, 0])
 
 
+def quat_to_euler(quat):
+    "Converts Quaternion object to Euler angles"
+    q = np.concatenate((quat.imaginary, [quat.scalar])).flatten()
+    rot_euler = np.array(p.getEulerFromQuaternion(q))  # Conversion to Euler angles
+    return rot_euler
+
+
+def euler_to_quat(euler_angles):
+    """Converts Euler angles to Quaternion object"""
+    q = np.array(p.getQuaternionFromEuler(euler_angles))
+    quat = Quaternion(imaginary=q[:3], real=q[3])
+    return quat
+
+
+def filter_without_animation(noisy_data, noisy_rotations):
+    """Similar to vis_anim but without any visualization"""
+    position_filter = ParticleFilter3D(20000, 0.02, 0.02, g= 0.7, h = 0.4)
+    rotation_filter = ParticleFilter3D(20000, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
+    n = noisy_data.shape[0] #Number of points
+    for iter in range(n):
+        measurement = noisy_data[iter, :]
+        rot_meas = quat_to_euler(noisy_rotations[iter])
+        if iter == 0:
+            position_filter.apply_first_measurement(measurement)
+            position_filter.state_estimate()
+            rotation_filter.apply_first_measurement(rot_meas)
+            rotation_filter.state_estimate()
+            continue
+        rotation_filter.filter_step(rot_meas)
+        position_filter.filter_step(measurement)
+
+    return position_filter, rotation_filter
+
+
 def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations):
     """
-    Parameters: ground_truth: np array of shape (n, 3) (xyz position and orientation quaternion object)
+    Parameters: ground_truth: np array of shape (n, 3)
     """
-    #TODO: Loop env episodes so that visualization lasts. Possibly add object movement animation
     env.p.setGravity(0, 0, 0)
     n = ground_truth.shape[0] #Number of points
     iter = 0
-    position_filter = ParticleFilter3D(1500, 0.02, 0.025)
+    position_filter = ParticleFilter3D(1500, 0.02, 0.025, g = 0.7, h= 0.4)
     last_particle_batch = None
     estimate_id = None
     print("Goal_id:", env.task_objects["goal_state"].uid)
@@ -354,21 +414,21 @@ def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations):
                 #1) Predict movement
                 position_filter.predict()
                 move_particles(last_particle_batch, position_filter.particles)
-                #time.sleep(0.5)
+                time.sleep(0.5)
                 #2) Update based on measurement
                 position_filter.update(noisy_data[iter, :])
                 move_particles(last_particle_batch, position_filter.particles)
-                #time.sleep(0.5)
+                time.sleep(0.5)
                 #3) Compute estimate
                 position_filter.state_estimate()
                 move_particles(last_particle_batch, position_filter.particles)
-                #time.sleep(0.5)
+                time.sleep(0.5)
                 move_estimate(estimate_id, position_filter.estimate)
-                #time.sleep(0.25)
+                time.sleep(0.5)
                 #4) Resample particles
                 position_filter.resample()
                 move_particles(last_particle_batch, position_filter.particles)
-                #time.sleep(0.5)
+                time.sleep(0.5)
 
                 rot = rotations[iter]
                 noisy_rot = noisy_rotations[iter]
@@ -415,15 +475,20 @@ def visualize_particles(particle_filter):
 
 if __name__ == "__main__":
     params = get_input()
-    ground_truth, noisy_data, rotations, noisy_rotations = create_trajectory_points(params, 250)
+    ground_truth, noisy_data, rotations, noisy_rotations = create_trajectory_points(params, 20)
     arg_dict = get_arg_dict()
-    env = visualize_env(arg_dict)
-    env.reset()
-    visualize_trajectory(ground_truth, noisy_data)
+    #env = visualize_env(arg_dict)
+
+    #env.reset()
+    #visualize_trajectory(ground_truth, noisy_data)
+    #time.sleep(15)
     #visualize_errors(ground_truth, noisy_data)
     #visualize_rot_errors(rotations, noisy_rotations)
-    resulting_pos_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations)
+    resulting_pos_filter, resulting_rot_filter = filter_without_animation(noisy_data, noisy_rotations)
+
+    #resulting_pos_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations)
     visualize_errors(ground_truth, noisy_data, resulting_pos_filter.estimates)
-    sys.exit()
+    visualize_rot_errors(rotations, noisy_rotations, resulting_rot_filter.estimates)
+    #sys.exit()
 
 
