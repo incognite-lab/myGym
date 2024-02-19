@@ -299,7 +299,7 @@ def test_env(env, arg_dict):
                 
                 #visualize_goal(info)
             #if debug_mode:
-                #print("Reward is {}, observation is {}".format(reward, observation))
+            print("Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation, env.env.observation))
                 #if t>=1:
                     #action = matrix(np.around(np.array(action),5))
                     #oaction = env.env.robot.get_joints_states()

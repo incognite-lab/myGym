@@ -94,6 +94,8 @@ def get_robot_dict():
                              'nico': {'path': '/envs/robots/nico/complete.urdf', 'position': np.array([0.0, 0.0, -0.041])},
                              'nico_upper': {'path': '/envs/robots/nico/nico_upper.urdf', 'position': np.array([-0.0, 0.1, -0.475])},
                              'nico_upper_rh6d': {'path': '/envs/robots/nico/nico_upper_rh6d.urdf', 'position': np.array([-0.0, 0.1, 0.05])},
+                             'nico_upper_rh6d_dual': {'path': '/envs/robots/nico/nico_upper_rh6d_dual.urdf', 'position': np.array([-0.0, 0.1, 0.05])},
+                             'nico_upper_head_rh6d_dual': {'path': '/envs/robots/nico/nico_upper_head_rh6d_dual.urdf', 'position': np.array([-0.0, 0.1, 0.05])},
                              'nico_new': {'path': '/envs/robots/nico/nico_new.urdf', 'position': np.array([-0.0, 0.1, -0.475])},
                              'reachy': {'path': '/envs/robots/pollen/reachy/urdf/reachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
                              'leachy': {'path': '/envs/robots/pollen/reachy/urdf/leachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
