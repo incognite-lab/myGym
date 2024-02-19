@@ -104,9 +104,9 @@
     </visual>
     <material name="Black"/>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0.55 1.075"/>
+      <origin rpy="0 0 0" xyz="0 0.45 1.15"/>
       <geometry>
-	 	<box size="1.5 1 0.05"/>
+				<box size=".54 .4 0.01"/>
       </geometry>
     </collision>
     

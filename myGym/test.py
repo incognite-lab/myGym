@@ -297,6 +297,7 @@ def test_env(env, arg_dict):
                 
                 #visualize_goal(info)
             #if debug_mode:
+            clear()
             print("Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation, env.env.observation))
                 #if t>=1:
                     #action = matrix(np.around(np.array(action),5))
