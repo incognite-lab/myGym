@@ -13,7 +13,7 @@ import pkg_resources
 import random
 import getkey
 import time
-
+from csv import writer
 
 clear = lambda: os.system('clear')
 
@@ -173,10 +173,12 @@ def test_env(env, arg_dict):
     jointparams = ['Jnt1','Jnt2','Jnt3','Jnt4','Jnt5','Jnt6','Jnt7','Jnt 8','Jnt 9', 'Jnt10', 'Jnt11','Jnt12','Jnt13','Jnt14','Jnt15','Jnt16','Jnt17','Jnt 18','Jnt 19']
     cube = ['Cube1','Cube2','Cube3','Cube4','Cube5','Cube6','Cube7','Cube8','Cube9','Cube10','Cube11','Cube12','Cube13','Cube14','Cube15','Cube16','Cube17','Cube18','Cube19']
     cubecount = 0
-    mean_fps = []
-    mean_ratio = []
-    mean_simtime = []
-    mean_realtime = []
+    if arg_dict["speed"] == True:
+        speedlog = str(arg_dict["robot"]+"_speedlog"+".csv")
+        mean_fps = []
+        mean_ratio = []
+        mean_simtime = []
+        mean_realtime = []
     steps_num = 0
     success_episodes_num = 0
     
@@ -288,7 +290,7 @@ def test_env(env, arg_dict):
                     else:
                         action = [0,0,0]
             
-            if arg_dict["control"] == "oraculum":
+            if arg_dict["control"] == "IKsolver":
                 if t == 0:
                     action = env.action_space.sample()
                 else:    
@@ -296,7 +298,7 @@ def test_env(env, arg_dict):
                     if "absolute" in arg_dict["robot_action"]:
                         action = info['o']["goal_state"]
                     else:
-                        print("ERROR - Oraculum mode only works for absolute actions")
+                        print("ERROR - IKsolver mode only works for absolute actions")
                         quit()
 
 
@@ -372,14 +374,24 @@ def test_env(env, arg_dict):
 
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
-                mean_simtime.append(env.env.episode_steps/24)
-                mean_realtime.append(toc) 
-                success_episodes_num += 1
+                if env.env.episode_steps < arg_dict["max_episode_steps"]:
+                    if arg_dict["speed"] == True:
+                        mean_simtime.append(env.env.episode_steps/24)
+                        mean_realtime.append(toc) 
+                    success_episodes_num += 1
+                    print("Episode was successful")
                 break
-    print("MeanSimTime: {:.2f} \n MeanRealTime: {:.2f} \n".format(np.mean(mean_simtime), np.mean(mean_realtime)))
-    mean_steps_num = steps_num // arg_dict["eval_episodes"]
-    print("Mean number of steps {}".format(mean_steps_num))
-    print("{} of {} episodes ({} %) were successful".format(success_episodes_num, arg_dict["eval_episodes"], success_episodes_num / arg_dict["eval_episodes"]*100))
+    if arg_dict["speed"] == True:
+        print("MeanSimTime: {:.2f} \n MeanRealTime: {:.2f} \n".format(np.mean(mean_simtime), np.mean(mean_realtime)))
+        mean_steps_num = steps_num // arg_dict["eval_episodes"]
+        print("Mean number of steps {}".format(mean_steps_num))
+        print("{} of {} episodes ({} %) were successful".format(success_episodes_num, arg_dict["eval_episodes"], success_episodes_num / arg_dict["eval_episodes"]*100))
+        with open(speedlog, 'a') as f_object:
+            writer_object = writer(f_object)
+            writer_object.writerow([arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["task_type"],arg_dict["control"],arg_dict["max_velocity"],
+                                     np.mean(mean_fps),np.mean(mean_simtime),np.mean(mean_realtime), 
+                                     mean_steps_num, arg_dict["eval_episodes"], success_episodes_num / arg_dict["eval_episodes"]*100])
+            f_object.close()    
 
 def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_logdir=None, deterministic=False):
 
@@ -409,10 +421,12 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     if arg_dict["real"]:
         #p.setRealTimeSimulation(1)
         p.setTimeStep(0.04)
-    mean_fps = []
-    mean_ratio = []
-    mean_simtime = []
-    mean_realtime = []
+    if arg_dict["speed"] == True:
+        speedlog = str(arg_dict["robot"]+"_speedlog"+".csv")
+        mean_fps = []
+        mean_ratio = []
+        mean_simtime = []
+        mean_realtime = []
     for e in range(arg_dict["eval_episodes"]):
         done = False
         obs = env.reset()
@@ -443,13 +457,23 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
 
         success_episodes_num += is_successful
         if is_successful:
-            mean_simtime.append(env.env.episode_steps/24)
-            mean_realtime.append(toc)             
+            if arg_dict["speed"] == True:
+                mean_simtime.append(env.env.episode_steps/24)
+                mean_realtime.append(toc)             
         distance_error_sum += distance_error
 
-    print("MeanSimTime: {:.2f} \n MeanRealTime: {:.2f} \n".format(np.mean(mean_simtime), np.mean(mean_realtime)))
+    
     mean_distance_error = distance_error_sum / arg_dict["eval_episodes"]
     mean_steps_num = steps_sum // arg_dict["eval_episodes"]
+    
+    if arg_dict["speed"] == True:
+        print("MeanSimTime: {:.2f} \n MeanRealTime: {:.2f} \n".format(np.mean(mean_simtime), np.mean(mean_realtime)))
+        with open(speedlog, 'a') as f_object:
+            writer_object = writer(f_object)
+            writer_object.writerow([arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["task_type"],arg_dict["algo"],arg_dict["max_velocity"],
+                                     np.mean(mean_fps),np.mean(mean_simtime),np.mean(mean_realtime), 
+                                     mean_steps_num, arg_dict["eval_episodes"], success_episodes_num / arg_dict["eval_episodes"]*100])
+            f_object.close()   
 
     print("#---------Evaluation-Summary---------#")
     print("{} of {} episodes ({} %) were successful".format(success_episodes_num, arg_dict["eval_episodes"], success_episodes_num / arg_dict["eval_episodes"]*100))
@@ -482,7 +506,7 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
 
 def main():
     parser = get_parser()
-    parser.add_argument("-ct", "--control", default="slider", help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
+    parser.add_argument("-ct", "--control", default="slider", help="How to control robot during testing. Valid arguments: keyboard, observation, random, IKsolver, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectgory.")
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
@@ -495,6 +519,19 @@ def main():
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
+    if arg_dict["speed"]:
+        speedlog = str(arg_dict["robot"]+"_speedlog"+".csv")
+        if os.path.exists(speedlog):
+            print('The file exists! Appending speedlog to this file')
+        else:
+            print('The file does not exist. Creating csv template')
+            with open(speedlog, 'a') as f_object:
+                writer_object = writer(f_object)
+                writer_object.writerow(["Workspace","Robot", "Action", "Task", "Control","Velocity", "MeanFPS", "MeanSimTime",
+                                         "MeanRealTime", "MeanSteps", "EvalEpisodes","SuccessRate"])
+                f_object.close()   
+
+        time.sleep(4)
     if arg_dict.get("model_path") is None:
         print("Path to the model using --model_path argument not specified. Testing random actions in selected environment.")
         #arg_dict["gui"] = 1
