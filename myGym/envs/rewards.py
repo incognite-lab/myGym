@@ -4125,7 +4125,7 @@ class Protorewards(Reward):
         self.offsetleft = [0.2,0.0,-0.1]
         self.offsetright = [-0.2,0.0,-0.1]
         self.offsetcenter = [0.0,0.0,-0.1]
-        self.grip_threshold = 0.05
+        self.grip_threshold = 0.03
         self.near_threshold = 0.1
         self.lift_threshold = 0.1
         self_above_threshold = 0.1

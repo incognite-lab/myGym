@@ -12,7 +12,7 @@ import pybullet_data
 import pkg_resources
 import random
 import getkey
-
+import time
 
 
 clear = lambda: os.system('clear')
@@ -86,25 +86,26 @@ def change_dynamics(cubex,lfriction,rfriction,ldamping,adamping):
     #    basePosition=[0,0,0.3],
     #)
 
-def visualize_infotext(action, env, info):
-    p.addUserDebugText(f"Episode:{env.env.episode_number}",
-        [.65, 1., 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
+def visualize_infotext(action, env, info, toc):
+    #p.addUserDebugText(f"Episode:{env.env.episode_number}",
+    #    [.65, 1., 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
     p.addUserDebugText(f"Step:{env.env.episode_steps}",
-        [.67, 1, .40], textSize=1.0, lifeTime=0.5, textColorRGB=[0.2, 0.8, 1])   
-    p.addUserDebugText(f"Subtask:{env.env.task.current_task}",
-        [.69, 1, 0.35], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
-    p.addUserDebugText(f"Network:{env.env.reward.current_network}",
-        [.71, 1, 0.3], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-    p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),2))}",
-        [.73, 1, 0.25], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
-    p.addUserDebugText(f"Actual_state:{matrix(np.around(np.array(env.env.observation['task_objects']['actual_state'][:3]),2))}",
-        [.75, 1, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
-    p.addUserDebugText(f"End_effector:{matrix(np.around(np.array(env.env.robot.end_effector_pos),2))}",
-        [.77, 1, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
-    p.addUserDebugText(f"        Object:{matrix(np.around(np.array(info['o']['actual_state']),2))}",
-        [.8, 1, 0.10], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+        [.67, 1, .50], textSize=1.0, lifeTime=0.1, textColorRGB=[0.2, 0.8, 1])   
+    p.addUserDebugText(f"RealTime:{toc}",
+        [.69, 1, 0.45], textSize=1.0, lifeTime=0.1, textColorRGB=[0.4, 0.2, 1])
+    p.addUserDebugText(f"SimTime:{env.env.episode_steps/25}",
+        [.71, 1, 0.40], textSize=1.0, lifeTime=0.1, textColorRGB=[0.0, 1, 0.0])
     p.addUserDebugText(f"Velocity:{env.env.max_velocity}",
-        [.79, 1, 0.05], textSize=1.0, lifeTime=0.5, textColorRGB=[0.6, 0.8, .3])
+        [.73, 1, 0.3], textSize=1.0, lifeTime=0.1, textColorRGB=[0.6, 0.8, .3])
+    p.addUserDebugText(f"TimeRatio:{toc/(env.env.episode_steps/25)}",
+        [.75, 1, 0.35], textSize=1.0, lifeTime=0.1, textColorRGB=[0.0, 0.0, 1])
+    p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),2))}",
+        [.77, 1, 0.25], textSize=1.0, lifeTime=0.1, textColorRGB=[1, 0, 0])
+    p.addUserDebugText(f"End_effector:{matrix(np.around(np.array(env.env.robot.end_effector_pos),2))}",
+        [.79, 1, 0.15], textSize=1.0, lifeTime=0.1, textColorRGB=[0.0, 1, 0.0])
+    #p.addUserDebugText(f"        Object:{matrix(np.around(np.array(info['o']['actual_state']),2))}",
+    #    [.8, 1, 0.10], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+
     p.addUserDebugText(f"Force:{env.env.max_force}",
         [.81, 1, 0.00], textSize=1.0, lifeTime=0.5, textColorRGB=[0.3, 0.2, .4])
 
@@ -150,6 +151,19 @@ def detect_key(keypress,arg_dict,action):
     #    env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
     return action
 
+def print_speed(toc,mean_fps,mean_ratio,env):
+    clear()
+    steps = env.env.episode_steps
+    simtime = env.env.episode_steps/24
+    fps = steps/toc
+    ratio = toc/simtime
+    mean_fps.append(fps)
+    mean_ratio.append(toc/simtime)
+    print("Steps: {} \n SimTime: {:.2f}  \n RealTime: {:.2f} \n Ratio: {:.3f} \n MeanRatio: {:.3f} \n FPS: {:.1f} \n MeanFPS: {:.1f}".format(steps, simtime,
+                 toc, ratio, np.mean(mean_ratio), fps, np.mean(mean_fps)))
+    return mean_fps, mean_ratio
+
+
 def test_env(env, arg_dict):
     spawn_objects = False
     env.render("human")
@@ -159,10 +173,16 @@ def test_env(env, arg_dict):
     jointparams = ['Jnt1','Jnt2','Jnt3','Jnt4','Jnt5','Jnt6','Jnt7','Jnt 8','Jnt 9', 'Jnt10', 'Jnt11','Jnt12','Jnt13','Jnt14','Jnt15','Jnt16','Jnt17','Jnt 18','Jnt 19']
     cube = ['Cube1','Cube2','Cube3','Cube4','Cube5','Cube6','Cube7','Cube8','Cube9','Cube10','Cube11','Cube12','Cube13','Cube14','Cube15','Cube16','Cube17','Cube18','Cube19']
     cubecount = 0
+    mean_fps = []
+    mean_ratio = []
+    mean_simtime = []
+    mean_realtime = []
+    steps_num = 0
+    success_episodes_num = 0
     
     if arg_dict["gui"] == 0:
         print ("Add --gui 1 parameter to visualize environment")
-        quit()
+        #quit()
 
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     
@@ -170,7 +190,9 @@ def test_env(env, arg_dict):
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
     #newobject = p.loadURDF("cube.urdf", [3.1,3.7,0.1])
     #p.changeDynamics(newobject, -1, lateralFriction=1.00)
-    #p.setRealTimeSimulation(1)
+    if arg_dict["real"]:
+        #p.setRealTimeSimulation(1)
+        p.setTimeStep(1)
     if arg_dict["control"] == "slider":
         p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
         if "joints" in arg_dict["robot_action"]:
@@ -233,17 +255,18 @@ def test_env(env, arg_dict):
             jointparams[i] = p.readUserDebugParameter(joints[i])
             action.append(jointparams[i])
 
-    for e in range(50):
+    for e in range(arg_dict["eval_episodes"]):
+        
         env.reset()
         #if spawn_objects:
         #    cube[e] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [0, 0.5, .1])
         
         #if visualize_traj:
         #    visualize_goal(info)
-
+        tic = time.time()
         for t in range(arg_dict["max_episode_steps"]):
 
-
+            steps_num += 1
             if arg_dict["control"] == "slider":
                 action = []
                 for i in range (env.action_space.shape[0]):
@@ -286,19 +309,22 @@ def test_env(env, arg_dict):
 
             
             deg = np.rad2deg(action)
-            print (f"Action:{deg}")
+            #print (f"Action:{deg}")
             observation, reward, done, info = env.step(action)
+            toc = time.time() - tic
             
+            if arg_dict["speed"] == True:
+                mean_fps,mean_ratio = print_speed(toc, mean_fps, mean_ratio, env)
             if arg_dict["vtrajectory"] == True:
                 visualize_trajectories(info,action)
             if arg_dict["vinfo"] == True:
-                visualize_infotext(action, env, info)
+                visualize_infotext(action, env, info, toc)
 
-                
+            print("Velocity: " + str(arg_dict["max_velocity"]))    
                 #visualize_goal(info)
             #if debug_mode:
-            clear()
-            print("Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation, env.env.observation))
+            #clear()
+            #print("Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation, env.env.observation))
                 #if t>=1:
                     #action = matrix(np.around(np.array(action),5))
                     #oaction = env.env.robot.get_joints_states()
@@ -346,7 +372,14 @@ def test_env(env, arg_dict):
 
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
+                mean_simtime.append(env.env.episode_steps/24)
+                mean_realtime.append(toc) 
+                success_episodes_num += 1
                 break
+    print("MeanSimTime: {:.2f} \n MeanRealTime: {:.2f} \n".format(np.mean(mean_simtime), np.mean(mean_realtime)))
+    mean_steps_num = steps_num // arg_dict["eval_episodes"]
+    print("Mean number of steps {}".format(mean_steps_num))
+    print("{} of {} episodes ({} %) were successful".format(success_episodes_num, arg_dict["eval_episodes"], success_episodes_num / arg_dict["eval_episodes"]*100))
 
 def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_logdir=None, deterministic=False):
 
@@ -372,23 +405,33 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     force = arg_dict["max_force"]
     steps_sum = 0
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
-    #p.setRealTimeSimulation(1)
-    #p.setTimeStep(0.01)
-
+    #p.changeDynamics(newobject, -1, lateralFriction=1.00)
+    if arg_dict["real"]:
+        #p.setRealTimeSimulation(1)
+        p.setTimeStep(0.04)
+    mean_fps = []
+    mean_ratio = []
+    mean_simtime = []
+    mean_realtime = []
     for e in range(arg_dict["eval_episodes"]):
         done = False
         obs = env.reset()
         is_successful = 0
         distance_error = 0
         step_sum = 0
+        tic = time.time()
         while not done:
             steps_sum += 1
             action, _state = model.predict(obs, deterministic=deterministic)
             obs, reward, done, info = env.step(action)
+            toc = time.time() - tic
+            if arg_dict["speed"] == True:
+                mean_fps,mean_ratio = print_speed(toc, mean_fps, mean_ratio, env)
+            print("Velocity: " + str(arg_dict["max_velocity"]))
             is_successful = not info['f']
             distance_error = info['d']
             if arg_dict["vinfo"] == True:
-                visualize_infotext(action, env, info)
+                visualize_infotext(action, env, info,toc)
 
 
             if (arg_dict["record"] > 0) and (len(images) < 8000):
@@ -396,10 +439,15 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
                 image = render_info[arg_dict["camera"]]["image"]
                 images.append(image)
                 print(f"appending image: total size: {len(images)}]")
+        
 
         success_episodes_num += is_successful
+        if is_successful:
+            mean_simtime.append(env.env.episode_steps/24)
+            mean_realtime.append(toc)             
         distance_error_sum += distance_error
 
+    print("MeanSimTime: {:.2f} \n MeanRealTime: {:.2f} \n".format(np.mean(mean_simtime), np.mean(mean_realtime)))
     mean_distance_error = distance_error_sum / arg_dict["eval_episodes"]
     mean_steps_num = steps_sum // arg_dict["eval_episodes"]
 
@@ -438,6 +486,8 @@ def main():
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectgory.")
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
+    parser.add_argument("-rl", "--real", action="store_true", help="Set realtime simulation. Valid arguments: True, False")
+    parser.add_argument("-sp", "--speed", action="store_true", help="Visualize speed simulation info. Valid arguments: True, False")
     parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")      
     arg_dict = get_arguments(parser)
     model_logdir = os.path.dirname(arg_dict.get("model_path",""))
@@ -447,7 +497,7 @@ def main():
         return
     if arg_dict.get("model_path") is None:
         print("Path to the model using --model_path argument not specified. Testing random actions in selected environment.")
-        arg_dict["gui"] = 1
+        #arg_dict["gui"] = 1
         env = configure_env(arg_dict, model_logdir, for_train=0)
         test_env(env, arg_dict)
         
