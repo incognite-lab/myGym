@@ -30,7 +30,6 @@ class ParticleFilter3D(object):
         self.a = np.zeros(3)
 
 
-
     def create_uniform_particles(self):
         """Create uniform particles in workspace bounds"""
         particles = np.empty((self.num_particles, 3))
@@ -81,8 +80,6 @@ class ParticleFilter3D(object):
         self.weights = self.weights / np.sum(self.weights) #Normalization
         #Update vel and acceleration
         #self.vel = (1 -self.g) * self.vel + ((z - self.estimate)/self.dt) * self.g#velocity change
-
-
 
 
     def state_estimate(self):
