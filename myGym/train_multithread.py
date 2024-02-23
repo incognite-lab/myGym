@@ -136,7 +136,7 @@ def get_arguments(parser):
     with open(args.config, "r") as f:
             arg_dict = commentjson.load(f)
     for key, value in vars(args).items():
-        if value is not None and key is not "config":
+        if value is not None and key != "config":
             if key in ["robot_init"]:
                 arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
             else:
@@ -182,8 +182,8 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps):
 def main():
     parser = get_parser()
     arg_dict, args = get_arguments(parser)
-    ray.init(local_mode=True)
-    
+    ray.init(num_gpus=1)
+
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
