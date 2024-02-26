@@ -150,8 +150,8 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps):
         # use fixed learning rate instead of grid search (needs tune)
         algo = (
             algorithm()
-            .rollouts(num_rollout_workers=12, batch_mode="complete_episodes") # You can try to increase or decrease based on your systems specs
-            .resources(num_gpus=1) # You can try to increase or decrease based on your systems specs
+            .rollouts(num_rollout_workers=10, batch_mode="complete_episodes") # You can try to increase or decrease based on your systems specs
+            .resources(num_gpus=1, num_gpus_per_worker=0.1) # You can try to increase or decrease based on your systems specs
             .environment(env='GymEnv-v0', env_config=arg_dict)
             .training(train_batch_size=256)
             .build()
@@ -182,7 +182,7 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps):
 def main():
     parser = get_parser()
     arg_dict, args = get_arguments(parser)
-    ray.init(num_gpus=1)
+    ray.init(num_gpus=1, num_cpus=10)
 
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
