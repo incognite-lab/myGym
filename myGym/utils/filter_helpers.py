@@ -16,7 +16,7 @@ from pyquaternion import Quaternion
 import sys
 from scipy.interpolate import splprep, splev
 import matplotlib.pyplot as plt
-from myGym.envs.particle_filter import ParticleFilter3D
+from myGym.envs.particle_filter import ParticleFilterGH
 from myGym.utils.filter_helpers import *
 
 

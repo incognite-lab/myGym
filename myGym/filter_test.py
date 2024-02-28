@@ -22,7 +22,7 @@ from pyquaternion import Quaternion
 import sys
 from scipy.interpolate import splprep, splev
 import matplotlib.pyplot as plt
-from myGym.envs.particle_filter import ParticleFilter3D
+from myGym.envs.particle_filter import ParticleFilterGH
 from myGym.utils.filter_helpers import *
 
 
@@ -242,8 +242,8 @@ Filtering process and its visualization functions:
 
 def filter_without_animation(noisy_data, noisy_rotations):
     """Similar to vis_anim but without any visualization"""
-    position_filter = ParticleFilter3D(20000, 0.02, 0.02, g= 0.7, h = 0.4)
-    rotation_filter = ParticleFilter3D(20000, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
+    position_filter = ParticleFilterGH(10000, 0.02, 0.02, g= 0.7, h = 0.4)
+    rotation_filter = ParticleFilterGH(10000, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
     n = noisy_data.shape[0] #Number of points
     for iter in range(n):
         measurement = noisy_data[iter, :]
@@ -266,8 +266,8 @@ def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, pause_length)
     env.p.setGravity(0, 0, 0)
     n = ground_truth.shape[0] #Number of points
     iter = 0
-    position_filter = ParticleFilter3D(1500, 0.02, 0.025, g = 0.7, h= 0.4)
-    rotation_filter = ParticleFilter3D(1500, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
+    position_filter = ParticleFilterGH(1500, 0.02, 0.025, g = 0.7, h= 0.4)
+    rotation_filter = ParticleFilterGH(1500, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
     particle_batch = None
     estimate_id = None
 
