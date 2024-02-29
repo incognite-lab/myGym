@@ -22,13 +22,21 @@ class ParticleFilter(object):
         self.estimate_vars = [] #List for estimate variances
         self.dt = dt
         self.vel = np.random.normal([0, 0, 0], [self.process_std]*3, (1, 3))
-        self.particles = self.create_uniform_particles(3)
+        self.particles = None
         self.estimate = np.zeros(3)
 
 
-    def create_uniform_particles(self, dim):
+    def apply_first_measurement(self, measurement):
+        """Determine initial values based on first measurement"""
+        self.estimate = measurement
+        initial_uncertainty_factor = 5  # multiply std by this factor to account for initial uncertainty to better address
+        # system nonlinearities
+        self.particles = self.create_gaussian_particles(self.measurement_std * initial_uncertainty_factor)
+
+
+    def create_uniform_particles(self):
         """Create uniform particles in workspace bounds of a given dimension"""
-        particles = np.empty((self.num_particles, dim))
+        particles = np.empty((self.num_particles, 3))
         N = self.num_particles
         x_range = self.workspace_bounds[0]
         y_range = self.workspace_bounds[1]
@@ -39,7 +47,7 @@ class ParticleFilter(object):
         return particles
 
 
-    def create_gaussian_particles(self, dim, std):
+    def create_gaussian_particles(self, std):
         """Create gaussian particles in workspace bounds of a given dimension"""
         N = self.num_particles
         particles = np.empty((N, 3))
@@ -51,7 +59,7 @@ class ParticleFilter(object):
     def predict(self):
         """Move particles based on estimated velocity"""
         n = self.num_particles
-        vel = self.velocity_function # Determining current velocity of particles for prediction
+        vel = self.velocity_function() # Determining current velocity of particles for prediction
         self.particles[:, :3] += vel * self.dt  # Predict + process noise
         self.particles[:, 0] += np.random.randn(n) * self.process_std
         self.particles[:, 1] += np.random.randn(n) * self.process_std
@@ -76,8 +84,8 @@ class ParticleFilter(object):
         """Update estimated state and std based on weighted average of particles"""
         self.estimate = np.average(self.particles, weights = self.weights, axis = 0) #Weighted average of particles
         var = np.average(((self.particles - self.estimate)**2), weights = self.weights, axis = 0)
-        self.estimates.append(self.estimate)
-        self.estimate_vars.append(var)
+        self.estimates.append(self.estimate) #Store each estimate in a list
+        self.estimate_vars.append(var) #Store each estimate variation in a list
 
 
     def index_resample_function(self):
@@ -92,7 +100,7 @@ class ParticleFilter(object):
 
 
     def filter_step(self, z):
-        """One full step of the filter"""
+        """One full step of the filter."""
         self.predict()
         self.update(z)
         self.state_estimate()
@@ -112,21 +120,55 @@ class ParticleFilter6D(ParticleFilter):
         self.particles = self.create_uniform_particles()
 
 
-    def create_uniform_particles(self, dim = 6):
+    def apply_first_measurement(self, measurement):
+        """Determine initial values based on first measurement"""
+        self.estimate = measurement
+        initial_uncertainty_factor = 5  #Multiply std by this factor to account for initial uncertainty to better address
+        #System nonlinearities
+        self.particles = self.create_gaussian_particles(self.measurement_std * initial_uncertainty_factor)
+
+
+    def create_uniform_particles(self):
         """Create uniform particles in workspace bounds of a given dimension including velocity"""
-        particles = np.empty((self.num_particles, dim))
+        particles = np.empty((self.num_particles, 6))
         N = self.num_particles
-        for i in range(dim):
-            range = self.workspace_bounds[i]
-            particles[:, i] = np.random.uniform(*range, size = N)
+        for i in range(3):
+            bounds = self.workspace_bounds[i]
+            particles[:, i] = np.random.uniform(*bounds, size = N)
+        for i in range(3):
+            bounds = self.vel_bounds[i]
+            particles[:, i+ 3] = np.random.uniform(*bounds, size = N)
+        return particles
+
+
+    def create_gaussian_particles(self, std):
+        """Create gaussian particles in workspace bounds of a given dimension"""
+        N = self.num_particles
+        particles = np.empty((N, 6))
+        for i in range(3):
+            particles[:, i] = self.estimate[i] + (np.random.randn(N) * std) #Position of particles
+        particles[:, 3:] = (np.random.randn(N, 3) * std) #Velocities of particles initialized to Gaussian noise around zero
         return particles
 
 
     def velocity_function(self):
-        #TODO: add noise
         """Add noise to current velocity"""
         current_velocities = self.particles[:, 3:]
-        return current_velocities
+        noise = np.random.randn(*current_velocities.shape)*self.vel_std
+        return current_velocities + noise
+
+
+    def index_resample_function(self):
+        return filterpy.monte_carlo.stratified_resample(self.weights)
+
+
+    def state_estimate(self):
+        """Update estimated state and std based on weighted average of particles"""
+        self.estimate = np.average(self.particles[:, :3], weights = self.weights, axis = 0) #Weighted average of particles
+        var = np.average(((self.particles[:, :3] - self.estimate)**2), weights = self.weights, axis = 0)
+        self.estimates.append(self.estimate) #Store each estimate in a list
+        self.estimate_vars.append(var) #Store each estimate variation in a list
+
 
 
 
@@ -148,20 +190,13 @@ class ParticleFilterGH(ParticleFilter):
         self.a = np.zeros(3)
 
 
-    def apply_first_measurement(self, measurement):
-        """Determine initial values based on first measurement"""
-        self.estimate = measurement
-        initial_uncertainty_factor = 5  #multiply std by this factor to account for initial uncertainty to better address
-        #system nonlinearities
-        self.particles = self.create_gaussian_particles(self.measurement_std*initial_uncertainty_factor)
 
-
-    def create_uniform_particles(self, dim = 3):
+    def create_uniform_particles(self):
         """Creates uniform particles in workspace"""
-        super().create_uniform_particles(dim)
+        return super().create_uniform_particles()
 
 
-    def create_gaussian_particles(self, std, dim = 3):
+    def create_gaussian_particles(self, std):
         """Create normally distributed particles around estimate with given std"""
         N = self.num_particles
         particles = np.empty((N, 3))

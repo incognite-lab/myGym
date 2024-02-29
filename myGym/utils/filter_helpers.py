@@ -137,7 +137,7 @@ def visualize_trajectory(ground_truth, noisy_data):
 
 def visualize_particles(particle_filter):
     """Initializes the visualization of position particles."""
-    positions = particle_filter.particles.tolist()
+    positions = particle_filter.particles[:, :3].tolist()
     #p.addUserDebugPoints(pointPositions = positions, pointColorsRGB=[20, 20, 20])
     particle_id = p.createVisualShape(p.GEOM_SPHERE, radius=0.001)
     particles_id = p.createMultiBody(baseVisualShapeIndex=particle_id, batchPositions=positions)
@@ -147,7 +147,7 @@ def visualize_particles(particle_filter):
 def move_particles(ids, positions):
     """Moves particle batch to a new position."""
     for i in range(len(ids)):
-        p.resetBasePositionAndOrientation(ids[i], positions[i, :], [1, 0, 0, 0])
+        p.resetBasePositionAndOrientation(ids[i], positions[i, :3], [1, 0, 0, 0])
 
 
 def move_estimate(id, position):
@@ -194,6 +194,8 @@ def get_arg_dict():
     return arg_dict
 
 
-def angle_diff_from_quats():
-    """Computes the angular distance from two"""
+if __name__ == "__main__":
+    current_velocities = np.zeros((100, 3))
+    vel_std = 0.25
+    print(np.random.randn(*current_velocities.shape)*vel_std)
 
