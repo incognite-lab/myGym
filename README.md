@@ -126,6 +126,31 @@ After the training you can see the trained behavior.
 
 There are more training tutorials in the [documentation](https://mygym.readthedocs.io/en/latest/user_guide/basic_training.html)
 
+## Creating IK trajectories in simulator
+
+You can create IK trajectories in simulator, store them in the text file and then execute them on real robot.
+
+To collect trajectories type:
+
+`python sim2real.py --config ./configs/IK_solver.json --gui 1 --ik_solver --control oraculum --eval_episodes 3 --max_episode_steps 10 --action_repeat 20 --max_velocity 1`
+
+The trajectory will append to trajectory.txt file. Parameters
+
+--config - setting env and robot (also the spawning area of target)
+
+--gui -  GUI on/off
+
+--eval episodes - how many trajectories will be generated
+
+--max episode steps - the number of actions in each trajectory
+
+--action repeat - how many steps the simulator will execute one action (adaptive regime is WIP)
+
+--max_velocity - the speed of robot motors
+
+The combination of different parameters results in different behavior.
+
+
 
 ## Sim2real
 
@@ -181,7 +206,7 @@ Section REAL ROBOT CONTROL
 - [ ] Set up the correct speed for sim2real 
 - [ ] Set up correct speed for simulator 
 - [ ] Test the PID controller
-- [ ] Test the mover controller
+- [X] Test the mover controller
 - [ ] Create ROS controller
 - [ ] Write rewards for biological and legible movements
 - [ ] Write the callibration procedures

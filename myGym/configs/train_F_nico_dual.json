@@ -10,7 +10,7 @@
 "visualize" :0,
 "visgym"    :0,
 #Robot
-"robot"         :"nico_upper_head_rh6d_dual",
+"robot"         :"nico_upper_rh6d",
 "robot_action"  :"joints",
 "robot_init"    :[0.15, 0.15, 0.5],
 "max_velocity"  :3,

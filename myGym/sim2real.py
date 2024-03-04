@@ -27,7 +27,7 @@ def signal_handler(signal, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-realjoints = ['r_shoulder_z','r_shoulder_y','r_arm_x','r_elbow_y','r_wrist_z','r_wrist_x']
+realjoints = ['r_shoulder_z','r_shoulder_y','r_arm_x','r_elbow_y','r_wrist_z','r_wrist_x','r_indexffinger_x']
 
 def init_robot():
     motorConfig = './nico_humanoid_upper_rh7d_ukba.json'
@@ -297,14 +297,14 @@ def test_env(env, arg_dict):
             jointparams[i] = p.readUserDebugParameter(joints[i])
             action.append(jointparams[i])
 
-    for e in range(50):
+    for e in range(arg_dict["eval_episodes"]):
         env.reset()
         #if spawn_objects:
         #    cube[e] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [0, 0.5, .1])
         
         #if visualize_traj:
         #    visualize_goal(info)
-
+        trajectory=[]
         for t in range(arg_dict["max_episode_steps"]):
 
 
@@ -350,15 +350,21 @@ def test_env(env, arg_dict):
 
             observation, reward, done, info = env.step(action)
             
-            print("Action: {}".format (action,""))
-            
+            jointaction = env.env.robot.joint_poses
+            deg = np.rad2deg(jointaction)
+
+            if arg_dict["ik_solver"]:
+                print("Step: ", t,end="")
+                for i in range(len(realjoints)):
+                    print(" - {}:{:.2f}, ".format(realjoints[i],deg[i]), end="")
+                print(" ")
+                trajectory.append(deg)
+                #time.sleep(0.06)
+
             #Execute action on real robot
             if arg_dict["real_robot"]:
                 defaultSpeed = 0.01
-                #jointaction = info['o']["additional_obs"]["joints_angles"]
-                jointaction = env.env.robot.joint_poses
-                deg = np.rad2deg(jointaction)
-                
+                #jointaction = info['o']["additional_obs"]["joints_angles"]                
                 for i,realjoint in realjoints:
                     robot.setAngle(realjoint,deg[i],defaultSpeed)
                 time.sleep(0.06)
@@ -419,6 +425,12 @@ def test_env(env, arg_dict):
 
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
+                if arg_dict["ik_solver"]:
+                    file = open(os.path.join("trajectory.txt"), 'a')
+                    for value in trajectory:
+                        file.write(f"{value}\n")
+                    file.write("\n")
+                    file.close()
                 break
 
 def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_logdir=None, deterministic=False):
@@ -513,6 +525,7 @@ def main():
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info")
     parser.add_argument("-nl", "--natural_language", action="store_true", help="NL ")
     parser.add_argument("-rr", "--real_robot",action="store_true", help="execute action on real robot")
+    parser.add_argument("-ik", "--ik_solver",action="store_true", help="calculate ik solution")
           
     arg_dict = get_arguments(parser)
     model_logdir = os.path.dirname(arg_dict.get("model_path",""))
@@ -522,7 +535,7 @@ def main():
         return
     if arg_dict.get("model_path") is None:
         print("Path to the model using --model_path argument not specified. Testing random actions in selected environment.")
-        arg_dict["gui"] = 1
+        #arg_dict["gui"] = 1
         env = configure_env(arg_dict, model_logdir, for_train=0)
         test_env(env, arg_dict)
         
