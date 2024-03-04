@@ -27,6 +27,8 @@ def signal_handler(signal, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+realjoints = ['r_shoulder_z','r_shoulder_y','r_arm_x','r_elbow_y','r_wrist_z','r_wrist_x']
+
 def init_robot():
     motorConfig = './nico_humanoid_upper_rh7d_ukba.json'
     try:
@@ -206,13 +208,13 @@ def detect_key(keypress,arg_dict,action):
     return action
 
 def test_env(env, arg_dict):
-    real_robot = True
-    if real_robot:
+    #real_robot = True
+    if arg_dict["real_robot"]:
          #init_robot()
         robot = init_robot()
     
-    arg_dict["vsampling"] = 0
-    arg_dict["vinfo"] = 0
+    #arg_dict["vsampling"] = 0
+    #arg_dict["vinfo"] = 0
     spawn_objects = False
     env.render("human")
     #env.reset()
@@ -224,7 +226,7 @@ def test_env(env, arg_dict):
     
     if arg_dict["gui"] == 0:
         print ("Add --gui 1 parameter to visualize environment")
-        quit()
+        #quit()
 
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     
@@ -245,7 +247,7 @@ def test_env(env, arg_dict):
                         joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], .02)
             else:
                 for i in range (env.action_space.shape[0]):
-                    joints[i] = p.addUserDebugParameter(joints[i],env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
+                    joints[i] = p.addUserDebugParameter(env.env.robot.motor_names[i],env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
         elif "absolute" in arg_dict["robot_action"]:
             if 'gripper' in arg_dict["robot_action"]:
                 print ("gripper is present")
@@ -348,17 +350,17 @@ def test_env(env, arg_dict):
 
             observation, reward, done, info = env.step(action)
             
-            if real_robot:
+            print("Action: {}".format (action,""))
+            
+            #Execute action on real robot
+            if arg_dict["real_robot"]:
                 defaultSpeed = 0.01
                 #jointaction = info['o']["additional_obs"]["joints_angles"]
                 jointaction = env.env.robot.joint_poses
                 deg = np.rad2deg(jointaction)
-                robot.setAngle('r_shoulder_z',deg[0],defaultSpeed)
-                robot.setAngle('r_shoulder_y',deg[1],defaultSpeed)
-                robot.setAngle('r_arm_x',deg[2],defaultSpeed)
-                robot.setAngle('r_elbow_y',deg[3],defaultSpeed)
-                robot.setAngle('r_wrist_z',deg[4],defaultSpeed)
-                robot.setAngle('r_wrist_x',deg[5],defaultSpeed)
+                
+                for i,realjoint in realjoints:
+                    robot.setAngle(realjoint,deg[i],defaultSpeed)
                 time.sleep(0.06)
 
             if arg_dict["vtrajectory"] == True:
@@ -508,8 +510,10 @@ def main():
     parser.add_argument("-ct", "--control", default="slider", help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectgory.")
-    parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
-    parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")      
+    parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info")
+    parser.add_argument("-nl", "--natural_language", action="store_true", help="NL ")
+    parser.add_argument("-rr", "--real_robot",action="store_true", help="execute action on real robot")
+          
     arg_dict = get_arguments(parser)
     model_logdir = os.path.dirname(arg_dict.get("model_path",""))
     # Check if we chose one of the existing engines
