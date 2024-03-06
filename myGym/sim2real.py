@@ -18,8 +18,12 @@ from utils.nicocameras import NicoCameras, image_shift_xy
 from utils.nicodummy import DummyRobot
 import serial
 
-DEFAULT_SPEED = 0.02
+DEFAULT_SPEED = 0.04
 SIMREALDELAY = 0.2
+RESETDELAY = 5
+FINISHDELAY = 8
+REALJOINTS = ['r_shoulder_z','r_shoulder_y','r_arm_x','r_elbow_y','r_wrist_z','r_wrist_x','r_indexfinger_x']
+
 def quit():
     os._exit(0)
 
@@ -29,8 +33,16 @@ def signal_handler(signal, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-realjoints = ['r_shoulder_z','r_shoulder_y','r_arm_x','r_elbow_y','r_wrist_z','r_wrist_x','r_indexfinger_x']
 
+
+def get_real_joints(robot,joints):
+    last_position= []
+    for k in joints:
+        actual=robot.getAngle(k)
+        print("{} : {}, ".format(k,actual),end="")
+        last_position.append(actual)
+    print("")
+    return last_position
 def init_robot():
     motorConfig = './nico_humanoid_upper_rh7d_ukba.json'
     try:
@@ -65,8 +77,12 @@ def init_robot():
             }
     for k in safe.keys():
         robot.setAngle(k,safe[k],DEFAULT_SPEED)
-    time.sleep(5)
-    print ('Robot initialized')
+    print ('Robot initializing')
+    initial_position = get_real_joints(robot,REALJOINTS)
+    time.sleep(RESETDELAY)
+    final_position = get_real_joints(robot,REALJOINTS)
+    #print(initial_position - final_position)
+    #input("Press key to continue...")
     return robot
 
 def reset_robot(robot):
@@ -99,15 +115,12 @@ def reset_robot(robot):
             }
     for k in safe.keys():
         robot.setAngle(k,safe[k],DEFAULT_SPEED)
-
-    #while reset:
-    #     for k in safe.keys():
-    #        actual=robot.getAngle(k)
-    #        print(actual)
-    #        if actual==safe[k]:
-    #            reset = False
-    time.sleep(5)
-    print('Robot set to default position')
+    print ('Robot reseting')
+    initial_position = get_real_joints(robot,REALJOINTS)
+    time.sleep(RESETDELAY)
+    final_position = get_real_joints(robot,REALJOINTS)
+    #print(initial_position - final_position)
+    #input("Press key to continue...")
     return robot
 
 
@@ -401,8 +414,8 @@ def test_env(env, arg_dict):
 
             if arg_dict["ik_solver"]:
                 print("Step: ", t,end="")
-                for i in range(len(realjoints)):
-                    print(" - {}:{:.2f}, ".format(realjoints[i],deg[i]), end="")
+                for i in range(len(REALJOINTS)):
+                    print(" - {}:{:.2f}, ".format(REALJOINTS[i],deg[i]), end="")
                 print(" ")
                 trajectory.append(deg)
                 #time.sleep(0.06)
@@ -410,7 +423,7 @@ def test_env(env, arg_dict):
             #Execute action on real robot
             if arg_dict["real_robot"]:
                 #jointaction = info['o']["additional_obs"]["joints_angles"]                
-                for i,realjoint in enumerate(realjoints):
+                for i,realjoint in enumerate(REALJOINTS):
                     robot.setAngle(realjoint,deg[i],DEFAULT_SPEED)
                 time.sleep(SIMREALDELAY)
                 print("Step:" + str(t))
@@ -482,9 +495,12 @@ def test_env(env, arg_dict):
                     file.write("\n")
                     file.close()
                 if arg_dict["real_robot"]:
-                    time.sleep(5)
+                    time.sleep(FINISHDELAY)
                     reset_robot(robot)
+
                 break
+        if not(done):
+            input("Press key to continueF...")
 
 def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_logdir=None, deterministic=False):
 
