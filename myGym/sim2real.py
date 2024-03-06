@@ -18,6 +18,8 @@ from utils.nicocameras import NicoCameras, image_shift_xy
 from utils.nicodummy import DummyRobot
 import serial
 
+DEFAULT_SPEED = 0.02
+SIMREALDELAY = 0.2
 def quit():
     os._exit(0)
 
@@ -27,7 +29,7 @@ def signal_handler(signal, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-realjoints = ['r_shoulder_z','r_shoulder_y','r_arm_x','r_elbow_y','r_wrist_z','r_wrist_x','r_indexffinger_x']
+realjoints = ['r_shoulder_z','r_shoulder_y','r_arm_x','r_elbow_y','r_wrist_z','r_wrist_x','r_indexfinger_x']
 
 def init_robot():
     motorConfig = './nico_humanoid_upper_rh7d_ukba.json'
@@ -36,9 +38,6 @@ def init_robot():
     except:
         robot = DummyRobot()
         print('motors are not operational')
-
-
-    defaultSpeed = 0.04*0.5
 
     safe = { # standard position
                 'l_shoulder_z':0.0,
@@ -51,22 +50,64 @@ def init_robot():
                 'l_thumb_x':-180.0,
                 'l_indexfinger_x':-180.0,
                 'l_middlefingers_x':-180.0,
-                'r_shoulder_z':-8.0,
-                'r_shoulder_y':49.0,
-                'r_arm_x':7.0,
-                'r_elbow_y':77.0,
+                'r_shoulder_z':-15.0,
+                'r_shoulder_y':68.0,
+                'r_arm_x':2.8,
+                'r_elbow_y':56.4,
                 'r_wrist_z':0.0,
                 'r_wrist_x':11.0,
                 'r_thumb_z':-57.0,
-                'r_thumb_x':-180.0,
+                'r_thumb_x':180.0,
                 'r_indexfinger_x':-180.0,
-                'r_middlefingers_x':-180.0,
+                'r_middlefingers_x':180.0,
                 'head_z':0.0,
                 'head_y':0.0
             }
     for k in safe.keys():
-        robot.setAngle(k,safe[k],defaultSpeed)
+        robot.setAngle(k,safe[k],DEFAULT_SPEED)
+    time.sleep(5)
+    print ('Robot initialized')
+    return robot
 
+def reset_robot(robot):
+    
+    reset = True
+
+    safe = { # standard position
+                'l_shoulder_z':0.0,
+                'l_shoulder_y':0.0,
+                'l_arm_x':0.0,
+                'l_elbow_y':89.0,
+                'l_wrist_z':0.0,
+                'l_wrist_x':-56.0,
+                'l_thumb_z':-57.0,
+                'l_thumb_x':-180.0,
+                'l_indexfinger_x':-180.0,
+                'l_middlefingers_x':-180.0,
+                'r_shoulder_z':-15.0,
+                'r_shoulder_y':68.0,
+                'r_arm_x':2.8,
+                'r_elbow_y':56.4,
+                'r_wrist_z':0.0,
+                'r_wrist_x':11.0,
+                'r_thumb_z':-57.0,
+                'r_thumb_x':180.0,
+                'r_indexfinger_x':-180.0,
+                'r_middlefingers_x':180.0,
+                'head_z':0.0,
+                'head_y':0.0
+            }
+    for k in safe.keys():
+        robot.setAngle(k,safe[k],DEFAULT_SPEED)
+
+    #while reset:
+    #     for k in safe.keys():
+    #        actual=robot.getAngle(k)
+    #        print(actual)
+    #        if actual==safe[k]:
+    #            reset = False
+    time.sleep(5)
+    print('Robot set to default position')
     return robot
 
 
@@ -305,6 +346,11 @@ def test_env(env, arg_dict):
         #if visualize_traj:
         #    visualize_goal(info)
         trajectory=[]
+
+
+
+
+
         for t in range(arg_dict["max_episode_steps"]):
 
 
@@ -363,11 +409,15 @@ def test_env(env, arg_dict):
 
             #Execute action on real robot
             if arg_dict["real_robot"]:
-                defaultSpeed = 0.01
                 #jointaction = info['o']["additional_obs"]["joints_angles"]                
-                for i,realjoint in realjoints:
-                    robot.setAngle(realjoint,deg[i],defaultSpeed)
-                time.sleep(0.06)
+                for i,realjoint in enumerate(realjoints):
+                    robot.setAngle(realjoint,deg[i],DEFAULT_SPEED)
+                time.sleep(SIMREALDELAY)
+                print("Step:" + str(t))
+                #if t % 10 == 0:
+                #         print('Temperature:', str(robot.getTemperature('r_shoulder_y')))
+                #        print('Current:', str(robot.getCurrent('r_shoulder_y')))
+
 
             if arg_dict["vtrajectory"] == True:
                 visualize_trajectories(info,action)
@@ -431,6 +481,9 @@ def test_env(env, arg_dict):
                         file.write(f"{value}\n")
                     file.write("\n")
                     file.close()
+                if arg_dict["real_robot"]:
+                    time.sleep(5)
+                    reset_robot(robot)
                 break
 
 def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_logdir=None, deterministic=False):
