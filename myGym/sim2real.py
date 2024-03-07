@@ -256,6 +256,12 @@ def test_env(env, arg_dict):
         
         #if visualize_traj:
         #    visualize_goal(info)
+        trajectory=[]
+        degdiff =  []
+        actiondiff =  []
+
+
+
 
         for t in range(arg_dict["max_episode_steps"]):
 
@@ -299,8 +305,40 @@ def test_env(env, arg_dict):
                 action =  detect_key(keypress,arg_dict,action)
             elif arg_dict["control"] == "random":
                 action = env.action_space.sample()
+            
+            prejointaction = env.env.robot.get_joints_states()
 
             
+            jointaction = env.env.robot.get_joints_states()
+            predeg = np.rad2deg(prejointaction)
+            actiondeg = np.rad2deg(env.env.robot.joint_poses)
+            
+            deg = np.rad2deg(jointaction)
+            #print("Prejointaction: ", predeg)
+            #print("Actiondeg: ", actiondeg)
+            #print("Jointaction: ", deg)
+            degdifference = deg - predeg
+            actiondifference = actiondeg - deg
+            if arg_dict["ik_solver"]:
+                print("Step: ", t,end="")
+                for i in range(len(REALJOINTS)):
+                    print(" - {}:{:.2f}, ".format(REALJOINTS[i],degdifference[i]), end="")
+                print(" ")
+                print(actiondifference)
+                degdiff.append(degdifference)
+                actiondiff.append(actiondifference)
+                #time.sleep(0.06)
+
+            #Execute action on real robot
+            if arg_dict["real_robot"]:
+                #jointaction = info['o']["additional_obs"]["joints_angles"]                
+                for i,realjoint in enumerate(REALJOINTS):
+                    robot.setAngle(realjoint,deg[i],DEFAULT_SPEED)
+                time.sleep(SIMREALDELAY)
+                print("Step:" + str(t))
+                #if t % 10 == 0:
+                #         print('Temperature:', str(robot.getTemperature('r_shoulder_y')))
+                #        print('Current:', str(robot.getCurrent('r_shoulder_y')))
 
             print (f"Action:{action}")
             observation, reward, done, info = env.step(action)
@@ -364,6 +402,30 @@ def test_env(env, arg_dict):
 
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
+                if arg_dict["ik_solver"]:
+                    file = open(os.path.join("trajectory.txt"), 'a')
+                    for value in trajectory:
+                        file.write(f"{value}\n")
+                    file.write("\n")
+                    file.close()
+                    #Plot actiondiff in graph
+                    fig, axs = plt.subplots(2)
+                    axs[0].plot(actiondiff)
+                    axs[0].set_title('Difference between Action and Sim position')
+                    axs[0].set_xlabel('Steps')
+                    axs[0].set_ylabel('Difference in degrees')                    
+                    axs[1].plot(degdiff)
+                    axs[1].set_title('Difference between SimPreaction and SimPostaction')
+                    axs[1].set_xlabel('Steps')
+                    axs[1].set_ylabel('Difference in degrees')   
+                    plt.tight_layout()
+                    plt.show()
+                    input("Press key to continue...")
+                    plt.close
+                if arg_dict["real_robot"]:
+                    time.sleep(FINISHDELAY)
+                    reset_robot(robot)
+
                 break
 
 def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_logdir=None, deterministic=False):
