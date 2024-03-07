@@ -17,6 +17,7 @@ from nicomotion.Motion import Motion
 from utils.nicocameras import NicoCameras, image_shift_xy
 from utils.nicodummy import DummyRobot
 import serial
+import matplotlib.pyplot as plt
 
 DEFAULT_SPEED = 0.04
 SIMREALDELAY = 0.2
@@ -359,7 +360,8 @@ def test_env(env, arg_dict):
         #if visualize_traj:
         #    visualize_goal(info)
         trajectory=[]
-
+        degdiff =  []
+        actiondiff =  []
 
 
 
@@ -406,18 +408,29 @@ def test_env(env, arg_dict):
                 action =  detect_key(keypress,arg_dict,action)
             elif arg_dict["control"] == "random":
                 action = env.action_space.sample()
+            
+            prejointaction = env.env.robot.get_joints_states()
 
             observation, reward, done, info = env.step(action)
             
-            jointaction = env.env.robot.joint_poses
+            jointaction = env.env.robot.get_joints_states()
+            predeg = np.rad2deg(prejointaction)
+            actiondeg = np.rad2deg(env.env.robot.joint_poses)
+            
             deg = np.rad2deg(jointaction)
-
+            #print("Prejointaction: ", predeg)
+            #print("Actiondeg: ", actiondeg)
+            #print("Jointaction: ", deg)
+            degdifference = deg - predeg
+            actiondifference = actiondeg - deg
             if arg_dict["ik_solver"]:
                 print("Step: ", t,end="")
                 for i in range(len(REALJOINTS)):
-                    print(" - {}:{:.2f}, ".format(REALJOINTS[i],deg[i]), end="")
+                    print(" - {}:{:.2f}, ".format(REALJOINTS[i],degdifference[i]), end="")
                 print(" ")
-                trajectory.append(deg)
+                print(actiondifference)
+                degdiff.append(degdifference)
+                actiondiff.append(actiondifference)
                 #time.sleep(0.06)
 
             #Execute action on real robot
@@ -494,6 +507,20 @@ def test_env(env, arg_dict):
                         file.write(f"{value}\n")
                     file.write("\n")
                     file.close()
+                    #Plot actiondiff in graph
+                    fig, axs = plt.subplots(2)
+                    axs[0].plot(actiondiff)
+                    axs[0].set_title('Difference between Action and Sim position')
+                    axs[0].set_xlabel('Steps')
+                    axs[0].set_ylabel('Difference in degrees')                    
+                    axs[1].plot(degdiff)
+                    axs[1].set_title('Difference between SimPreaction and SimPostaction')
+                    axs[1].set_xlabel('Steps')
+                    axs[1].set_ylabel('Difference in degrees')   
+                    plt.tight_layout()
+                    plt.show()
+                    input("Press key to continue...")
+                    plt.close
                 if arg_dict["real_robot"]:
                     time.sleep(FINISHDELAY)
                     reset_robot(robot)
