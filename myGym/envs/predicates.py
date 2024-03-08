@@ -3,7 +3,7 @@ from myGym.envs import env_object
 from myGym.envs.test_volume_class import VolumeMesh
 import pybullet as p
 import open3d as o3d
-
+import numpy as np
 
 class Touching():
     def set_value(self, obj1, obj2):
@@ -61,10 +61,10 @@ if __name__ == '__main__':
     mesh = mesh.scale(pan1_scale, center=mesh.get_center())
     vm = VolumeMesh(mesh)
     orig = vm.duplicate()
-    orig.set_color(np.array([0, 1, 0]))
+    orig.paint(np.array([0, 1, 0]))
     voxel_grid = vm.voxelgrid
     o3d.visualization.draw_geometries([voxel_grid, orig.voxelgrid])
-    pan1.set_color([0,1,0,1])
+    pan1.paint([0,1,0,1])
     print("Green pan touching table:")
     print(touching.get_value(pan1, table))
     print("Green pan on top of table:")
