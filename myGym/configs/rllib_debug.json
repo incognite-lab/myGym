@@ -41,11 +41,11 @@
     "num_networks"      :1,
     "max_episode_steps" :512,
     "algo_steps"        :512,
-    "steps"             :50000,
+    "steps"             :1000000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
-    "eval_freq"     :25000,
+    "eval_freq"     :500000,
     "eval_episodes" :10,
     #Saving and logging
     "logdir"    :"trained_models/rllib_debug",
