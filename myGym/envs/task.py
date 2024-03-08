@@ -140,6 +140,16 @@ class TaskModule():
         self._observation = self.get_additional_obs(info_dict, self.env.task_objects["robot"])
         return self._observation
 
+
+    def get_world_state(self):
+        """
+        Get all objects in the scene including scene objects, interactive objects and robot
+
+        Returns:
+            :return observation: (dict) Task relevant observation data, positions of task objects 
+        """
+        pass
+
     def check_vision_failure(self):
         """
         Check if YOLACT vision model fails repeatedly during episode
