@@ -1,0 +1,38 @@
+<launch>
+  <arg name="multi" default=""/>
+  <arg name="arm_left"  default="True"/>
+  <arg name="arm_right"  default="True"/>
+  <arg name="wrist_left_model"  default="wrist-2017"/>
+  <arg name="wrist_right_model"  default="wrist-2017"/>
+  <arg name="end_effector_left"  default="pal-hey5"/>
+  <arg name="end_effector_right"  default="pal-hey5"/>
+  <arg name="ft_sensor_left"  default="schunk-ft"/>
+  <arg name="ft_sensor_right"  default="schunk-ft"/>
+  <arg name="laser_model"  default="sick-571"/>
+  <arg name="camera_model"  default="orbbec-astra"/>
+  <arg name="has_screen"  default="False"/>
+  <arg name="no_safety_eps" default="False"/>
+  <arg name="description_calibration_dir" value="$(optenv pal_eye_hand_calibration_tiago_dual_calibration_path)" />
+  <arg name="extrinsic_calibration_dir" value="$(optenv pal_camera_calibration_extrinsics_calibration_path)"/>
+  <arg name="robot_description" default="robot_description"/>
+  <!-- Robot description -->
+  <param name="$(arg robot_description)"
+    command="$(find xacro)/xacro --inorder
+    '$(find tiago_dual_description)/robots/tiago_dual.urdf.xacro'
+    arm_left:=$(arg arm_left)
+    arm_right:=$(arg arm_right)
+    wrist_left_model:=$(arg wrist_left_model)
+    wrist_right_model:=$(arg wrist_right_model)
+    end_effector_left:=$(arg end_effector_left)
+    end_effector_right:=$(arg end_effector_right)
+    ft_sensor_left:=$(arg ft_sensor_left)
+    ft_sensor_right:=$(arg ft_sensor_right)
+    laser_model:=$(arg laser_model)
+    camera_model:=$(arg camera_model)
+    has_screen:=$(arg has_screen)
+    no_safety_eps:=$(arg no_safety_eps)
+    description_calibration_dir:=$(arg description_calibration_dir)
+    extrinsic_calibration_dir:=$(arg extrinsic_calibration_dir)
+    $(arg multi)" />
+ <rosparam command="load" file="$(find tiago_dual_description)/config/collision/collision_parameters.yaml" />
+</launch>

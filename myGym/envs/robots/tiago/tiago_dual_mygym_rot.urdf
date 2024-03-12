@@ -78,7 +78,7 @@
     <child link="base_link"/>
     <parent link="base_footprint"/>
     <axis xyz="0 0 1"/>
-    <limit effort="100" lower="-1.5780972451" upper="1.57079632679" velocity="2"/>
+    <limit effort="100" lower="-1.9780972451" upper="3.14159265359" velocity="2"/>
   </joint>
   <!-- Bottom fixed part of column -->
   <link name="torso_fixed_link">
@@ -784,7 +784,7 @@
   <joint name="endeffector_gjoint" type="fixed">
     <parent link="gripper"/>
     <child link="endeffector"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 -0.15"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 -0.23"/>
   </joint>
   <link name="endeffector">
     <visual>

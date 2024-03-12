@@ -1,0 +1,342 @@
+<?xml version="1.0"?>
+<!--
+  Copyright (c) 2014, PAL Robotics, S.L.
+  All rights reserved.
+
+  This work is licensed under the Creative Commons Attribution 4.0 International License.
+  To view a copy of this license, visit http://creativecommons.org/licenses/by/4.0 or send a letter to
+  Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+-->
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!--External resources-->
+  <xacro:include filename="$(find hey5_description)/urdf/deg_to_rad.urdf.xacro" />
+  <xacro:include filename="$(find hey5_description)/urdf/materials.urdf.xacro" />
+
+  <!--Constants-->
+  <xacro:property name="thumb_abd_min"   value="${  0 * deg_to_rad}" />
+  <xacro:property name="thumb_abd_max"   value="${ 90 * deg_to_rad}" />
+  <xacro:property name="finger_abd_min"  value="${-30 * deg_to_rad}" /> <!--TODO: Check-->
+  <xacro:property name="finger_abd_max"  value="${ 30 * deg_to_rad}" /> <!--TODO: Check-->
+  <xacro:property name="finger_flex_min" value="${  0 * deg_to_rad}" />
+  <xacro:property name="finger_flex_max" value="${ 45 * deg_to_rad}" />
+  <xacro:property name="finger_max_vel"  value="2.0" />                 <!--TODO: Check-->
+  <xacro:property name="finger_max_eff"  value="2.0" />                 <!--TODO: Check-->
+  <xacro:property name="finger_friction" value="0.0" />                 <!--TODO: Check-->
+  <xacro:property name="finger_damping"  value="0.5" />                 <!--TODO: Check-->
+
+  <xacro:property name="finger_d1"  value="0.009" />
+  <xacro:property name="finger_d2"  value="0.013" />
+
+  <!--
+    Set to "" to use separate visualization mesh, or to "_collision" to use
+    collision meshes for visualization as well
+  -->
+  <xacro:property name="vis_suffix"  value="_collision" />
+
+  <!--
+    Create one non-thumb finger with one abduction/adduction joint and three
+    flexion/extention joints.
+
+    Parameters:
+    - name: Finger name. Finger links and joints are prepended with 'name_'
+    - parent: Parent link
+    - reflect: Set to 1 for a right hand, or to -1 for a left hand
+    - origin: XML block containing the pose of the first finger joint with respect to its parent
+  -->
+  <xacro:macro name="finger" params="name parent reflect *origin">
+    <!--Abductor-->
+    <xacro:finger_abd parent="${parent}" name="${name}_abd" reflect="${reflect}">
+      <xacro:insert_block name="origin" />
+    </xacro:finger_abd>
+
+    <!--First flexor-->
+    <xacro:finger_flex_virtual parent="${name}_abd_link" name="${name}_virtual_1" reflect="${reflect}">
+      <origin xyz="${finger_d1} 0 0" rpy="${reflect * 90 * deg_to_rad} 0 0" />
+    </xacro:finger_flex_virtual>
+
+    <xacro:finger_flex parent="${name}_virtual_1_link" name="${name}_flex_1" reflect="${reflect}">
+      <origin xyz="${finger_d2} 0 0" rpy="0 0 0" />
+    </xacro:finger_flex>
+
+    <!--Second flexor-->
+    <xacro:finger_flex_virtual parent="${name}_flex_1_link" name="${name}_virtual_2" reflect="${reflect}">
+      <origin xyz="${finger_d1} 0 0" rpy="0 0 0" />
+    </xacro:finger_flex_virtual>
+
+    <xacro:finger_flex parent="${name}_virtual_2_link" name="${name}_flex_2" reflect="${reflect}">
+      <origin xyz="${finger_d2} 0 0" rpy="0 0 0" />
+    </xacro:finger_flex>
+
+    <!--Third flexor-->
+    <xacro:finger_flex_virtual parent="${name}_flex_2_link" name="${name}_virtual_3" reflect="${reflect}">
+      <origin xyz="${finger_d1} 0 0" rpy="0 0 0" />
+    </xacro:finger_flex_virtual>
+
+    <xacro:finger_flex_tip parent="${name}_virtual_3_link" name="${name}_flex_3" reflect="${reflect}">
+      <origin xyz="${finger_d2} 0 0" rpy="0 0 0" />
+    </xacro:finger_flex_tip>
+  </xacro:macro>
+
+  <!--
+    Create one thumb finger with one abduction/adduction joint and two
+    flexion/extention joints.
+
+    Parameters:
+    - name: Finger name. Finger links and joints are prepended with 'name_'
+    - parent: Parent link
+    - reflect: Set to 1 for a right hand, or to -1 for a left hand
+    - origin: XML block containing the pose of the first finger joint with respect to its parent
+  -->
+  <xacro:macro name="thumb" params="name parent reflect *origin">
+    <!--Abductor-->
+    <xacro:thumb_abd parent="${parent}" name="${name}_abd" reflect="${reflect}">
+      <xacro:insert_block name="origin" />
+    </xacro:thumb_abd>
+
+    <!--First flexor-->
+    <xacro:finger_flex_virtual parent="${name}_abd_link" name="${name}_virtual_1" reflect="${reflect}">
+      <origin xyz="${0.0355 - finger_d2} 0.003 0" rpy="${-reflect * 65.56 * deg_to_rad} 0 0" />
+    </xacro:finger_flex_virtual>
+
+    <xacro:finger_flex parent="${name}_virtual_1_link" name="${name}_flex_1" reflect="${reflect}">
+      <origin xyz="${finger_d2} 0 0" rpy="0 0 0" />
+    </xacro:finger_flex>
+
+    <!--Second flexor-->
+    <xacro:finger_flex_virtual parent="${name}_flex_1_link" name="${name}_virtual_2" reflect="${reflect}">
+      <origin xyz="${finger_d1} 0 0" rpy="0 0 0" />
+    </xacro:finger_flex_virtual>
+
+    <xacro:finger_flex_tip parent="${name}_virtual_2_link" name="${name}_flex_2" reflect="${reflect}">
+      <origin xyz="${finger_d2} 0 0" rpy="0 0 0" />
+    </xacro:finger_flex_tip>
+  </xacro:macro>
+
+  <!--
+    Create the abduction/adduction link and joint for a non-thumb finger.
+
+    Parameters:
+    - name: The created link and joint are prepended with 'name_'
+    - parent: Parent link
+    - reflect: Set to 1 for a right hand, or to -1 for a left hand
+    - origin: XML block containing the pose of the joint with respect to its parent
+  -->
+  <xacro:macro name="finger_abd" params="name parent reflect *origin">
+    <joint name="${name}_joint" type="revolute">
+      <parent link="${parent}" />
+      <child link="${name}_link" />
+      <xacro:insert_block name="origin" />
+      <axis xyz="0 0 1" />
+      <limit lower="${finger_abd_min}" upper="${finger_abd_max}" effort="${finger_max_eff}" velocity="${finger_max_vel}" />
+      <dynamics friction="${finger_friction}" damping="${finger_damping}"/>
+    </joint>
+
+    <link name="${name}_link">
+      <inertial>
+        <origin xyz="-0.0018 0.0 0.0028" rpy="0 0 0" />
+        <mass value="0.018" />
+        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" /> <!-- To stabilize simulation -->
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://hey5_description/meshes/finger_abd${vis_suffix}.stl" scale="1 1 ${reflect}" />
+        </geometry>
+        <material name="Hey5DarkGrey" />
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://hey5_description/meshes/finger_abd_collision.stl" scale="1 1 ${reflect}" />
+        </geometry>
+      </collision>
+    </link>
+    <gazebo reference="${name}_link">
+      <material>Gazebo/Black</material>
+    </gazebo>
+  </xacro:macro>
+
+  <!--
+    Create the abduction/adduction link and joint for a thumb finger.
+
+    Parameters:
+    - name: The created link and joint are prepended with 'name_'
+    - parent: Parent link
+    - reflect: Set to 1 for a right hand, or to -1 for a left hand
+    - origin: XML block containing the pose of the joint with respect to its parent
+  -->
+  <xacro:macro name="thumb_abd" params="name parent reflect *origin">
+    <joint name="${name}_joint" type="revolute">
+      <parent link="${parent}" />
+      <child link="${name}_link" />
+      <xacro:insert_block name="origin" />
+      <axis xyz="0 0 1" />
+      <limit lower="${thumb_abd_min}" upper="${thumb_abd_max}" effort="${finger_max_eff}" velocity="${finger_max_vel}" />
+      <dynamics friction="${finger_friction}" damping="${finger_damping}"/>
+    </joint>
+
+    <link name="${name}_link">
+      <inertial>
+        <origin xyz="-0.0132 0.0037 -0.0017" rpy="0 0 0" />
+        <mass value="0.014" />
+        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" /> <!-- To stabilize simulation -->
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://hey5_description/meshes/thumb_abd${vis_suffix}.stl" scale="1 1 ${reflect}" />
+        </geometry>
+        <material name="Hey5DarkGrey" />
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://hey5_description/meshes/thumb_abd_collision.stl" scale="1 ${reflect} 1" />
+        </geometry>
+      </collision>
+    </link>
+    <gazebo reference="${name}_link">
+      <material>Gazebo/Black</material>
+    </gazebo>
+  </xacro:macro>
+
+  <!--
+    Create the auxiliary virtual link and joint used to model the rolling contact
+    coupling present in flexion/extension joints.
+
+    Parameters:
+    - name: The created link and joint are prepended with 'name_'
+    - parent: Parent link
+    - reflect: Set to 1 for a right hand, or to -1 for a left hand (currently unused)
+    - origin: XML block containing the pose of the joint with respect to its parent
+  -->
+  <xacro:macro name="finger_flex_virtual" params="name parent reflect *origin" >
+    <joint name="${name}_joint" type="revolute">
+      <parent link="${parent}" />
+      <child link="${name}_link" />
+      <xacro:insert_block name="origin" />
+      <axis xyz="0 0 1" />
+      <limit lower="${finger_flex_min}" upper="${finger_flex_max}" effort="${finger_max_eff}" velocity="${finger_max_vel}" />
+      <dynamics friction="${finger_friction}" damping="${finger_damping}"/>
+    </joint>
+
+    <link name="${name}_link">
+      <inertial>
+        <origin xyz="${finger_d2 / 2.0} 0 0" rpy="0 0 0" />
+        <mass value="0.01" /> <!--TODO: can we make it zero and still have a stable dynamic simulation?-->
+        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" /> <!-- To stabilize simulation -->
+      </inertial>
+      <visual>
+        <origin xyz="${finger_d2 / 2} 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${finger_d2} 0.002 0.012" />
+        </geometry>
+        <material name="Hey5DarkGrey" />
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${finger_d2} 0.002 0.012" />
+        </geometry>
+      </collision>
+    </link>
+    <gazebo reference="${name}_link">
+      <material>Gazebo/Black</material>
+    </gazebo>
+  </xacro:macro>
+
+  <!--
+    Create the visible link and joint used to model the rolling contact
+    coupling present in flexion/extension joints.
+    This macro is used for non-fingertip links.
+
+    Parameters:
+    - name: The created link and joint are prepended with 'name_'
+    - parent: Parent link
+    - reflect: Set to 1 for a right hand, or to -1 for a left hand (currently unused)
+    - origin: XML block containing the pose of the joint with respect to its parent
+  -->
+  <xacro:macro name="finger_flex" params="name parent reflect *origin">
+    <joint name="${name}_joint" type="revolute">
+      <parent link="${parent}" />
+      <child link="${name}_link" />
+      <xacro:insert_block name="origin" />
+      <axis xyz="0 0 1" />
+      <limit lower="${finger_flex_min}" upper="${finger_flex_max}" effort="${finger_max_eff}" velocity="${finger_max_vel}" />
+      <dynamics friction="${finger_friction}" damping="${finger_damping}"/>
+    </joint>
+
+    <link name="${name}_link">
+      <inertial>
+        <origin xyz="0.0047 0.0031 0.0" rpy="0 0 0" />
+        <mass value="0.009" />
+        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" /> <!-- To stabilize simulation -->
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://hey5_description/meshes/finger_flex${vis_suffix}.stl" />
+        </geometry>
+        <material name="Hey5DarkGrey" />
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://hey5_description/meshes/finger_flex_collision.stl" />
+        </geometry>
+      </collision>
+    </link>
+    <gazebo reference="${name}_link">
+      <material>Gazebo/Black</material>
+    </gazebo>
+  </xacro:macro>
+
+  <!--
+    Create the visible link and joint used to model the rolling contact
+    coupling present in flexion/extension joints.
+    This macro is used only for fingertip links.
+
+    Parameters:
+    - name: The created link and joint are prepended with 'name_'
+    - parent: Parent link
+    - reflect: Set to 1 for a right hand, or to -1 for a left hand (currently unused)
+    - origin: XML block containing the pose of the joint with respect to its parent
+  -->
+  <xacro:macro name="finger_flex_tip" params="name parent reflect *origin">
+    <joint name="${name}_joint" type="revolute">
+      <parent link="${parent}" />
+      <child link="${name}_link" />
+      <xacro:insert_block name="origin" />
+      <axis xyz="0 0 1" />
+      <limit lower="${finger_flex_min}" upper="${finger_flex_max}" effort="${finger_max_eff}" velocity="${finger_max_vel}" />
+      <dynamics friction="${finger_friction}" damping="${finger_damping}"/>
+    </joint>
+
+    <link name="${name}_link">
+      <inertial>
+        <origin xyz="0.0096 0.003 0.0" rpy="0 0 0" />
+        <mass value="0.015" />
+        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" /> <!-- To stabilize simulation -->
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://hey5_description/meshes/finger_flex_tip${vis_suffix}.stl" />
+        </geometry>
+        <material name="Hey5DarkGrey" />
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://hey5_description/meshes/finger_flex_tip_collision.stl" />
+        </geometry>
+      </collision>
+    </link>
+    <gazebo reference="${name}_link">
+      <material>Gazebo/Black</material>
+    </gazebo>
+  </xacro:macro>
+
+</robot>

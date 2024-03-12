@@ -2,95 +2,73 @@
 <?xml version="1.0" ?>
 <robot name="table">
   <link name="table">
-    <contact>
-      <lateral_friction value="0.1"/>
-    </contact>
-    <inertial>
-      <origin rpy="0.0001 0 0" xyz="0.0001 0 0"/>
-       <mass value="0.000"/>
-       <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
-    </inertial>
     <visual>
-      <origin rpy="0 0 0" xyz="0 0.55 1.075"/>
+      <origin rpy="0 0 0" xyz="0 0.55 .71"/>
       <geometry>
-				<box size="1.5 1 0.05"/>
+				<box size="1.4 .7 0.02"/>
       </geometry>
        <material name="framemat0">
         <color rgba="0.8 0 0 1"/>
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0.55 1.075"/>
+      <origin rpy="0 0 0" xyz="0 0.55 .71"/>
       <geometry>
-	 	<box size="1.5 1 0.05"/>
+	 	    <box size="1.4 0.7 0.02"/>
       </geometry>
     </collision>
 	<visual>
-      <origin rpy="0.000 0 0" xyz="-0.65 0.15 0.525"/>
+      <origin rpy="0.000 0 0" xyz="-0.675 0.215 0.35"/>
       <geometry>
-	    <box size="0.1 0.1 1.05"/>
+	    <box size="0.05 0.03 .7"/>
       </geometry>
 	  <material name="framemat0"/>	 
     </visual>
     <visual>
-      <origin rpy="0.000 0 0" xyz="-0.65 0.95 0.525"/>
+      <origin rpy="0.000 0 0" xyz="-0.675 0.885 0.35"/>
       <geometry>
-        <box size="0.1 0.1 1.05"/>
+        <box size="0.05 0.03 .7"/>
       </geometry>
 	  <material name="framemat0"/>
 	  </visual>
     <visual>
-      <origin rpy="0.000 0 0" xyz="0.65 0.15 0.525"/>
+      <origin rpy="0.000 0 0" xyz="0.675 0.215 0.35"/>
       <geometry>
-        <box size="0.1 0.1 1.05"/>
+        <box size="0.05 0.03 .7"/>
       </geometry>
 	  <material name="framemat0"/>
 	  </visual>
     <visual>
-      <origin rpy="0.000 0 0" xyz="0.65 0.95 0.525"/>
+      <origin rpy="0.000 0 0" xyz="0.675 0.885 0.35"/>
       <geometry>
-        <box size="0.1 0.1 1.05"/>
+        <box size="0.05 0.03 .7"/>
       </geometry>
     <material name="framemat0"/>
     </visual>
     
     <collision>
-      <origin rpy="0.000 0 0" xyz="-0.65 0.15 0.525"/>
+      <origin rpy="0.000 0 0" xyz="-0.675 0.215 0.35"/>
       <geometry>
-	    <box size="0.1 0.1 1.05"/>
+	    <box size="0.05 0.03 .7"/>
       </geometry>
     </collision>
     <collision>
-      <origin rpy="0.000 0 0" xyz="-0.675 0.885 0.525"/>
+      <origin rpy="0.000 0 0" xyz="-0.675 0.885 0.35"/>
       <geometry>
-        <box size="0.1 0.1 1.05"/>
+        <box size="0.05 0.03 .7"/>
       </geometry>
 	  </collision>
     <collision>
-      <origin rpy="0.000 0 0" xyz="0.65 0.15 0.525"/>
+      <origin rpy="0.000 0 0" xyz="0.675 0.215 0.35"/>
       <geometry>
-        <box size="0.1 0.1 1.05"/>
+        <box size="0.05 0.03 .7"/>
       </geometry>
 	  </collision>
     <collision>
-      <origin rpy="0.000 0 0" xyz="0.675 0.885 0.525"/>
+      <origin rpy="0.000 0 0" xyz="0.675 0.885 0.35"/>
       <geometry>
-        <box size="0.1 0.1 1.05"/>
+        <box size="0.05 0.03 .7"/>
       </geometry>
-    </collision>
-    <visual>
-      <origin rpy="1.57 0 0" xyz="-.9 -0.18 .7"/>
-        <geometry>
-          <mesh filename="./obj/kallax.obj" scale="1 1 1"/>
-        </geometry>
-      <material name="framemat0"/>
-    </visual>
-    <collision>
-      <origin rpy="1.57 0 0" xyz="-.9 -0.18 .7"/>
-        <geometry>
-          <mesh filename="./obj/kallax.obj" scale="1 1 1"/>
-        </geometry>
-      <material name="framemat0"/>
     </collision>
     <visual>
       <origin rpy="0 0 0" xyz="-1.05 -0.5 .71"/>
@@ -135,5 +113,77 @@
       </geometry>
     <material name="framemat0"/>
     </visual>
+        <visual>
+      <origin rpy="0.000 0 0" xyz="-0.90 0.18 1.10"/>
+      <geometry>
+	    <box size="0.39 0.04 .77"/>
+      </geometry>	 
+    </visual>
+    <collision>
+      <origin rpy="0.000 0 0" xyz="-0.90 0.18 1.10"/>
+      <geometry>
+	    <box size="0.39 0.04 .77"/>
+      </geometry>	 
+    </collision>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.55 1.10"/>
+      <geometry>
+	    <box size="0.39 0.04 .77"/>
+      </geometry>	 
+    </visual>
+    <collision>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.55 1.10"/>
+      <geometry>
+	    <box size="0.39 0.04 .77"/>
+      </geometry>	 
+    </collision>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 1.10"/>
+      <geometry>
+	    <box size="0.39 0.02 .77"/>
+      </geometry>	 
+    </visual>
+    <collision>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 1.10"/>
+      <geometry>
+	    <box size="0.39 0.02 .77"/>
+      </geometry>	 
+    </collision>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 1.10"/>
+      <geometry>
+	    <box size="0.39 0.77 .02"/>
+      </geometry>	 
+    </visual>
+    <collision>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 1.10"/>
+      <geometry>
+	    <box size="0.39 0.77 .02"/>
+      </geometry>	 
+    </collision>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 1.47"/>
+      <geometry>
+	    <box size="0.39 0.77 .04"/>
+      </geometry>	 
+    </visual>
+    <collision>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 1.47"/>
+      <geometry>
+	    <box size="0.39 0.77 .04"/>
+      </geometry>	 
+    </collision>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 0.73"/>
+      <geometry>
+	    <box size="0.39 0.77 .04"/>
+      </geometry>	 
+    </visual>
+    <collision>
+      <origin rpy="0.000 0 0" xyz="-0.90 -0.18 0.73"/>
+      <geometry>
+	    <box size="0.39 0.77 .04"/>
+      </geometry>	 
+    </collision>
   </link>
 </robot>
