@@ -1,0 +1,13 @@
+<robot name="mug">
+	<link name="_name">
+		<visual>
+			<origin rpy="0 0 0" xyz="0 0 0" />
+			<geometry>
+				<mesh filename="../obj/mugycb.obj"/>
+			</geometry>
+			<material name="texture">
+				<color rgba="1.0 1.0 1.0 0.4" />
+			</material>
+		</visual>
+	</link>
+</robot>
