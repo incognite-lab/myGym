@@ -43,8 +43,8 @@ class TaskModule():
         self.stored_observation = []
         self.obs_template = observation
         self.vision_module = VisionModule(observation=observation, env=env, vae_path=vae_path, yolact_path=yolact_path, yolact_config=yolact_config)
-        self.obsdim = self.check_obs_template()
         self.vision_src = self.vision_module.src
+        self.obsdim = self.check_obs_template()
         self.writebool = False
 
     def reset_task(self):
@@ -585,9 +585,8 @@ class TaskModule():
         for x in [t["actual_state"], t["goal_state"]]:
             get_datalen = {"joints_xyz":len(self.get_linkstates_unpacked()),
                            "joints_angles":len(self.env.robot.get_joints_states()),
-                           "endeff_xyz":len(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)[:3]),
-                           "endeff_6D":len(list(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)) \
-                                                      + list(self.vision_module.get_obj_orientation(self.env.robot))),
+                           "endeff_xyz":3,
+                           "endeff_6D":7,
                            "dope":7, "obj_6D":7, "distractor": 3, "touch":1, "yolact":3, "voxel":3, "obj_xyz":3,
                            "vae":self.vision_module.obsdim}
             obsdim += get_datalen[x]

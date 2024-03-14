@@ -2,7 +2,7 @@ try:
     import torch
 except:
     print("Torch doesn't work")
-import sys
+import sys, os
 import numpy as np
 import cv2
 import random
@@ -282,12 +282,8 @@ class VisionModule:
             self.vae_imsize = imsize
             self.obsdim = (2*self.vae_embedder.n_latents) + 3
         elif network == "yolact":
-            weights = pkg_resources.resource_filename("myGym", self.yolact_path)
-            if ".obj" in self.yolact_config:
-                config = pkg_resources.resource_filename("myGym", self.yolact_config)
-            try:
-                self.yolact_cnn = InfTool(weights=weights, config=config, score_threshold=0.2)
-            except:
+            if not os.path.exists(self.yolact_path) or not os.path.exists(self.yolact_config):
                 raise Exception("For yolact observations, you need to download pre-trained vision model and specify its path in config. Specified {} and {} not found.".format(self.yolact_path, self.yolact_config))
+            self.yolact_cnn = InfTool(weights=self.yolact_path, config=self.yolact_config, score_threshold=0.2)
         return
 
