@@ -154,7 +154,7 @@ def test_env(env, arg_dict):
     arg_dict["vsampling"] = 0
     arg_dict["vinfo"] = 0
     spawn_objects = False
-    env.render("human")
+    #env.render("human")
     #env.reset()
     #Prepare names for sliders
     joints = ['Joint1','Joint2','Joint3','Joint4','Joint5','Joint6','Joint7','Joint 8','Joint 9', 'Joint10', 'Joint11','Joint12','Joint13','Joint14','Joint15','Joint16','Joint17','Joint 18','Joint 19']

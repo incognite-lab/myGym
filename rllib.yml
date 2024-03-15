@@ -15,7 +15,7 @@ dependencies:
   - pip:
     - commentjson==0.9.0
     - ray==2.7.2
-    - gym==0.26.2
+    - gym==0.24.0
     - gymnasium==0.29.1
     - gymnasium-notices==0.0.1
     - h5py==3.10.0

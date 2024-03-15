@@ -128,6 +128,24 @@ class Protorewards(Reward):
         self.network_rewards[self.current_network] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,0.6,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
+    
+    def approach_compute(self, gripper, object):
+        self.env.p.addUserDebugText("approach object", [0.63,1,0.5], lifeTime=0.5, textColorRGB=[125,0,0])
+        self.env.robot.set_magnetization(False)
+        self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
+        dist = self.task.calc_distance(gripper[:3], object[:3])
+        gripdist = self.task.calc_distance(gripper[:3], object[:3])
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.65,1,0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        if self.last_find_dist is None:
+            self.last_find_dist = dist
+        
+        reward = self.last_find_dist - dist
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
+        
+        self.last_find_dist = dist
+        self.network_rewards[self.current_network] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,0.6,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        return reward
 
 
     def transform_compute(self, object, goal, trajectory, magnetization = True):
@@ -281,6 +299,66 @@ class Protorewards(Reward):
 
 
 # RDDL
+
+class A(Protorewards):
+    
+    def compute(self, observation=None):
+        owner = 0
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position]][owner]
+        reward = [self.approach_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+class AaG(Protorewards):
+    
+    def compute(self, observation=None):
+        owner = 0
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position]][owner]
+        reward = [self.approach_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+class AaGaM(Protorewards):
+    
+    def compute(self, observation=None):
+        owner = 0
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position]][owner]
+        reward = [self.approach_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+class AaGaMaD(Protorewards):
+    
+    def compute(self, observation=None):
+        owner = 0
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position]][owner]
+        reward = [self.approach_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
+
+class AaGaMaDaW(Protorewards):
+    
+    def compute(self, observation=None):
+        owner = 0
+        goal_position, object_position, gripper_position = self.get_positions(observation)
+        target = [[gripper_position,object_position]][owner]
+        reward = [self.approach_compute][owner](*target)
+        self.last_owner = owner
+        self.task.check_goal()
+        self.rewards_history.append(reward)
+        return reward
 
 class F(Protorewards):
     

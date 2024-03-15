@@ -64,6 +64,7 @@ class Robot:
         self.link_indices = []
         self.gripper_names = []
         self.gripper_indices = []
+        self.gripper_positions=[]
         self.robot_action = robot_action
         self.task_type = task_type
         self.magnetized_objects = {}
@@ -125,6 +126,7 @@ class Robot:
             if q_index > -1 and "gjoint" in joint_name.decode("utf-8"):
                 self.gripper_names.append(str(joint_name))
                 self.gripper_indices.append(i)
+                self.gripper_positions.append(self.p.getJointState(self.robot_uid,i)[0])
 
         print("Robot summary")
         print("--------------")
@@ -610,7 +612,7 @@ class Robot:
         if len(self.magnetized_objects) == 0 :
             
             if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
-                self.p.changeVisualShape(object.uid, -1, rgbaColor=[.8, .1 , 0.1, 0.5])
+                self.p.changeVisualShape(object.uid, -1, rgbaColor=[.8, .1 , 0.1, 1])
                 #self.end_effector_prev_pos = self.end_effector_pos
                 #self.end_effector_prev_ori = self.end_effector_ori
                 self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())
