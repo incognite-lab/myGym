@@ -288,7 +288,7 @@ def test_env(env, arg_dict):
 
             
 
-            print (f"Action:{action}")
+            #print (f"Action:{action}")
             observation, reward, done, info = env.step(action)
             
             if arg_dict["vtrajectory"] == True:
