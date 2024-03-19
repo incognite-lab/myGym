@@ -149,7 +149,7 @@ def visualize_sampling_area(arg_dict):
 
 def visualize_trajectories (info,action):
         
-                visualo = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[0,0,1,.3])
+                visualo = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.005, rgbaColor=[0,0,1,.1])
                 collision = -1
                 p.createMultiBody(
                         baseVisualShapeIndex=visualo,
@@ -166,7 +166,7 @@ def visualize_trajectories (info,action):
                 #        basePosition=info['o']['additional_obs']['endeff_xyz'],
                 #)
 
-                visuala = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[1,0,0,.3])
+                visuala = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.005, rgbaColor=[1,0,0,.3])
                 p.createMultiBody(
                         baseVisualShapeIndex=visuala,
                         baseCollisionShapeIndex=collision,
@@ -268,7 +268,7 @@ def test_env(env, arg_dict):
          #init_robot()
         robot = init_robot()
     
-    #arg_dict["vsampling"] = 0
+    #arg_dict["control"] = "oraculum"
     #arg_dict["vinfo"] = 0
     spawn_objects = False
     env.render("human")
@@ -391,12 +391,8 @@ def test_env(env, arg_dict):
                         action = [0,0,0]
             
             if arg_dict["control"] == "oraculum":
-                if t == 0:
-                    action = env.action_space.sample()
-                else:    
-
                     if "absolute" in arg_dict["robot_action"]:
-                        action = info['o']["goal_state"]
+                        action = env.env_objects['goal_state'].centroid
                     else:
                         print("ERROR - Oraculum mode only works for absolute actions")
                         quit()
