@@ -19,10 +19,10 @@ from utils.nicodummy import DummyRobot
 import serial
 import matplotlib.pyplot as plt
 
-DEFAULT_SPEED = 0.04
+DEFAULT_SPEED = 0.07
 SIMREALDELAY = 0.2
-RESETDELAY = 5
-FINISHDELAY = 8
+RESETDELAY = 4
+FINISHDELAY = 4
 REALJOINTS = ['r_shoulder_z','r_shoulder_y','r_arm_x','r_elbow_y','r_wrist_z','r_wrist_x','r_indexfinger_x']
 
 def quit():
