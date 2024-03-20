@@ -410,15 +410,21 @@ def test_env(env, arg_dict):
             observation, reward, done, info = env.step(action)
             
             jointaction = env.env.robot.get_joints_states()
+            
             predeg = np.rad2deg(prejointaction)
             actiondeg = np.rad2deg(env.env.robot.joint_poses)
-            
             deg = np.rad2deg(jointaction)
-            #print("Prejointaction: ", predeg)
-            #print("Actiondeg: ", actiondeg)
-            #print("Jointaction: ", deg)
+            
+            np.set_printoptions(precision=3)
+            print("Prestep: ", predeg)
+            print("Action: ", actiondeg)
+            print("Poststep: ", deg)
+            #print("{:.2f} \n {:.2f}  \n {:.2f}".format(predeg,actiondeg,deg))
+
+
             degdifference = deg - predeg
             actiondifference = actiondeg - deg
+            
             if arg_dict["ik_solver"]:
                 print("Step: ", t,end="")
                 for i in range(len(REALJOINTS)):
@@ -432,6 +438,7 @@ def test_env(env, arg_dict):
             #Execute action on real robot
             if arg_dict["real_robot"]:
                 #jointaction = info['o']["additional_obs"]["joints_angles"]                
+                print()
                 for i,realjoint in enumerate(REALJOINTS):
                     robot.setAngle(realjoint,deg[i],DEFAULT_SPEED)
                 time.sleep(SIMREALDELAY)

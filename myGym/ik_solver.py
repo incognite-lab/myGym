@@ -12,10 +12,11 @@ if (clid < 0):
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
 p.loadURDF("plane.urdf", [0, 0, -0.3])
-nico = p.loadURDF("/home/code/myGym/myGym/envs/robots/nico/nico_upper_rh6d.urdf", [0, 0, 0])
+nico = p.loadURDF("/home/code/myGym/myGym/envs/robots/nico/nico_ik.urdf", [0, 0, 0])
 p.resetBasePositionAndOrientation(nico, [0, 0, 0], [0, 0, 0, 1])
-nicoEndEffectorIndex = 10
-numJoints = p.getNumJoints(nico)
+nicoEndEffectorIndex = 7
+numJoints = 7
+#numJoints = p.getNumJoints(nico)
 #if (numJoints != 7):
 #  exit()
 
@@ -26,21 +27,21 @@ ul = [.967, 2, 2.96, 2.29, 2.96, 2.09, 3.05]
 #joint ranges for null space
 jr = [5.8, 4, 5.8, 4, 5.8, 4, 6]
 #restposes for null space
-rp = [0, 0, 0, 0.5 * math.pi, 0, -math.pi * 0.5 * 0.66, 0]
+rp = [0, 0, 0, 0, 0.5 * math.pi, 0, -math.pi * 0.5 * 0.66, 0]
 #joint damping coefficents
 jd = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 
 for i in range(numJoints):
-  p.resetJointState(kukaId, i, rp[i])
+  p.resetJointState(nico, i, rp[i])
 
 p.setGravity(0, 0, 0)
 t = 0.
 prevPose = [0, 0, 0]
 prevPose1 = [0, 0, 0]
 hasPrevPose = 0
-useNullSpace = 1
+useNullSpace = 0
 
-useOrientation = 1
+useOrientation = 0
 #If we set useSimulation=0, it sets the arm pose to be the IK result directly without using dynamic control.
 #This can be used to test the IK result accuracy.
 useSimulation = 1
@@ -68,17 +69,17 @@ while 1:
     p.stepSimulation()
 
   for i in range(1):
-    pos = [-0.4, 0.2 * math.cos(t), 0. + 0.2 * math.sin(t)]
+    #pos = [-0.4, 0.3 * math.cos(t), 0. + 0.2 * math.sin(t)]
+    pos = [2,2,2]
     #end effector points down, not up (in case useOrientation==1)
     orn = p.getQuaternionFromEuler([0, -math.pi, 0])
 
     if (useNullSpace == 1):
       if (useOrientation == 1):
-        jointPoses = p.calculateInverseKinematics(kukaId, kukaEndEffectorIndex, pos, orn, ll, ul,
+        jointPoses = p.calculateInverseKinematics(nico, nicoEndEffectorIndex, pos, orn, ll, ul,
                                                   jr, rp)
       else:
-        jointPoses = p.calculateInverseKinematics(kukaId,
-                                                  kukaEndEffectorIndex,
+        jointPoses = p.calculateInverseKinematics(nico, nicoEndEffectorIndex,
                                                   pos,
                                                   lowerLimits=ll,
                                                   upperLimits=ul,
@@ -86,8 +87,7 @@ while 1:
                                                   restPoses=rp)
     else:
       if (useOrientation == 1):
-        jointPoses = p.calculateInverseKinematics(kukaId,
-                                                  kukaEndEffectorIndex,
+        jointPoses = p.calculateInverseKinematics(nico, nicoEndEffectorIndex,
                                                   pos,
                                                   orn,
                                                   jointDamping=jd,
@@ -95,14 +95,12 @@ while 1:
                                                   maxNumIterations=100,
                                                   residualThreshold=.01)
       else:
-        jointPoses = p.calculateInverseKinematics(kukaId,
-                                                  kukaEndEffectorIndex,
-                                                  pos,
-                                                  solver=ikSolver)
+        jointPoses = p.calculateInverseKinematics(nico, nicoEndEffectorIndex,
+                                                  pos)
 
     if (useSimulation):
       for i in range(numJoints):
-        p.setJointMotorControl2(bodyIndex=kukaId,
+        p.setJointMotorControl2(bodyIndex=nico,
                                 jointIndex=i,
                                 controlMode=p.POSITION_CONTROL,
                                 targetPosition=jointPoses[i],
@@ -113,13 +111,14 @@ while 1:
     else:
       #reset the joint state (ignoring all dynamics, not recommended to use during simulation)
       for i in range(numJoints):
-        p.resetJointState(kukaId, i, jointPoses[i])
+        p.resetJointState(nico, i, jointPoses[i])
 
-  ls = p.getLinkState(kukaId, kukaEndEffectorIndex)
+  ls = p.getLinkState(nico, nicoEndEffectorIndex)
   if (hasPrevPose):
     p.addUserDebugLine(prevPose, pos, [0, 0, 0.3], 1, trailDuration)
     p.addUserDebugLine(prevPose1, ls[4], [1, 0, 0], 1, trailDuration)
   prevPose = pos
   prevPose1 = ls[4]
   hasPrevPose = 1
+  #time.sleep(1)
 p.disconnect()

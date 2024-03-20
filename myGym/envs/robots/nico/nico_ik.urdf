@@ -12,6 +12,7 @@
   Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 -->
 <robot name="nico_upper_rh6d">
+	<link name="world" />
 	<link name="base_link">
 		<visual>
 			<geometry>
@@ -23,6 +24,10 @@
 			</material>
 		</visual>
 	</link>
+	<joint name="world_to_base_link" type="fixed">
+    	<parent link="world"/>
+    	<child link="base_link"/>
+	</joint>
 	<link name="right_shoulder">
 		<visual>
 			<geometry>
@@ -137,7 +142,7 @@
 		<child link="right_lower_arm"/>
 		<origin rpy="0 3.14 0" xyz="0.0 0 -0.17"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="0.0" upper="3.1416" velocity="1"/>
+		<limit effort="30" lower="-0.5" upper="3.1416" velocity="1"/>
 	</joint>
 	<link name="right_wrist">
 		<visual>
