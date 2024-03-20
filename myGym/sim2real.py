@@ -415,7 +415,8 @@ def test_env(env, arg_dict):
             actiondeg = np.rad2deg(env.env.robot.joint_poses)
             deg = np.rad2deg(jointaction)
             
-            np.set_printoptions(precision=3)
+            np.set_printoptions(precision=1)
+            np.set_printoptions(suppress=True)
             print("Prestep: ", predeg)
             print("Action: ", actiondeg)
             print("Poststep: ", deg)

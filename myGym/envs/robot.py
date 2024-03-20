@@ -59,11 +59,12 @@ class Robot:
         self.use_magnet = False
         self.motor_names = []
         self.motor_indices = []
-        self.motor_positions=[]
+        self.rjoint_positions=[]
         self.link_names = []
         self.link_indices = []
         self.gripper_names = []
         self.gripper_indices = []
+        self.gjoint_positions=[]
         self.robot_action = robot_action
         self.task_type = task_type
         self.magnetized_objects = {}
@@ -121,10 +122,11 @@ class Robot:
             if q_index > -1 and "rjoint" in joint_name.decode("utf-8"): # Fixed joints have q_index -1
                 self.motor_names.append(str(joint_name))
                 self.motor_indices.append(i)
-                self.motor_positions.append(self.p.getJointState(self.robot_uid,i)[0])
+                self.rjoint_positions.append(self.p.getJointState(self.robot_uid,i)[0])
             if q_index > -1 and "gjoint" in joint_name.decode("utf-8"):
                 self.gripper_names.append(str(joint_name))
                 self.gripper_indices.append(i)
+                self.gjoint_positions.append(self.p.getJointState(self.robot_uid,i)[0])
 
         print("Robot summary")
         print("--------------")
@@ -249,10 +251,20 @@ class Robot:
         Returns the current positions of all robot's joints
         """
         joints = []
-        for link in range(self.joints_num):
+        for link in self.motor_indices:
            joints.append(self.p.getJointState(self.robot_uid,link)[0])
         return joints
 
+    def get_gjoints_states(self):
+        """
+        Returns the current positions of all robot's joints
+        """
+        gjoints = []
+        for link in self.gripper_indices:
+           gjoints.append(self.p.getJointState(self.robot_uid,link)[0])
+
+        return gjoints
+    
     def get_observation_dimension(self):
         """
         Get dimension of robot part of observation data, based on robot task and rewatd type
