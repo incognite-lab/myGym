@@ -2,7 +2,7 @@ import copy
 from typing import List
 
 from myGym.envs import robot, env_object
-from myGym.envs import task as t
+from myGym.envs import taskmanager as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
 from collections import ChainMap
@@ -156,6 +156,7 @@ class GymEnv(CameraEnv):
         self.rng = np.random.default_rng(seed=0)
         self.task_objects_were_given_as_list = isinstance(self.task_objects_dict, list)
         self.n_subtasks = len(self.task_objects_dict) if self.task_objects_were_given_as_list else 1
+        self.obsdim = self.check_obs_template()
         if self.reach_gesture and not self.nl_mode:
             raise Exception("Reach gesture task can't be started without natural language mode")
 
@@ -185,6 +186,25 @@ class GymEnv(CameraEnv):
                                  number_tasks=len(self.task_objects_dict),
                                  env=self)
         self.reward = reward_classes[scheme][self.reward](env=self, task=self.task)
+
+
+    def get_observation_dict(self):
+        """
+        Get task relevant observation data based on reward signal source
+
+        Returns:
+            :return self._observation: (array) Task relevant observation data, positions of task objects 
+        """
+        info_dict = self.obs_type
+        for key in ["actual_state", "goal_state"]:
+            if "endeff" in info_dict[key]:
+                    xyz = self.vision_module.get_obj_position(self.env.task_objects["robot"], self.image, self.depth) #@TODO
+                    xyz = xyz[:3] if "xyz" in info_dict else xyz
+            else:
+                    xyz = self.vision_module.get_obj_position(self.env.task_objects[key],self.image,self.depth) # @TODO
+            info_dict[key] = xyz
+        self._observation = self.get_additional_obs(info_dict, self.env.task_objects["robot"])
+        return self._observation
 
     def _setup_scene(self):
         """
@@ -244,13 +264,13 @@ class GymEnv(CameraEnv):
             from gym import spaces
         self._init_task_and_reward()
         if self.obs_space == "dict":
-            goaldim = int(self.task.obsdim / 2) if self.task.obsdim % 2 == 0 else int(self.task.obsdim / 3)
+            goaldim = int(self.obsdim / 2) if self.obsdim % 2 == 0 else int(self.obsdim / 3)
             self.observation_space = spaces.Dict(
-                {"observation": spaces.Box(low=-10, high=10, shape=(self.task.obsdim,)),
+                {"observation": spaces.Box(low=-10, high=10, shape=(self.obsdim,)),
                  "achieved_goal": spaces.Box(low=-10, high=10, shape=(goaldim,)),
                  "desired_goal": spaces.Box(low=-10, high=10, shape=(goaldim,))})
         else:
-            observationDim = self.task.obsdim
+            observationDim = self.obsdim
             observation_high = np.array([100] * observationDim)
             self.observation_space = spaces.Box(-observation_high,
                                                 observation_high)
@@ -463,13 +483,42 @@ class GymEnv(CameraEnv):
         Returns:
             :return observation: (array) Represented position of task relevant objects
         """
-        self.observation["task_objects"] = self.task.get_observation()
+        self.observation["task_objects"] = self.get_observation_dict()
         if self.dataset:
             self.observation["camera_data"] = self.render(mode="rgb_array")
             self.observation["objects"] = self.env_objects
             self.observation["additional_obs"] = {}
             return self.observation
         return self.observation["task_objects"]
+
+
+    def get_additional_obs(self, d, robot):
+        info = d.copy()
+        info["additional_obs"] = {}
+        for key in d["additional_obs"]:
+            if key == "joints_xyz":
+                o = []
+                info["additional_obs"]["joints_xyz"] = self.get_linkstates_unpacked()
+            elif key == "joints_angles":
+                info["additional_obs"]["joints_angles"] = self.robot.get_joints_states()
+            elif key == "endeff_xyz":
+                info["additional_obs"]["endeff_xyz"] = self.vision_module.get_obj_position(robot, self.image, self.depth)[:3]  #@TODO
+            elif key == "endeff_6D":
+                info["additional_obs"]["endeff_6D"] = list(self.vision_module.get_obj_position(robot, self.image, self.depth)) \
+                                                      + list(self.vision_module.get_obj_orientation(robot))  # @TODO
+            elif key == "touch":
+                if hasattr(self.env.env_objects["actual_state"], "magnetized_objects"):
+                    obj_touch = self.env.env_objects["goal_state"]
+                else:
+                    obj_touch = self.env.env_objects["actual_state"]
+                touch = self.env.robot.touch_sensors_active(obj_touch) or len(self.env.robot.magnetized_objects)>0
+                info["additional_obs"]["touch"] = [1] if touch else [0]
+            elif key == "distractor":
+                poses = [self.vision_module.get_obj_position(self.env.task_objects["distractor"][x],\
+                                    self.image, self.depth) for x in range(len(self.env.task_objects["distractor"]))]
+                info["additional_obs"]["distractor"] = [p for sublist in poses for p in sublist]
+        return info
+
 
     def step(self, action):
         """
@@ -494,7 +543,7 @@ class GymEnv(CameraEnv):
             # self.task.check_goal()
             done = self.episode_over
             info = {'d': self.task.last_distance / self.task.init_distance, 'f': int(self.episode_failed),
-                    'o': self._observation}
+                    'o': self._observation} # @TODO 
         if done: self.successful_finish(info)
         if self.task.subtask_over:
             self.reset(only_subtask=True)
@@ -505,6 +554,52 @@ class GymEnv(CameraEnv):
         # @TODO: Reward computation for HER, argument for .compute()
         reward = self.reward.compute(np.append(achieved_goal, desired_goal))
         return reward
+    
+    def get_linkstates_unpacked(self):
+        o = []
+        [[o.append(x) for x in z] for z in self.robot.observe_all_links()]
+        return o
+
+
+    def check_obs_template(self):
+        """
+        Checks if observations are set according to rules and computes observation dim
+
+        Returns:
+            :return obsdim: (int) Dimensionality of observation
+        """
+        t = self.obs_template
+        assert "actual_state" and "goal_state" in t.keys(), \
+            "Observation setup in config must contain actual_state and goal_state"
+        if t["additional_obs"]:
+            assert [x in ["joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"] for x in
+                    t["additional_obs"]], "Failed to parse some of the additional_obs in config"
+        assert t["actual_state"] in ["endeff_xyz", "endeff_6D", "obj_xyz", "obj_6D", "vae", "yolact", "voxel", "dope"],\
+            "failed to parse actual_state in Observation config"
+        assert t["goal_state"] in ["obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"],\
+            "failed to parse goal_state in Observation config"
+        if "endeff" not in t["actual_state"]:
+            assert t["actual_state"] == t["goal_state"], \
+                "actual_state and goal_state in Observation must have the same format"
+        else:
+            assert t["actual_state"].split("_")[-1] == t["goal_state"] .split("_")[-1], "Actual state and goal state must " \
+                                                                                        "have the same number of dimensions!"
+            if "endeff_xyz" in t["additional_obs"] or "endeff_6D" in t["additional_obs"]:
+                warnings.warn("Observation config: endeff_xyz already in actual_state, no need to have it in additional_obs. Removing it")
+                [self.obs_template["additional_obs"].remove(x) for x in t["additional_obs"] if "endeff" in x]
+        obsdim = 0
+        for x in [t["actual_state"], t["goal_state"]]:
+            get_datalen = {"joints_xyz":len(self.get_linkstates_unpacked()),
+                           "joints_angles":len(self.robot.get_joints_states()),
+                           "endeff_xyz":3,
+                           "endeff_6D":len(list(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)) \
+                                                      + list(self.vision_module.get_obj_orientation(self.env.robot))),  
+                           "dope":7, "obj_6D":7, "distractor": 3, "touch":1, "yolact":3, "voxel":3, "obj_xyz":3,
+                           "vae":self.vision_module.obsdim}  # @TODO
+            obsdim += get_datalen[x]
+        for x in t["additional_obs"]:
+            obsdim += get_datalen[x]
+        return obsdim
 
     def successful_finish(self, info):
         """
