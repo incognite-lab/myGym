@@ -493,7 +493,7 @@ class GymEnv(CameraEnv):
             self.episode_reward += reward
             # self.task.check_goal()
             done = self.episode_over
-            info = {'d': self.task.last_distance / self.task.init_distance, 'f': int(self.episode_failed),
+            info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
         if done: self.successful_finish(info)
         if self.task.subtask_over:
