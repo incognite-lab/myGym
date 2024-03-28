@@ -380,9 +380,10 @@ class GymEnv(CameraEnv):
             reward = self.compute_reward()  # this uses rddl protoaction, no arguments needed
             print("Reward by RDDL: {}".format(reward))
             self.episode_reward += reward
-            done = self.episode_over #@TODO replace with actual is_done value from RDDL
-            info = {'d': 0.9, 'f': int(self.episode_failed),
-                    'o': self._observation} # @TODOreplace 'd' with actual distance values obtained from rddl or make own implementation
+            # self.task.check_goal()
+            done = self.episode_over
+            info = {'d': 1, 'f': int(self.episode_failed),
+                    'o': self._observation}
         if done: self.successful_finish(info)
         if self.task.subtask_over:
             self.reset(only_subtask=True)
@@ -398,7 +399,7 @@ class GymEnv(CameraEnv):
 
     def check_obs_template(self):
         """
-        @TODO Add smart and variable observation space constructor based on config? 
+        @TODO Add smart and variable observation space constructor based on config?
 
         Returns:
             :return obsdim: (int) Dimensionality of observation

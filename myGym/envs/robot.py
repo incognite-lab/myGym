@@ -359,7 +359,7 @@ class Robot(EnvObject):
         self.gripper_orn = self.p.getLinkState(self.robot_uid, self.gripper_index)[1]
 
         joints = self.get_joints_states()
-        print(joints)
+        #print(joints)
 
     def _move_gripper(self, action):
         """
@@ -379,7 +379,7 @@ class Robot(EnvObject):
                                     velocityGain=0.3)
 
         gjoints = self.get_gjoints_states()
-        print(gjoints)
+        #print(gjoints)
 
 
 
