@@ -417,9 +417,9 @@ def test_env(env, arg_dict):
             
             np.set_printoptions(precision=1)
             np.set_printoptions(suppress=True)
-            print("Prestep: ", predeg)
-            print("Action: ", actiondeg)
-            print("Poststep: ", deg)
+            # print("Prestep: ", predeg)
+            # print("Action: ", actiondeg)
+            # print("Poststep: ", deg)
             #print("{:.2f} \n {:.2f}  \n {:.2f}".format(predeg,actiondeg,deg))
 
 
@@ -454,6 +454,7 @@ def test_env(env, arg_dict):
             if arg_dict["vinfo"] == True:
                 visualize_infotext(action, env, info)
 
+            print("end-effector: ", info['o']['actual_state'])
                 
                 #visualize_goal(info)
             #if debug_mode:
