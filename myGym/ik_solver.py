@@ -1,124 +1,231 @@
 import pybullet as p
 import time
-import math
-from datetime import datetime
-import pybullet_data
+from numpy import random, rad2deg, deg2rad
+import argparse
 
-clid = p.connect(p.SHARED_MEMORY)
-if (clid < 0):
-  p.connect(p.GUI)
-  #p.connect(p.SHARED_MEMORY_GUI)
+from nicomotion.Motion import Motion
+from utils.nicodummy import DummyRobot
 
-p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-p.loadURDF("plane.urdf", [0, 0, -0.3])
-nico = p.loadURDF("/home/code/myGym/myGym/envs/robots/nico/nico_ik.urdf", [0, 0, 0])
-p.resetBasePositionAndOrientation(nico, [0, 0, 0], [0, 0, 0, 1])
-nicoEndEffectorIndex = 7
-numJoints = 7
-#numJoints = p.getNumJoints(nico)
-#if (numJoints != 7):
-#  exit()
+DEFAULT_SPEED = 0.08
+SIMDELAY = 0.5
+SIMREALDELAY = 3
+RESETDELAY = 4
+REALJOINTS = ['r_shoulder_z','r_shoulder_y','r_arm_x','r_elbow_y','r_wrist_z','r_wrist_x','r_indexfinger_x']
 
-#lower limits for null space
-ll = [-.967, -2, -2.96, 0.19, -2.96, -2.09, -3.05]
-#upper limits for null space
-ul = [.967, 2, 2.96, 2.29, 2.96, 2.09, 3.05]
-#joint ranges for null space
-jr = [5.8, 4, 5.8, 4, 5.8, 4, 6]
-#restposes for null space
-rp = [0, 0, 0, 0, 0.5 * math.pi, 0, -math.pi * 0.5 * 0.66, 0]
-#joint damping coefficents
-jd = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+def target():
+    
+    target_position = [0.45,-0.3*random.rand(), 0.1]  # Write your own method for end effector position here
 
-for i in range(numJoints):
-  p.resetJointState(nico, i, rp[i])
+    return target_position
 
-p.setGravity(0, 0, 0)
-t = 0.
-prevPose = [0, 0, 0]
-prevPose1 = [0, 0, 0]
-hasPrevPose = 0
-useNullSpace = 0
+def get_joints_limits(robot_id, num_joints):
+        """
+        Identify limits, ranges and rest poses of individual robot joints. Uses data from robot model.
 
-useOrientation = 0
-#If we set useSimulation=0, it sets the arm pose to be the IK result directly without using dynamic control.
-#This can be used to test the IK result accuracy.
-useSimulation = 1
-useRealTimeSimulation = 0
-ikSolver = 0
-p.setRealTimeSimulation(useRealTimeSimulation)
-#trailDuration is duration (in seconds) after debug lines will be removed automatically
-#use 0 for no-removal
-trailDuration = 15
+        Returns:
+            :return [joints_limits_l, joints_limits_u]: (list) Lower and upper limits of all joints
+            :return joints_ranges: (list) Ranges of movement of all joints
+            :return joints_rest_poses: (list) Rest poses of all joints
+        """
+        joints_limits_l, joints_limits_u, joints_ranges, joints_rest_poses, joint_names, link_names, joint_indices = [], [], [], [], [], [], []
+        for jid in range(num_joints):
+            joint_info = p.getJointInfo(robot_id, jid)
+            q_index = joint_info[3]
+            joint_name = joint_info[1]
+            link_name = joint_info[12]
+            if q_index > -1 and "rjoint" in joint_name.decode("utf-8"): # Fixed joints have q_index -1
+                joint_names.append(joint_info[1])
+                link_names.append(joint_info[12])
+                joint_indices.append(joint_info[0])
+                joints_limits_l.append(joint_info[8])
+                joints_limits_u.append(joint_info[9])
+                joints_ranges.append(joint_info[9] - joint_info[8])
+                joints_rest_poses.append((joint_info[9] + joint_info[8])/2)
+            if link_name.decode("utf-8") == 'endeffector':
+                end_effector_index = jid
+            
+        return [joints_limits_l, joints_limits_u], joints_ranges, joints_rest_poses, end_effector_index, joint_names, link_names, joint_indices
 
-i=0
-while 1:
-  i+=1
-  #p.getCameraImage(320,
-  #                 200,
-  #                 flags=p.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX,
-  #                 renderer=p.ER_BULLET_HARDWARE_OPENGL)
-  if (useRealTimeSimulation):
-    dt = datetime.now()
-    t = (dt.second / 60.) * 2. * math.pi
-  else:
-    t = t + 0.01
+def get_real_joints(robot,joints):
+    last_position= []
+    for k in joints:
+        actual=robot.getAngle(k)
+        print("{} : {}, ".format(k,actual),end="")
+        last_position.append(actual)
+    print("")
+    return last_position
 
-  if (useSimulation and useRealTimeSimulation == 0):
-    p.stepSimulation()
+def init_robot():
+    motorConfig = './nico_humanoid_upper_rh7d_ukba.json'
+    try:
+        robot = Motion(motorConfig=motorConfig)
+    except:
+        robot = DummyRobot()
+        print('motors are not operational')
 
-  for i in range(1):
-    #pos = [-0.4, 0.3 * math.cos(t), 0. + 0.2 * math.sin(t)]
-    pos = [2,2,2]
-    #end effector points down, not up (in case useOrientation==1)
-    orn = p.getQuaternionFromEuler([0, -math.pi, 0])
+    safe = { # standard position
+                'l_shoulder_z':0.0,
+                'l_shoulder_y':0.0,
+                'l_arm_x':0.0,
+                'l_elbow_y':89.0,
+                'l_wrist_z':0.0,
+                'l_wrist_x':-56.0,
+                'l_thumb_z':-57.0,
+                'l_thumb_x':-180.0,
+                'l_indexfinger_x':-180.0,
+                'l_middlefingers_x':-180.0,
+                'r_shoulder_z':-15.0,
+                'r_shoulder_y':68.0,
+                'r_arm_x':2.8,
+                'r_elbow_y':56.4,
+                'r_wrist_z':0.0,
+                'r_wrist_x':11.0,
+                'r_thumb_z':-57.0,
+                'r_thumb_x':180.0,
+                'r_indexfinger_x':-180.0,
+                'r_middlefingers_x':180.0,
+                'head_z':0.0,
+                'head_y':0.0
+            }
+    for k in safe.keys():
+        robot.setAngle(k,safe[k],DEFAULT_SPEED)
+    print ('Robot initializing')
+    initial_position = get_real_joints(robot,REALJOINTS)
+    time.sleep(RESETDELAY)
+    final_position = get_real_joints(robot,REALJOINTS)
+    #print(initial_position - final_position)
+    #input("Press key to continue...")
+    return robot
 
-    if (useNullSpace == 1):
-      if (useOrientation == 1):
-        jointPoses = p.calculateInverseKinematics(nico, nicoEndEffectorIndex, pos, orn, ll, ul,
-                                                  jr, rp)
-      else:
-        jointPoses = p.calculateInverseKinematics(nico, nicoEndEffectorIndex,
-                                                  pos,
-                                                  lowerLimits=ll,
-                                                  upperLimits=ul,
-                                                  jointRanges=jr,
-                                                  restPoses=rp)
+def reset_robot(robot):
+    
+    reset = True
+
+    safe = { # standard position
+                'l_shoulder_z':0.0,
+                'l_shoulder_y':0.0,
+                'l_arm_x':0.0,
+                'l_elbow_y':89.0,
+                'l_wrist_z':0.0,
+                'l_wrist_x':-56.0,
+                'l_thumb_z':-57.0,
+                'l_thumb_x':-180.0,
+                'l_indexfinger_x':-180.0,
+                'l_middlefingers_x':-180.0,
+                'r_shoulder_z':-15.0,
+                'r_shoulder_y':68.0,
+                'r_arm_x':2.8,
+                'r_elbow_y':56.4,
+                'r_wrist_z':0.0,
+                'r_wrist_x':11.0,
+                'r_thumb_z':-57.0,
+                'r_thumb_x':180.0,
+                'r_indexfinger_x':-180.0,
+                'r_middlefingers_x':180.0,
+                'head_z':0.0,
+                'head_y':0.0
+            }
+    for k in safe.keys():
+        robot.setAngle(k,safe[k],DEFAULT_SPEED)
+    print ('Robot reseting')
+    initial_position = get_real_joints(robot,REALJOINTS)
+    time.sleep(RESETDELAY)
+    final_position = get_real_joints(robot,REALJOINTS)
+    #print(initial_position - final_position)
+    #input("Press key to continue...")
+    return robot
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--position", nargs=3, type=float, help="Target position for the robot end effector as a list of three floats.")
+    parser.add_argument("-r", "--real_robot", action="store_true", help="If set, execute action on real robot.")
+    parser.add_argument("-g", "--gui", action="store_true", help="If set, turn the GUI on")
+    parser.add_argument("-re", "--reset", action="store_true", help="If set, reset the robot to the initial position after each postion")
+    arg_dict = vars(parser.parse_args())
+    
+
+    # GUI initialization
+    if arg_dict["gui"]:
+        p.connect(p.GUI)
+        p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+        p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=90, cameraPitch=-40, cameraTargetPosition=[0, 0, 0])
     else:
-      if (useOrientation == 1):
-        jointPoses = p.calculateInverseKinematics(nico, nicoEndEffectorIndex,
-                                                  pos,
-                                                  orn,
-                                                  jointDamping=jd,
-                                                  solver=ikSolver,
-                                                  maxNumIterations=100,
-                                                  residualThreshold=.01)
-      else:
-        jointPoses = p.calculateInverseKinematics(nico, nicoEndEffectorIndex,
-                                                  pos)
-
-    if (useSimulation):
-      for i in range(numJoints):
-        p.setJointMotorControl2(bodyIndex=nico,
-                                jointIndex=i,
-                                controlMode=p.POSITION_CONTROL,
-                                targetPosition=jointPoses[i],
-                                targetVelocity=0,
-                                force=500,
-                                positionGain=0.03,
-                                velocityGain=1)
+        p.connect(p.DIRECT)
+    
+    # Load the URDF robot a create scene
+    robot_id = p.loadURDF("./envs/robots/nico/nico_upper_rh6d.urdf", [0, 0, 0])
+    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.3,.45,0.02], rgbaColor=[0.6,0.6,0.6,1]),
+                          baseCollisionShapeIndex= -1, baseMass=0,basePosition=[0.27,0,0.02])
+    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.16,.26,0.01], rgbaColor=[0,0,0.0,1]),
+                          baseCollisionShapeIndex= -1, baseMass=0,basePosition=[0.41,0,0.035])
+    num_joints = p.getNumJoints(robot_id)
+    joints_limits, joints_ranges, joints_rest_poses, end_effector_index, joint_names, link_names, joint_indices = get_joints_limits(robot_id, num_joints)
+    # Custom intital position
+    
+    joints_rest_poses = deg2rad([-15, 68, 2.8, 56.4, 0.0, 11.0, -70.0])
+    
+    # Real robot initialization
+    if arg_dict["real_robot"]:
+        robot = init_robot()
     else:
-      #reset the joint state (ignoring all dynamics, not recommended to use during simulation)
-      for i in range(numJoints):
-        p.resetJointState(nico, i, jointPoses[i])
+        robot = None
 
-  ls = p.getLinkState(nico, nicoEndEffectorIndex)
-  if (hasPrevPose):
-    p.addUserDebugLine(prevPose, pos, [0, 0, 0.3], 1, trailDuration)
-    p.addUserDebugLine(prevPose1, ls[4], [1, 0, 0], 1, trailDuration)
-  prevPose = pos
-  prevPose1 = ls[4]
-  hasPrevPose = 1
-  #time.sleep(1)
-p.disconnect()
+
+    # IK paramenters
+    max_iterations = 100
+    residual_threshold = 0.001
+    
+    while True:
+        #Reset robot to initial position
+        if arg_dict["reset"]:
+            if arg_dict["real_robot"]:
+                robot = reset_robot(robot)
+
+            for i in range(len(joint_indices)):
+                p.resetJointState(robot_id, joint_indices[i], joints_rest_poses[i])
+        # Target position
+        if arg_dict["position"]:
+            target_position = arg_dict["position"]
+        else:
+            target_position = target()
+
+        p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[0,0,1,.7]),
+                          baseCollisionShapeIndex= -1, baseMass=0,basePosition=target_position)
+        
+
+        # Perform IK
+        ik_solution = p.calculateInverseKinematics(robot_id, end_effector_index, target_position,
+                                                maxNumIterations=max_iterations,
+                                                residualThreshold=residual_threshold)        
+        #ik_solution = p.calculateInverseKinematics(robot_id,
+        #                                               end_effector_index,
+        #                                               target_position,
+        #                                               lowerLimits=joints_limits[0],
+        #                                               upperLimits=joints_limits[1],
+        #                                               jointRanges=joints_ranges,
+        #                                               restPoses=joints_rest_poses)
+        
+        for i in range(len(joint_indices)):
+            p.resetJointState(robot_id, joint_indices[i], ik_solution[i])
+        time.sleep(SIMDELAY)
+        print(ik_solution)
+        if arg_dict["real_robot"]:
+            for i,realjoint in enumerate(REALJOINTS):
+                robot.setAngle(realjoint,rad2deg(ik_solution[i]),DEFAULT_SPEED)
+            time.sleep(SIMREALDELAY)
+            # Send joint angles to real robot
+        #for _ in range(20):
+            # Set joint angles to the IK solution
+        #    for joint_index in motor_indices:
+        #        p.setJointMotorControl2(robot_id, joint_index, p.POSITION_CONTROL, ik_solution[joint_index])
+
+            # Simulation loop
+        #    for _ in range(10):
+        #        p.stepSimulation()
+        # Disconnect from the physics server
+    p.disconnect()
+
+if __name__ == "__main__":
+    
+    main()
