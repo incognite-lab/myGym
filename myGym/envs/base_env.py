@@ -73,6 +73,7 @@ class BaseEnv(gym.Env):
         self._set_physics()
         self._setup_scene()
         self._set_action_space()
+        self.obsdim = self.check_obs_template()
         self._set_observation_space()
 
 

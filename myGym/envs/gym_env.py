@@ -156,7 +156,6 @@ class GymEnv(CameraEnv):
         self.rng = np.random.default_rng(seed=0)
         self.task_objects_were_given_as_list = isinstance(self.task_objects_dict, list)
         self.n_subtasks = len(self.task_objects_dict) if self.task_objects_were_given_as_list else 1
-        self.obsdim = self.check_obs_template()
         if self.reach_gesture and not self.nl_mode:
             raise Exception("Reach gesture task can't be started without natural language mode")
 
@@ -177,14 +176,7 @@ class GymEnv(CameraEnv):
     
         scheme = "{}-network".format(str(self.num_networks))
         assert self.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
-        self.task = t.TaskModule(task_type=self.task_type,
-                                 observation=self.obs_type,
-                                 vae_path=self.vae_path,
-                                 yolact_path=self.yolact_path,
-                                 yolact_config=self.yolact_config,
-                                 distance_type=self.distance_type,
-                                 number_tasks=len(self.task_objects_dict),
-                                 env=self)
+        self.task = t.TaskModule(env=self, number_tasks=len(self.task_objects_dict))
         self.reward = reward_classes[scheme][self.reward](env=self, task=self.task)
 
 
@@ -568,7 +560,7 @@ class GymEnv(CameraEnv):
         Returns:
             :return obsdim: (int) Dimensionality of observation
         """
-        t = self.obs_template
+        t = self.obs_type
         assert "actual_state" and "goal_state" in t.keys(), \
             "Observation setup in config must contain actual_state and goal_state"
         if t["additional_obs"]:
@@ -586,16 +578,15 @@ class GymEnv(CameraEnv):
                                                                                         "have the same number of dimensions!"
             if "endeff_xyz" in t["additional_obs"] or "endeff_6D" in t["additional_obs"]:
                 warnings.warn("Observation config: endeff_xyz already in actual_state, no need to have it in additional_obs. Removing it")
-                [self.obs_template["additional_obs"].remove(x) for x in t["additional_obs"] if "endeff" in x]
+                [self.obs_type["additional_obs"].remove(x) for x in t["additional_obs"] if "endeff" in x]
         obsdim = 0
         for x in [t["actual_state"], t["goal_state"]]:
             get_datalen = {"joints_xyz":len(self.get_linkstates_unpacked()),
                            "joints_angles":len(self.robot.get_joints_states()),
                            "endeff_xyz":3,
-                           "endeff_6D":len(list(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)) \
-                                                      + list(self.vision_module.get_obj_orientation(self.env.robot))),  
+                           "endeff_6D":7,
                            "dope":7, "obj_6D":7, "distractor": 3, "touch":1, "yolact":3, "voxel":3, "obj_xyz":3,
-                           "vae":self.vision_module.obsdim}  # @TODO
+                           "vae":4}  # @TODO
             obsdim += get_datalen[x]
         for x in t["additional_obs"]:
             obsdim += get_datalen[x]
