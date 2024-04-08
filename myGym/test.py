@@ -129,12 +129,12 @@ def detect_key(keypress,arg_dict,action):
         action[0] -= .03
         print(action)
     if 120 in keypress.keys() and keypress[120] == 1: # X
-        action[3] -= .03
-        action[4] -= .03
+        action[3] -= .005
+        action[4] -= .005
         print(action)
     if 99 in keypress.keys() and keypress[99] == 1: # C
-        action[3] += .03
-        action[4] += .03
+        action[3] += .005
+        action[4] += .005
         print(action)
     # if 100 in keypress.keys() and keypress[100] == 1:
     #     cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])

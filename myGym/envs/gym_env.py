@@ -622,7 +622,7 @@ class GymEnv(CameraEnv):
 
     def highlight_active_object(self, env_o, obj_role):
         if obj_role == "goal":
-            env_o.set_color(cs.name_to_rgba("transparent green"))
+            env_o.set_color(cs.name_to_rgba("red"))
         elif obj_role == "init":
             env_o.set_color(cs.name_to_rgba("green"))
         elif obj_role == "done":
