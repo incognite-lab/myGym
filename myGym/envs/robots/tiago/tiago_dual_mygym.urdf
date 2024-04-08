@@ -856,7 +856,7 @@
   <joint name="endeffector_gjoint" type="fixed">
     <parent link="gripper"/>
     <child link="endeffector"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 -0.15"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 -0.20"/>
   </joint>
   <link name="endeffector">
     <visual>
