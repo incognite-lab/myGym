@@ -601,6 +601,8 @@ class Robot(EnvObject):
         else:
             if self.gjoints_num:
                 self._move_gripper(self.gjoints_limits[1])
+                self.gripper_active = True
+                self.magnetize_object(env_objects["actual_state"])
             if "pnp" in self.task_type:
             #"Need to provide env_objects to use gripper"
             #When gripper is not in robot action it will magnetize objects
@@ -641,6 +643,19 @@ class Robot(EnvObject):
                 #self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())
                 self.magnetized_objects[object] = constraint_id
                 self.gripper_active = True
+
+    def grasp_object(self, object):
+        if len(self.magnetized_objects) == 0 :
+            self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 1 , 0, 0.5])
+            self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())
+            constraint_id = self.p.createConstraint(object.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0],
+                                      self.get_position())
+            self.magnetized_objects[object] = constraint_id
+            self.gripper_active = True
+
+
+
+
 
     def release_object(self, object):
         if object in self.magnetized_objects.keys():

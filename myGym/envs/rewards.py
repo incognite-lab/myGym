@@ -93,7 +93,7 @@ class Protorewards(Reward):
         self.was_near = False
         self.current_network = 0
         self.network_rewards = [0] * self.num_networks
-        self.use_magnet = True
+        self.use_magnet = False
         self.has_left = False
         self.last_traj_idx = 0
         self.last_traj_dist = 0
@@ -210,7 +210,7 @@ class Protorewards(Reward):
 
 
     def move_compute(self, object, goal, gripper_states):
-        self.env.robot.set_magnetization(False)
+        self.env.robot.set_magnetization(True)
         self.env.p.addUserDebugText("move", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
         self.env.p.addUserDebugLine(object[:3], goal[:3], lifeTime=0.1)
         object_XY = object[:3]
@@ -292,7 +292,6 @@ class Protorewards(Reward):
         return False
     
     def gripper_approached_object (self, gripper, object):
-        #print(self.task.calc_distance(gripper, object))
         if self.task.calc_distance(gripper, object) <= self.approached_threshold:
             return True
         return False
@@ -304,8 +303,10 @@ class Protorewards(Reward):
         return False
     
     def gripper_closed(self, gripper_states):
+        print(self.env.robot.gripper_active)
         if sum(gripper_states) <= self.closegr_threshold:
-            self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+            self.env.robot.magnetize_object(self.env.env_objects["goal_state"])
+            self.env.robot.set_magnetization(True)
             print("Gripper closed and magnetized")
             return True
         return False
@@ -393,7 +394,6 @@ class AaGaM(Protorewards):
     
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        print(gripper_position)
         owner = self.decide(goal_position, object_position, gripper_position, gripper_states)
         target = [[gripper_position,object_position,gripper_states], [gripper_position,object_position,gripper_states], [object_position,goal_position,gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute][owner](*target)
@@ -402,6 +402,7 @@ class AaGaM(Protorewards):
         return reward
     
     def decide(self, goal_position, object_position, gripper_position, gripper_states):
+        print(self.get_magnetization_status())
         if self.gripper_approached_object(gripper_position, object_position):
             if self.gripper_opened(gripper_states):
                 self.current_network = 1
