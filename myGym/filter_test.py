@@ -22,13 +22,13 @@ from pyquaternion import Quaternion
 import sys
 from scipy.interpolate import splprep, splev
 import matplotlib.pyplot as plt
-from myGym.envs.particle_filter import ParticleFilterGH, ParticleFilter6D, myKalmanFilter
+from myGym.envs.particle_filter import ParticleFilterGH, ParticleFilter6D, myKalmanFilter, ParticleFilterWithKalman
 from myGym.utils.filter_helpers import *
 
 
 #Global variables
-velocity = 0.5 #Average object velocity in m/s
-dt = 0.1 #Legth of one timestep in seconds
+velocity = 0.2 #Average object velocity in m/s
+dt = 0.2 #Legth of one timestep in seconds
 
 """
 
@@ -266,14 +266,14 @@ def initialize_filter(type):
     """Filter initialization based on user input. Parameters can be changed here manually"""
     position_filter, rotation_filter = None, None
     if type == "1": #Particle GH
-        position_filter = ParticleFilterGH(10000, 0.02, 0.02, g= 0.7, h = 0.4)
-        rotation_filter = ParticleFilterGH(10000, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
+        position_filter = ParticleFilterGH(2500, 0.02, 0.02, g= 0.7, h = 0.4)
+        rotation_filter = ParticleFilterGH(2500, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
     elif type == "2": #Particle 3D
-        position_filter = ParticleFilter6D(10000, 0.003, 0.1, 0.04)
-        rotation_filter = ParticleFilter6D(10000, 0.003, np.deg2rad(1), np.deg2rad(4))
+        position_filter = ParticleFilter6D(2500, 0.02, 0.02, 0.04)
+        rotation_filter = ParticleFilter6D(2500, 0.02, np.deg2rad(1), np.deg2rad(4))
     elif type == "3":
-        print("3D particle filter with Kalman filter for velocity not yet implemented.")
-        sys.exit()
+        position_filter = ParticleFilterWithKalman(2500, 0.02, 0.02, Q= 0.01/dt)
+        rotation_filter = ParticleFilterWithKalman(2500, np.deg2rad(1), np.deg2rad(4))
     elif type == "4": #Kalman
         x = np.array([0., 0., 0., 0., 0., 0.]) # [x, dx/dt, y, dy/dt, z, dz/dt]
         P = np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])

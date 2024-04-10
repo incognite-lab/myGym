@@ -42,6 +42,10 @@ class myKalmanFilter():
         self.process_std = Q #Values for filename
         self.measurement_std = R #Values for filename
         self.num_particles = 0 #Values for filename
+        # For adaptive filtering below:
+        self.eps_max = 0.18
+        self.Q_scale_factor = 1000
+        self.count = 0
 
 
     def get_est(self):
@@ -74,12 +78,23 @@ class myKalmanFilter():
         self.predict()
         self.update(z)
         self.state_estimate()
+        #Adaptive filtering
+        y, S = self.filter.y, self.filter.S
+        eps = y.T @ np.linalg.inv(S) @ y
+        print(eps)
+
+        if eps > self.eps_max:
+            self.filter.Q *= self.Q_scale_factor
+            self.count += 1
+        elif self.count >0:
+            self.filter.Q /= self.Q_scale_factor
+            self.count -=1
 
 
 
 class ParticleFilter(object):
     """Base particle filter parent class. Contains method and parameters used in every type of particle filter"""
-    def __init__(self, num_particles, process_std, measurement_std, workspace_bounds = None, dt = 0.1):
+    def __init__(self, num_particles, process_std, measurement_std, workspace_bounds = None, dt = 0.2):
         self.num_particles = num_particles
         self.process_std = process_std
         self.measurement_std = measurement_std
@@ -183,7 +198,7 @@ class ParticleFilter6D(ParticleFilter):
     Each particle has its velocity, which changes only based on noise. Those particles, that move correctly in
     the direction of the velocity get to be resampled. This simulates acceleration.
     """
-    def __init__(self, num_particles, process_std, vel_std, measurement_std, workspace_bounds = None, dt = 0.1):
+    def __init__(self, num_particles, process_std, vel_std, measurement_std, workspace_bounds = None, dt = 0.2):
         super().__init__(num_particles, process_std, measurement_std, workspace_bounds, dt)
         self.vel_std = vel_std
         self.vel_bounds = [(-1, 1), (-1, 1), (-1, 1)] #Max velocity of a particle for uniform particles
@@ -193,10 +208,16 @@ class ParticleFilter6D(ParticleFilter):
         self.last_measured_distances = np.zeros((self.moving_avg_length+1, 3))
         self.last_measured_position = None
         self.vel_estimate = np.zeros(3)
-        self.prev_vel_estimate = np.zeros(3)
-        self.vel_std_const = 0.15
-        self.a = 0#np.zeros(3)
-        self.k = 0.8#coefficient of past acceleration memory
+        self.process_std_const = process_std
+        self.vel_std_const = vel_std
+
+
+
+    def compute_residual(self, measurement):
+        #TODO: Compute the residual (difference between predicted position and measured position) from particles
+        predicted_state = np.average(self.particles[:, :3], weights=self.weights, axis=0)
+        residual = measurement - predicted_state
+        return residual
 
 
     def apply_first_measurement(self, measurement):
@@ -206,6 +227,7 @@ class ParticleFilter6D(ParticleFilter):
         #System nonlinearities
         self.last_measured_position = self.estimate
         self.particles = self.create_gaussian_particles(self.measurement_std * initial_uncertainty_factor)
+
 
     def create_uniform_particles(self):
         """Create uniform particles in workspace bounds of a given dimension including velocity"""
@@ -242,6 +264,7 @@ class ParticleFilter6D(ParticleFilter):
         return filterpy.monte_carlo.systematic_resample(self.weights)
 
 
+
     def state_estimate(self):
         """Update estimated state and std based on weighted average of particles"""
         self.estimate = np.average(self.particles[:, :3], weights = self.weights, axis = 0) #Weighted average of particles
@@ -251,50 +274,19 @@ class ParticleFilter6D(ParticleFilter):
         self.estimate_vars.append(var) #Store each estimate variation in a list
 
 
-    def acceleration_ma(self):
-        """Computes the moving average of object acceleration to determine a good value of vel_std
-        (the higher the acceleration, the bigger the velocity change and therefore its uncertainty)
-        """
-        v = np.array(self.last_measured_distances)/self.dt
-        if v.size > 1: #To determine acceleration we need at least two elements
-            dv = np.diff(v, axis = 0)
-            print("dv:", dv)
-            a = np.linalg.norm(np.sum(dv, axis = 0) / (self.dt * self.moving_avg_length))
-            return a
-        else:
-            return None
-
 
     def update(self, z):
         super().update(z)
-        #2nd approach to filter acceleration
-        self.vel_estimate = (z - self.last_measured_position)/self.dt
-        self.a = self.k*self.a + (1 - self.k) *(self.vel_estimate - self.prev_vel_estimate)/self.dt
-        self.vel_std = self.a * self.vel_std_const
-        self.last_measured_position = z
-        self.prev_vel_estimate = self.vel_estimate
-        print("Acceleration:", np.linalg.norm(self.a), "vel_std:", np.linalg.norm(self.vel_std))
-        #Bellow is the process of calculating moving average of acceleration to determine self.vel_std
-        """
-        if self.last_measured_position is not None:
-            self.last_measured_distances = np.roll(self.last_measured_distances, -1, axis = 0)
-            self.last_measured_distances[self.moving_avg_length, :] = (z - self.last_measured_position)#
-            self.last_measured_position = z #Updating last measured position value
-        else:
-            self.last_measured_position = z
-        ma = self.acceleration_ma()
-        if ma is not None:
-            self.vel_std = ma*self.vel_std_const
-        print("vel_std=", self.vel_std)
-        """
-
+        residual = np.linalg.norm(self.compute_residual(z))
+        self.process_std = self.process_std_const*residual
+        self.vel_std = 4000*self.vel_std_const*(residual**2)
 
 
 
 
 class ParticleFilterGH(ParticleFilter):
     """Custom Particle filter class for estimating position or orientation of 3D objects from noisy measurements"""
-    def __init__(self, num_particles, process_std, measurement_std, workspace_bounds = None, dt = 0.1, g=0.5, h=0.5):
+    def __init__(self, num_particles, process_std, measurement_std, workspace_bounds = None, dt = 0.2, g=0.5, h=0.5):
         super().__init__(num_particles, process_std, measurement_std, workspace_bounds, dt)
         self.estimate = np.zeros(3) #Actual state estimate - this is our tracked value
         self.estimate_var = 20 #Large value in the beginning
@@ -375,6 +367,113 @@ class ParticleFilterGH(ParticleFilter):
         self.update(z)
         self.state_estimate()
         self.resample()
+
+
+class ParticleFilterWithKalman(ParticleFilter):
+    """
+    Combination of particle and Kalman filters.
+    Particle filter estimates position and Kalman filter estimates global velocity and acceleration
+    of all particles.
+    """
+
+    def __init__(self, num_particles, process_std, measurement_std, Q = None, R = None, workspace_bounds = None, dt = 0.2):
+        super().__init__(num_particles, process_std, measurement_std, workspace_bounds, dt)
+        self.estimate = np.zeros(3)  # Actual state estimate - this is our tracked value
+        self.estimate_var = 20  # Large value in the beginning
+        self.vel = np.zeros(3)  # process velocity, i.e. position or angular velocity determined externally from observed data
+        self.vel_std = 0.01  # Unknown velocity in the beginning
+        self.particles = self.create_uniform_particles()
+        self.weights = np.ones(self.num_particles) / self.num_particles  # Uniform weights initialization
+        self.estimates = []
+        self.estimate_vars = []
+        self.initialize_kalman(Q, R)
+        self.dt =dt
+
+
+    def initialize_kalman(self, Q, R):
+        if Q is None:
+            Q = 0.08 / self.dt
+        if R is None:
+            R = 0.02 / self.dt
+        x = np.zeros(6)
+        P = np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+        self.kalman = KalmanFilter(dim_x = x.shape[0], dim_z = 3)
+        self.kalman.x = x
+        self.kalman.F = np.array([[1, self.dt, 0, 0, 0 ,0 ],
+                                  [0, 1, 0, 0, 0, 0],
+                                  [0, 0, 1, self.dt, 0, 0],
+                                  [0, 0, 0, 1, 0, 0],
+                                  [0, 0, 0, 0, 1, self.dt],
+                                  [0, 0, 0, 0, 0, 1]])
+
+        self.kalman.H = np.array([[1, 0, 0, 0, 0, 0],
+                                  [0, 0, 1, 0, 0, 0],
+                                  [0, 0, 0, 0, 1, 0]])  # Measurement function
+        self.kalman.R *= R  # measurement uncertainty
+
+        if np.isscalar(P):
+            self.kalman.P *= P  # covariance matrix
+        else:
+            self.kalman.P[:] = P  # [:] makes deep copy
+        if np.isscalar(Q):
+            Q1dim = Q_discrete_white_noise(dim=2, dt=self.dt, var=Q) #Discrete white noise for one dimension
+            self.kalman.Q = np.zeros((6, 6))
+            self.kalman.Q[:2, :2] = Q1dim
+            self.kalman.Q[2:4, 2:4] = Q1dim
+            self.kalman.Q[4:6, 4:6] = Q1dim
+        else:
+            self.kalman.Q[:] = Q
+
+
+    def create_gaussian_particles(self, std):
+        """Create normally distributed particles around estimate with given std"""
+        N = self.num_particles
+        particles = np.empty((N, 3))
+        for i in range(3):
+            particles[:, i] = self.estimate[i] + (np.random.randn(N) * std)
+        return particles
+
+
+    def predict(self):
+        n = self.num_particles
+        a = np.linalg.norm([self.kalman.x[1], self.kalman.x[3], self.kalman.x[5]])
+        #print("vel_std:" , vel_std)
+        vel = self.vel #+ np.random.randn(3)
+
+        self.particles[:, :3] += vel * self.dt  # Predict + process noise
+        self.particles[:, 0] += np.random.randn(n) * a/10 + self.process_std/2 *np.random.randn(n)
+        self.particles[:, 1] += np.random.randn(n) * a/10 + self.process_std/2 *np.random.randn(n)
+        self.particles[:, 2] += np.random.randn(n) * a/10 + self.process_std/2 *np.random.randn(n)
+        self.kalman.predict()
+
+
+    def update(self, z):
+        distance_pos = np.linalg.norm(self.particles[:, 0:3] - z[0:3], axis=1)
+        self.weights *= scipy.stats.norm(0, self.measurement_std).pdf(distance_pos)  # Multiply weights based on the
+        # particles' Gaussian probability
+        self.weights += 1.e-300  # Avoid round-off to zero
+        self.weights = self.weights / np.sum(self.weights)  # Normalization
+
+
+    def state_estimate(self):
+        last_estimate = self.estimate
+        self.estimate = np.average(self.particles, weights=self.weights, axis=0)  # Weighted average of particles
+        var = np.average(((self.particles - self.estimate) ** 2), weights=self.weights, axis=0)
+        self.estimate_var = var
+        self.estimates.append(self.estimate)
+        self.estimate_vars.append(self.estimate_var)
+        self.kalman.update((self.estimate - last_estimate) / self.dt)
+        self.vel = self.get_velocity()
+        print("velocity is:", self.vel)
+        print("velocity var:", self.kalman.P[0, 0])
+
+
+    def get_velocity(self):
+        return np.array([self.kalman.x[0], self.kalman.x[2], self.kalman.x[4]])
+
+
+    def index_resample_function(self):
+        return filterpy.monte_carlo.stratified_resample(self.weights)
 
 
 
