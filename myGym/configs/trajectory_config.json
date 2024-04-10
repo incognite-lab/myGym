@@ -8,5 +8,5 @@
     #Default starting and ending object orientation (axis(meters), theta(degrees))
     "rotations": {"q_start": "0 1 0 0", "q_end": "0 1 1 121"},
     #Default stdev of position and orientation noise (meters, degrees)
-    "noise": {"position": "0.02", "orientation": "4"}
+    "noise": {"position": "0.00", "orientation": "4"}
 }

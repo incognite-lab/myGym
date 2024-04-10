@@ -22,7 +22,7 @@ from pyquaternion import Quaternion
 import sys
 from scipy.interpolate import splprep, splev
 import matplotlib.pyplot as plt
-from myGym.envs.particle_filter import ParticleFilterGH, ParticleFilter6D
+from myGym.envs.particle_filter import ParticleFilterGH, ParticleFilter6D, myKalmanFilter
 from myGym.utils.filter_helpers import *
 
 
@@ -110,6 +110,7 @@ def get_input():
     else:
         type = int(input("Enter trajectory type (1 for line, 2 for circle, 3 for spatial spline: )"))
         trajectory_dict = get_parameters_from_config(type)
+    trajectory_dict["filter_type"] = input("Enter the type of particle filter (1 for g-h, 2 for 6D, 3 for 3D with Kalman, 4 for simple Kalman")
     trajectory_dict["vis"] = input("Do you want to visualize the filter process? (1 - yes, 2 - no) ")
     if trajectory_dict["vis"] == '1':
         trajectory_dict["pause"] = input("Enter the length of each filter iteration (seconds): ")
@@ -124,8 +125,8 @@ Trajectory creator:
 def create_trajectory_points(parameters):
     """From retreived trajectory parameters, create set of n points on the trajectory along with noisy data.
     Also create a list of rotations (quaternion objects) and noisy rotations."""
-    ground_truth = np.zeros((20, 3)) #20 is an arbitrary value just for initialization
-    noisy_data = np.zeros((20, 3))#Will be replaced based on trajectory length and average velocity
+    ground_truth = np.zeros((40, 3)) #40 is an arbitrary value just for initialization
+    noisy_data = np.zeros((40, 3))#Will be replaced based on trajectory length and average velocity
     new_n = 0
     if parameters["type"] == None:
         #Empty input
@@ -134,17 +135,17 @@ def create_trajectory_points(parameters):
         #Ground truth position points line
         start = np.array(list(map(float, parameters["start"].split())))
         end = np.array(list(map(float, parameters["end"].split())))
-        len = np.linalg.norm(end - start)
-        new_n = int(len/(velocity * dt)) #0.1 is dt
+        length = np.linalg.norm(end - start)
+        new_n = int(length/(velocity * dt)) #0.1 is dt
         ground_truth = np.linspace(start, end, new_n)
 
     elif parameters["type"] == "circle":
-        # Ground truth position points circle
+        #Ground truth position points circle
         radius = float(parameters["radius"])
         center = np.array(list(map(float, parameters["center"].split())))
         norm = np.array(list(map(float, parameters["plane"].split())))
-        len = 2*np.pi*radius
-        new_n = int(len/(velocity * dt)) #0.1 is dt
+        length = 2*np.pi*radius
+        new_n = int(length/(velocity * dt)) #0.1 is dt
         ground_truth = create_circle(radius, center, norm, new_n)
 
     elif parameters["type"] == "spline":
@@ -187,22 +188,21 @@ Evaluation plot functions:
 
 """
 
-def visualize_errors(ground_truth, noisy_data, estimates):
+def visualize_errors(ground_truth, noisy_data, estimates, filename):
     """
     Visualization of position errors in a plot.
     """
     diffs_meas = []
     diffs_est = []
-    print("Lengths: ")
-    print("Gnd truth: ", ground_truth.shape[0], "estimates:", len(estimates))
+    filename += "pos"
     for i in range(ground_truth.shape[0]):
-        diffs_meas.append(np.linalg.norm(ground_truth[i, :] - noisy_data[i, :]))
-        diffs_est.append(np.linalg.norm(ground_truth[i, :] - estimates[i]))
+        diffs_meas.append(np.linalg.norm(ground_truth[i, :] - noisy_data[i, :])**2)
+        diffs_est.append(np.linalg.norm(ground_truth[i, :] - estimates[i])**2)
     diffs_meas = np.array(diffs_meas)
-    plot_comparison(diffs_meas, diffs_est, "Position error evaluation")
+    plot_comparison(diffs_meas, diffs_est, "Position error evaluation", filename)
 
 
-def plot_comparison(diffs_meas, diffs_est, title):
+def plot_comparison(diffs_meas, diffs_est, title, filename):
     """Plots how the filter performed. Compares the error (difference between ground truth) of measured and estimated
     data."""
     diffs_meas = np.array(diffs_meas)
@@ -212,27 +212,49 @@ def plot_comparison(diffs_meas, diffs_est, title):
 
     # Plotting results
     fig, ax = plt.subplots()
-    ax.text(.01, .95, 'Measurement error average: ' + str(round(measured_avg, 5)), transform=ax.transAxes)
-    plt.text(.01, .9, 'Estimate error average: ' + str(round(estimated_avg, 5)), transform=ax.transAxes)
-    ax.plot(k, diffs_est, label="Estimate error")
-    plt.plot(k, diffs_meas, label="Measurement error")
+    ax.text(.01, .95, 'Measurement MSE: ' + str(round(measured_avg, 5)), transform=ax.transAxes)
+    plt.text(.01, .9, 'Estimate MSE: ' + str(round(estimated_avg, 5)), transform=ax.transAxes)
+    ax.plot(k, diffs_est, label="Estimate SE")
+    plt.plot(k, diffs_meas, label="Measurement SE")
     plt.title(title)
     plt.legend()
+    #plt.savefig('/home/frederik/school/projekt+BP/figures/' + filename + ".png")
     plt.show()
 
 
-def visualize_rot_errors(rotations, noisy_rotations, estimates):
+def visualize_rot_errors(rotations, noisy_rotations, estimates, filename):
     """
     Visualization of rotation errors
     """
     diffs_meas = []
     diffs_est = []
+    filename += "rot"
     for i in range(len(rotations)):
 
-        diffs_meas.append(Quaternion.absolute_distance(rotations[i], noisy_rotations[i]))
-        diffs_est.append(Quaternion.absolute_distance(rotations[i], euler_to_quat(estimates[i])))
-    plot_comparison(diffs_meas, diffs_est, "Rotation error evaluation")
+        diffs_meas.append(Quaternion.absolute_distance(rotations[i], noisy_rotations[i])**2)
+        diffs_est.append(Quaternion.absolute_distance(rotations[i], euler_to_quat(estimates[i]))**2)
+    plot_comparison(diffs_meas, diffs_est, "Rotation error evaluation", filename)
 
+
+def create_paramstring(params, filter):
+    """Creates a name for saved figure based on tested trajectory and filter parameters."""
+    filename = ""
+    filename += params["type"] + "_"
+    if params["filter_type"] == "1":
+        #g-h filter
+        filename += "gh_" #filter type
+        filename += "g:" + str(filter.g) + "_" #filter g value
+        filename += "h:" + str(filter.h) + "_" #filter h value
+    elif params["filter_type"] == "2":
+        #6D filter
+        filename += "6D_" #filter type
+        filename += "v-std:" + str(filter.vel_std) + "_"
+    #TODO: Cases for Kalman and 3D+ Kalman filters
+    #General parameters
+    filename += "std_p:" + str(filter.process_std) + "_" #Process standard deviation of noise
+    filename += "std_m:" + str(filter.measurement_std) + "_" #Measurement standard deviation of noise
+    filename += "N:" + str(filter.num_particles) + "_" #Amount of particles
+    return filename
 
 """
 
@@ -240,33 +262,66 @@ Filtering process and its visualization functions:
 
 """
 
-def filter_without_animation(noisy_data, noisy_rotations):
+def initialize_filter(type):
+    """Filter initialization based on user input. Parameters can be changed here manually"""
+    position_filter, rotation_filter = None, None
+    if type == "1": #Particle GH
+        position_filter = ParticleFilterGH(10000, 0.02, 0.02, g= 0.7, h = 0.4)
+        rotation_filter = ParticleFilterGH(10000, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
+    elif type == "2": #Particle 3D
+        position_filter = ParticleFilter6D(10000, 0.003, 0.1, 0.04)
+        rotation_filter = ParticleFilter6D(10000, 0.003, np.deg2rad(1), np.deg2rad(4))
+    elif type == "3":
+        print("3D particle filter with Kalman filter for velocity not yet implemented.")
+        sys.exit()
+    elif type == "4": #Kalman
+        x = np.array([0., 0., 0., 0., 0., 0.]) # [x, dx/dt, y, dy/dt, z, dz/dt]
+        P = np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+        #P = np.diag([100., 25., 64, 0.1, 0.1, 0.1])
+        Q = 0.08
+        R = 0.02
+        var_angle = np.deg2rad(90)
+        var_angle_vel = np.deg2rad(2)
+        Pr= np.diag([var_angle, var_angle_vel, var_angle, var_angle_vel, var_angle, var_angle_vel])
+        Qr = np.deg2rad(4)
+        Rr = np.deg2rad(4)
+        position_filter = myKalmanFilter(x, P=P, Q=Q, R=R)
+        rotation_filter = myKalmanFilter(x, P=Pr, Q=Qr, R=Rr)
+    else:
+        print("Entered wrong input type")
+        sys.exit()
+    return position_filter, rotation_filter
+
+
+def filter_without_animation(noisy_data, noisy_rotations, type):
     """Similar to vis_anim but without any visualization"""
-    position_filter = ParticleFilterGH(10000, 0.02, 0.02, g= 0.7, h = 0.4)
-    rotation_filter = ParticleFilterGH(10000, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
+    position_filter, rotation_filter = initialize_filter(type)
     n = noisy_data.shape[0] #Number of points
     for iter in range(n):
         measurement = noisy_data[iter, :]
         rot_meas = quat_to_euler(noisy_rotations[iter])
         if iter == 0:
+            print(measurement)
             position_filter.apply_first_measurement(measurement)
             position_filter.state_estimate()
             rotation_filter.apply_first_measurement(rot_meas)
             rotation_filter.state_estimate()
+            print(position_filter.estimate)
             continue
         rotation_filter.filter_step(rot_meas)
         position_filter.filter_step(measurement)
     return position_filter, rotation_filter
 
 
-def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, pause_length):
+def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, pause_length, type):
     """
     Parameters: ground_truth: np array of shape (n, 3)
     """
     env.p.setGravity(0, 0, 0)
     n = ground_truth.shape[0] #Number of points
-    position_filter = ParticleFilter6D(1500, 0.02, 0.6, 0.025)
-    rotation_filter = ParticleFilter6D(1500, np.deg2rad(1), np.deg2rad(2), np.deg2rad(4))
+    #position_filter = ParticleFilter6D(1500, 0.00, 0.2, 0.025)
+    #rotation_filter = ParticleFilter6D(1500, np.deg2rad(0), np.deg2rad(0.5), np.deg2rad(4))
+    position_filter, rotation_filter = initialize_filter(type)
     particle_batch = None
     estimate_id = None
 
@@ -279,6 +334,7 @@ def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, pause_length)
         if i == 0:
             #Initialize particle filter based on first measurement
             position_filter.apply_first_measurement(measurement)
+            position_filter.state_estimate()
             particle_batch = visualize_particles(position_filter)
             estimate_id = visualize_estimate(position_filter)
             rotation_filter.apply_first_measurement(rot_meas)
@@ -308,14 +364,14 @@ def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, pause_length)
         time.sleep(pause_length)
 
         #5) Rotation filter complete step (visualization of rotation particles doesn't make sense)
-        rotation_filter.filter_step(rot_meas)
+        #rotation_filter.filter_step(rot_meas)
         rot = rotations[i]
         noisy_rot = noisy_rotations[i]
         q = np.concatenate((rot.imaginary, [rot.scalar])).flatten()
         noisy_q = np.concatenate((noisy_rot.imaginary, [noisy_rot.scalar])).flatten()
-        est_rot = euler_to_quat(rotation_filter.estimate)
-        est_q = np.concatenate((est_rot.imaginary, [est_rot.scalar])).flatten()
-        p.resetBasePositionAndOrientation(estimate_id, position_filter.estimate, est_q)
+        #est_rot = euler_to_quat(rotation_filter.estimate)
+        #est_q = np.concatenate((est_rot.imaginary, [est_rot.scalar])).flatten()
+        #p.resetBasePositionAndOrientation(estimate_id, position_filter.estimate, est_q)
         env.task_objects["actual_state"].set_orientation(q)
         env.task_objects["goal_state"].set_orientation(noisy_q)
 
@@ -333,12 +389,15 @@ if __name__ == "__main__":
         env = visualize_env(arg_dict)
         env.reset()
         visualize_trajectory(ground_truth, noisy_data)
-        resulting_pos_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, float(params["pause"]))
-        visualize_errors(ground_truth, noisy_data, resulting_pos_filter.estimates)
+        resulting_pos_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, float(params["pause"]), type =params["filter_type"])
+        filenameP = create_paramstring(params, resulting_pos_filter)
+        visualize_errors(ground_truth, noisy_data, resulting_pos_filter.estimates, filenameP)
     else:
-        resulting_pos_filter, resulting_rot_filter = filter_without_animation(noisy_data, noisy_rotations)
-        visualize_errors(ground_truth, noisy_data, resulting_pos_filter.estimates)
-        visualize_rot_errors(rotations, noisy_rotations, resulting_rot_filter.estimates)
+        resulting_pos_filter, resulting_rot_filter = filter_without_animation(noisy_data, noisy_rotations, type = params["filter_type"])
+        filenameP = create_paramstring(params, resulting_pos_filter)
+        filenameR = create_paramstring(params, resulting_rot_filter)
+        visualize_errors(ground_truth, noisy_data, resulting_pos_filter.estimates, filenameP)
+        visualize_rot_errors(rotations, noisy_rotations, resulting_rot_filter.estimates, filenameR)
 
 
 

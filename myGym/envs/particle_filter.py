@@ -4,6 +4,76 @@ import numpy as np
 import filterpy
 from filterpy.monte_carlo import residual_resample, stratified_resample, systematic_resample
 import scipy
+from filterpy.kalman import KalmanFilter
+from filterpy.common import Q_discrete_white_noise
+
+
+class myKalmanFilter():
+    """Returns a Kalman filter which implements constant velocity model"""
+    def __init__(self, x, P, R, Q= 0., dt=0.2):
+
+        self.filter = KalmanFilter(dim_x=x.shape[0], dim_z=3)
+        self.filter.x = np.array(x)
+        self.filter.F = np.array([[1, dt, 0, 0, 0 ,0 ],
+                                  [0, 1, 0, 0, 0, 0],
+                                  [0, 0, 1, dt, 0, 0],
+                                  [0, 0, 0, 1, 0, 0],
+                                  [0, 0, 0, 0, 1, dt],
+                                  [0, 0, 0, 0, 0, 1]])
+        self.filter.H = np.array([[1, 0, 0, 0, 0, 0],
+                                 [0, 0, 1, 0, 0, 0],
+                                 [0, 0, 0, 0, 1, 0]])  # Measurement function
+        self.filter.R *= R  # measurement uncertainty
+        if np.isscalar(P):
+            self.filter.P *= P  # covariance matrix
+        else:
+            self.filter.P[:] = P  # [:] makes deep copy
+        if np.isscalar(Q):
+            Q1dim = Q_discrete_white_noise(dim=2, dt=dt, var=Q) #Discrete white noise for one dimension
+            self.filter.Q = np.zeros((6, 6))
+            self.filter.Q[:2, :2] = Q1dim
+            self.filter.Q[2:4, 2:4] = Q1dim
+            self.filter.Q[4:6, 4:6] = Q1dim
+        else:
+            self.filter.Q[:] = Q
+        self.estimate = np.zeros(3)
+        self.estimate_vars = []
+        self.estimates = []
+        self.process_std = Q #Values for filename
+        self.measurement_std = R #Values for filename
+        self.num_particles = 0 #Values for filename
+
+
+    def get_est(self):
+        state = np.array([self.filter.x[0], self.filter.x[2], self.filter.x[4]])
+        #self.filter.x[0] = state[0]
+        #self.filter.x[2] = state[1]
+        #self.filter.x[4] = state[2]
+        return state
+
+
+    def apply_first_measurement(self, measurement):
+        self.filter.x[0] = measurement[0]
+        self.filter.x[2] = measurement[1]
+        self.filter.x[4] = measurement[2]
+
+
+    def predict(self):
+        self.filter.predict()
+
+
+    def update(self, z):
+        self.filter.update(z)
+
+    def state_estimate(self):
+        self.estimate = self.get_est()
+        self.estimates.append(self.estimate)
+        self.estimate_vars.append(self.filter.P)
+
+    def filter_step(self, z):
+        self.predict()
+        self.update(z)
+        self.state_estimate()
 
 
 
@@ -118,15 +188,24 @@ class ParticleFilter6D(ParticleFilter):
         self.vel_std = vel_std
         self.vel_bounds = [(-1, 1), (-1, 1), (-1, 1)] #Max velocity of a particle for uniform particles
         self.particles = self.create_uniform_particles()
+        # Below there are attributes used for computing the moving average of measured acceleration
+        self.moving_avg_length = 10
+        self.last_measured_distances = np.zeros((self.moving_avg_length+1, 3))
+        self.last_measured_position = None
+        self.vel_estimate = np.zeros(3)
+        self.prev_vel_estimate = np.zeros(3)
+        self.vel_std_const = 0.15
+        self.a = 0#np.zeros(3)
+        self.k = 0.8#coefficient of past acceleration memory
 
 
     def apply_first_measurement(self, measurement):
         """Determine initial values based on first measurement"""
         self.estimate = measurement
-        initial_uncertainty_factor = 5  #Multiply std by this factor to account for initial uncertainty to better address
+        initial_uncertainty_factor = 2  #Multiply std by this factor to account for initial uncertainty to better address
         #System nonlinearities
+        self.last_measured_position = self.estimate
         self.particles = self.create_gaussian_particles(self.measurement_std * initial_uncertainty_factor)
-
 
     def create_uniform_particles(self):
         """Create uniform particles in workspace bounds of a given dimension including velocity"""
@@ -155,19 +234,60 @@ class ParticleFilter6D(ParticleFilter):
         """Add noise to current velocity"""
         current_velocities = self.particles[:, 3:]
         noise = np.random.randn(*current_velocities.shape)*self.vel_std
+        self.particles[:, 3:] = current_velocities + noise
         return current_velocities + noise
 
 
     def index_resample_function(self):
-        return filterpy.monte_carlo.stratified_resample(self.weights)
+        return filterpy.monte_carlo.systematic_resample(self.weights)
 
 
     def state_estimate(self):
         """Update estimated state and std based on weighted average of particles"""
         self.estimate = np.average(self.particles[:, :3], weights = self.weights, axis = 0) #Weighted average of particles
         var = np.average(((self.particles[:, :3] - self.estimate)**2), weights = self.weights, axis = 0)
+        #self.vel_estimate = np.average(self.particles[:, 3:], weights = self.weights, axis = 0)
         self.estimates.append(self.estimate) #Store each estimate in a list
         self.estimate_vars.append(var) #Store each estimate variation in a list
+
+
+    def acceleration_ma(self):
+        """Computes the moving average of object acceleration to determine a good value of vel_std
+        (the higher the acceleration, the bigger the velocity change and therefore its uncertainty)
+        """
+        v = np.array(self.last_measured_distances)/self.dt
+        if v.size > 1: #To determine acceleration we need at least two elements
+            dv = np.diff(v, axis = 0)
+            print("dv:", dv)
+            a = np.linalg.norm(np.sum(dv, axis = 0) / (self.dt * self.moving_avg_length))
+            return a
+        else:
+            return None
+
+
+    def update(self, z):
+        super().update(z)
+        #2nd approach to filter acceleration
+        self.vel_estimate = (z - self.last_measured_position)/self.dt
+        self.a = self.k*self.a + (1 - self.k) *(self.vel_estimate - self.prev_vel_estimate)/self.dt
+        self.vel_std = self.a * self.vel_std_const
+        self.last_measured_position = z
+        self.prev_vel_estimate = self.vel_estimate
+        print("Acceleration:", np.linalg.norm(self.a), "vel_std:", np.linalg.norm(self.vel_std))
+        #Bellow is the process of calculating moving average of acceleration to determine self.vel_std
+        """
+        if self.last_measured_position is not None:
+            self.last_measured_distances = np.roll(self.last_measured_distances, -1, axis = 0)
+            self.last_measured_distances[self.moving_avg_length, :] = (z - self.last_measured_position)#
+            self.last_measured_position = z #Updating last measured position value
+        else:
+            self.last_measured_position = z
+        ma = self.acceleration_ma()
+        if ma is not None:
+            self.vel_std = ma*self.vel_std_const
+        print("vel_std=", self.vel_std)
+        """
+
 
 
 
@@ -255,6 +375,9 @@ class ParticleFilterGH(ParticleFilter):
         self.update(z)
         self.state_estimate()
         self.resample()
+
+
+
 
 
 
