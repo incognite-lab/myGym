@@ -23,7 +23,6 @@ class Reward:
         self.num_networks = env.num_networks
         #self.check_num_networks()
         self.network_rewards = [0] * self.num_networks
-        self.use_magnet = True
 
     def network_switch_control(self, observation):
         if self.env.num_networks <= 1:
@@ -70,7 +69,7 @@ class Reward:
             plt.close()
 
     def get_magnetization_status(self):
-        return self.use_magnet
+        return self.env.robot.use_magnet
     
 
 
@@ -93,7 +92,6 @@ class Protorewards(Reward):
         self.was_near = False
         self.current_network = 0
         self.network_rewards = [0] * self.num_networks
-        self.use_magnet = False
         self.has_left = False
         self.last_traj_idx = 0
         self.last_traj_dist = 0
@@ -105,7 +103,7 @@ class Protorewards(Reward):
         self.approached_threshold = 0.05
         self.opengr_threshold = 0.07
         self.closegr_threshold = 0.001
-        self.near_threshold = 0.05
+        self.near_threshold = 0.1
         self.lift_threshold = 0.1
         self_above_threshold = 0.1
     
@@ -165,6 +163,26 @@ class Protorewards(Reward):
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
         reward = (self.last_approach_dist - dist) + ((self.last_grip_dist - gripdist)*0.2)
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8,0.55], lifeTime=0.5, textColorRGB=[0,125,0])     
+        self.last_approach_dist = dist
+        self.last_grip_dist = gripdist
+        self.network_rewards[self.current_network] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,0.6,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        print(self.last_approach_dist)
+        return reward
+    
+    def drop_compute(self, gripper, object,gripper_states):
+        self.env.p.addUserDebugText("drop object", [0.63,1,0.5], lifeTime=0.5, textColorRGB=[125,0,0])
+        self.env.robot.set_magnetization(False)
+        self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
+        dist = self.task.calc_distance(gripper[:3], object[:3])
+        gripdist = sum(gripper_states)
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.65,1,0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        if self.last_approach_dist is None:
+            self.last_approach_dist = dist
+        if self.last_grip_dist is None:
+            self.last_grip_dist = gripdist
+        reward = (self.last_approach_dist - dist) + ((gripdist - self.last_grip_dist)*0.2)
         self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8,0.55], lifeTime=0.5, textColorRGB=[0,125,0])     
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
@@ -303,9 +321,9 @@ class Protorewards(Reward):
         return False
     
     def gripper_closed(self, gripper_states):
-        print(self.env.robot.gripper_active)
+        #print(self.env.robot.gripper_active)
         if sum(gripper_states) <= self.closegr_threshold:
-            self.env.robot.magnetize_object(self.env.env_objects["goal_state"])
+            self.env.robot.grasp_object(self.env.env_objects["actual_state"])
             self.env.robot.set_magnetization(True)
             print("Gripper closed and magnetized")
             return True
@@ -403,30 +421,48 @@ class AaGaM(Protorewards):
     
     def decide(self, goal_position, object_position, gripper_position, gripper_states):
         print(self.get_magnetization_status())
-        if self.gripper_approached_object(gripper_position, object_position):
-            if self.gripper_opened(gripper_states):
-                self.current_network = 1
-                #self.task.check_goal()
-            if self.current_network == 1:
+        if self.current_network == 0:
+            if self.gripper_approached_object(gripper_position, object_position):
+                if self.gripper_opened(gripper_states):
+                    self.current_network = 1
+                    #self.task.check_goal()
+        if self.current_network == 1:
+            if self.gripper_approached_object(gripper_position, object_position):
                 if self.gripper_closed(gripper_states):
                     self.current_network = 2
-            if self.current_network == 2:
-                if self.object_near_goal(object_position, goal_position):
-                    self.task.check_goal()
+        if self.current_network == 2:
+            if self.object_near_goal(object_position, goal_position):
+                print("Goal reached")
+                self.task.check_goal()
 
         return self.current_network
 
 class AaGaMaD(Protorewards):
     
     def compute(self, observation=None):
-        owner = 0
-        goal_position, object_position, gripper_position = self.get_positions(observation)
-        target = [[gripper_position,object_position]][owner]
-        reward = [self.approach_compute][owner](*target)
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+        owner = self.decide(goal_position, object_position, gripper_position, gripper_states)
+        target = [[gripper_position,object_position,gripper_states], [gripper_position,object_position,gripper_states], [object_position,goal_position,gripper_states]][owner]
+        reward = [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute][owner](*target)
         self.last_owner = owner
-        self.task.check_goal()
         self.rewards_history.append(reward)
         return reward
+    
+    def decide(self, goal_position, object_position, gripper_position, gripper_states):
+        print(self.get_magnetization_status())
+        if self.current_network == 0:
+            if self.gripper_approached_object(gripper_position, object_position):
+                if self.gripper_opened(gripper_states):
+                    self.current_network = 1
+                    #self.task.check_goal()
+        if self.current_network == 1:
+            if self.gripper_approached_object(gripper_position, object_position):
+                if self.gripper_closed(gripper_states):
+                    self.current_network = 2
+        if self.current_network == 2:
+            if self.object_near_goal(object_position, goal_position):
+                print("Goal reached")
+                self.task.check_goal()
 
 class AaGaMaDaW(Protorewards):
     
