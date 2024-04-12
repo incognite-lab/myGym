@@ -11,9 +11,9 @@ import sys, shutil
 from datetime import datetime
 import pkg_resources
 currentdir = pkg_resources.resource_filename("myGym", "envs")
+from myGym.envs.vision_module import VisionModule
 
-
-class EnvObject:
+class EnvObject(VisionModule):
     """
     Env object class for dynamic object in PyBullet environment
 
@@ -24,14 +24,15 @@ class EnvObject:
         :param fixed: (bool) Whether the object should have fixed position and orientation
         :param pybullet_client: Which pybullet client the environment should refere to in case of parallel existence of multiple instances of this environment
     """
-    def __init__(self, urdf_path, position=[0, 0, 0],
+    def __init__(self, urdf_path, env, position=[0, 0, 0],
                  orientation=[0, 0, 0, 0], fixed=False,
-                 pybullet_client=None):
+                 pybullet_client=None, observation="ground_truth", vae_path=None, yolact_path=None, yolact_config=None, is_robot=False):
         self.p = pybullet_client
         self.urdf_path = urdf_path
         self.init_position = position
         self.init_orientation = orientation
         self.fixed = fixed
+        self.is_robot = is_robot
         self.name = os.path.splitext(os.path.basename(self.urdf_path))[0]
         self.virtual = True if "virtual" in self.name else False
         self.object_ldamping = 1
@@ -40,7 +41,7 @@ class EnvObject:
         self.object_rfriction = 100
         self.object_mass = 10
         self. object_stiffness = 1
-        if not self.virtual:
+        if not self.virtual and not self.is_robot:    
             self.uid = self.load()
             self.bounding_box = self.get_bounding_box()
             self.centroid = self.get_centroid()
@@ -50,6 +51,8 @@ class EnvObject:
             self.centroid = None
         self.debug_line_ids = []
         self.cuboid_dimensions = None
+        super(EnvObject, self).__init__(observation=observation, env=env, 
+                                        vae_path=vae_path, yolact_path=yolact_path, yolact_confi = yolact_config)
 
     def set_color(self, color):
         """
@@ -317,6 +320,43 @@ class EnvObject:
             :return self.uid: Object's unique ID
         """
         return self.uid
+    
+    def get_obj_position_for_obs(self, img=None, depth=None):
+        """
+        Get object position in world coordinates of environment for observation (i.e. from Yolact)
+
+        Parameters:
+            :param obj: (object) Object to find its mask and centroid
+            :param img: (array) 2D input image to inference of vision model
+            :param depth: (array) Depth input image to inference of vision model
+        Returns:
+            :return position: (list) Centroid of object in world coordinates
+        """
+        return super().get_obj_position_for_obs(self, img, depth)
+    
+    def get_obj_orientation_for_obs(self, img=None):
+        """
+        Get object orientation in world coordinates of environment for observation (i.e. from Yolact)
+
+        Parameters:
+            :param obj: (object) Object to find its mask and centroid
+            :param img: (array) 2D input image to inference of vision model
+        Returns:
+            :return orientation: (list) Orientation of object in world coordinates
+        """
+        return super().get_obj_orientation_for_obs(self, img)
+
+    def get_obj_bbox_for_obs(self, img=None):
+        """
+        Get bounding box of an object for observation (i.e. from Yolact)
+
+        Parameters:
+            :param obj: (object) Object to find its bounding box
+            :param img: (array) 2D input image to inference of vision model
+        Returns:
+            :return bbox: (list) Bounding box of object
+        """
+        return super().get_obj_bbox_for_obs(self, img)
 
     @staticmethod
     def get_random_object_position(boarders):

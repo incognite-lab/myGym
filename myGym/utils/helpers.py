@@ -127,3 +127,17 @@ def get_robot_dict():
                               'hsr': {'path': '/envs/robots/hsr/hsrb4s.urdf', 'position': np.array([0.0, -0.15, -0.4]), 'orientation': [0.0, 0.0, 0 * np.pi]},
                              }
     return r_dict
+
+
+def get_module_type(observation):
+    """
+    Get source of the information from environment (ground_truth, yolact, vae)
+
+    Returns:
+        :return source: (string) Source of information
+    """
+    if observation["actual_state"] not in ["vae", "yolact", "voxel", "dope"]:
+        src = "ground_truth_6D" if "6D" in observation["actual_state"] else "ground_truth"
+    else:
+        src = observation["actual_state"]
+    return src

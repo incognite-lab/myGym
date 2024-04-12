@@ -19,20 +19,6 @@ from myGym.vae.vis_helpers import load_checkpoint
 from myGym.vae import  sample
 
 
-def get_module_type(observation):
-    """
-    Get source of the information from environment (ground_truth, yolact, vae)
-
-    Returns:
-        :return source: (string) Source of information
-    """
-    if observation["actual_state"] not in ["vae", "yolact", "voxel", "dope"]:
-        src = "ground_truth_6D" if "6D" in observation["actual_state"] else "ground_truth"
-    else:
-        src = observation["actual_state"]
-    return src
-
-
 class VisionModule:
     """
     Vision class that retrieves information from environment based on a visual subsystem (YOLACT, VAE) or ground truth
@@ -44,8 +30,8 @@ class VisionModule:
         :param yolact_path: (string) Path to a trained Yolact in 3dvu reward type
         :param yolact_config: (string) Path to saved Yolact config obj or name of an existing one in the data/Config script or None for autodetection
     """
-    def __init__(self, observation={}, env=None, vae_path=None, yolact_path=None, yolact_config=None):
-        self.src = get_module_type(observation)
+    def __init__(self, observation="ground_truth", env=None, vae_path=None, yolact_path=None, yolact_config=None):
+        self.src = observation
         self.env = env
         self.vae_embedder = None
         self.vae_imsize = None
@@ -112,7 +98,7 @@ class VisionModule:
             else:
                 raise Exception("You need to provide image argument for segmentation")
 
-    def get_obj_bbox(self, obj=None, img=None):
+    def get_obj_bbox_for_obs(self, obj=None, img=None):
         """
         Get bounding box of an object from 2D image
 
@@ -145,7 +131,7 @@ class VisionModule:
         else:
             raise Exception("{} module does not provide bounding boxes!".format(self.src))
 
-    def get_obj_position(self, obj=None, img=None, depth=None):
+    def get_obj_position_for_obs(self, obj=None, img=None, depth=None):
         """
         Get object position in world coordinates of environment from 2D and depth image
 
@@ -186,7 +172,7 @@ class VisionModule:
                 raise Exception("You need to provide image argument to infer object position")
         return
 
-    def get_obj_orientation(self, obj=None, img=None):
+    def get_obj_orientation_for_obs(self, obj=None, img=None):
         """
         Get object orientation in world coordinates of environment from 2D image
 
@@ -209,7 +195,7 @@ class VisionModule:
                 raise Exception("You need to provide image argument to infer orientation")
         return
 
-    def vae_generate_sample(self):
+    def vae_generate_sample_for_obs(self):
         """
         Generate image as a sample of VAE latent representation
 
@@ -222,7 +208,7 @@ class VisionModule:
         dec_img = np.asarray((img * 255).cpu().detach(), dtype="uint8")
         return dec_img
 
-    def encode_with_vae(self, imgs, task="reach", decode=0):
+    def encode_with_vae_for_obs(self, imgs, task="reach", decode=0):
         """
         Encode the input image into an n-dimensional latent variable using VAE model
 

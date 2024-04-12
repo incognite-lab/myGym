@@ -17,7 +17,7 @@ from myGym.utils.helpers import get_workspace_dict
 import pkg_resources
 from myGym.envs.human import Human
 import myGym.utils.colors as cs
-from myGym.envs.vision_module import get_module_type
+from myGym.utils.helpers import get_module_type
 from myGym.envs.natural_language import NaturalLanguage
 
 currentdir = pkg_resources.resource_filename("myGym", "envs")
@@ -112,6 +112,7 @@ class GymEnv(CameraEnv):
         self.task_type              = task_type
         self.task_objects_dict     = task_objects
         self.framework = framework
+        self.vision_source = get_module_type(self.obs_type)
         self.task_objects = []
         self.env_objects = []
         self.vae_path = vae_path
@@ -190,10 +191,10 @@ class GymEnv(CameraEnv):
         info_dict = self.obs_type
         for key in ["actual_state", "goal_state"]:
             if "endeff" in info_dict[key]:
-                    xyz = self.vision_module.get_obj_position(self.env.task_objects["robot"], self.image, self.depth) #@TODO
+                    xyz = self.env.task_objects["robot"].get_obj_position_for_obs(self.image,self.depth)
                     xyz = xyz[:3] if "xyz" in info_dict else xyz
             else:
-                    xyz = self.vision_module.get_obj_position(self.env.task_objects[key],self.image,self.depth) # @TODO
+                    xyz = self.env.task_objects[key].get_obj_position_for_obs(self.image,self.depth)
             info_dict[key] = xyz
         self._observation = self.get_additional_obs(info_dict, self.env.task_objects["robot"])
         return self._observation
@@ -219,7 +220,8 @@ class GymEnv(CameraEnv):
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
                   "init_joint_poses": self.robot_init_joint_poses, "max_velocity": self.max_velocity,
                   "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
-                  "pybullet_client": self.p}
+                  "pybullet_client": self.p, "env": self, "observation":self.vision_source, "vae_path":self.vae_path, 
+                  "yolact_path":self.yolact_path, "yolact_config": self.yolact_config}
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
         if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
 
@@ -233,7 +235,7 @@ class GymEnv(CameraEnv):
     
     def _load_static_scene_urdf(self, path, name, fixedbase=True):
         transform = self.workspace_dict[self.workspace]['transform']
-        object = env_object.EnvObject(pkg_resources.resource_filename("myGym", os.path.join("envs", path)), transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase)
+        object = env_object.EnvObject(pkg_resources.resource_filename("myGym", os.path.join("envs", path)), self, transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase, observation=self.vision_source, observation=self.vision_source, vae_path=self.vae_path, yolact_path=self.yolact_path, yolact_config=self.yolact_config)
         self.static_scene_objects[name] = object
         return object.uid
 
@@ -494,10 +496,10 @@ class GymEnv(CameraEnv):
             elif key == "joints_angles":
                 info["additional_obs"]["joints_angles"] = self.robot.get_joints_states()
             elif key == "endeff_xyz":
-                info["additional_obs"]["endeff_xyz"] = self.vision_module.get_obj_position(robot, self.image, self.depth)[:3]  #@TODO
+                info["additional_obs"]["endeff_xyz"] = self.robot.get_obj_position_for_obs(self.image, self.depth)[:3]  
             elif key == "endeff_6D":
-                info["additional_obs"]["endeff_6D"] = list(self.vision_module.get_obj_position(robot, self.image, self.depth)) \
-                                                      + list(self.vision_module.get_obj_orientation(robot))  # @TODO
+                info["additional_obs"]["endeff_6D"] = list(self.robot.get_obj_position_for_obs(self.image, self.depth)) \
+                                                      + list(self.robot.get_obj_orientation_for_obs(self.image)) 
             elif key == "touch":
                 if hasattr(self.env.env_objects["actual_state"], "magnetized_objects"):
                     obj_touch = self.env.env_objects["goal_state"]
@@ -506,8 +508,7 @@ class GymEnv(CameraEnv):
                 touch = self.env.robot.touch_sensors_active(obj_touch) or len(self.env.robot.magnetized_objects)>0
                 info["additional_obs"]["touch"] = [1] if touch else [0]
             elif key == "distractor":
-                poses = [self.vision_module.get_obj_position(self.env.task_objects["distractor"][x],\
-                                    self.image, self.depth) for x in range(len(self.env.task_objects["distractor"]))]
+                poses = [self.env.task_objects["distractor"][x].get_obj_position_for_obs(self.image, self.depth) for x in range(len(self.env.task_objects["distractor"]))]
                 info["additional_obs"]["distractor"] = [p for sublist in poses for p in sublist]
         return info
 
@@ -658,7 +659,7 @@ class GymEnv(CameraEnv):
         fixed = True if obj_info["fixed"] == 1 else False
         pos = env_object.EnvObject.get_random_object_position(obj_info["sampling_area"])
         orn = env_object.EnvObject.get_random_z_rotation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
-        object = env_object.EnvObject(obj_info["urdf"], pos, orn, pybullet_client=self.p, fixed=fixed)
+        object = env_object.EnvObject(obj_info["urdf"], self, pos, orn, pybullet_client=self.p, fixed=fixed, observation=self.vision_source, vae_path=self.vae_path, yolact_path=self.yolact_path, yolact_config=self.yolact_config)
         if self.color_dict: object.set_color(self.color_of_object(object))
         return object
 
