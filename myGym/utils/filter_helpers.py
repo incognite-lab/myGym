@@ -106,16 +106,19 @@ def add_rotation_noise(rotations, sigma_q):
     noisy_rotations = []
     for i in range(len(rotations)):
         rot = rotations[i]
-        q = np.concatenate((rot.imaginary, [rot.scalar])).flatten()
-        rot_euler = np.array(p.getEulerFromQuaternion(q)) #Conversion to Euler angles
-        print("Adding noise to one angle of size:", np.random.randn()*sigma_q)
-        print("Adding noise to one angle of size:", np.random.randn() * sigma_q)
-        print("Adding noise to one angle of size:", np.random.randn() * sigma_q)
-        rot_euler[0] += np.random.randn()*sigma_q
-        rot_euler[1] += np.random.randn()*sigma_q
-        rot_euler[2] += np.random.randn()*sigma_q
-        q_noisy = np.array(p.getQuaternionFromEuler(rot_euler)) #Conversion back to quaternion
-        quat_noisy = Quaternion(imaginary = q_noisy[:3], real = q_noisy[3])
+        #q = np.concatenate((rot.imaginary, [rot.scalar])).flatten()
+        #rot_euler = np.array(p.getEulerFromQuaternion(q)) #Conversion to Euler angles
+        #print("Adding noise to one angle of size:", np.random.randn()*sigma_q)
+        #print("Adding noise to one angle of size:", np.random.randn() * sigma_q)
+        #print("Adding noise to one angle of size:", np.random.randn() * sigma_q)
+        #rot_euler[0] += np.random.randn()*sigma_q
+        #rot_euler[1] += np.random.randn()*sigma_q
+        #rot_euler[2] += np.random.randn()*sigma_q
+        #q_noisy = np.array(p.getQuaternionFromEuler(rot_euler)) #Conversion back to quaternion
+        #quat_noisy = Quaternion(imaginary = q_noisy[:3], real = q_noisy[3])
+        w, x, y, z = np.random.randn()*sigma_q, np.random.randn()*sigma_q, np.random.randn()*sigma_q, np.random.randn()*sigma_q
+        noise_q = Quaternion(w, x, y, z)
+        quat_noisy = rot + noise_q
         noisy_rotations.append(quat_noisy)
     return noisy_rotations
 
@@ -129,6 +132,7 @@ def visualize_estimate(particle_filter):
 
 
 def visualize_trajectory(ground_truth, noisy_data):
+    """Visualizes the trajectory of the ground truth and noisy data."""
     if np.linalg.norm(ground_truth) > 0.1:
         for i in range(ground_truth.shape[0] - 1):
             p.addUserDebugLine(noisy_data[i, :], noisy_data[i+1, :])
@@ -150,9 +154,9 @@ def move_particles(ids, positions):
         p.resetBasePositionAndOrientation(ids[i], positions[i, :3], [1, 0, 0, 0])
 
 
-def move_estimate(id, position):
+def move_estimate(id, position, rotation):
     """Moves estimate sphere in visual environment"""
-    p.resetBasePositionAndOrientation(id, position, [1, 0, 0, 0])
+    p.resetBasePositionAndOrientation(id, position, [rotation[3], rotation[0], rotation[1], rotation[2]])
 
 
 def visualize_env(arg_dict):

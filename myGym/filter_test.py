@@ -22,9 +22,10 @@ from pyquaternion import Quaternion
 import sys
 from scipy.interpolate import splprep, splev
 import matplotlib.pyplot as plt
-from myGym.envs.particle_filter import ParticleFilterGH, ParticleFilter6D, myKalmanFilter, ParticleFilterWithKalman
+from myGym.envs.particle_filter import *
 from myGym.utils.filter_helpers import *
 
+from myGym.envs.trajectory_generator import *
 
 #Global variables
 velocity = 0.2 #Average object velocity in m/s
@@ -230,10 +231,45 @@ def visualize_rot_errors(rotations, noisy_rotations, estimates, filename):
     diffs_est = []
     filename += "rot"
     for i in range(len(rotations)):
-
         diffs_meas.append(Quaternion.absolute_distance(rotations[i], noisy_rotations[i])**2)
-        diffs_est.append(Quaternion.absolute_distance(rotations[i], euler_to_quat(estimates[i]))**2)
+        diffs_est.append(Quaternion.absolute_distance(rotations[i], Quaternion(estimates[i]))**2)
+    plot_rot_marginals(rotations, noisy_rotations, estimates)
     plot_comparison(diffs_meas, diffs_est, "Rotation error evaluation", filename)
+
+
+
+def plot_rot_marginals(rotations, noisy_rotations, estimates):
+    """Creates 4 plots for each Quaternion element comparing ground truth, measurements and estimates"""
+
+    k = np.arange(len(rotations))
+    fig, axs = plt.subplots(2, 2)
+    gt = np.zeros((len(rotations), 4))
+    meas = np.zeros((len(rotations), 4))
+    est = np.zeros((len(rotations), 4))
+    for i in range(len(rotations)):
+        gt[i, :] = rotations[i].elements
+        meas[i, :] = noisy_rotations[i].elements
+        est[i, :] = estimates[i]
+    multiplot_func(gt, meas, est, axs, k)
+    #plt.plot(k, diffs_meas, label="Measurement SE")
+    #plt.title(title)
+    plt.legend()
+    plt.show()
+
+
+def multiplot_func(gt, meas, est, axs, k):
+    axs[0, 0].plot(k, gt[:, 0], label="Ground truth w")
+    axs[0, 0].plot(k, meas[:, 0], label="Measurement w")
+    axs[0, 0].plot(k, est[:, 0], label="Estimated w")
+    axs[0, 1].plot(k, gt[:, 1], label="Ground truth x")
+    axs[0, 1].plot(k, meas[:, 1], label="Measurement x")
+    axs[0, 1].plot(k, est[:, 1], label="Estimated x")
+    axs[1, 0].plot(k, gt[:, 2], label="Ground truth y")
+    axs[1, 0].plot(k, meas[:, 2], label="Measurement y")
+    axs[1, 0].plot(k, est[:, 2], label="Estimated y")
+    axs[1, 1].plot(k, gt[:, 3], label="Ground truth z")
+    axs[1, 1].plot(k, meas[:, 3], label="Measurement z")
+    axs[1, 1].plot(k, est[:, 3], label="Estimated z")
 
 
 def create_paramstring(params, filter):
@@ -267,26 +303,27 @@ def initialize_filter(type):
     position_filter, rotation_filter = None, None
     if type == "1": #Particle GH
         position_filter = ParticleFilterGH(2500, 0.02, 0.02, g= 0.7, h = 0.4)
-        rotation_filter = ParticleFilterGH(2500, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
+        rotation_filter = ParticleFilterGHRot(2500, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
     elif type == "2": #Particle 3D
-        position_filter = ParticleFilter6D(2500, 0.02, 0.02, 0.04)
-        rotation_filter = ParticleFilter6D(2500, 0.02, np.deg2rad(1), np.deg2rad(4))
+        position_filter = ParticleFilter6D(20, 0.02, 0.02, 0.04)
+        rotation_filter = ParticleFilter6DRot(2500, 0.02, np.deg2rad(1), np.deg2rad(4))
     elif type == "3":
         position_filter = ParticleFilterWithKalman(2500, 0.02, 0.02, Q= 0.01/dt)
-        rotation_filter = ParticleFilterWithKalman(2500, np.deg2rad(1), np.deg2rad(4))
+        rotation_filter = ParticleFilterWithKalmanRot(2500, np.deg2rad(1), np.deg2rad(4))
     elif type == "4": #Kalman
         x = np.array([0., 0., 0., 0., 0., 0.]) # [x, dx/dt, y, dy/dt, z, dz/dt]
+        xr = np.array([0., 0., 0., 0., 0., 0., 0., 0.])
         P = np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
         #P = np.diag([100., 25., 64, 0.1, 0.1, 0.1])
         Q = 0.08
         R = 0.02
         var_angle = np.deg2rad(90)
-        var_angle_vel = np.deg2rad(2)
-        Pr= np.diag([var_angle, var_angle_vel, var_angle, var_angle_vel, var_angle, var_angle_vel])
+        var_angle_vel = np.deg2rad(20)
+        Pr= np.diag([var_angle, var_angle_vel, var_angle, var_angle_vel, var_angle, var_angle_vel, var_angle, var_angle_vel])
         Qr = np.deg2rad(4)
         Rr = np.deg2rad(4)
         position_filter = myKalmanFilter(x, P=P, Q=Q, R=R)
-        rotation_filter = myKalmanFilter(x, P=Pr, Q=Qr, R=Rr)
+        rotation_filter = myKalmanFilterRot(xr, P=Pr, Q=Qr, R=Rr)
     else:
         print("Entered wrong input type")
         sys.exit()
@@ -299,16 +336,14 @@ def filter_without_animation(noisy_data, noisy_rotations, type):
     n = noisy_data.shape[0] #Number of points
     for iter in range(n):
         measurement = noisy_data[iter, :]
-        rot_meas = quat_to_euler(noisy_rotations[iter])
+        rot_meas = noisy_rotations[iter]
         if iter == 0:
-            print(measurement)
             position_filter.apply_first_measurement(measurement)
             position_filter.state_estimate()
-            rotation_filter.apply_first_measurement(rot_meas)
+            rotation_filter.apply_first_measurement(rot_meas.elements)
             rotation_filter.state_estimate()
-            print(position_filter.estimate)
             continue
-        rotation_filter.filter_step(rot_meas)
+        rotation_filter.filter_step(rot_meas.elements)
         position_filter.filter_step(measurement)
     return position_filter, rotation_filter
 
@@ -327,7 +362,7 @@ def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, pause_length,
 
     for i in range(n):
         measurement = noisy_data[i, :]
-        rot_meas = quat_to_euler(noisy_rotations[i])
+        rot_meas = noisy_rotations[i]
         env.task_objects["actual_state"].set_position(ground_truth[i, :])
         env.task_objects["goal_state"].set_position(measurement)
 
@@ -335,63 +370,91 @@ def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, pause_length,
             #Initialize particle filter based on first measurement
             position_filter.apply_first_measurement(measurement)
             position_filter.state_estimate()
-            particle_batch = visualize_particles(position_filter)
+            if type != "4":
+                particle_batch = visualize_particles(position_filter)
             estimate_id = visualize_estimate(position_filter)
-            rotation_filter.apply_first_measurement(rot_meas)
+            rotation_filter.apply_first_measurement(rot_meas.elements)
             rotation_filter.state_estimate()
             continue
 
         #1) Predict movement
         position_filter.predict()
-        move_particles(particle_batch, position_filter.particles)
+        if type != "4":
+            move_particles(particle_batch, position_filter.particles)
         time.sleep(pause_length)
 
         #2) Update based on measurement
         position_filter.update(measurement)
-        move_particles(particle_batch, position_filter.particles)
+        if type != "4":
+            move_particles(particle_batch, position_filter.particles)
         time.sleep(pause_length)
 
+        do_resample = True
         #3) Compute estimate
+        if type != "4":
+            if position_filter.neff() < position_filter.num_particles/30:
+                position_filter.resample()
+                position_filter.reapply_measurement(measurement)
+                do_resample = False
         position_filter.state_estimate()
-        move_particles(particle_batch, position_filter.particles)
+        if type != "4":
+            move_particles(particle_batch, position_filter.particles)
         time.sleep(pause_length)
-        move_estimate(estimate_id, position_filter.estimate)
+        move_estimate(estimate_id, position_filter.estimate, rotation_filter.estimate)
         time.sleep(pause_length)
 
         #4) Resample particles
-        position_filter.resample()
-        move_particles(particle_batch, position_filter.particles)
+        if type != "4":
+            if position_filter.neff() < position_filter.num_particles/2 and do_resample:
+                position_filter.resample()
+            move_particles(particle_batch, position_filter.particles)
         time.sleep(pause_length)
 
         #5) Rotation filter complete step (visualization of rotation particles doesn't make sense)
-        #rotation_filter.filter_step(rot_meas)
         rot = rotations[i]
         noisy_rot = noisy_rotations[i]
-        q = np.concatenate((rot.imaginary, [rot.scalar])).flatten()
-        noisy_q = np.concatenate((noisy_rot.imaginary, [noisy_rot.scalar])).flatten()
+        q = [rot.elements[3], rot.elements[0], rot.elements[1], rot.elements[2]]
+        noisy_q = [noisy_rot.elements[3], noisy_rot.elements[0], noisy_rot.elements[1], noisy_rot.elements[2]]
         #est_rot = euler_to_quat(rotation_filter.estimate)
         #est_q = np.concatenate((est_rot.imaginary, [est_rot.scalar])).flatten()
         #p.resetBasePositionAndOrientation(estimate_id, position_filter.estimate, est_q)
         env.task_objects["actual_state"].set_orientation(q)
         env.task_objects["goal_state"].set_orientation(noisy_q)
+        rotation_filter.filter_step(noisy_rot.elements)
 
         action = [0, 0, 0]
         obs, reward, done, info = env.step(action) #Necessary step for animation to continue
         time.sleep(0.001)
-    return position_filter
+    return position_filter, rotation_filter
 
 
 if __name__ == "__main__":
+
     params = get_input()
-    ground_truth, noisy_data, rotations, noisy_rotations = create_trajectory_points(params)
+    #ground_truth, noisy_data, rotations, noisy_rotations = create_trajectory_points(params)
+    generator = LineGenerator(0.02, 5, 0.2, [(-2, 2), (-2, 2), (0, 4)], accelerate=True)
+    #generator2 = CircleGenerator(0.02)
+    #generator3 = SplineGenerator(0.02, 4, 0.35)
+
+    #ground_truth, rotations = generator2.generate_1_circle()
+    #ground_truth = generator2.generate_1_circle()
+    ground_truth, rotations = generator.generate_1_trajectory()
+
+    noisy_data = ground_truth
+    noisy_rotations = rotations
     arg_dict = get_arg_dict()
+    #params = {"vis": "1"}
     if params["vis"] == "1":
         env = visualize_env(arg_dict)
         env.reset()
-        visualize_trajectory(ground_truth, noisy_data)
-        resulting_pos_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, float(params["pause"]), type =params["filter_type"])
+        visualize_trajectory(ground_truth, ground_truth)
+        #time.sleep(10)
+        #sys.exit()
+        resulting_pos_filter, resulting_rot_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, float(params["pause"]), type =params["filter_type"])
         filenameP = create_paramstring(params, resulting_pos_filter)
         visualize_errors(ground_truth, noisy_data, resulting_pos_filter.estimates, filenameP)
+        filenameR = create_paramstring(params, resulting_rot_filter)
+        visualize_rot_errors(rotations, noisy_rotations, resulting_rot_filter.estimates, filenameR)
     else:
         resulting_pos_filter, resulting_rot_filter = filter_without_animation(noisy_data, noisy_rotations, type = params["filter_type"])
         filenameP = create_paramstring(params, resulting_pos_filter)
