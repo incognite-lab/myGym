@@ -151,6 +151,25 @@ class Protorewards(Reward):
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,0.6,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
     
+    def withdraw_compute(self, gripper, object,gripper_states):
+        self.env.p.addUserDebugText("withdraw object", [0.63,1,0.5], lifeTime=0.5, textColorRGB=[125,0,0])
+        self.env.robot.set_magnetization(False)
+        self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
+        dist = self.task.calc_distance(gripper[:3], object[:3])
+        gripdist = sum(gripper_states)
+        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.65,1,0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        if self.last_approach_dist is None:
+            self.last_approach_dist = dist
+        if self.last_grip_dist is None:
+            self.last_grip_dist = gripdist
+        reward = (dist - self.last_approach_dist) + ((gripdist - self.last_grip_dist)*0.2)
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8,0.55], lifeTime=0.5, textColorRGB=[0,125,0])     
+        self.last_approach_dist = dist
+        self.last_grip_dist = gripdist
+        self.network_rewards[self.current_network] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,0.6,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        return reward
+    
     def grasp_compute(self, gripper, object,gripper_states):
         self.env.p.addUserDebugText("grasp object", [0.63,1,0.5], lifeTime=0.5, textColorRGB=[125,0,0])
         self.env.robot.set_magnetization(False)
@@ -173,7 +192,7 @@ class Protorewards(Reward):
     
     def drop_compute(self, gripper, object,gripper_states):
         self.env.p.addUserDebugText("drop object", [0.63,1,0.5], lifeTime=0.5, textColorRGB=[125,0,0])
-        self.env.robot.set_magnetization(False)
+        #self.env.robot.set_magnetization(False)
         self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
         dist = self.task.calc_distance(gripper[:3], object[:3])
         gripdist = sum(gripper_states)
@@ -190,42 +209,6 @@ class Protorewards(Reward):
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,0.6,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         print(self.last_approach_dist)
         return reward
-
-
-    def transform_compute(self, object, goal, trajectory, magnetization = True):
-        """Calculate reward based on following a trajectory
-        params: object: self-explanatory
-                goal: self-explanatory
-                trajectory: (np.array) 3D trajectory, lists of points x, y, z
-                magnetization: (boolean) sets magnetization on or off
-        Reward is calculated based on distance of object from goal and square distance of object from trajectory.
-        That way, object tries to approach goal while trying to stay on trajectory path.
-        """
-        self.env.robot.set_magnetization(magnetization)
-        self.env.p.addUserDebugText("transform", [0.7, 0.7, 0.7], lifeTime=0.1, textColorRGB=[125, 125, 0])
-        dist_g = self.task.calc_distance(object, goal)
-        if self.last_place_dist is None:
-            self.last_place_dist = dist_g
-
-        reward_g_dist = self.last_place_dist - dist_g #distance from goal
-        self.env.p.addUserDebugText(f"RewardDist:{reward_g_dist}", [0.61, 1, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
-
-        pos = object[:3]
-        dist_t, self.last_traj_idx = self.task.trajectory_distance(trajectory, pos, self.last_traj_idx, 10)
-
-        self.env.p.addUserDebugText(f"Traj_Dist:{dist_t}", [0.61, 1, 0.45], lifeTime=0.5, textColorRGB=[0, 125, 0])
-        if self.last_traj_dist is None:
-            self.last_traj_dist = dist_t
-        reward_t_dist = self.last_traj_dist - dist_t #distance from trajectory
-        reward = reward_g_dist + 4*reward_t_dist
-        self.env.p.addUserDebugLine(trajectory[:3,0], trajectory[:3, -1], lifeTime = 0.1)
-        self.env.p.addUserDebugText(f"reward:{reward}", [0.61, 1, 0.35], lifeTime=0.5, textColorRGB=[0, 125, 0])
-
-        self.last_place_dist = dist_g
-        self.last_traj_dist = dist_t
-        self.network_rewards[self.current_network] += reward
-        return reward
-
 
     def move_compute(self, object, goal, gripper_states):
         self.env.robot.set_magnetization(True)
@@ -272,22 +255,75 @@ class Protorewards(Reward):
         self.network_rewards[self.current_network] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
-    
-    def leave_compute(self, gripper, object):
-        self.env.p.addUserDebugText("leave", [0.7,0.7,0.7], lifeTime=0.1, textColorRGB=[125,125,0])
-        self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
-        self.env.robot.set_magnetization(False)
-        self.env.robot.release_all_objects()
-        dist = self.task.calc_distance(gripper[:3], object[:3])
-        self.env.p.addUserDebugText("Distance: {}".format(round(dist,3)), [0.65,1,0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
-        if self.last_leave_dist is None:
-            self.last_leave_dist = dist
-        reward = dist - self.last_leave_dist
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.61,1,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
-        self.last_leave_dist = dist
+
+    def transform_compute(self, object, goal, trajectory, magnetization = True):
+        """Calculate reward based on following a trajectory
+        params: object: self-explanatory
+                goal: self-explanatory
+                trajectory: (np.array) 3D trajectory, lists of points x, y, z
+                magnetization: (boolean) sets magnetization on or off
+        Reward is calculated based on distance of object from goal and square distance of object from trajectory.
+        That way, object tries to approach goal while trying to stay on trajectory path.
+        """
+        self.env.robot.set_magnetization(magnetization)
+        self.env.p.addUserDebugText("transform", [0.7, 0.7, 0.7], lifeTime=0.1, textColorRGB=[125, 125, 0])
+        dist_g = self.task.calc_distance(object, goal)
+        if self.last_place_dist is None:
+            self.last_place_dist = dist_g
+
+        reward_g_dist = self.last_place_dist - dist_g #distance from goal
+        self.env.p.addUserDebugText(f"RewardDist:{reward_g_dist}", [0.61, 1, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
+
+        pos = object[:3]
+        dist_t, self.last_traj_idx = self.task.trajectory_distance(trajectory, pos, self.last_traj_idx, 10)
+
+        self.env.p.addUserDebugText(f"Traj_Dist:{dist_t}", [0.61, 1, 0.45], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        if self.last_traj_dist is None:
+            self.last_traj_dist = dist_t
+        reward_t_dist = self.last_traj_dist - dist_t #distance from trajectory
+        reward = reward_g_dist + 4*reward_t_dist
+        self.env.p.addUserDebugLine(trajectory[:3,0], trajectory[:3, -1], lifeTime = 0.1)
+        self.env.p.addUserDebugText(f"reward:{reward}", [0.61, 1, 0.35], lifeTime=0.5, textColorRGB=[0, 125, 0])
+
+        self.last_place_dist = dist_g
+        self.last_traj_dist = dist_t
         self.network_rewards[self.current_network] += reward
-        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
         return reward
+    
+    def follow_compute(self, object, goal, trajectory, magnetization = True):
+        """Calculate reward based on following a trajectory
+        params: object: self-explanatory
+                goal: self-explanatory
+                trajectory: (np.array) 3D trajectory, lists of points x, y, z
+                magnetization: (boolean) sets magnetization on or off
+        Reward is calculated based on distance of object from goal and square distance of object from trajectory.
+        That way, object tries to approach goal while trying to stay on trajectory path.
+        """
+        self.env.robot.set_magnetization(magnetization)
+        self.env.p.addUserDebugText("transform", [0.7, 0.7, 0.7], lifeTime=0.1, textColorRGB=[125, 125, 0])
+        dist_g = self.task.calc_distance(object, goal)
+        if self.last_place_dist is None:
+            self.last_place_dist = dist_g
+
+        reward_g_dist = self.last_place_dist - dist_g #distance from goal
+        self.env.p.addUserDebugText(f"RewardDist:{reward_g_dist}", [0.61, 1, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
+
+        pos = object[:3]
+        dist_t, self.last_traj_idx = self.task.trajectory_distance(trajectory, pos, self.last_traj_idx, 10)
+
+        self.env.p.addUserDebugText(f"Traj_Dist:{dist_t}", [0.61, 1, 0.45], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        if self.last_traj_dist is None:
+            self.last_traj_dist = dist_t
+        reward_t_dist = self.last_traj_dist - dist_t #distance from trajectory
+        reward = reward_g_dist + 4*reward_t_dist
+        self.env.p.addUserDebugLine(trajectory[:3,0], trajectory[:3, -1], lifeTime = 0.1)
+        self.env.p.addUserDebugText(f"reward:{reward}", [0.61, 1, 0.35], lifeTime=0.5, textColorRGB=[0, 125, 0])
+
+        self.last_place_dist = dist_g
+        self.last_traj_dist = dist_t
+        self.network_rewards[self.current_network] += reward
+        return reward
+
     
 
     # PREDICATES
