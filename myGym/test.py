@@ -273,7 +273,32 @@ def test_env(env, arg_dict):
                 else:    
 
                     if "absolute" in arg_dict["robot_action"]:
-                        action = info['o']["goal_state"]
+                        if env.env.reward.reward_name == "approach":
+                            if env.env.reward.rewards_num <= 2:
+                                action[:3] = info['o']["goal_state"][:3]
+                            else:
+                                action[:3] = info['o']["actual_state"][:3]
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 1
+                                action[4] = 1
+                        if env.env.reward.reward_name == "grasp":
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 0
+                                action[4] = 0
+                        if env.env.reward.reward_name == "move":
+                            action[:3] = info['o']["goal_state"][:3]
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 0
+                                action[4] = 0
+                        if env.env.reward.reward_name == "drop":
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 1
+                                action[4] = 1
+                        if env.env.reward.reward_name == "withdraw":
+                            action[:3] = np.array(info['o']["actual_state"][:3]) + np.array([0,0,0.4])
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 1
+                                action[4] = 1
                     else:
                         print("ERROR - Oraculum mode only works for absolute actions")
                         quit()
