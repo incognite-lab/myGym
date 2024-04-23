@@ -159,18 +159,40 @@ class GymEnv(CameraEnv):
 
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 
-    def _init_task_and_reward(self):
+    def _init_task_and_reward(self, prag_mode: bool = True):
         """Main communicator with rddl. Passes arguments from config to RDDLWorld, tells rddl to make a task sequence and to build
         a scene accordingly, including robot. Work in progress"""
-        self.task = TaskModule(self, self.rddl_config["num_task_range"], self.rddl_config["protoactions"], self.rddl_config["allowed_objects"], self.rddl_config["allowed_predicates"], self.p)
-        # generates task sequence and initializes scene with objects accordingly. The first action is set as self.task.current_task
-        self.task.build_scene_for_task_sequence() # it also loads the robot. must be done his way so that rddl knows about the robot
-        self.reward = self.task.current_task.reward # reward class
-        self.compute_reward = self.task.current_task.reward # function that computes reward (no inputs needed, already bound to the objects)
-        obs_entities = self.reward.get_relevant_entities() # does not work yet, must be done in rddl
-        self.robot = self.task.rddl_robot # robot class as we know it
+        if prag_mode:  # FIXME: some better solution for switching between prag and 'normal' mode
+            self.task = TaskModule(self, self.rddl_config["num_task_range"], self.rddl_config["protoactions"], self.rddl_config["allowed_objects"], self.rddl_config["allowed_predicates"], self.p)
+            # generates task sequence and initializes scene with objects accordingly. The first action is set as self.task.current_task
+            self.task.build_scene_for_task_sequence() # it also loads the robot. must be done his way so that rddl knows about the robot
+            self.reward = self.task.current_task.reward # reward class
+            self.compute_reward = self.task.current_task.reward # function that computes reward (no inputs needed, already bound to the objects)
+            obs_entities = self.reward.get_relevant_entities() # does not work yet, must be done in rddl
+            self.robot = self.task.rddl_robot # robot class as we know it
+        else:
 
+            if self.reward == 'distractor':
+                self.has_distractor = True
+                self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
+            reward_classes = {
+                "1-network": { "A": A,},
+                "2-network": {"AG": AaG},
+                "3-network": {"AGM": AaGaM},
+                "4-network": {"AGMD" : AaGaMaD},
+                "5-network": {"AGMDW" : AaGaMaDaW}}
 
+            scheme = "{}-network".format(str(self.num_networks))
+            assert self.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
+            self.task = t.TaskModule(task_type=self.task_type,
+                                    observation=self.obs_type,
+                                    vae_path=self.vae_path,
+                                    yolact_path=self.yolact_path,
+                                    yolact_config=self.yolact_config,
+                                    distance_type=self.distance_type,
+                                    number_tasks=len(self.task_objects_dict),
+                                    env=self)
+            self.reward = reward_classes[scheme][self.reward](env=self, task=self.task)
 
     def _setup_scene(self):
         """
