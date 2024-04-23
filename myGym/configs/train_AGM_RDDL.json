@@ -12,15 +12,15 @@
     #Robot
     "robot"         :"tiago_dual",
     "robot_action"  :"absolute_gripper",
-    "robot_init"    :[0.3, 0.5, 0.1],
+    "robot_init"    :[0.5, 0.2, 0.4],
     "max_velocity"  :5,
     "max_force"     :300,
     "action_repeat" :1,
     #Task
     "task_type"             :"AGM",
     "natural_language"      :0,
-    "task_objects"          :[{"init":{"obj_name":"apple","fixed":0,"rand_rot":0, "sampling_area":[0.2,0.4,0.4,0.6,-0.15,-0.15]},
-                            "goal":{"obj_name":"tuna_can","fixed":1,"rand_rot":0, "sampling_area":[-0.2,-0.4,0.4,0.6,-0.15,-0.15]}}],
+    "task_objects"          :[{"init":{"obj_name":"apple","fixed":0,"rand_rot":0, "sampling_area":[0.3,0.5,0.4,0.6,-0.15,-0.15]},
+                            "goal":{"obj_name":"tuna_can","fixed":1,"rand_rot":0, "sampling_area":[-0.1,0.1,0.4,0.6,-0.15,-0.15]}}],
     "color_dict"            : {"apple":["green"], "target":["gray"]},
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
     // Observation
@@ -41,7 +41,7 @@
     "train_framework"   :"tensorflow",
     "algo"              :"multippo2",
     "num_networks"      :3,
-    "max_episode_steps" :512000,
+    "max_episode_steps" :512,
     "algo_steps"        :512,
     "steps"             :5000000,
     "pretrained_model"  :null,
