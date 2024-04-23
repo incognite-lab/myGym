@@ -166,12 +166,10 @@ class GymEnv(CameraEnv):
             self.has_distractor = True
             self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
         reward_classes = {
-            "1-network": {"F": F, "A": A, "switch": SwitchRewardNew, "turn": TurnRewardNew, "FM": FaM, "FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
-                          "FMOM": FaMOaM, "FMLFR": FaMaLaFaR},
-            "2-network": {"switch": SwitchRewardNew, "turn": TurnRewardNew, "FM": FaM, "AG": AaG},
-            "3-network": {"FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
-                          "FMOM": FaMOaM, "AGM": AaGaM},
-            "4-network": {"FMLFR": FaMaLaFaR, "AGMD" : AaGaMaD},
+            "1-network": { "A": A,},
+            "2-network": {"AG": AaG},
+            "3-network": {"AGM": AaGaM},
+            "4-network": {"AGMD" : AaGaMaD},
             "5-network": {"AGMDW" : AaGaMaDaW}}
     
         scheme = "{}-network".format(str(self.num_networks))
