@@ -11,6 +11,7 @@ from ray.rllib.algorithms.sac.sac import SACConfig
 from ray.rllib.algorithms.appo import APPOConfig
 from ray.rllib.algorithms.ddpg import DDPGConfig
 from ray.rllib.algorithms.marwil import MARWILConfig
+from ray.rllib.algorithms.impala import ImpalaConfig
 from ray.rllib.evaluation import Episode, RolloutWorker
 from ray.rllib.policy import Policy
 from ray.rllib.policy.sample_batch import SampleBatch
@@ -20,6 +21,9 @@ from train import get_parser, get_arguments, AVAILABLE_SIMULATION_ENGINES
 from gymnasium.wrappers import EnvCompatibility
 from ray.tune.registry import register_env
 from myGym.envs.gym_env import GymEnv
+
+NUM_WORKERS = 5
+ALGO = PPOConfig
 
 def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
     if model_logdir is None:
@@ -76,7 +80,7 @@ def configure_implemented_combos(arg_dict):
 def get_parser():
     parser = argparse.ArgumentParser()
     #Envinronment
-    parser.add_argument("-cfg", "--config", default="./configs/rllib_debug.json", help="Can be passed instead of all arguments")
+    parser.add_argument("-cfg", "--config", default="./configs/train_A_RDDL.json", help="Can be passed instead of all arguments")
     parser.add_argument("-rt", "--ray_tune", action='store_true', help="Whether to train with ray grid search")
     parser.add_argument("-n", "--env_name", type=str, help="The name of environment")
     parser.add_argument("-ws", "--workspace", type=str, help="The name of workspace")
@@ -149,11 +153,12 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps):
         print("Running manual train loop without Ray Tune.")
         # use fixed learning rate instead of grid search (needs tune)
         algo = (
-            algorithm()
-            .rollouts(num_rollout_workers=10, batch_mode="complete_episodes") # You can try to increase or decrease based on your systems specs
-            .resources(num_gpus=1, num_gpus_per_worker=0.1) # You can try to increase or decrease based on your systems specs
+            ALGO()
+            .rollouts(num_rollout_workers=NUM_WORKERS, batch_mode="complete_episodes") # You can try to increase or decrease based on your systems specs
+            .resources(num_gpus=1, num_gpus_per_worker=1/NUM_WORKERS) # You can try to increase or decrease based on your systems specs
             .environment(env='GymEnv-v0', env_config=arg_dict)
-            .training(train_batch_size=256)
+            .framework('torch')
+            .training(train_batch_size=1024)
             .build()
         )
         # run manual training loop and print results after each iteration
@@ -206,8 +211,8 @@ def main():
     algo_steps = arg_dict["algo_steps"]
     arg_dict = configure_env(arg_dict, for_train=1)
     register_env('GymEnv-v0', env_creator)
-    if not args.ray_tune:
-        assert arg_dict["algo"] == "ppo", "Training without ray tune only works with PPO (rllib limitation)"
+    #if not args.ray_tune:
+    #    assert arg_dict["algo"] == "ppo", "Training without ray tune only works with PPO (rllib limitation)"
     algorithm = configure_implemented_combos(arg_dict)
     arg_dict.pop("algo")
     train(args, arg_dict, algorithm, num_steps, algo_steps)
