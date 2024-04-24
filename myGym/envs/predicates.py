@@ -65,7 +65,7 @@ if __name__ == '__main__':
     # load tuna model and check the scale
     pth1 = "./envs/objects/household/urdf/tuna_can.urdf"
     pos = env_object.EnvObject.get_random_object_position([-0.5, 0.5, 0.4, 0.6, 0.07, 0.07])
-    obj1 = env_object.EnvObject(pth1, pos, [0, 0, 0, 1], pybullet_client=p, fixed=False)
+    obj1 = env_object.EnvObject(pth1, env, pos, [0, 0, 0, 1], pybullet_client=p, fixed=False)
     obj1_info = p.getVisualShapeData(obj1.get_uid())[0]
     obj1_scale = get_scale_from_urdf(pth1)
     objpth = obj1_info[4].decode("utf-8")
@@ -78,6 +78,7 @@ if __name__ == '__main__':
     orig = vm.duplicate()
     orig.paint(np.array([0, 1, 0]))
     voxel_grid = vm.voxelgrid
+    # visualize geometry
     #o3d.visualization.draw_geometries([voxel_grid, orig.voxelgrid])
 
 

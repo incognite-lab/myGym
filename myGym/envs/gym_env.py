@@ -235,7 +235,7 @@ class GymEnv(CameraEnv):
     
     def _load_static_scene_urdf(self, path, name, fixedbase=True):
         transform = self.workspace_dict[self.workspace]['transform']
-        object = env_object.EnvObject(pkg_resources.resource_filename("myGym", os.path.join("envs", path)), self, transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase, observation=self.vision_source, observation=self.vision_source, vae_path=self.vae_path, yolact_path=self.yolact_path, yolact_config=self.yolact_config)
+        object = env_object.EnvObject(pkg_resources.resource_filename("myGym", os.path.join("envs", path)), self, transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase, observation=self.vision_source, vae_path=self.vae_path, yolact_path=self.yolact_path, yolact_config=self.yolact_config)
         self.static_scene_objects[name] = object
         return object.uid
 

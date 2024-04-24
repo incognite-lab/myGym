@@ -52,7 +52,7 @@ class EnvObject(VisionModule):
         self.debug_line_ids = []
         self.cuboid_dimensions = None
         super(EnvObject, self).__init__(observation=observation, env=env, 
-                                        vae_path=vae_path, yolact_path=yolact_path, yolact_confi = yolact_config)
+                                        vae_path=vae_path, yolact_path=yolact_path, yolact_config = yolact_config)
 
     def set_color(self, color):
         """
