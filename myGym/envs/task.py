@@ -362,7 +362,7 @@ class TaskModule():
                     self.end_episode_fail("Finished with wrong dice result thrown")
                 return finished
             self.end_episode_success()
-        if self.check_time_exceeded() or self.env.episode_steps == self.env.max_steps:
+        if self.check_time_exceeded() or self.env.episode_steps == self.env.max_episode_steps:
             self.end_episode_fail("Max amount of steps reached")
         if "ground_truth" not in self.vision_src and (self.check_vision_failure()):
             self.stored_observation = []
