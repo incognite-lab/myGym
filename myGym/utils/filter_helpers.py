@@ -17,7 +17,8 @@ import sys
 from scipy.interpolate import splprep, splev
 import matplotlib.pyplot as plt
 from myGym.envs.particle_filter import ParticleFilterGH
-from myGym.utils.filter_helpers import *
+
+
 
 
 def quat_to_euler(quat):
@@ -187,6 +188,10 @@ def visualize_env(arg_dict):
     return env
 
 
+def evaluate_multiple_trajectories(position_filter, rotation_filter, n):
+    #TODO: Evaluate given filter on n tracks. Return mean runtime and error
+    pass
+
 
 
 
@@ -199,6 +204,19 @@ def get_arg_dict():
     with open(args.config, "r") as f:
         arg_dict = commentjson.load(f)
     return arg_dict
+
+
+
+def load_rotations(filename):
+    """
+    Loads rotational trajectory from np file and converts into a sequence (list) of Quaternions
+    """
+    rot_file = np.load(filename)
+    rotations = []
+    for i in range(rot_file.shape[0]):
+        quat = Quaternion(rot_file[i,:])
+        rotations.append(quat)
+    return rotations
 
 
 if __name__ == "__main__":

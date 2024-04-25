@@ -305,7 +305,7 @@ def initialize_filter(type):
         position_filter = ParticleFilterGH(2500, 0.02, 0.02, g= 0.7, h = 0.4)
         rotation_filter = ParticleFilterGHRot(2500, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
     elif type == "2": #Particle 3D
-        position_filter = ParticleFilter6D(20, 0.02, 0.02, 0.04)
+        position_filter = ParticleFilter6D(2500, 0.02, 0.02, 0.04)
         rotation_filter = ParticleFilter6DRot(2500, 0.02, np.deg2rad(1), np.deg2rad(4))
     elif type == "3":
         position_filter = ParticleFilterWithKalman(2500, 0.02, 0.02, Q= 0.01/dt)
@@ -432,22 +432,29 @@ if __name__ == "__main__":
 
     params = get_input()
     #ground_truth, noisy_data, rotations, noisy_rotations = create_trajectory_points(params)
-    generator = LineGenerator(0.02, 5, 0.2, [(-2, 2), (-2, 2), (0, 4)], accelerate=True)
-    #generator2 = CircleGenerator(0.02)
-    #generator3 = SplineGenerator(0.02, 4, 0.35)
+    generator = LineGenerator(0.02, 5, 0.2, [(-2, 2), (-2, 2), (0, 4)], accelerate=False)
+    generator2 = CircleGenerator(0.02)
+    generator3 = SplineGenerator(0.02, 4, 0.35)
 
     #ground_truth, rotations = generator2.generate_1_circle()
     #ground_truth = generator2.generate_1_circle()
-    ground_truth, rotations = generator.generate_1_trajectory()
+    #ground_truth, rotations = generator.generate_1_trajectory()
 
-    noisy_data = ground_truth
-    noisy_rotations = rotations
+    #generator.save_trajectories([ground_truth],[rotations])
+    #generator.save_1_trajectory(ground_truth)
+    generator3.generate_and_save_n_trajectories(5)
+    ground_truth = np.load("./dataset/splines/positions/spline2.npy")
+    rotations = load_rotations("./dataset/splines/rotations/rot2.npy")
+
+    noisy_data = np.load("./dataset/splines/positions/spline_noise2.npy")
+    noisy_rotations = load_rotations("./dataset/splines/rotations/rot_noise2.npy")
+    #noisy_rotations = rotations
     arg_dict = get_arg_dict()
     #params = {"vis": "1"}
     if params["vis"] == "1":
         env = visualize_env(arg_dict)
         env.reset()
-        visualize_trajectory(ground_truth, ground_truth)
+        visualize_trajectory(ground_truth, noisy_data)
         #time.sleep(10)
         #sys.exit()
         resulting_pos_filter, resulting_rot_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, float(params["pause"]), type =params["filter_type"])

@@ -95,6 +95,8 @@ class myKalmanFilter():
 
 
 
+
+
 class myKalmanFilterRot(myKalmanFilter):
     """To make computations in quaternion, filter needs to be have four spatial dimensions"""
     def __init__(self, x, P, R, Q= 0., dt=0.2):
@@ -136,10 +138,16 @@ class myKalmanFilterRot(myKalmanFilter):
         self.eps_max = 1
         self.Q_scale_factor = 1000
         self.count = 0
+        self.rotation_flip_const = 0.1 #CONSTANT
+
 
     def get_est(self):
         state = np.array([self.filter.x[0], self.filter.x[2], self.filter.x[4], self.filter.x[6]])
         return state
+
+
+    def flip_est(self):
+        self.filter.x = -self.filter.x
 
 
     def apply_first_measurement(self, measurement):
@@ -147,6 +155,15 @@ class myKalmanFilterRot(myKalmanFilter):
         self.filter.x[2] = measurement[1]
         self.filter.x[4] = measurement[2]
         self.filter.x[6] = measurement[3]
+
+
+    def update(self, z):
+
+        norm = np.linalg.norm(z + self.get_est())
+        #print("Norm: ", norm)
+        if norm < self.rotation_flip_const:
+            self.flip_est()
+        self.filter.update(z)
 
 
 
@@ -352,7 +369,6 @@ class ParticleFilter6D(ParticleFilter):
         return filterpy.monte_carlo.systematic_resample(self.weights)
 
 
-
     def state_estimate(self):
         """Update estimated state and std based on weighted average of particles"""
         self.estimate = np.average(self.particles[:, :3], weights = self.weights, axis = 0) #Weighted average of particles
@@ -363,10 +379,21 @@ class ParticleFilter6D(ParticleFilter):
 
 
     def update(self, z):
+        """Update step of the particle filter."""
         super().update(z)
         residual = np.linalg.norm(self.compute_residual(z))
         self.process_std = self.process_std_const*residual*12.5
         self.vel_std = 4000*self.vel_std_const*(residual**2)
+
+
+    def convert_estimates(self):
+        """Converts list of estimates into numpy estimate array"""
+        estimates = self.estimates
+        self.estimates = np.zeros((len(estimates), 3))
+        for i in range(len(estimates)):
+            self.estimates[i, :] = estimates[i]
+
+
 
 
 
@@ -384,6 +411,7 @@ class ParticleFilter6DRot(ParticleFilter):
         self.process_std_const = process_std
         self.vel_std_const = vel_std
         self.last_residual = 0
+        self.rotation_flip_const = 0.1
 
 
     def apply_first_measurement(self, measurement):
@@ -418,14 +446,13 @@ class ParticleFilter6DRot(ParticleFilter):
             particles[:, i + 3] = np.random.uniform(*bounds, size=N)
         return particles
 
-    def create_gaussian_particles(self, std):
+    def create_gaussian_particles(self, std, vel = [0, 0, 0, 0]):
         """Create gaussian particles in workspace bounds of a given dimension"""
         N = self.num_particles
         particles = np.empty((N, 8))
         for i in range(4):
             particles[:, i] = self.estimate[i] + (np.random.randn(N) * std)  # Position of particles
-        particles[:, 4:] = (
-                    np.random.randn(N, 4) * std)  # Velocities of particles initialized to Gaussian noise around zero
+        particles[:, 4:] = vel + np.random.randn(N, 4) * std  # Velocities of particles initialized to Gaussian noise around zero
         return particles
 
     def velocity_function(self):
@@ -458,6 +485,14 @@ class ParticleFilter6DRot(ParticleFilter):
 
     def update(self, z):
         """Update particle weights based on the measurement likelihood of each particle"""
+        norm = np.linalg.norm(self.estimate + z)
+        #print("norm:", norm)
+        if norm < self.rotation_flip_const:
+            print("FLIPPING PARTICLES")
+            print("FLIPPING PARTICLES")
+            print("FLIPPING PARTICLES")
+            print("measurement:", z)
+            self.reapply_measurement(z)
         distance_pos = np.linalg.norm(self.particles[:, 0:4] - z[0:4], axis=1)
         self.weights *= scipy.stats.norm(0, self.measurement_std).pdf(distance_pos)  # Multiply weights based on the
         # particle's Gaussian probability
@@ -472,6 +507,34 @@ class ParticleFilter6DRot(ParticleFilter):
         self.state_estimate()
         if self.neff() < self.num_particles/2:
             self.resample()
+
+
+    def reapply_measurement(self, z):
+        """Determine initial values based on first measurement"""
+        vel = self.estimate_vel()
+        self.estimate = z
+        print("estimate:", z)
+        initial_uncertainty_factor = 1.2  # Multiply std by this factor to account for initial uncertainty to better address
+        # System nonlinearities
+        self.last_measured_position = self.estimate
+        self.particles = self.create_gaussian_particles(self.measurement_std * initial_uncertainty_factor, -vel)
+
+
+    def estimate_vel(self):
+        """Update estimated state and std based on weighted average of particles"""
+        vel_estimate = np.average(self.particles[:, 4:], weights=self.weights, axis=0)
+        # Weighted average of particles
+        return vel_estimate
+
+
+    def convert_estimates(self):
+        """Converts list of estimates into numpy estimate array"""
+        estimates = self.estimates
+        self.estimates = np.zeros((len(estimates), 3))
+        for i in range(len(estimates)):
+            self.estimates[i, :] = estimates[i]
+
+
 
 
 
@@ -549,14 +612,6 @@ class ParticleFilterGH(ParticleFilter):
         self.particles[:] = self.particles[indexes]
         self.weights.fill(1/self.num_particles)
 
-"""
-    def filter_step(self, z):
-        One full step of the filter
-        self.predict()
-        self.update(z)
-        self.state_estimate()
-        self.resample()
-"""
 
 
 class ParticleFilterGHRot(ParticleFilter):
@@ -575,6 +630,8 @@ class ParticleFilterGHRot(ParticleFilter):
         self.g = g
         self.h = h
         self.a = np.zeros(4)
+        self.rotation_flip_const = 0.1
+        self.print_data = False
 
 
     def create_gaussian_particles(self, std):
@@ -599,9 +656,19 @@ class ParticleFilterGHRot(ParticleFilter):
 
     def update(self, z):
         """Update particle weights based on the measurement likelihood of each particle"""
+        norm = np.linalg.norm(self.estimate + z)
+        if norm < self.rotation_flip_const:
+            print("--------------------------------------------------------------------------------------------")
+            print("FLIPPED PARTICLES")
+            print("measurement:", z)
+            print("old estimate:", self.estimate)
+            print("old vel:", self.vel)
+            print("old acc: ", self.a)
+            self.reapply_measurement(z)
+            self.print_data = True
         distance_pos = np.linalg.norm(self.particles[:, 0:4] - z[0:4], axis = 1)
         self.weights *= scipy.stats.norm(0, self.measurement_std).pdf(distance_pos) #Multiply weights based on the
-        #particle's Gaussian probability
+        #particle's Gaussian likelihood
         self.weights += 1.e-300 #Avoid round-off to zero
         self.weights = self.weights / np.sum(self.weights) #Normalization
 
@@ -613,6 +680,35 @@ class ParticleFilterGHRot(ParticleFilter):
         self.state_estimate()
         if self.neff() < self.num_particles/2:
             self.resample()
+
+
+    def reapply_measurement(self, z):
+        uncertainty_factor = 1.2
+        self.estimate = z
+        self.vel = 0
+        self.a = 0
+        self.particles = self.create_gaussian_particles(uncertainty_factor* self.measurement_std)
+
+
+    def state_estimate(self):
+        """Update estimated state and std based on weighted average of particles"""
+        last_estimate = self.estimate
+        self.estimate = np.average(self.particles, weights = self.weights, axis = 0) #Weighted average of particles
+        var = np.average(((self.particles - self.estimate)**2), weights = self.weights, axis = 0)
+        self.estimate_var = var
+        self.estimates.append(self.estimate)
+        self.estimate_vars.append(self.estimate_var)
+        last_vel = self.vel
+        self.vel = last_vel * self.g + (1-self.g)*(self.estimate - last_estimate)/self.dt
+        self.a = self.h * self.a + (1-self.h)*(self.vel - last_vel)/self.dt
+        self.vel += self.a * self.dt
+        if self.print_data:
+            print("New estimate:", self.estimate)
+            print("New velocity:", self.vel)
+            print("New acceleration:", self.a)
+            self.print_data = False
+
+
 
 
 class ParticleFilterWithKalman(ParticleFilter):
@@ -685,7 +781,7 @@ class ParticleFilterWithKalman(ParticleFilter):
         a = np.linalg.norm([self.kalman.x[1], self.kalman.x[3], self.kalman.x[5]])
         vel = self.vel #+ np.random.randn(3)
 
-        self.particles[:, :3] += vel * self.dt  # Predict + process noise
+        self.particles[:, :3] += vel * self.dt  # Predict + process noise #CONSTANTS BELOW:
         self.particles[:, 0] += np.random.randn(n) * a/5 + self.process_std/2 *np.random.randn(n)
         self.particles[:, 1] += np.random.randn(n) * a/5 + self.process_std/2 *np.random.randn(n)
         self.particles[:, 2] += np.random.randn(n) * a/5 + self.process_std/2 *np.random.randn(n)
@@ -735,6 +831,7 @@ class ParticleFilterWithKalmanRot(ParticleFilter):
         self.estimate_vars = []
         self.initialize_kalman(Q, R)
         self.dt =dt
+        self.rotation_flip_const = 0.1
 
 
     def initialize_kalman(self, Q, R):
@@ -799,6 +896,14 @@ class ParticleFilterWithKalmanRot(ParticleFilter):
 
 
     def update(self, z):
+        norm = np.linalg.norm(z + self.estimate)
+        if norm < self.rotation_flip_const:
+            print("--------------------------------------------------------------------------------------------")
+            print("FLIPPED PARTICLES")
+            print("measurement:", z)
+            print("old estimate:", self.estimate)
+            self.reapply_measurement(z)
+
         distance_pos = np.linalg.norm(self.particles[:, 0:4] - z[0:4], axis=1)
         self.weights *= scipy.stats.norm(0, self.measurement_std).pdf(distance_pos)  # Multiply weights based on the
         # particles' Gaussian probability
@@ -824,6 +929,12 @@ class ParticleFilterWithKalmanRot(ParticleFilter):
     def index_resample_function(self):
         return filterpy.monte_carlo.stratified_resample(self.weights)
 
+
+    def reapply_measurement(self, z):
+        """If the quaternion flips (or changes abruptly), set estimate according to the measurement"""
+        self.estimate = z
+        uncertainty_factor = 1.2
+        self.particles = self.create_gaussian_particles(uncertainty_factor* self.measurement_std)
 
     def filter_step(self, z):
         """One full step of the filter."""
