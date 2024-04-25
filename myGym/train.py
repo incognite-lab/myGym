@@ -10,7 +10,7 @@ import json, commentjson
 import gym
 from myGym import envs
 import myGym.utils.cfg_comparator as cfg
-#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 #from stable_baselines.common.policies import MlpPolicy
 #from stable_baselines.common import make_vec_env
 #from stable_baselines.common.vec_env import DummyVecEnv
@@ -77,14 +77,14 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
 def configure_env(arg_dict, model_logdir=None, for_train=True):
     env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"], "framework":"stable_baselines",
                      "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
-                     "robot_action": arg_dict["robot_action"],"max_velocity": arg_dict["max_velocity"], 
+                     "robot_action": arg_dict["robot_action"],"max_velocity": arg_dict["max_velocity"],
                      "max_force": arg_dict["max_force"],
                      "action_repeat": arg_dict["action_repeat"], "rddl": arg_dict["rddl"],
                      "observation":arg_dict["observation"], "distractors":arg_dict["distractors"],
                      "num_networks":arg_dict.get("num_networks", 1), "network_switcher":arg_dict.get("network_switcher", "gt"),
                      "active_cameras": arg_dict["camera"], "color_dict":arg_dict.get("color_dict", {}),
-                     "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
-                     "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
+                     "max_episode_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
+                     "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"],
                      "natural_language": bool(arg_dict["natural_language"]),
                      "training": bool(for_train)
@@ -191,7 +191,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         eval_callback = CustomEvalCallback(eval_env, log_path=model_logdir,
                                            eval_freq=arg_dict["eval_freq"],
                                            algo_steps=arg_dict["algo_steps"],
-                                           n_eval_episodes=arg_dict["eval_episodes"],                                           
+                                           n_eval_episodes=arg_dict["eval_episodes"],
                                            record=arg_dict["record"],
                                            camera_id=arg_dict["camera"])
         callbacks_list.append(eval_callback)

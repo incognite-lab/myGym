@@ -29,8 +29,8 @@ class TaskModule():
         self.current_task = None
         self.scene_entities = []
         self.scene_objects = []
-        self.rddl_world = RDDLWorld(allowed_actions=self.cfg_strings_to_classes(self.allowed_protoactions), 
-                                    allowed_entities=self.cfg_strings_to_classes(self.allowed_objects) + [TiagoGripper], 
+        self.rddl_world = RDDLWorld(allowed_actions=self.cfg_strings_to_classes(self.allowed_protoactions),
+                                    allowed_entities=self.cfg_strings_to_classes(self.allowed_objects) + [TiagoGripper],
                                     allowed_initial_actions=self.cfg_strings_to_classes(self.allowed_protoactions))
 
     def sample_num_subtasks(self):
@@ -38,7 +38,7 @@ class TaskModule():
           length of the sequence based on the range from config. '''
         self.current_task_length = random.randint(*self.number_tasks_range)
         return self.current_task_length
-    
+
     def cfg_strings_to_classes(self, cfg:list):
         """Looks up the classes corresponding to names in cfg and returns a list of them.
         Args:
@@ -58,7 +58,7 @@ class TaskModule():
                 raise Exception("Entity {} not found by RDDL! Check scene_objects.py for this class".format(n_fixed))
         return list_of_classes
 
-    
+
     def create_new_task_sequence(self):
         '''Calls rddl to make a new sequence of actions (subtasks).'''
         n_samples = self.sample_num_subtasks()
@@ -77,7 +77,7 @@ class TaskModule():
         self.rddl_world.show_world_state()
 
     def build_scene_for_task_sequence(self):
-        '''After a new sequence of actions (subtasks) is created, this function will create the physical scene according to the 
+        '''After a new sequence of actions (subtasks) is created, this function will create the physical scene according to the
         symbolic template. '''
         if self.current_task == None:
             # if there is no action sequence, first make a new one
@@ -97,9 +97,9 @@ class TaskModule():
                     "vae_path":self.env.vae_path, "yolact_path":self.env.yolact_path, "yolact_config":self.env.yolact_config}
                 self.spawn_object_for_rddl(entity, **kw)
 
-                
 
-    def spawn_object_for_rddl(self, rddl_entity, env, position, orientation, pybullet_client, 
+
+    def spawn_object_for_rddl(self, rddl_entity, env, position, orientation, pybullet_client,
                               fixed=False, observation="ground_truth", vae_path=None, yolact_path=None, yolact_config=None):
         """Initializes EnvObject and adds it to the scene. The object will be bound to the symbolic entity provided as rddl_entity.
 
@@ -115,7 +115,7 @@ class TaskModule():
             yolact_path (str): path to yolact model, if used
             yolact_config (str): path to saved yolact config
         """
-        kw = {"env": env, "position":position, "orientation":orientation, "pybullet_client":pybullet_client, "fixed":fixed, 
+        kw = {"env": env, "position":position, "orientation":orientation, "pybullet_client":pybullet_client, "fixed":fixed,
               "observation":observation, "vae_path":vae_path, "yolact_path":yolact_path, "yolact_config":yolact_config}
         o = rddl_entity.type(**kw) # initialize EnvObject and add to scene
         rddl_entity.bind(o) # bind spawned object to the symbolic one
@@ -125,14 +125,14 @@ class TaskModule():
             o.set_color(o.get_color_rgba()) # assign correct colour to object as defined in scene_objects.py
         self.scene_objects.append(o)
         self.scene_entities.append(rddl_entity)
-        
+
 
     def get_world_state(self):
         """
         Get all objects in the scene including scene objects, interactive objects and robot
 
         Returns:
-            :return observation: (dict) Task relevant observation data, positions of task objects 
+            :return observation: (dict) Task relevant observation data, positions of task objects
         """
         pass
 
@@ -141,7 +141,50 @@ class TaskModule():
         """
         Check if goal of the task was completed successfully
         """
-        pass
+
+        finished = None
+        if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip', 'FMOT', 'FROM', 'FROT', 'FMOM', 'FM','F','A','AG','AGM','AGMD','AGMDW']: #all tasks ending with R (FMR) have to have distrot checker
+            finished = self.check_distance_threshold(self._observation)
+        if self.task_type in ['pnprot','pnpswipe','FMR', 'FMOR', 'FMLFR', 'compositional']:
+            finished = self.check_distrot_threshold(self._observation)
+        if self.task_type in ["dropmag"]: #FMOT should be compositional
+            self.check_distance_threshold(self._observation)
+            finished = self.drop_magnetic()
+        if self.task_type in ['push', 'throw']:
+            self.check_distance_threshold(self._observation)
+            finished = self.check_points_distance_threshold()
+        if self.task_type == "switch":
+            self.check_distance_threshold(self._observation)
+            finished = abs(self.env.reward.get_angle()) >= 18
+        if self.task_type == "press":
+            self.check_distance_threshold(self._observation)
+            finished = self.env.reward.get_angle() >= 1.71
+        if self.task_type == "dice_throw":
+            finished = self.check_dice_moving(self._observation)
+
+        if self.task_type == "turn":
+            self.check_distance_threshold(self._observation)
+            finished = self.check_turn_threshold()
+        self.last_distance = self.current_norm_distance
+        if self.init_distance is None:
+            self.init_distance = self.current_norm_distance
+        #if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
+        #    if len(self.env.robot.magnetized_objects) == 0 and self.env.episode_steps > 5:
+        #        self.end_episode_success()
+        #    else:
+        #        self.env.episode_over = False
+        if finished:
+            if self.task_type == "dice_throw":
+
+                if finished == 1:
+                    self.end_episode_fail("Finished with wrong dice result thrown")
+                return finished
+            self.end_episode_success()
+        if self.check_time_exceeded() or self.env.episode_steps == self.env.max_episode_steps:
+            self.end_episode_fail("Max amount of steps reached")
+        if "ground_truth" not in self.vision_src and (self.check_vision_failure()):
+            self.stored_observation = []
+            self.end_episode_fail("Vision fails repeatedly")
 
     def check_end_episode(self):
         """

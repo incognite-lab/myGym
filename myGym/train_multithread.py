@@ -22,7 +22,7 @@ from gymnasium.wrappers import EnvCompatibility
 from ray.tune.registry import register_env
 from myGym.envs.gym_env import GymEnv
 
-NUM_WORKERS = 5
+NUM_WORKERS = 1
 ALGO = PPOConfig
 
 def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
@@ -61,7 +61,7 @@ def configure_env(arg_dict, for_train=True):
                      "num_networks":arg_dict.get("num_networks", 1), "network_switcher":arg_dict.get("network_switcher", "gt"),
                      "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
                      "active_cameras": arg_dict["camera"], "color_dict":arg_dict.get("color_dict", {}),
-                     "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
+                     "max_episode_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
                      "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"], "algo":arg_dict["algo"]}
     if for_train:
@@ -187,7 +187,7 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps):
 def main():
     parser = get_parser()
     arg_dict, args = get_arguments(parser)
-    ray.init(num_gpus=1, num_cpus=10)
+    ray.init(num_gpus=1, num_cpus=5)
 
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
