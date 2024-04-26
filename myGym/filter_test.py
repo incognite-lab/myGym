@@ -443,11 +443,11 @@ if __name__ == "__main__":
     #generator.save_trajectories([ground_truth],[rotations])
     #generator.save_1_trajectory(ground_truth)
     generator3.generate_and_save_n_trajectories(5)
-    ground_truth = np.load("./dataset/splines/positions/spline2.npy")
-    rotations = load_rotations("./dataset/splines/rotations/rot2.npy")
+    ground_truth = np.load("./dataset/lines/positions/line2.npy")
+    rotations = load_rotations("./dataset/lines/rotations/rot2.npy")
 
-    noisy_data = np.load("./dataset/splines/positions/spline_noise2.npy")
-    noisy_rotations = load_rotations("./dataset/splines/rotations/rot_noise2.npy")
+    noisy_data = np.load("./dataset/lines/positions/line_noise2.npy")
+    noisy_rotations = load_rotations("./dataset/lines/rotations/rot_noise2.npy")
     #noisy_rotations = rotations
     arg_dict = get_arg_dict()
     #params = {"vis": "1"}

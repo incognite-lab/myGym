@@ -39,12 +39,9 @@ class myKalmanFilter():
         self.estimate = np.zeros(3)
         self.estimate_vars = []
         self.estimates = []
-        self.process_std = Q #Values for filename
-        self.measurement_std = R #Values for filename
-        self.num_particles = 0 #Values for filename
         # For adaptive filtering below:
-        self.eps_max = 0.18
-        self.Q_scale_factor = 1000
+        self.eps_max = 0.18 #CONSTANT
+        self.Q_scale_factor = 1000 #CONSTANT
         self.count = 0
 
 
@@ -297,7 +294,7 @@ class ParticleFilter6D(ParticleFilter):
     Each particle has its velocity, which changes only based on noise. Those particles, that move correctly in
     the direction of the velocity get to be resampled. This simulates acceleration.
     """
-    def __init__(self, num_particles, process_std, vel_std, measurement_std, workspace_bounds = None, dt = 0.2):
+    def __init__(self, num_particles, process_std, vel_std, measurement_std, workspace_bounds = None, dt = 0.2, res_g = 0.5):
         super().__init__(num_particles, process_std, measurement_std, workspace_bounds, dt)
         self.vel_std = vel_std
         self.vel_bounds = [(-1, 1), (-1, 1), (-1, 1)] #Max velocity of a particle for uniform particles
@@ -309,6 +306,7 @@ class ParticleFilter6D(ParticleFilter):
         self.process_std_const = process_std
         self.vel_std_const = vel_std
         self.prev_residual = np.zeros(3)
+        self.res_g = res_g
 
 
 
@@ -319,7 +317,7 @@ class ParticleFilter6D(ParticleFilter):
         """
         predicted_state = np.average(self.particles[:, :3], weights=self.weights, axis=0)
         new_residual = measurement - predicted_state
-        residual = 0.5*new_residual + 0.5*self.prev_residual
+        residual = self.res_g*new_residual + (1 - self.res_g)*self.prev_residual
         self.prev_residual = residual
         return residual
 
@@ -399,7 +397,7 @@ class ParticleFilter6D(ParticleFilter):
 
 class ParticleFilter6DRot(ParticleFilter):
     """Idea is the same as ParticleFilter6D but with additional dimension for rotation"""
-    def __init__(self, num_particles, process_std, vel_std, measurement_std, workspace_bounds = None, dt = 0.2):
+    def __init__(self, num_particles, process_std, vel_std, measurement_std, workspace_bounds = None, dt = 0.2, res_g = 0.5, rotflip_const = 0.1):
         super().__init__(num_particles, process_std, measurement_std, workspace_bounds, dt)
         self.vel_std = vel_std
         self.vel_bounds = [(-1, 1), (-1, 1), (-1, 1), (-1, 1)] #Max velocity of a particle for uniform particles
@@ -411,7 +409,9 @@ class ParticleFilter6DRot(ParticleFilter):
         self.process_std_const = process_std
         self.vel_std_const = vel_std
         self.last_residual = 0
-        self.rotation_flip_const = 0.1
+        self.rotation_flip_const = rotflip_const #CONSTANT
+        self.res_g = res_g
+
 
 
     def apply_first_measurement(self, measurement):
@@ -430,9 +430,10 @@ class ParticleFilter6DRot(ParticleFilter):
         """
         predicted_state = np.average(self.particles[:, :4], weights=self.weights, axis=0)
 
-        residual = 0.5* self.last_residual + 0.5* (measurement - predicted_state)
+        residual = self.res_g* self.last_residual + (1 - self.res_g)* (measurement - predicted_state) #CONSTANT
         self.last_residual = residual
         return residual
+
 
     def create_uniform_particles(self):
         """Create uniform particles in workspace bounds of a given dimension including velocity"""
@@ -530,10 +531,9 @@ class ParticleFilter6DRot(ParticleFilter):
     def convert_estimates(self):
         """Converts list of estimates into numpy estimate array"""
         estimates = self.estimates
-        self.estimates = np.zeros((len(estimates), 3))
+        self.estimates = np.zeros((len(estimates), 4))
         for i in range(len(estimates)):
             self.estimates[i, :] = estimates[i]
-
 
 
 
@@ -616,7 +616,7 @@ class ParticleFilterGH(ParticleFilter):
 
 class ParticleFilterGHRot(ParticleFilter):
 
-    def __init__(self, num_particles, process_std, measurement_std, workspace_bounds = None, dt = 0.2, g=0.5, h=0.5):
+    def __init__(self, num_particles, process_std, measurement_std, workspace_bounds = None, dt = 0.2, g=0.5, h=0.5, rotflip_const = 0.1):
         super().__init__(num_particles, process_std, measurement_std, workspace_bounds, dt)
         self.estimate = np.zeros(4) #Actual state estimate - this is our tracked value
         self.estimate_var = 20 #Large value in the beginning
@@ -630,7 +630,7 @@ class ParticleFilterGHRot(ParticleFilter):
         self.g = g
         self.h = h
         self.a = np.zeros(4)
-        self.rotation_flip_const = 0.1
+        self.rotation_flip_const = 0.1 #CONSTANT
         self.print_data = False
 
 
@@ -708,7 +708,12 @@ class ParticleFilterGHRot(ParticleFilter):
             print("New acceleration:", self.a)
             self.print_data = False
 
-
+    def convert_estimates(self):
+        """Converts list of estimates into numpy estimate array"""
+        estimates = self.estimates
+        self.estimates = np.zeros((len(estimates), 4))
+        for i in range(len(estimates)):
+            self.estimates[i, :] = estimates[i]
 
 
 class ParticleFilterWithKalman(ParticleFilter):
@@ -718,7 +723,8 @@ class ParticleFilterWithKalman(ParticleFilter):
     of all particles.
     """
 
-    def __init__(self, num_particles, process_std, measurement_std, Q = None, R = None, workspace_bounds = None, dt = 0.2):
+    def __init__(self, num_particles, process_std, measurement_std, Q = None, R = None,
+                 workspace_bounds = None, dt = 0.2, factor_a = 0.1, factor_b = 0.01):
         super().__init__(num_particles, process_std, measurement_std, workspace_bounds, dt)
         self.estimate = np.zeros(3)  # Actual state estimate - this is our tracked value
         self.estimate_var = 20  # Large value in the beginning
@@ -730,6 +736,8 @@ class ParticleFilterWithKalman(ParticleFilter):
         self.estimate_vars = []
         self.initialize_kalman(Q, R)
         self.dt = dt
+        self.factor_a = factor_a
+        self.factor_b = factor_b
 
 
     def initialize_kalman(self, Q, R):
@@ -782,9 +790,10 @@ class ParticleFilterWithKalman(ParticleFilter):
         vel = self.vel #+ np.random.randn(3)
 
         self.particles[:, :3] += vel * self.dt  # Predict + process noise #CONSTANTS BELOW:
-        self.particles[:, 0] += np.random.randn(n) * a/5 + self.process_std/2 *np.random.randn(n)
-        self.particles[:, 1] += np.random.randn(n) * a/5 + self.process_std/2 *np.random.randn(n)
-        self.particles[:, 2] += np.random.randn(n) * a/5 + self.process_std/2 *np.random.randn(n)
+        self.particles[:, 0] += np.random.randn(n) * a * self.factor_a + self.factor_b * np.random.randn(n)
+        self.particles[:, 1] += np.random.randn(n) * a * self.factor_a + self.factor_b * np.random.randn(n)
+        self.particles[:, 2] += np.random.randn(n) * a * self.factor_a + self.factor_b * np.random.randn(n)
+
         self.kalman.predict()
 
 
@@ -819,7 +828,8 @@ class ParticleFilterWithKalman(ParticleFilter):
 
 class ParticleFilterWithKalmanRot(ParticleFilter):
 
-    def __init__(self, num_particles, process_std, measurement_std, Q = None, R = None, workspace_bounds = None, dt = 0.2):
+    def __init__(self, num_particles, process_std, measurement_std, Q = None, R = None,
+                 workspace_bounds = None, dt = 0.2, factor_a = 0.1, factor_b = 0.01):
         super().__init__(num_particles, process_std, measurement_std, workspace_bounds, dt)
         self.estimate = np.zeros(4)  # Actual state estimate - this is our tracked value
         self.estimate_var = 20  # Large value in the beginning
@@ -831,7 +841,9 @@ class ParticleFilterWithKalmanRot(ParticleFilter):
         self.estimate_vars = []
         self.initialize_kalman(Q, R)
         self.dt =dt
-        self.rotation_flip_const = 0.1
+        self.rotation_flip_const = 0.1 #CONSTANT
+        self.factor_a = factor_a
+        self.factor_b = factor_b
 
 
     def initialize_kalman(self, Q, R):
@@ -888,20 +900,16 @@ class ParticleFilterWithKalmanRot(ParticleFilter):
         vel = self.vel #+ np.random.randn(3)
 
         self.particles[:, :4] += vel * self.dt  # Predict + process noise
-        self.particles[:, 0] += np.random.randn(n) * a/10 + self.process_std/2 *np.random.randn(n)
-        self.particles[:, 1] += np.random.randn(n) * a/10 + self.process_std/2 *np.random.randn(n)
-        self.particles[:, 2] += np.random.randn(n) * a/10 + self.process_std/2 *np.random.randn(n)
-        self.particles[:, 3] += np.random.randn(n) * a / 10 + self.process_std / 2 * np.random.randn(n)
+        self.particles[:, 0] += np.random.randn(n) * a*self.factor_a + self.factor_b *np.random.randn(n)
+        self.particles[:, 1] += np.random.randn(n) * a*self.factor_a + self.factor_b *np.random.randn(n)
+        self.particles[:, 2] += np.random.randn(n) * a*self.factor_a + self.factor_b *np.random.randn(n)
+        self.particles[:, 3] += np.random.randn(n) * a*self.factor_a + self.factor_b * np.random.randn(n)
         self.kalman.predict()
 
 
     def update(self, z):
         norm = np.linalg.norm(z + self.estimate)
         if norm < self.rotation_flip_const:
-            print("--------------------------------------------------------------------------------------------")
-            print("FLIPPED PARTICLES")
-            print("measurement:", z)
-            print("old estimate:", self.estimate)
             self.reapply_measurement(z)
 
         distance_pos = np.linalg.norm(self.particles[:, 0:4] - z[0:4], axis=1)
@@ -943,3 +951,10 @@ class ParticleFilterWithKalmanRot(ParticleFilter):
         self.state_estimate()
         if self.neff() < self.num_particles/2:
             self.resample()
+
+    def convert_estimates(self):
+        """Converts list of estimates into numpy estimate array"""
+        estimates = self.estimates
+        self.estimates = np.zeros((len(estimates), 4))
+        for i in range(len(estimates)):
+            self.estimates[i, :] = estimates[i]
