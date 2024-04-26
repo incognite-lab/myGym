@@ -71,7 +71,9 @@ def configure_env(arg_dict, for_train=True):
     return env_arguments
 
 def env_creator(env_config):
-        return EnvCompatibility(GymEnv(**env_config))    
+        env = EnvCompatibility(GymEnv(**env_config))
+        env.spec.max_episode_steps = 512
+        return env   
 
 def configure_implemented_combos(arg_dict):
     implemented_combos = {"ppo": PPOConfig, "sac": SACConfig, "marwil": MARWILConfig, "appo":APPOConfig, "ddpg":DDPGConfig}
@@ -158,7 +160,7 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps):
             .resources(num_gpus=1, num_gpus_per_worker=1/NUM_WORKERS) # You can try to increase or decrease based on your systems specs
             .environment(env='GymEnv-v0', env_config=arg_dict)
             .framework('torch')
-            .training(train_batch_size=1024)
+            .training(train_batch_size=512)
             .build()
         )
         # run manual training loop and print results after each iteration
