@@ -136,6 +136,185 @@ class TaskModule():
         """
         pass
 
+    def check_vision_failure(self):
+        """
+        Check if YOLACT vision model fails repeatedly during episode
+
+        Returns:
+            :return: (bool)
+        """
+        self.stored_observation.append(self._observation["actual_state"])
+        self.stored_observation.append(self._observation["goal_state"])
+        if len(self.stored_observation) > 9:
+            self.stored_observation.pop(0)
+            if self.vision_src == "yolact": # Yolact assigns 10 to not detected objects
+                if all(10 in obs for obs in self.stored_observation):
+                    return True
+        return False
+
+    def check_time_exceeded(self):
+        """
+        Check if maximum episode time was exceeded
+
+        Returns:
+            :return: (bool)
+        """
+        if (time.time() - self.env.episode_start_time) > self.env.episode_max_time:
+            self.env.episode_info = "Episode maximum time {} s exceeded".format(self.env.episode_max_time)
+            return True
+        return False
+
+    def check_episode_steps(self):
+        """
+        Check if maximum episode steps was exceeded
+
+        Returns:
+            :return: (bool)
+        """
+        if self.env.episode_steps == self.env.max_episode_steps:
+            self.end_episode_fail("Max amount of steps reached")
+        return False
+
+    def check_object_moved(self, object, threshold=0.3):
+        """
+        Check if object moved more than allowed threshold
+
+        Parameters:
+            :param object: (object) Object to check
+            :param threshold: (float) Maximum allowed object movement
+        Returns:
+            :return: (bool)
+        """
+        if self.vision_src != "vae":
+            object_position = object.get_position()
+            pos_diff = np.array(object_position[:2]) - np.array(object.init_position[:2])
+            distance = np.linalg.norm(pos_diff)
+            if distance > threshold:
+                self.env.episode_info = "The object has moved {:.2f} m, limit is {:.2f}".format(distance, threshold)
+                return True
+        return False
+
+    def check_turn_threshold(self, desired_angle=57):
+        turned = self.env.reward.get_angle()
+        if turned >= desired_angle:
+            return True
+        elif turned <= - desired_angle:
+            return -1
+        return False
+
+    def check_distance_threshold(self, observation, threshold=0.1):
+        """
+        Check if the distance between relevant task objects is under threshold for successful task completion
+        Returns:
+            :return: (bool)
+        """
+        self.current_norm_distance = self.calc_distance(observation["goal_state"], observation["actual_state"])
+        return self.current_norm_distance < threshold
+
+    def check_distrot_threshold(self, observation, threshold=0.1):
+        """
+        Check if the distance between relevant task objects is under threshold for successful task completion
+        Returns:
+            :return: (bool)
+        """
+        self.current_norm_distance = self.calc_distance(observation["goal_state"], observation["actual_state"])
+        self.current_norm_rotation = self.calc_rot_quat(observation["goal_state"], observation["actual_state"])
+
+        if self.current_norm_distance < threshold and self.current_norm_rotation < threshold:
+            return True
+        return False
+
+
+    def get_dice_value(self, quaternion):
+        def noramalize(q):
+            return q/np.linalg.norm(q)
+
+        faces = np.array([
+            [0,0,1],
+            [0,1,0],
+            [1,0,0],
+            [0,0,-1],
+            [0,-1,0],
+            [-1,0,0],
+        ])
+
+        rot_mtx = Rotation.from_quat(noramalize(quaternion)).as_matrix()
+
+        rotated_faces = np.dot(rot_mtx, faces.T).T
+        top_face_index = np.argmax(rotated_faces[:,2])
+
+        #face_nums = [2, 5, 1, 4, 6, 3] #states that first face has number 2 on it, second 5 and so on...
+        #return face_nums[top_face_index]
+        return top_face_index+1
+
+    def check_dice_moving(self, observation, threshold=0.1):
+        def calc_still(o1, o2):
+            result = 0
+            for i in range(len(o1)):
+                result+= np.power(o1[i]-o2[i],2)
+            result = np.sqrt(result)
+
+            return result < 0.000005
+        #print(observation["goal_state"])
+        if len(observation)<3:
+            print("Invalid",observation)
+        x = np.array(observation["actual_state"][3:])
+
+        #print(observation)
+
+        if not self.check_distance_threshold(self._observation) and self.env.episode_steps > 25:
+            if calc_still(observation["actual_state"], self.stored_observation):
+                if (self.stored_observation == observation["actual_state"]):
+                    return 0
+                else:
+                    if self.writebool:
+                        print(self.get_dice_value(x))
+                        print(observation)
+                        self.writebool = False
+                    if self.get_dice_value(x) == 6:
+                        return 2
+                    return 1
+
+            else:
+                self.stored_observation = observation["actual_state"]
+                return 0
+        else:
+            self.stored_observation = observation["actual_state"]
+            self.writebool = True
+            #print(self.get_dice_value(x))
+            return 0
+
+    def check_points_distance_threshold(self, threshold=0.1):
+        o1 = self.env.task_objects["actual_state"]
+        if (self.task_type == 'pnp') and (self.env.robot_action != 'joints_gripper') and (len(self.env.robot.magnetized_objects) == 0):
+            o2 = self.env.robot
+            closest_points = self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), threshold,
+                                                         o2.end_effector_index, -1)
+        else:
+            o2 = self.env.task_objects["goal_state"]
+            idx = -1 if o1 != self.env.robot else self.env.robot.end_effector_index
+            closest_points = self.env.p.getClosestPoints(o1.get_uid(), o2.get_uid(), threshold, idx, -1)
+        return closest_points if len(closest_points) > 0 else False
+
+    def drop_magnetic(self):
+        """
+        Release the object if required point was reached and controls if task was compleated.
+        Returns:
+            :return: (bool)
+        """
+        if self.env.reward.point_was_reached:
+            if not self.env.reward.was_dropped:
+                self.env.episode_over = False
+                self.env.robot.release_all_objects()
+                self.env.task.subtask_over = True
+                self.current_task = 0
+                self.env.reward.was_dropped = True
+        # print("drop episode", self.env.reward.drop_episode, "episode steps", self.env.episode_steps)
+        if self.env.reward.drop_episode and self.env.reward.drop_episode + 35 < self.env.episode_steps:
+            self.end_episode_success()
+            return True
+        else:
+            return False
 
     def check_goal(self):
         """

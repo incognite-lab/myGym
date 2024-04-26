@@ -336,6 +336,7 @@ class A(Protorewards):
             if self.gripper_opened(gripper_states):
                 #self.current_network += 1
                 self.task.check_goal()
+        self.task.check_episode_steps()
         return self.current_network
 
 class AaG(Protorewards):
