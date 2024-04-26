@@ -511,7 +511,7 @@ class GymEnv(CameraEnv):
             :param info: (dict) logged information about training
         """
         self.episode_final_reward.append(self.episode_reward)
-        self.episode_final_distance.append(self.task.last_distance / self.task.init_distance)
+        #self.episode_final_distance.append(self.task.last_distance / self.task.init_distance)
         self.episode_number += 1
         self._print_episode_summary(info)
 

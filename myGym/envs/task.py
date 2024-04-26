@@ -177,6 +177,17 @@ class TaskModule():
             self.env.episode_info = "Episode maximum time {} s exceeded".format(self.env.episode_max_time)
             return True
         return False
+    
+    def check_episode_steps(self):
+        """
+        Check if maximum episode steps was exceeded
+
+        Returns:
+            :return: (bool)
+        """
+        if self.env.episode_steps == self.env.max_episode_steps:
+            self.end_episode_fail("Max amount of steps reached")
+        return False
 
     def check_object_moved(self, object, threshold=0.3):
         """
