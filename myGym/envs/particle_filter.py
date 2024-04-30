@@ -232,7 +232,7 @@ class ParticleFilter(object):
         """Update particle weights based on the measurement likelihood of each particle"""
         distance_pos = np.linalg.norm(self.particles[:, 0:3] - z[0:3], axis=1)
         self.weights *= scipy.stats.norm(0, self.measurement_std).pdf(distance_pos)  # Multiply weights based on the
-        # particle's Gaussian probability
+        # particle's Gaussian probability #PROBLEM - VKLADAM STD NIKOLIV VAR
         self.weights += 1.e-300  # Avoid round-off to zero
         self.weights = self.weights / np.sum(self.weights)  # Normalization
 
@@ -294,7 +294,7 @@ class ParticleFilter6D(ParticleFilter):
     Each particle has its velocity, which changes only based on noise. Those particles, that move correctly in
     the direction of the velocity get to be resampled. This simulates acceleration.
     """
-    def __init__(self, num_particles, process_std, vel_std, measurement_std, workspace_bounds = None, dt = 0.2, res_g = 0.5):
+    def __init__(self, num_particles, process_std, vel_std, measurement_std, workspace_bounds = None, dt = 0.2, res_g = 0.5, ):
         super().__init__(num_particles, process_std, measurement_std, workspace_bounds, dt)
         self.vel_std = vel_std
         self.vel_bounds = [(-1, 1), (-1, 1), (-1, 1)] #Max velocity of a particle for uniform particles
@@ -378,10 +378,10 @@ class ParticleFilter6D(ParticleFilter):
 
     def update(self, z):
         """Update step of the particle filter."""
-        super().update(z)
         residual = np.linalg.norm(self.compute_residual(z))
-        self.process_std = self.process_std_const*residual*12.5
-        self.vel_std = 4000*self.vel_std_const*(residual**2)
+        super().update(z)
+        self.process_std = self.process_std_const*residual*3 #Constant
+        self.vel_std = 1000*self.vel_std_const*(residual**2) #Constant
 
 
     def convert_estimates(self):
