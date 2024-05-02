@@ -39,7 +39,7 @@
     "yolact_config" :null,
     #Train
     "train_framework"   :"tensorflow",
-    "algo"              :"multippo2",
+    "algo"              :"ppo",
     "num_networks"      :2,
     "max_episode_steps" :512,
     "algo_steps"        :512,
@@ -50,6 +50,6 @@
     "eval_freq"     :100000,
     "eval_episodes" :30,
     #Saving and logging
-    "logdir"    :"trained_models/swipe",
+    "logdir"    :"trained_models/",
     "record"    :0
     }
