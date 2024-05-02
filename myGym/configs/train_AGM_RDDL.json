@@ -39,7 +39,7 @@
     "yolact_config" :null,
     #Train
     "train_framework"   :"tensorflow",
-    "algo"              :"multippo2",
+    "algo"              :"ppo",
     "num_networks"      :3,
     "max_episode_steps" :512,
     "algo_steps"        :512,

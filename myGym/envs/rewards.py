@@ -359,7 +359,7 @@ class AaG(Protorewards):
             if self.current_network == 1:
                 if self.gripper_closed(gripper_states):
                     self.task.check_goal()
-
+        self.task.check_episode_steps()
         return self.current_network
 
 class AaGaM(Protorewards):
@@ -387,7 +387,7 @@ class AaGaM(Protorewards):
         if self.current_network == 2:
             if self.object_near_goal(object_position, goal_position):
                 self.task.check_goal()
-
+        self.task.check_episode_steps()
         return self.current_network
 
 class AaGaMaD(Protorewards):
@@ -422,6 +422,7 @@ class AaGaMaD(Protorewards):
             if self.gripper_approached_object(gripper_position, object_position):
                 if self.gripper_opened(gripper_states):
                     self.task.check_goal()
+        self.task.check_episode_steps()
         return self.current_network
 
 class AaGaMaDaW(Protorewards):
@@ -461,4 +462,5 @@ class AaGaMaDaW(Protorewards):
             if self.gripper_withdraw_object(gripper_position, object_position):
                 if self.gripper_opened(gripper_states):
                     self.task.check_goal()
+        self.task.check_episode_steps()
         return self.current_network    

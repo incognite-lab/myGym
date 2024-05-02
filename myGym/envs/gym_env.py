@@ -531,7 +531,7 @@ class GymEnv(CameraEnv):
             self.p.stepSimulation()
         # print(f"Substeps:{i}")
         self.episode_steps += 1
-        print(f"Episode step: {self.episode_steps}")
+        #print(f"Episode step: {self.episode_steps}")
         
     def choose_goal_object_by_human_with_keys(self, objects: List[EnvObject]) -> EnvObject:
         self.text_id = self.p.addUserDebugText("Point the human's finger via arrow keys at the goal object and press enter", [1, 0, 0.5], textSize=1)
