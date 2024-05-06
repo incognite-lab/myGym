@@ -21,6 +21,7 @@ from train import get_parser, get_arguments, AVAILABLE_SIMULATION_ENGINES
 from gymnasium.wrappers import EnvCompatibility
 from ray.tune.registry import register_env
 from myGym.envs.gym_env import GymEnv
+from ray.rllib.algorithms.algorithm import Algorithm
 
 NUM_WORKERS = 1
 ALGO = PPOConfig
@@ -151,34 +152,38 @@ def get_arguments(parser):
 
 def train(args, arg_dict, algorithm, num_steps, algo_steps):
 
-    algo = (
-            algorithm()
-            .rollouts(num_rollout_workers=NUM_WORKERS, batch_mode="complete_episodes") # You can try to increase or decrease based on your systems specs
-            .resources(num_gpus=1, num_gpus_per_worker=1/NUM_WORKERS) # You can try to increase or decrease based on your systems specs
-            .environment(env='GymEnv-v0', env_config=arg_dict)
-            .framework('torch')
-            .training(train_batch_size=512)
-            .build()
-        )
+    #algo = (
+    #        algorithm()
+    #        .rollouts(num_rollout_workers=NUM_WORKERS, batch_mode="complete_episodes") # You can try to increase or decrease based on your systems specs
+    #        .resources(num_gpus=1, num_gpus_per_worker=1/NUM_WORKERS) # You can try to increase or decrease based on your systems specs
+    #        .environment(env='GymEnv-v0', env_config=arg_dict)
+    #        .framework('torch')
+    #        .training(train_batch_size=512)
+    #        .build()
+    #    )
 
     if not args.ray_tune:
         # manual training with train loop using PPO and fixed learning rate
         print("Running manual train loop without Ray Tune.")
         # use fixed learning rate instead of grid search (needs tune)
         # run manual training loop and print results after each iteration
-        for _ in range(int(num_steps/algo_steps)):
-            result = algo.train() # Runs one logical iteration of training.
-            print(pretty_print(result))
-            # stop training of the target train steps or reward are reached
-            if _ % 50 == 0:
-                algo.save(arg_dict['logdir'])
-                print(f"Checkpoint saved in directory {arg_dict['logdir']}")
+        model_path = "./trained_models/A"  # replace with the path to your model
+    #algo.restore(model_path)
 
-            if result["timesteps_total"] >= num_steps:
-                break
-        algo.stop()
-        #checkpoint_path = arg_dict['logdir']  # specify your directory and file name here
-        algo.save(arg_dict['logdir'])
+        algo = Algorithm.from_checkpoint(model_path)
+    # Run the model in the environment
+        env = EnvCompatibility(GymEnv(**arg_dict))
+        state = env.reset()
+        done = False
+        while not done:
+            action = algo.compute_actions(state)
+            state, reward, done, _ = env.step(action)
+
+        # Render the environment
+        env.render()
+
+        env.close()
+        ray.shutdown()
     else:
         print("Running train loop with Ray Tune.")
         ray.tune.run(
@@ -226,7 +231,7 @@ def main():
 
     num_steps = arg_dict["steps"]
     algo_steps = arg_dict["algo_steps"]
-    arg_dict = configure_env(arg_dict, for_train=1)
+    arg_dict = configure_env(arg_dict, for_train=0)
     register_env('GymEnv-v0', env_creator)
     #if not args.ray_tune:
     #    assert arg_dict["algo"] == "ppo", "Training without ray tune only works with PPO (rllib limitation)"
