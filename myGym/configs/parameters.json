@@ -2,9 +2,9 @@
 
   "ParticleFilter6D": {
     "num_particles" : [600, 2500, 10000],
-    "process_std" : [0.01, 0.02, 0.04, 0.06],
-    "vel_std" : [0.05, 0.1, 0.15, 0.2],
-    "measurement_std" : [0.05, 0.01, 0.015, 0.02],
+    "process_std" : [0.01, 0.02, 0.04],
+    "vel_std" : [0.05, 0.1, 0.15],
+    "measurement_std" : [0.01, 0.015, 0.02],
     "res_g": [0.2, 0.4, 0.5, 0.75]
   },
   "ParticleFilter6DRot": {
@@ -39,8 +39,7 @@
     "measurement_std" : [0.01, 0.02, 0.025],
     "Q": [0.1, 0.4, 0.7],
     "R": [0.05, 0.1, 0.15],
-    "factor_a": [0.08, 0.1, 1.2],
-    "factor_b": [0.008, 0.01, 0.012]
+    "factor_a": [0.08, 0.1, 1.2]
   },
 
   "ParticleFilterWithKalmanRot" : {
@@ -50,7 +49,7 @@
     "Q": [0.1, 0.4, 0.7],
     "R": [0.05, 0.1, 0.15],
     "factor_a": [0.08, 0.1, 1.2],
-    "factor_b": [0.008, 0.01, 0.012]
+    "rotflip_const": [0.05, 0.075, 0.1]
   },
 
   "myKalmanFilter": {

@@ -195,7 +195,6 @@ def visualize_errors(ground_truth, noisy_data, estimates, filename):
     """
     diffs_meas = []
     diffs_est = []
-    filename += "pos"
     for i in range(ground_truth.shape[0]):
         diffs_meas.append(np.linalg.norm(ground_truth[i, :] - noisy_data[i, :])**2)
         diffs_est.append(np.linalg.norm(ground_truth[i, :] - estimates[i])**2)
@@ -208,8 +207,8 @@ def plot_comparison(diffs_meas, diffs_est, title, filename):
     data."""
     diffs_meas = np.array(diffs_meas)
     k = np.arange(len(diffs_meas))
-    measured_avg = np.average(diffs_meas)
-    estimated_avg = np.average(diffs_est)
+    measured_avg = np.average(diffs_meas)/3
+    estimated_avg = np.average(diffs_est)/3
 
     # Plotting results
     fig, ax = plt.subplots()
@@ -229,7 +228,6 @@ def visualize_rot_errors(rotations, noisy_rotations, estimates, filename):
     """
     diffs_meas = []
     diffs_est = []
-    filename += "rot"
     for i in range(len(rotations)):
         diffs_meas.append(Quaternion.absolute_distance(rotations[i], noisy_rotations[i])**2)
         diffs_est.append(Quaternion.absolute_distance(rotations[i], Quaternion(estimates[i]))**2)
@@ -305,7 +303,7 @@ def initialize_filter(type):
         position_filter = ParticleFilterGH(2500, 0.02, 0.02, g= 0.7, h = 0.4)
         rotation_filter = ParticleFilterGHRot(2500, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
     elif type == "2": #Particle 3D
-        position_filter = ParticleFilter6D(2500, 0.02, 0.02, 0.04)
+        position_filter = ParticleFilter6D(600, 0.02, 0.1, 0.02)
         rotation_filter = ParticleFilter6DRot(2500, 0.02, np.deg2rad(1), np.deg2rad(4))
     elif type == "3":
         position_filter = ParticleFilterWithKalman(2500, 0.02, 0.02, Q= 0.01/dt)
@@ -442,12 +440,12 @@ if __name__ == "__main__":
 
     #generator.save_trajectories([ground_truth],[rotations])
     #generator.save_1_trajectory(ground_truth)
-    generator3.generate_and_save_n_trajectories(5)
-    ground_truth = np.load("./dataset/lines/positions/line2.npy")
-    rotations = load_rotations("./dataset/lines/rotations/rot2.npy")
+    #generator3.generate_and_save_n_trajectories(5)
+    ground_truth = np.load("./dataset/circles/positions/circle2.npy")
+    rotations = load_rotations("./dataset/circles/rotations/rot2.npy")
 
-    noisy_data = np.load("./dataset/lines/positions/line_noise2.npy")
-    noisy_rotations = load_rotations("./dataset/lines/rotations/rot_noise2.npy")
+    noisy_data = np.load("./dataset/circles/positions/circle_noise2.npy")
+    noisy_rotations = load_rotations("./dataset/circles/rotations/rot_noise2.npy")
     #noisy_rotations = rotations
     arg_dict = get_arg_dict()
     #params = {"vis": "1"}
@@ -458,14 +456,14 @@ if __name__ == "__main__":
         #time.sleep(10)
         #sys.exit()
         resulting_pos_filter, resulting_rot_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, float(params["pause"]), type =params["filter_type"])
-        filenameP = create_paramstring(params, resulting_pos_filter)
+        filenameP = None
         visualize_errors(ground_truth, noisy_data, resulting_pos_filter.estimates, filenameP)
-        filenameR = create_paramstring(params, resulting_rot_filter)
+        filenameR =None
         visualize_rot_errors(rotations, noisy_rotations, resulting_rot_filter.estimates, filenameR)
     else:
         resulting_pos_filter, resulting_rot_filter = filter_without_animation(noisy_data, noisy_rotations, type = params["filter_type"])
-        filenameP = create_paramstring(params, resulting_pos_filter)
-        filenameR = create_paramstring(params, resulting_rot_filter)
+        filenameP = None
+        filenameR = None
         visualize_errors(ground_truth, noisy_data, resulting_pos_filter.estimates, filenameP)
         visualize_rot_errors(rotations, noisy_rotations, resulting_rot_filter.estimates, filenameR)
 
