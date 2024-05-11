@@ -13,7 +13,7 @@ class TrajectoryGenerator:
         self.v = velocity
         self.dt = dt
         if workspace_bounds is None:
-            self.workspace_bounds = [(-4, 4), (0.3, 5), (0, 5)]
+            self.workspace_bounds = [(-2, 2), (-2, 2), (0, 4)]
         else:
             self.workspace_bounds = workspace_bounds
 
@@ -162,10 +162,16 @@ class LineGenerator(TrajectoryGenerator):
             accelerate : vool (determine whether object moves with constant velocity or acceleration)
         """
         super().__init__(std, velocity = v, dt = dt, workspace_bounds = workspace_bounds)
-        self.filename_basis = "./dataset/lines/positions/line"
-        self.filename_basis_r = "./dataset/lines/rotations/rot"
-        self.filename_basis_noise = "./dataset/lines/positions/line_noise"
-        self.filename_basis_noise_r = "./dataset/lines/rotations/rot_noise"
+        if accelerate == False:
+            self.filename_basis = "./dataset/lines/positions/line"
+            self.filename_basis_r = "./dataset/lines/rotations/rot"
+            self.filename_basis_noise = "./dataset/lines/positions/line_noise"
+            self.filename_basis_noise_r = "./dataset/lines/rotations/rot_noise"
+        else:
+            self.filename_basis = "./dataset/lines_acc/positions/line"
+            self.filename_basis_r = "./dataset/lines_acc/rotations/rot"
+            self.filename_basis_noise = "./dataset/lines_acc/positions/line_noise"
+            self.filename_basis_noise_r = "./dataset/lines_acc/rotations/rot_noise"
         self.exp_points = exp_points
         self.distance_limit = distance_limit
         self.accelerate = accelerate

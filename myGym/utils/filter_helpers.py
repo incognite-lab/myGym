@@ -134,10 +134,15 @@ def visualize_estimate(particle_filter):
 
 def visualize_trajectory(ground_truth, noisy_data):
     """Visualizes the trajectory of the ground truth and noisy data."""
+    trajectory_ids = []
+    noise_ids = []
     if np.linalg.norm(ground_truth) > 0.1:
         for i in range(ground_truth.shape[0] - 1):
-            p.addUserDebugLine(noisy_data[i, :], noisy_data[i+1, :])
-            p.addUserDebugLine(ground_truth[i, :], ground_truth[i+1, :])
+            noise_id = p.addUserDebugLine(noisy_data[i, :], noisy_data[i+1, :])
+            id = p.addUserDebugLine(ground_truth[i, :], ground_truth[i+1, :])
+            trajectory_ids.append(id)
+            noise_ids.append(noise_id)
+    return trajectory_ids, noise_ids
 
 
 def visualize_particles(particle_filter):
@@ -219,8 +224,4 @@ def load_rotations(filename):
     return rotations
 
 
-if __name__ == "__main__":
-    current_velocities = np.zeros((100, 3))
-    vel_std = 0.25
-    print(np.random.randn(*current_velocities.shape)*vel_std)
 

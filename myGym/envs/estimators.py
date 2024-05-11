@@ -31,9 +31,46 @@ from myGym.envs.trajectory_generator import *
 import pandas as pd
 
 
+class myEstimator(BaseEstimator):
+
+    def fit(self, X, y=None):
+        self.x_ = X
+        for i in range(len(y)):
+            if i == 0:
+                self.y_ = y
+            else:
+                self.y_ = np.vstack((self.y_, y[i]))
+        return self
+
+    def predict(self, X):
+        for t in range(len(X)):
+            noisy_data = X[t]
+            self.filter = self.initialize_filter()
+            n = noisy_data.shape[0]
+
+            for i in range(n):
+                measurement = noisy_data[i]
+                if i == 0:
+                    self.filter.apply_first_measurement(measurement)
+                    self.filter.state_estimate()
+                    continue
+                self.filter.filter_step(measurement)
+            self.filter.convert_estimates()
+            estimates = self.filter.estimates
+            if t == 0:
+                self.x_ = estimates
+            else:
+                self.x_ = np.vstack((self.x_, estimates))
+        return self.x_
 
 
-class Estimator6D(BaseEstimator):
+    def initialize_filter(self):
+        self.filter = ParticleFilter6D(100, 0.02, 0.1,
+                                       0.03, res_g=0.5)
+
+
+
+class Estimator6D(myEstimator):
     def __init__(self, num_particles = 600, process_std = 0.02, vel_std = 0.1, measurement_std = 0.02, res_g = 0.5):
         self.vel_std = vel_std
         self.num_particles = num_particles
@@ -42,37 +79,15 @@ class Estimator6D(BaseEstimator):
         self.res_g = res_g
 
 
-    def fit(self, X, y=None):
-        self.x_ = X
-        self.y_ = y
-        return self
-
-
-    def predict(self, X):
-        noisy_positions = X
-        #self.x_ = noisy_positions
-
-        self.position_filter = ParticleFilter6D(self.num_particles, self.process_std, self.vel_std,
-                                                self.measurement_std, res_g=self.res_g)
-        n = noisy_positions.shape[0]
-        for i in range(n):
-            measurement = noisy_positions[i]
-            if i == 0:
-                self.position_filter.apply_first_measurement(measurement)
-                self.position_filter.state_estimate()
-                continue
-            self.position_filter.filter_step(measurement)
-        self.position_filter.convert_estimates()
-        self.x_ = self.position_filter.estimates
-
-        #self.x_ = X
-        return self.x_
+    def initialize_filter(self):
+        self.filter = ParticleFilter6D(self.num_particles, self.process_std, self.vel_std,
+                                       self.measurement_std, res_g=self.res_g)
 
 
 
 
 
-class Estimator6DRot(BaseEstimator):
+class Estimator6DRot(myEstimator):
     def __init__(self, num_particles = 600, process_std = 0.02, vel_std = 0.1, measurement_std = 0.02, res_g =0.5,
                  rotflip_const = 0.1):
         self.num_particles = num_particles
@@ -83,35 +98,16 @@ class Estimator6DRot(BaseEstimator):
         self.rotflip_const = rotflip_const
 
 
-    def fit(self, X, y):
-        #X, y = check_X_y(X, y)
-        self.x_ = X
-        self.y_ = y
-        return self
-
-
-    def predict(self, X):
-        noisy_rots = X
-        self.rotation_filter = ParticleFilter6DRot(
+    def initialize_filter(self):
+        self.filter = ParticleFilter6DRot(
             self.num_particles, self.process_std, self.vel_std, self.measurement_std, res_g=self.res_g,
             rotflip_const=self.rotflip_const)
-        n = noisy_rots.shape[0]
-        for i in range(n):
-            measurement = noisy_rots[i]
-            if i == 0:
-                self.rotation_filter.apply_first_measurement(measurement)
-                self.rotation_filter.state_estimate()
-                continue
-            self.rotation_filter.filter_step(measurement)
-        self.rotation_filter.convert_estimates()
-        self.x_ = self.rotation_filter.estimates
-        return self.x_
 
 
 
 
 
-class EstimatorGH(BaseEstimator):
+class EstimatorGH(myEstimator):
     def __init__(self, num_particles=600, process_std=0.02, measurement_std=0.02, g = 0.5, h = 0.5):
         self.num_particles = num_particles
         self.process_std = process_std
@@ -120,32 +116,14 @@ class EstimatorGH(BaseEstimator):
         self.h = h
 
 
-    def fit(self, X, y):
-        self.x_ = X
-        self.y_ = y
-        return self
 
-
-    def predict(self, X):
-        #X, y = check_X_y(X, y)
-        noisy_positions = X
+    def initialize_filter(self):
         self.position_filter = ParticleFilterGH(self.num_particles, self.process_std,
                                                 self.measurement_std, vel_std=0.01, g=self.g, h=self.h)
-        n = noisy_positions.shape[0]
-        for i in range(n):
-            measurement = noisy_positions[i]
-            if i == 0:
-                self.position_filter.apply_first_measurement(measurement)
-                self.position_filter.state_estimate()
-                continue
-            self.position_filter.filter_step(measurement)
-        self.position_filter.convert_estimates()
-        self.x_ = self.position_filter.estimates
-        return self.x_
 
 
 
-class EstimatorGHRot(BaseEstimator):
+class EstimatorGHRot(myEstimator):
     def __init__(self, num_particles=600, process_std=0.02, measurement_std=0.02, g = 0.5, h = 0.5, rotflip_const = 0.1):
         self.num_particles = num_particles
         self.process_std = process_std
@@ -154,31 +132,14 @@ class EstimatorGHRot(BaseEstimator):
         self.h = h
         self.rotflip_const = rotflip_const
 
-    def fit(self, X, y):
-        self.x_ = X
-        self.y_ = y
-        return self
 
-
-    def predict(self, X):
-        noisy_rots = X
-        self.rotation_filter = ParticleFilterGHRot(self.num_particles, self.process_std,
-                                                self.measurement_std, vel_std=0.01, g=self.g, h=self.h)
-        n = noisy_rots.shape[0]
-        for i in range(n):
-            measurement = noisy_rots[i]
-            if i == 0:
-                self.rotation_filter.apply_first_measurement(measurement)
-                self.rotation_filter.state_estimate()
-                continue
-            self.rotation_filter.filter_step(measurement)
-        self.rotation_filter.convert_estimates()
-        self.x_ = self.rotation_filter.estimates
-        return self.x_
+    def initialize_filter(self):
+        self.filter = ParticleFilterGHRot(self.num_particles, self.process_std,
+                                          self.measurement_std, vel_std=0.01, g=self.g, h=self.h)
 
 
 
-class EstimatorPFKalman(BaseEstimator):
+class EstimatorPFKalman(myEstimator):
     def __init__(self, num_particles=600, process_std=0.02, measurement_std=0.02, Q=None, R=None, std_a = 0.1):
         self.num_particles = num_particles
         self.process_std = process_std
@@ -187,30 +148,12 @@ class EstimatorPFKalman(BaseEstimator):
         self.R = R
         self.std_a = std_a
 
-    def fit(self, X, y):
-        self.x_ = X
-        self.y_ = y
-        return self
 
-    def predict(self, X):
-        #X, y = check_X_y(X, y)
-        noisy_positions = X
-        self.position_filter = ParticleFilterWithKalman(self.num_particles, self.process_std,
-                                                self.measurement_std, Q=self.Q, R=self.R, factor_a=self.std_a)
-        n = noisy_positions.shape[0]
-        for i in range(n):
-            measurement = noisy_positions[i]
-            if i == 0:
-                self.position_filter.apply_first_measurement(measurement)
-                self.position_filter.state_estimate()
-                continue
-            self.position_filter.filter_step(measurement)
-        self.position_filter.convert_estimates()
-        self.x_ = self.position_filter.estimates
-        return self.x_
+    def initialize_filter(self):
+        self.filter = ParticleFilterWithKalman(self.num_particles, self.process_std,
+                                                        self.measurement_std, Q=self.Q, R=self.R, factor_a=self.std_a)
 
-
-class EstimatorPFKalmanRot(BaseEstimator):
+class EstimatorPFKalmanRot(myEstimator):
     def __init__(self, num_particles=600, process_std=0.02, measurement_std=0.02, Q =None, R = None, std_a = 0.1, rotflip_const = 0.1):
         self.num_particles = num_particles
         self.process_std = process_std
@@ -221,32 +164,14 @@ class EstimatorPFKalmanRot(BaseEstimator):
         self.std_a = std_a
 
 
-    def fit(self, X, y):
-        self.x_ = X
-        self.y_ = y
-        return self
-
-
-    def predict(self, X):
-        #X, y = check_X_y(X, y)
-        noisy_rots = X
-        self.rotation_filter = ParticleFilterWithKalmanRot(self.num_particles, self.process_std,
-                                                self.measurement_std, Q = self.Q, R = self.R, factor_a = self.std_a, rotflip_const = self.rotflip_const)
-        n = noisy_rots.shape[0]
-        for i in range(n):
-            measurement = noisy_rots[i]
-            if i == 0:
-                self.rotation_filter.apply_first_measurement(measurement)
-                self.rotation_filter.state_estimate()
-                continue
-            self.rotation_filter.filter_step(measurement)
-        self.rotation_filter.convert_estimates()
-        self.x_ = self.rotation_filter.estimates
-        return self.x_
+    def initialize_filter(self):
+        self.filter = ParticleFilterWithKalmanRot(self.num_particles, self.process_std,
+                                                  self.measurement_std, Q=self.Q, R=self.R, factor_a=self.std_a,
+                                                  rotflip_const=self.rotflip_const)
 
 
 
-class EstimatorKalman(BaseEstimator):
+class EstimatorKalman(myEstimator):
     def __init__(self, Q = 0.08, R = 0.02, eps_max = 0.18, Q_scale_factor = 500):
         self.Q = Q
         self.R = R
@@ -255,33 +180,12 @@ class EstimatorKalman(BaseEstimator):
         self.initial_x = np.array([0, 0, 0, 0, 0, 0])
         self.P = np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
 
-
-    def fit(self, X, y):
-        self.x_ = X
-        self.y_ = y
-        return self
+    def initialize_filter(self):
+        self.filter = myKalmanFilter(self.initial_x, P=self.P, R=self.R, Q=self.Q,
+                                              Q_scale_factor=self.Q_scale_factor, eps_max=self.eps_max)
 
 
-    def predict(self, X):
-        #X, y = check_X_y(X, y)
-        noisy_positions = X
-        self.position_filter = myKalmanFilter(self.initial_x, P = self.P, R = self.R, Q = self.Q, Q_scale_factor=self.Q_scale_factor, eps_max = self.eps_max)
-        n = noisy_positions.shape[0]
-        for i in range(n):
-            measurement = noisy_positions[i]
-            if i == 0:
-                self.position_filter.apply_first_measurement(measurement)
-                self.position_filter.state_estimate()
-                continue
-            self.position_filter.filter_step(measurement)
-        self.position_filter.convert_estimates()
-        self.x_ = self.position_filter.estimates
-        print("Estimates:")
-        print(self.x_)
-        return self.x_
-
-
-class EstimatorKalmanRot(BaseEstimator):
+class EstimatorKalmanRot(myEstimator):
     def __init__(self, Q = 0.08, R = 0.02, eps_max = 0.18, Q_scale_factor = 500, rotflip_const = 0.1):
         self.Q = Q
         self.R = R
@@ -291,27 +195,33 @@ class EstimatorKalmanRot(BaseEstimator):
         self.P = np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
         self.rotflip_const = rotflip_const
 
-
-    def fit(self, X, y):
-        self.x_ = X
-        self.y_ = y
-        return self
+    def initialize_filter(self):
+        self.filter = myKalmanFilterRot(self.initial_x, self.P, self.R, self.Q, self.Q_scale_factor,
+                                                 self.rotflip_const)
 
 
-    def predict(self, X):
-        noisy_rotations = X
-        self.rotation_filter = myKalmanFilterRot(self.initial_x, self.P, self.R, self.Q, self.Q_scale_factor, self.rotflip_const)
-        n = noisy_rotations.shape[0]
-        for i in range(n):
-            measurement = noisy_rotations[i]
-            if i == 0:
-                self.rotation_filter.apply_first_measurement(measurement)
-                self.rotation_filter.state_estimate()
-                continue
-            self.rotation_filter.filter_step(measurement)
-        self.rotation_filter.convert_estimates()
-        self.x_ = self.rotation_filter.estimates
-        return self.x_
+
+def save_results(Estimator, dataframe):
+    filter = Estimator.__class__.__name__
+    if filter == "EstimatorKalman":
+        dataframe.to_csv("results_Kalman_csv", sep='\t')
+
+
+def create_dataframe(Estimator, grid_search, param_grid):
+    filter_name = Estimator.__class__.__name__
+    dataframe_list = []
+    rename_list = []
+    for key in param_grid:
+        rename_list.append(key)
+        dataframe_list.append("param_" + key)
+    dataframe = pd.DataFrame(grid_search.cv_results_)[dataframe_list]
+    rename_dict = {}
+    for i in range(len(rename_list)):
+        rename_dict[dataframe_list[i]] = rename_list[i]
+    dataframe = dataframe.rename(collumns = rename_dict)
+    dataframe = dataframe.sort_values(by=['mean_test_score'])
+    dataframe.to_csv("results_" + filter_name, sep='\t')
+
 
 
 if __name__ == "__main__":

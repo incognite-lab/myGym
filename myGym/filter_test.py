@@ -60,6 +60,10 @@ def get_parameters_from_config(type):
         traj = args["positions"][2]
         trajectory_dict["type"] = traj["type"]
         trajectory_dict["points"] = traj["points"]
+    else:
+        traj = args["positions"][2]
+        trajectory_dict["type"] = "line_acc"
+        trajectory_dict["points"] = traj["points"]
     trajectory_dict["stdv"] = args["noise"]["position"]
     trajectory_dict["q_stdv"] = args["noise"]["orientation"]
     trajectory_dict["q_start"] = args["rotations"]["q_start"]
@@ -101,8 +105,8 @@ def get_input():
             trajectory_dict["points"] = point_list
 
         elif type == 4:
-            trajectory_dict["type"] = None
-            return trajectory_dict
+            trajectory_dict["type"] = "line_acc"
+
         trajectory_dict["stdv"] = input("Enter position noise standard deviation in meters: ")
         trajectory_dict["q_start"] = input("Enter starting rotation in axis-angle representation (format 'x y z theta')")
         trajectory_dict["q_end"] = input("Enter ending rotation in axis-angle representation [rad] (format 'x y z theta')")
@@ -430,10 +434,14 @@ if __name__ == "__main__":
 
     params = get_input()
     #ground_truth, noisy_data, rotations, noisy_rotations = create_trajectory_points(params)
-    generator = LineGenerator(0.02, 5, 0.2, [(-2, 2), (-2, 2), (0, 4)], accelerate=False)
-    generator2 = CircleGenerator(0.02)
-    generator3 = SplineGenerator(0.02, 4, 0.35)
-
+    if params["type"] == "line":
+        generator = LineGenerator(0.0225, 3, 0.125, [(-2.5, 2.5), (-2.5, 2.5), (0, 4)], accelerate=False)
+    elif params["type"] == "circle":
+        generator = CircleGenerator(0.0225)
+    elif params["type"] == "spline":
+        generator = SplineGenerator(0.0225, 4, 0.35)
+    else:
+        generator = LineGenerator(0.0225, 3, 0.15, [(-2, 2), (-2, 2), (0, 4)], accelerate=True)
     #ground_truth, rotations = generator2.generate_1_circle()
     #ground_truth = generator2.generate_1_circle()
     #ground_truth, rotations = generator.generate_1_trajectory()
@@ -441,18 +449,36 @@ if __name__ == "__main__":
     #generator.save_trajectories([ground_truth],[rotations])
     #generator.save_1_trajectory(ground_truth)
     #generator3.generate_and_save_n_trajectories(5)
-    ground_truth = np.load("./dataset/circles/positions/circle2.npy")
-    rotations = load_rotations("./dataset/circles/rotations/rot2.npy")
-
-    noisy_data = np.load("./dataset/circles/positions/circle_noise2.npy")
-    noisy_rotations = load_rotations("./dataset/circles/rotations/rot_noise2.npy")
+    #ground_truth = np.load("./dataset/circles/positions/circle2.npy")
+    # rotations = load_rotations("./dataset/circles/rotations/rot2.npy")
+    #
+    # noisy_data = np.load("./dataset/circles/positions/circle_noise2.npy")
+    # noisy_rotations = load_rotations("./dataset/circles/rotations/rot_noise2.npy")
     #noisy_rotations = rotations
     arg_dict = get_arg_dict()
     #params = {"vis": "1"}
+    if params["vis"] == "3":
+        env = visualize_env(arg_dict)
+        env.reset()
+        saved_trajectory_index = 4
+        for i in range(20):
+            ground_truth, rotations, noisy_data, noisy_rotations = generator.generate_1_trajectory()
+            ids, noise_ids = visualize_trajectory(ground_truth, noisy_data)
+            test = input("Press 1 for saving trajectory, 0 for not saving")
+            if test == "1":
+                print("This trajectory was saved")
+                saved_trajectory_index += 1
+                generator.save_1_trajectory(ground_truth, rotations, noisy_data, noisy_rotations, i= str(saved_trajectory_index))
+            else:
+                print("This trajectory was not saved")
+            for j in range(len(ids)):
+                p.removeUserDebugItem(ids[j])
+                p.removeUserDebugItem(noise_ids[j])
+
     if params["vis"] == "1":
         env = visualize_env(arg_dict)
         env.reset()
-        visualize_trajectory(ground_truth, noisy_data)
+        ids = visualize_trajectory(ground_truth, noisy_data)
         #time.sleep(10)
         #sys.exit()
         resulting_pos_filter, resulting_rot_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, float(params["pause"]), type =params["filter_type"])
