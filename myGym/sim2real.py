@@ -18,12 +18,50 @@ from utils.nicocameras import NicoCameras, image_shift_xy
 from utils.nicodummy import DummyRobot
 import serial
 import matplotlib.pyplot as plt
+from numpy import random, rad2deg, deg2rad, set_printoptions, array, linalg
+
+# Set speed to reseti to initial position
+RESET_SPEED = 0.05
+# Acccuracy (vector distance) to consider the target positon reached
+ACCURACY = 3
+
 
 DEFAULT_SPEED = 0.07
 SIMREALDELAY = 0.2
 RESETDELAY = 4
 FINISHDELAY = 4
 REALJOINTS = ['r_shoulder_z','r_shoulder_y','r_arm_x','r_elbow_y','r_wrist_z','r_wrist_x','r_indexfinger_x']
+
+ANGLE_SHIFT_WRIST_Z = 56
+ANGLE_SHIFT_WRIST_X = 120
+
+init_pos = { # standard position
+                'l_shoulder_z':0.0,
+                'l_shoulder_y':0.0,
+                'l_arm_x':0.0,
+                'l_elbow_y':89.0,
+                'l_wrist_z':0.0,
+                'l_wrist_x':-56.0,
+                'l_thumb_z':-57.0,
+                'l_thumb_x':-180.0,
+                'l_indexfinger_x':-180.0,
+                'l_middlefingers_x':-180.0,
+                'r_shoulder_z':-20,
+                'r_shoulder_y':70,
+                'r_arm_x':30,
+                'r_elbow_y':60,
+                'r_wrist_z':0,
+                'r_wrist_x':0,
+                'r_thumb_z':-180.0,
+                'r_thumb_x':-180.0,
+                'r_indexfinger_x':-90,
+                'r_middlefingers_x':180.0,
+                'head_z':0.0,
+                'head_y':0.0
+            }
+
+set_printoptions(precision=3)
+set_printoptions(suppress=True)
 
 def quit():
     os._exit(0)
@@ -34,97 +72,93 @@ def signal_handler(signal, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+def get_joints_limits(robot_id, num_joints,arg_dict):
+        """
+        Identify limits, ranges and rest poses of individual robot joints. Uses data from robot model.
+
+        Returns:
+            :return [joints_limits_l, joints_limits_u]: (list) Lower and upper limits of all joints
+            :return joints_ranges: (list) Ranges of movement of all joints
+            :return joints_rest_poses: (list) Rest poses of all joints
+        """
+        joints_limits_l, joints_limits_u, joints_ranges, joints_rest_poses, joint_names, link_names, joint_indices = [], [], [], [], [], [], []
+        for jid in range(num_joints):
+            joint_info = p.getJointInfo(robot_id, jid)
+            q_index = joint_info[3]
+            joint_name = joint_info[1]
+            link_name = joint_info[12]
+            if q_index > -1: # Fixed joints have q_index -1
+                joint_names.append(joint_info[1].decode("utf-8"))
+                link_names.append(joint_info[12].decode("utf-8"))
+                joint_indices.append(joint_info[0])
+                joints_limits_l.append(joint_info[8])
+                joints_limits_u.append(joint_info[9])
+                joints_ranges.append(joint_info[9] - joint_info[8])
+                joints_rest_poses.append((joint_info[9] + joint_info[8])/2)
+            if arg_dict["left"]:
+                if link_name.decode("utf-8") == 'endeffectol':
+                    end_effector_index = jid
+            else:
+                if link_name.decode("utf-8") == 'endeffector':
+                #if link_name.decode("utf-8") == 'endeffector':
+                    end_effector_index = jid
+            
+        return [joints_limits_l, joints_limits_u], joints_ranges, joints_rest_poses, end_effector_index, joint_names, link_names, joint_indices
 
 
 def get_real_joints(robot,joints):
+    
     last_position= []
+    
     for k in joints:
         actual=robot.getAngle(k)
-        print("{} : {}, ".format(k,actual),end="")
+        #print("{} : {}, ".format(k,actual),end="")
         last_position.append(actual)
-    print("")
-    return last_position
-def init_robot():
-    motorConfig = './nico_humanoid_upper_rh7d_ukba.json'
-    try:
-        robot = Motion(motorConfig=motorConfig)
-    except:
-        robot = DummyRobot()
-        print('motors are not operational')
-
-    safe = { # standard position
-                'l_shoulder_z':0.0,
-                'l_shoulder_y':0.0,
-                'l_arm_x':0.0,
-                'l_elbow_y':89.0,
-                'l_wrist_z':0.0,
-                'l_wrist_x':-56.0,
-                'l_thumb_z':-57.0,
-                'l_thumb_x':-180.0,
-                'l_indexfinger_x':-180.0,
-                'l_middlefingers_x':-180.0,
-                'r_shoulder_z':-15.0,
-                'r_shoulder_y':68.0,
-                'r_arm_x':2.8,
-                'r_elbow_y':56.4,
-                'r_wrist_z':0.0,
-                'r_wrist_x':11.0,
-                'r_thumb_z':-57.0,
-                'r_thumb_x':180.0,
-                'r_indexfinger_x':-180.0,
-                'r_middlefingers_x':180.0,
-                'head_z':0.0,
-                'head_y':0.0
-            }
-    for k in safe.keys():
-        robot.setAngle(k,safe[k],DEFAULT_SPEED)
-    print ('Robot initializing')
-    initial_position = get_real_joints(robot,REALJOINTS)
-    time.sleep(RESETDELAY)
-    final_position = get_real_joints(robot,REALJOINTS)
-    #print(initial_position - final_position)
-    #input("Press key to continue...")
-    return robot
-
-def reset_robot(robot):
+    #print("")
     
-    reset = True
+    return last_position
 
-    safe = { # standard position
-                'l_shoulder_z':0.0,
-                'l_shoulder_y':0.0,
-                'l_arm_x':0.0,
-                'l_elbow_y':89.0,
-                'l_wrist_z':0.0,
-                'l_wrist_x':-56.0,
-                'l_thumb_z':-57.0,
-                'l_thumb_x':-180.0,
-                'l_indexfinger_x':-180.0,
-                'l_middlefingers_x':-180.0,
-                'r_shoulder_z':-15.0,
-                'r_shoulder_y':68.0,
-                'r_arm_x':2.8,
-                'r_elbow_y':56.4,
-                'r_wrist_z':0.0,
-                'r_wrist_x':11.0,
-                'r_thumb_z':-57.0,
-                'r_thumb_x':180.0,
-                'r_indexfinger_x':-180.0,
-                'r_middlefingers_x':180.0,
-                'head_z':0.0,
-                'head_y':0.0
-            }
-    for k in safe.keys():
-        robot.setAngle(k,safe[k],DEFAULT_SPEED)
-    print ('Robot reseting')
-    initial_position = get_real_joints(robot,REALJOINTS)
-    time.sleep(RESETDELAY)
-    final_position = get_real_joints(robot,REALJOINTS)
-    #print(initial_position - final_position)
-    #input("Press key to continue...")
+def match_joints(init_pos, joint_names):
+    actuated_joint_names = []
+    actuated_joint_init_pos = []
+    for name in init_pos.keys():
+        if name in joint_names:
+            actuated_joint_names.append((name))
+            actuated_joint_init_pos.append(init_pos[name])
+
+    return actuated_joint_names, actuated_joint_init_pos
+
+def reset_robot(robot, init_pos):
+
+    for k in init_pos.keys():
+        robot.setAngle(k,init_pos[k],RESET_SPEED)
+
     return robot
 
+def reset_actuated(robot, actuated_joints, actuated_initpos):
 
+    for joint, initpos in zip(actuated_joints, actuated_initpos):
+        robot.setAngle(joint,initpos,RESET_SPEED)    
+    return robot
+
+def speed_control(initial, target, duration):
+    
+        speed_to_reach = (abs((float(initial) - float(target)) / float(1260*duration)))
+        return speed_to_reach
+
+def check_execution (robot, joints, target):
+    tic = time.time()
+    distance = 100
+
+    while distance > ACCURACY:
+        actual = get_real_joints(robot,joints)
+        #print(timestamp)
+        diff = array(target) - array(actual)
+        distance = linalg.norm(diff)
+        print('Duration: {:.2f}, Error: {:.2f}'.format(time.time()-tic,distance), end='\r')
+        #time.sleep(0.1)
+    toc = time.time()
+    return toc-tic
 
 
 clear = lambda: os.system('clear')
@@ -415,8 +449,7 @@ def test_env(env, arg_dict):
             actiondeg = np.rad2deg(env.env.robot.joint_poses)
             deg = np.rad2deg(jointaction)
             
-            np.set_printoptions(precision=1)
-            np.set_printoptions(suppress=True)
+            
             # print("Prestep: ", predeg)
             # print("Action: ", actiondeg)
             # print("Poststep: ", deg)
@@ -454,7 +487,7 @@ def test_env(env, arg_dict):
             if arg_dict["vinfo"] == True:
                 visualize_infotext(action, env, info)
 
-            print("end-effector: ", info['o']['actual_state'])
+            # print("end-effector: ", info['o']['actual_state'])
                 
                 #visualize_goal(info)
             #if debug_mode:

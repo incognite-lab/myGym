@@ -1,0 +1,666 @@
+<?xml version="1.0" ?>
+<!-- =================================================================================== -->
+<!-- |    This document was manually created   and the meshes resized and repositioned | -->
+<!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
+<!-- =================================================================================== -->
+<!--
+  Copyright (c) 2023, Michal Vavrecka
+  All rights reserved.
+
+  This work is licensed under the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 Unported License.
+  To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/3.0/ or send a letter to
+  Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+-->
+<robot name="nico_upper_rh6d">
+	<link name="world" />
+	<link name="torso">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/torso.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+			<material name="torso_color">
+				<color rgba="0.270588 0.270588 0.270588 1"/>
+			</material>
+		</visual>
+	</link>
+	<joint name="world_to_base_link" type="fixed">
+    	<parent link="world"/>
+    	<child link="torso"/>
+  	</joint>
+    <link name="neck">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/neck.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+			<material name="neck_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/neck.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+		</collision>
+		<inertial>
+			<mass value="0.090439"/>
+			<inertia ixx="0.00006" ixy="-0" ixz="-0" iyy="0.000056" iyz="-0.000001" izz="0.000019"/>
+			<origin rpy="0 0 0" xyz="0 0.000266 0.050352"/>
+		</inertial>
+	</link>
+	<joint name="head_z_rjoint" type="fixed">
+		<parent link="torso"/>
+		<child link="neck"/>
+		<origin rpy="0 0 0" xyz="-0.025 0.005 0.23"/>
+		<axis xyz="0 0 1"/>
+		<limit effort="30" lower="-1.5708" upper="1.5708" velocity="1"/>
+	</joint>
+	<link name="head">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/head.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="head_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/head.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.294137"/>
+			<inertia ixx="0.001424" ixy="-0" ixz="0.000083" iyy="0.00159" iyz="-0.000002" izz="0.001485"/>
+			<origin rpy="0 0 0" xyz="0.01525 -0.023771 0.09423"/>
+		</inertial>
+	</link>
+	<joint name="head_y_rjoint" type="fixed">
+		<parent link="neck"/>
+		<child link="head"/>
+		<origin rpy="0 0 0" xyz="0 0.0 0.105"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-0.8726" upper="0.4363" velocity="1"/>
+	</joint>
+    <!-- ====RIGHT ARM=== -->
+	<link name="right_shoulder">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/right_shoulder.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_shoulder_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/right_shoulder.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.084038"/>
+			<inertia ixx="0.000026" ixy="-0.000001" ixz="-0.000002" iyy="0.000034" iyz="-0" izz="0.000033"/>
+			<origin rpy="0 0 0" xyz="0.005637 0.000876 0.033153"/>
+		</inertial>
+	</link>
+	<joint name="r_shoulder_z_rjoint" type="fixed">
+		<parent link="torso"/>
+		<child link="right_shoulder"/>
+		<origin rpy="0 0 0" xyz="0.005 -0.045 0.23"/>
+		<axis xyz="0 0 1"/>
+		<limit effort="30" lower="-0.4363" upper="1.3963" velocity="1"/>
+	</joint>
+	<link name="right_collarbone">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/right_collar.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_collarbone_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/right_collar.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.024811"/>
+			<inertia ixx="0.000014" ixy="-0" ixz="0" iyy="0.000011" iyz="-0.000001" izz="0.000019"/>
+			<origin rpy="0 0 0" xyz="-0 -0.041345 -0.002364"/>
+		</inertial>
+	</link>
+	<joint name="r_shoulder_y_rjoint" type="fixed">
+		<parent link="right_shoulder"/>
+		<child link="right_collarbone"/>
+		<origin rpy="0 0 0" xyz="-0.021 -0.023 0.033"/>
+		<axis xyz="0 -1 0"/>
+		<limit effort="30" lower="-0.5236" upper="3.1416" velocity="1"/>
+	</joint>
+	<link name="right_upper_arm">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/right_upper_arm.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_upper_arm_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/right_upper_arm.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.189729"/>
+			<inertia ixx="0.000851" ixy="0" ixz="0" iyy="0.000851" iyz="-0.000005" izz="0.000048"/>
+			<origin rpy="0 0 0" xyz="-0.02306 -0.000321 -0.0866"/>
+		</inertial>
+	</link>
+	<joint name="r_upperarm_x_rjoint" type="fixed">
+		<parent link="right_collarbone"/>
+		<child link="right_upper_arm"/>
+		<origin rpy="0 0 0" xyz="0.00 -0.073 -0.023"/>
+		<axis xyz="-1 0 0"/>
+		<limit effort="30" lower="0" upper="1.2217" velocity="1"/>
+	</joint>
+	<link name="right_lower_arm">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/right_lower_arm.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_lower_arm_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/right_lower_arm.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.076793"/>
+			<inertia ixx="0.000104" ixy="-0" ixz="-0" iyy="0.000095" iyz="-0.000002" izz="0.000021"/>
+			<origin rpy="0 0 0" xyz="0 0.022485 -0.081055"/>
+		</inertial>
+	</link>
+	<joint name="r_elbow_y_rjoint" type="fixed">
+		<parent link="right_upper_arm"/>
+		<child link="right_lower_arm"/>
+		<origin rpy="0 3.14 0" xyz="0.0 0 -0.17"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="0.8726" upper="3.1416" velocity="1"/>
+	</joint>
+	<link name="right_wrist">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/right_wrist.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_wrist_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/right_wrist.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.028397"/>
+			<inertia ixx="0.000043" ixy="-0" ixz="0.000004" iyy="0.000058" iyz="-0.000007" izz="0.000029"/>
+			<origin rpy="0 0 0" xyz="0.000031 -0.011056 -0.0675"/>
+		</inertial>
+	</link>
+	<joint name="r_wrist_z_rjoint" type="fixed">
+		<parent link="right_lower_arm"/>
+		<child link="right_wrist"/>
+		<origin rpy="0 0 1.57" xyz="0 0 -0.105"/>
+		<axis xyz="0 0 1"/>
+		<limit effort="30" lower="-1.571" upper="1.571" velocity="1"/>
+	</joint>
+	<link name="right_palm"> <!--gripper-->
+		<visual>
+			<geometry>
+				<mesh filename="mesh/right_palm.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="gripper_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/right_palm.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.005332"/>
+			<inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
+			<origin rpy="0 0 0" xyz="-0.029511 0.002253 -0.023968"/>
+		</inertial>
+	</link>
+	<joint name="r_wrist_x_rjoint" type="fixed">
+		<parent link="right_wrist"/>
+		<child link="right_palm"/>
+		<origin rpy="0 0 0" xyz="0 0 -0.10"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-.78" upper="0.78" velocity="1"/>
+	</joint>
+	<!--link name="endeffector">
+    	<visual>
+      		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
+      		<geometry>
+        		<sphere radius="0.01"/>
+      		</geometry>
+    	</visual>
+  	</link>
+	<joint name="endeffector_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="endeffector"/>
+    	<origin rpy="0 0 0" xyz="0.00 -0.02 -0.11"/>
+	</joint-->
+	<!--link name="middlefinger">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="finger_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
+	</link-->
+	<!--link name="littlefinger">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="finger_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
+	</link-->
+	<link name="gripper"> <!--indexfinder-->
+		<visual>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="finger_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
+	</link>
+	<!--joint name="middlefinger_rjoint" type="fixed">
+		<parent link="gripper"/>
+		<child link="middlefinger"/>
+		<origin rpy="0 0 0" xyz="0 0 -0.06"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
+	</joint-->
+	<!--joint name="litlefinger_rjoint" type="fixed">
+		<parent link="gripper"/>
+		<child link="littlefinger"/>
+		<origin rpy="0 0 0" xyz="0.00 0.02 -0.06"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
+	</joint-->
+	<joint name="gripper_rjoint" type="fixed">
+		<parent link="right_palm"/>
+		<child link="gripper"/>
+		<origin rpy="0 0 0" xyz="0.00 -0.02 -0.06"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
+	</joint>
+	<link name="endeffector"> <!-- change to endeffector to use right hand IK -->
+    	<visual>
+      		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
+      		<geometry>
+        		<sphere radius="0.01"/>
+      		</geometry>
+    	</visual>
+  	</link>
+	<joint name="endeffector_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="endeffector"/>
+    	<origin rpy="0 0 0" xyz="0.00 -0.0 -0.05"/>
+	</joint>
+    <!-- ====LEFT ARM=== -->
+    <link name="left_shoulder">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/left_shoulder.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="left_shoulder_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/left_shoulder.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.084038"/>
+			<inertia ixx="0.000026" ixy="-0.000001" ixz="-0.000002" iyy="0.000034" iyz="-0" izz="0.000033"/>
+			<origin rpy="0 0 0" xyz="0.005637 0.000876 0.033153"/>
+		</inertial>
+	</link>
+	<joint name="l_shoulder_z_rjoint" type="revolute">
+		<parent link="torso"/>
+		<child link="left_shoulder"/>
+		<origin rpy="0 0 0" xyz="0.005 0.05 0.23"/>
+		<axis xyz="0 0 1"/>
+		<limit effort="30" lower="-1.3963" upper="0.4363" velocity="1"/>
+	</joint>
+	<link name="left_collarbone">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/left_collar.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_collarbone_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/left_collar.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.024811"/>
+			<inertia ixx="0.000014" ixy="-0" ixz="0" iyy="0.000011" iyz="-0.000001" izz="0.000019"/>
+			<origin rpy="0 0 0" xyz="-0 -0.041345 -0.002364"/>
+		</inertial>
+	</link>
+	<joint name="l_shoulder_y_rjoint" type="revolute">
+		<parent link="left_shoulder"/>
+		<child link="left_collarbone"/>
+		<origin rpy="0 0 0" xyz="-0.021 0.023 0.033"/>
+		<axis xyz="0 -1 0"/>
+		<limit effort="30" lower="-0.5236" upper="3.1416" velocity="1"/>
+	</joint>
+	<link name="left_upper_arm">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/right_upper_arm.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_upper_arm_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/right_upper_arm.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.189729"/>
+			<inertia ixx="0.000851" ixy="0" ixz="0" iyy="0.000851" iyz="-0.000005" izz="0.000048"/>
+			<origin rpy="0 0 0" xyz="-0.02306 -0.000321 -0.0866"/>
+		</inertial>
+	</link>
+	<joint name="l_upperarm_x_rjoint" type="revolute">
+		<parent link="left_collarbone"/>
+		<child link="left_upper_arm"/>
+		<origin rpy="0 0 0" xyz="0.00 0.073 -0.023"/>
+		<axis xyz="1 0 0"/>
+		<limit effort="30" lower="0" upper="1.2217" velocity="1"/>
+	</joint>
+	<link name="left_lower_arm">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/right_lower_arm.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_lower_arm_color">
+				<color rgba="0.176471 0.176471 0.176471 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/right_lower_arm.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.076793"/>
+			<inertia ixx="0.000104" ixy="-0" ixz="-0" iyy="0.000095" iyz="-0.000002" izz="0.000021"/>
+			<origin rpy="0 0 0" xyz="0 0.022485 -0.081055"/>
+		</inertial>
+	</link>
+	<joint name="l_elbow_y_rjoint" type="revolute">
+		<parent link="left_upper_arm"/>
+		<child link="left_lower_arm"/>
+		<origin rpy="0 3.14 0" xyz="0.0 0 -0.17"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="0.8726" upper="3.1416" velocity="1"/>
+	</joint>
+	<link name="left_wrist">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/left_wrist.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="right_wrist_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/left_wrist.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.028397"/>
+			<inertia ixx="0.000043" ixy="-0" ixz="0.000004" iyy="0.000058" iyz="-0.000007" izz="0.000029"/>
+			<origin rpy="0 0 0" xyz="0.000031 -0.011056 -0.0675"/>
+		</inertial>
+	</link>
+	<joint name="l_wrist_z_rjoint" type="revolute">
+		<parent link="left_lower_arm"/>
+		<child link="left_wrist"/>
+		<origin rpy="0 0 1.57" xyz="0 0 -0.105"/>
+		<axis xyz="0 0 1"/>
+		<limit effort="30" lower="-1.571" upper="1.571" velocity="1"/>
+	</joint>
+	<link name="left_palm"> <!--gripper-->
+		<visual>
+			<geometry>
+				<mesh filename="mesh/left_palm.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="gripper_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/left_palm.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.005332"/>
+			<inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
+			<origin rpy="0 0 0" xyz="-0.029511 0.002253 -0.023968"/>
+		</inertial>
+	</link>
+	<joint name="l_wrist_x_rjoint" type="revolute">
+		<parent link="left_wrist"/>
+		<child link="left_palm"/>
+		<origin rpy="0 0 0" xyz="0 0 -0.10"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-.78" upper="0.78" velocity="1"/>
+	</joint>
+    <!--link name="endeffector">
+    	<visual>
+      		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
+      		<geometry>
+        		<sphere radius="0.01"/>
+      		</geometry>
+    	</visual>
+  	</link>
+	<joint name="endeffector_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="endeffector"/>
+    	<origin rpy="0 0 0" xyz="0.00 -0.02 -0.11"/>
+	</joint-->
+	<!--link name="middlefinger">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="finger_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
+	</link-->
+	<!--link name="littlefinger">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="finger_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
+	</link-->
+	<link name="grippel"> <!--indexfinder-->
+		<visual>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="finger_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
+	</link>
+	<!--joint name="middlefinger_rjoint" type="fixed">
+		<parent link="gripper"/>
+		<child link="middlefinger"/>
+		<origin rpy="0 0 0" xyz="0 0 -0.06"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
+	</joint-->
+	<!--joint name="litlefinger_rjoint" type="fixed">
+		<parent link="gripper"/>
+		<child link="littlefinger"/>
+		<origin rpy="0 0 0" xyz="0.00 0.02 -0.06"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
+	</joint-->
+	<joint name="grippel_rjoint" type="revolute">
+		<parent link="left_palm"/>
+		<child link="grippel"/>
+		<origin rpy="0 0 0" xyz="0.00 -0.02 -0.06"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="0" upper="2.57" velocity="1"/>
+	</joint>
+	<link name="endeffectol">
+    	<visual>
+      		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
+      		<geometry>
+        		<sphere radius="0.01"/>
+      		</geometry>
+    	</visual>
+  	</link>
+	<joint name="endeffectol_joint" type="fixed">
+    	<parent link="grippel"/>
+    	<child link="endeffectol"/>
+    	<origin rpy="0 0 0" xyz="0.00 -0.0 -0.05"/>
+	</joint>
+</robot>
+
