@@ -34,43 +34,57 @@ import pandas as pd
 class myEstimator(BaseEstimator):
 
     def fit(self, X, y=None):
+        self.y_ = y
         self.x_ = X
-        for i in range(len(y)):
-            if i == 0:
-                self.y_ = y
-            else:
-                self.y_ = np.vstack((self.y_, y[i]))
         return self
 
     def predict(self, X):
-        for t in range(len(X)):
-            noisy_data = X[t]
-            self.filter = self.initialize_filter()
-            n = noisy_data.shape[0]
-
-            for i in range(n):
-                measurement = noisy_data[i]
-                if i == 0:
-                    self.filter.apply_first_measurement(measurement)
-                    self.filter.state_estimate()
-                    continue
-                self.filter.filter_step(measurement)
-            self.filter.convert_estimates()
-            estimates = self.filter.estimates
-            if t == 0:
-                self.x_ = estimates
-            else:
-                self.x_ = np.vstack((self.x_, estimates))
+        """
+        Entire filtration algorithm present here. X is noisy data representing the measurements.
+        """
+        noisy_data = X
+        n = X.shape[0]
+        new_trajectory = False
+        self.x_ = np.zeros_like(X)
+        measurement_dim = X.shape[1]
+        trajectory_start_index = 0
+        for i in range(n):
+            measurement = noisy_data[i]
+            if np.allclose(measurement, np.array([99]*measurement_dim)):
+                #New trajectory, resetting filter and saving current estimates
+                try:
+                    #At the start of a new trajectory - filter is already initialized
+                    self.filter.convert_estimates()
+                    # print("current filter estimates:", self.filter.estimates)
+                    # print("estimates shape:", self.filter.estimates.shape)
+                    # print("shape of x to be saved into:", self.x_[trajectory_start_index:i].shape)
+                    self.x_[trajectory_start_index:i, :] = self.filter.estimates
+                    self.x_[i] = measurement
+                    self.initialize_filter()
+                except:
+                    #At the start of first trajectory - filter hasn't been initialized yet
+                    self.initialize_filter()
+                    self.x_[i] = measurement
+                new_trajectory = True
+                continue
+            if new_trajectory:
+                self.filter.apply_first_measurement(measurement)
+                self.filter.state_estimate()
+                trajectory_start_index = i
+                new_trajectory = False
+                continue
+            self.filter.filter_step(measurement)
+        # print("PREDICTED VALUES",self.x_)
         return self.x_
 
 
     def initialize_filter(self):
-        self.filter = ParticleFilter6D(100, 0.02, 0.1,
+        self.filter = ParticleFilterVelocity(100, 0.02, 0.1,
                                        0.03, res_g=0.5)
 
 
 
-class Estimator6D(myEstimator):
+class EstimatorVelocity(myEstimator):
     def __init__(self, num_particles = 600, process_std = 0.02, vel_std = 0.1, measurement_std = 0.02, res_g = 0.5):
         self.vel_std = vel_std
         self.num_particles = num_particles
@@ -80,14 +94,14 @@ class Estimator6D(myEstimator):
 
 
     def initialize_filter(self):
-        self.filter = ParticleFilter6D(self.num_particles, self.process_std, self.vel_std,
+        self.filter = ParticleFilterVelocity(self.num_particles, self.process_std, self.vel_std,
                                        self.measurement_std, res_g=self.res_g)
 
 
 
 
 
-class Estimator6DRot(myEstimator):
+class EstimatorVelocityRot(myEstimator):
     def __init__(self, num_particles = 600, process_std = 0.02, vel_std = 0.1, measurement_std = 0.02, res_g =0.5,
                  rotflip_const = 0.1):
         self.num_particles = num_particles
@@ -99,7 +113,7 @@ class Estimator6DRot(myEstimator):
 
 
     def initialize_filter(self):
-        self.filter = ParticleFilter6DRot(
+        self.filter = ParticleFilterVelocityRot(
             self.num_particles, self.process_std, self.vel_std, self.measurement_std, res_g=self.res_g,
             rotflip_const=self.rotflip_const)
 
@@ -118,7 +132,7 @@ class EstimatorGH(myEstimator):
 
 
     def initialize_filter(self):
-        self.position_filter = ParticleFilterGH(self.num_particles, self.process_std,
+        self.filter = ParticleFilterGH(self.num_particles, self.process_std,
                                                 self.measurement_std, vel_std=0.01, g=self.g, h=self.h)
 
 
@@ -151,7 +165,7 @@ class EstimatorPFKalman(myEstimator):
 
     def initialize_filter(self):
         self.filter = ParticleFilterWithKalman(self.num_particles, self.process_std,
-                                                        self.measurement_std, Q=self.Q, R=self.R, factor_a=self.std_a)
+                                                        self.measurement_std, Q=self.Q, R=self.R, std_a=self.std_a)
 
 class EstimatorPFKalmanRot(myEstimator):
     def __init__(self, num_particles=600, process_std=0.02, measurement_std=0.02, Q =None, R = None, std_a = 0.1, rotflip_const = 0.1):
@@ -180,9 +194,11 @@ class EstimatorKalman(myEstimator):
         self.initial_x = np.array([0, 0, 0, 0, 0, 0])
         self.P = np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
 
+
     def initialize_filter(self):
         self.filter = myKalmanFilter(self.initial_x, P=self.P, R=self.R, Q=self.Q,
                                               Q_scale_factor=self.Q_scale_factor, eps_max=self.eps_max)
+
 
 
 class EstimatorKalmanRot(myEstimator):
@@ -196,62 +212,160 @@ class EstimatorKalmanRot(myEstimator):
         self.rotflip_const = rotflip_const
 
     def initialize_filter(self):
+
         self.filter = myKalmanFilterRot(self.initial_x, self.P, self.R, self.Q, self.Q_scale_factor,
                                                  self.rotflip_const)
 
 
+def filter_gridsearch(filters, parameters, trajectory_types):
+    """
+    All-encompassing testing function for using gridsearch
+    """
 
-def save_results(Estimator, dataframe):
-    filter = Estimator.__class__.__name__
-    if filter == "EstimatorKalman":
-        dataframe.to_csv("results_Kalman_csv", sep='\t')
+    filter_estimator_dict = {
+        "myKalmanFilter" : "EstimatorKalman",
+        "myKalmanFilterRot": "EstimatorKalmanRot",
+        "ParticleFilterVelocity": "EstimatorVelocity",
+        "ParticleFilterGH" : "EstimatorGH",
+        "ParticleFilterVelocityRot" : "EstimatorVelocityRot",
+        "ParticleFilterGHRot" : "EstimatorGHRot",
+        "ParticleFilterWithKalman" : "EstimatorPFKalman",
+        "ParticleFilterWithKalmanRot" : "EstimatorPFKalmanRot",
+    }
+    for filter in filters:
+        evaluate_and_save(filter, parameters, filter_estimator_dict, trajectory_types)
 
 
-def create_dataframe(Estimator, grid_search, param_grid):
+
+def evaluate_and_save(filter, parameters, est_dict, trajectory_types):
+    """
+    Function that performs gridsearch on one estimator with parameters corresponding to the filter type.
+    Results are saved in a .npy file.
+    """
+    X, y = load_trajectories(trajectory_types)
+    param_grid = dict()
+    with open("/home/student/Desktop/myGym/myGym/configs/" + parameters +".json") as json_file:
+        data = json.load(json_file)
+        for key in data:
+            param_grid[key] = data[key]
+    cv = [(slice(None), slice(None))]
+    estimator = est_dict[filter]
+    grid_search = GridSearchCV(eval(estimator + "()"), param_grid=param_grid[filter],
+                               scoring="neg_mean_squared_error", cv=cv)
+    grid_search.fit(X, y)
+    create_and_save_dataframe(eval(estimator + "()"), grid_search, param_grid[filter], trajectory_types)
+
+
+
+
+# def initialize_estimators(filters):
+#     """
+#     Function that properly initializes Estimator objects
+#     """
+#     for filter in filters:
+#         pass
+
+
+def load_trajectories(types):
+    """
+    Creates X and y vectors that will get passed into gridsearch fit function.
+    Vectors are made from dataset based on the input types.
+    """
+    filenames_base = []
+    filenames_base_noise = []
+    for type in types:
+        if type =="lines":
+            filenames_base.append("./dataset/lines/positions/line")
+            filenames_base_noise.append( "./dataset/lines/positions/line_noise")
+        elif type == "lines_acc":
+            filenames_base.append("./dataset/lines_acc/positions/line")
+            filenames_base_noise.append("./dataset/lines_acc/positions/line_noise")
+        elif type == "circles":
+            filenames_base.append("./dataset/circles/positions/circle")
+            filenames_base_noise.append( "./dataset/circles/positions/circle_noise")
+        elif type == "splines":
+            filenames_base.append("./dataset/splines/positions/spline")
+            filenames_base_noise.append( "./dataset/splines/positions/spline_noise")
+        elif type == "lines_rot":
+            filenames_base.append("./dataset/lines/rotations/rot")
+            filenames_base_noise.append("./dataset/lines/rotations/rot_noise")
+        elif type == "circles_rot":
+            filenames_base.append("./dataset/circles/rotations/rot")
+            filenames_base_noise.append("./dataset/circles/rotations/rot_noise")
+        elif type == "splines_rot":
+            filenames_base.append("./dataset/splines/rotations/rot")
+            filenames_base_noise.append("./dataset/splines/rotations/rot_noise")
+        elif type == "lines_acc_rot":
+            filenames_base.append("./dataset/lines_acc/rotations/rot")
+            filenames_base_noise.append("./dataset/lines_acc/rotations/rot_noise")
+        else:
+            print("Entered wrong trajectory types")
+            sys.exit()
+    #Constant velocity lines
+    for i in range(len(filenames_base)):
+        filename_base = filenames_base[i]
+        filename_base_noise = filenames_base_noise[i]
+        if "rotations" in filename_base:
+            X = np.array([99, 99, 99, 99])
+            y = np.array([99, 99, 99, 99])
+        else:
+            X = np.array([99, 99, 99])
+            y = np.array([99, 99, 99])
+        for i in range(1, 7, 1):
+            filename = filename_base + str(i) + ".npy"
+            filename_noise = filename_base_noise + str(i) + ".npy"
+            gt = np.load(filename)
+            meas = np.load(filename_noise)
+            X = np.vstack((X, gt))
+            y = np.vstack((y, meas))
+    return X, y
+
+
+def create_and_save_dataframe(Estimator, grid_search, param_grid, trajectory_types):
     filter_name = Estimator.__class__.__name__
     dataframe_list = []
     rename_list = []
+    trajectory_types_string = ""
+    for type in trajectory_types:
+        trajectory_types_string = trajectory_types_string + type + "_"
     for key in param_grid:
         rename_list.append(key)
         dataframe_list.append("param_" + key)
+    dataframe_list.append("mean_test_score")
+    dataframe_list.append("mean_score_time")
     dataframe = pd.DataFrame(grid_search.cv_results_)[dataframe_list]
     rename_dict = {}
     for i in range(len(rename_list)):
         rename_dict[dataframe_list[i]] = rename_list[i]
-    dataframe = dataframe.rename(collumns = rename_dict)
-    dataframe = dataframe.sort_values(by=['mean_test_score'])
-    dataframe.to_csv("results_" + filter_name, sep='\t')
+    dataframe = dataframe.rename(columns = rename_dict)
+    dataframe = dataframe.sort_values(by=['mean_test_score'], ascending = False, kind = "quicksort")
+    dataframe.to_csv("/home/student/Desktop/myGym/myGym/results/" + filter_name + "_" + trajectory_types_string + ".csv", sep='\t')
 
 
 
 if __name__ == "__main__":
-    gt = np.load("./dataset/circles/positions/circle2.npy")
-    meas = np.load("./dataset/circles/positions/circle_noise2.npy")
-    X= meas
-    """
-    param_grid = dict()
-    with open("/home/frederik/Prace/Brigada2023/mygym/myGym/configs/parameters.json") as json_file:
-        data = json.load(json_file)
-
-        print("Type:", type(data))
-        param_grid = data["ParticleFilter6D"] 
-    """
-    param_grid = {
-        "Q" : [0.08, 0.04],
-        "R" : [0.02, 0.15],
-        "eps_max" : [0.18],
-        "Q_scale_factor": [500, 1000],
-    }
-    #print(param_grid)
-    cv = [(slice(None), slice(None))]
+    # X, y = load_trajectories(["lines_rot", "lines_acc_rot"])
+    #
+    # param_grid = dict()
+    # with open("/home/student/Desktop/myGym/myGym/configs/testing_parameters.json") as json_file:
+    #     data = json.load(json_file)
+    #     for key in data:
+    #         param_grid[key] = data[key]
+    #
+    #
+    # cv = [(slice(None), slice(None))]
     #scorer = make_scorer(scoring, greater_is_better = True)
-    grid_search = GridSearchCV(EstimatorKalman(), param_grid = param_grid, scoring = "neg_mean_squared_error", cv = cv)
-    print(grid_search.fit(X, gt))
-    print(grid_search.predict(X))
-    print(grid_search.cv_results_)
-    dataframe = pd.DataFrame(grid_search.cv_results_)[[ "param_Q", "param_R", "param_eps_max", "param_Q_scale_factor",  "mean_test_score"]]
-    dataframe = dataframe.rename(columns = {"param_num_particles": "Numberof particles", "param_process_std": "Process std"})
-    #dataframe = pd.read_csv("/home/frederik/Prace/Brigada2023/mygym/myGym/out1.csv", sep = '\t')
-    #print("dataframe:", dataframe)
-    dataframe = dataframe.sort_values(by="mean_test_score")
-    dataframe.to_csv("outKalman.csv", sep='\t')
+    # grid_search = GridSearchCV(EstimatorVelocityRot(), param_grid = param_grid["ParticleVelocityFilter"], scoring = "neg_mean_squared_error", cv = cv)
+    # print(grid_search.fit(X, y))
+    # #print(grid_search.predict(X))
+    # print(grid_search.cv_results_)
+    # #dataframe = pd.DataFrame(grid_search.cv_results_)[[ "param_Q", "param_R", "param_eps_max", "param_Q_scale_factor",  "mean_test_score"]]
+    # #dataframe = dataframe.rename(columns = {"param_num_particles": "Numberof particles", "param_process_std": "Process std"})
+    # #dataframe = pd.read_csv("/home/frederik/Prace/Brigada2023/mygym/myGym/out1.csv", sep = '\t')
+    # #print("dataframe:", dataframe)
+    # #dataframe = dataframe.sort_values(by="mean_test_score")
+    # #dataframe.to_csv("outKalman.csv", sep='\t')
+    # create_and_save_dataframe(EstimatorVelocityRot(), grid_search, param_grid["ParticleVelocityFilter"])
+    filters = ["myKalmanFilterRot", "ParticleFilterVelocityRot", "ParticleFilterWithKalmanRot", "ParticleFilterGHRot"]
+    trajectory_types = ["lines_rot", "splines_rot", "circles_rot", "lines_acc_rot"]
+    filter_gridsearch(filters, "testing_parameters", trajectory_types)

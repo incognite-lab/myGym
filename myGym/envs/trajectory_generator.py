@@ -72,7 +72,7 @@ class TrajectoryGenerator:
         traj = np.random.uniform(-2, 2, (100, 3))
         noisy_traj = self.add_noise(traj, self.std)
         rotations = [Quaternion(0, 0, 0, 0)]*100
-        noisy_rotations = self.add_rotation_noise(rotations, self.std)
+        noisy_rotations = self.add_rotation_noise(rotations)
         return traj, noisy_traj, rotations, noisy_rotations
 
     """
@@ -114,7 +114,6 @@ class TrajectoryGenerator:
             rot_array[i, :] = rot
         return rot_array
 
-
     def generate_and_save_n_trajectories(self, n):
         trajectories, rotation_trajectories, noisy_trajectories, noisy_rotations = self.generate_n_trajectories(n)
         self.save_trajectories(trajectories, rotation_trajectories, noisy_trajectories, noisy_rotations)
@@ -135,17 +134,22 @@ class TrajectoryGenerator:
         return ret
 
 
-    def add_rotation_noise(self, rotations, sigma_q):
+    def add_rotation_noise(self, rotations, sigma_q = np.sqrt(3) * 8):
         """
-        Add noise to rotational trajectory (series of quaternions)
+        Add noise to rotational trajectory (series of quaternions) by generating a noisy rotation in random direction
+        and random angle generated from gaussian distribution of std size sigma_q.
+        sigma_q: Standard deviation of angle difference (representing 4 degrees of stdev in every dimension)
         """
         noisy_rotations = []
         for i in range(len(rotations)):
-            rot = rotations[i]
-            w, x, y, z = np.random.randn() * sigma_q, np.random.randn() * sigma_q, np.random.randn() * sigma_q, np.random.randn() * sigma_q
-            noise_q = Quaternion(w, x, y, z)
-            quat_noisy = rot + noise_q
-            noisy_rotations.append(quat_noisy)
+            q_gt = rotations[i]
+            q_dir = Quaternion.random()
+            dq = q_gt.inverse * q_dir
+            dir_axis = dq.axis #Axis of rotation between ground truth and random rotation
+            noise_angle = np.abs(np.random.randn() * sigma_q) #Sample angle size for noisy rotation
+            q_noise = Quaternion(axis=dir_axis, angle=np.deg2rad(noise_angle))
+            noisy_quat = q_gt*q_noise
+            noisy_rotations.append(noisy_quat)
         return noisy_rotations
 
 
@@ -221,7 +225,7 @@ class LineGenerator(TrajectoryGenerator):
         lines = tuple(lines)
         trajectory = np.vstack(lines)
         noisy_trajectory = self.add_noise(trajectory, self.std)
-        noisy_rotations = self.add_rotation_noise(rot_lines, self.std)
+        noisy_rotations = self.add_rotation_noise(rot_lines)
         return trajectory, rot_lines, noisy_trajectory, noisy_rotations
 
 
@@ -243,7 +247,7 @@ class LineGenerator(TrajectoryGenerator):
         lines = tuple(lines)
         trajectory = np.vstack(lines)
         noisy_trajectory = self.add_noise(trajectory, self.std)
-        noisy_rotations = self.add_rotation_noise(rot_lines, self.std)
+        noisy_rotations = self.add_rotation_noise(rot_lines)
         return trajectory, rot_lines, noisy_trajectory, noisy_rotations
 
 
@@ -285,7 +289,6 @@ class LineGenerator(TrajectoryGenerator):
         for rot in Quaternion.intermediates(q1, q2, trajectory.shape[0]):
             rotations.append(rot)
         return rotations
-
 
 
 
@@ -331,7 +334,7 @@ class CircleGenerator(TrajectoryGenerator):
         trajectory = create_circle(radius, center, normal, n)
         rotation_trajectory = self.generate_rotations(trajectory, np.deg2rad(25))
         noisy_trajectory = self.add_noise(trajectory, self.std)
-        noisy_rotations = self.add_rotation_noise(rotation_trajectory, self.std)
+        noisy_rotations = self.add_rotation_noise(rotation_trajectory)
         return trajectory, rotation_trajectory, noisy_trajectory, noisy_rotations
 
 
@@ -387,7 +390,7 @@ class SplineGenerator(TrajectoryGenerator):
         """
         keypoints = np.array(keypoints)
         trajectory = np.zeros((40, 3))
-        trajectory[:, :3] = fit_polynomial(keypoints, 40)
+        trajectory[:, :3] = fit_polynomial(keypoints,40)
         new_n = int(trajectory_length(trajectory)/(self.v * self.dt))
         trajectory = fit_polynomial(keypoints, new_n)
         starting_rot = None
@@ -397,7 +400,7 @@ class SplineGenerator(TrajectoryGenerator):
             starting_rot = rotations[-1]
         rotations.append(rotations[-1])
         noisy_trajectory = self.add_noise(trajectory, self.std)
-        noisy_rotations = self.add_rotation_noise(rotations, self.std)
+        noisy_rotations = self.add_rotation_noise(rotations)
         return trajectory, rotations, noisy_trajectory, noisy_rotations
 
 
@@ -407,10 +410,8 @@ class SplineGenerator(TrajectoryGenerator):
             q1 = Quaternion.random()
         else:
             q1 = starting_rot
-
         q2 = Quaternion.random()
         start_row = np.argmin(np.linalg.norm(trajectory - start, axis=1))
-
         end_row = np.argmin(np.linalg.norm(trajectory - end, axis=1))
         trajectory_section = trajectory[start_row:end_row, :]
         while not self.check_rotation_distance(q1,q2,trajectory_section, omega):
@@ -423,11 +424,26 @@ class SplineGenerator(TrajectoryGenerator):
 
 
 
-
-
 if __name__ == '__main__':
-    generator = LineGenerator(0.02, 3, 0.2, [(-4,4),(0.3, 5), (0, 5)], accelerate=True)
-    print(generator.generate_1_trajectory())
+    # for i in range(1,7,1):
+    #     filename = "./dataset/circles/rotations/rot" + str(i) + ".npy"
+    #     array = np.load(filename)
+    #     array = np.delete(array, -1, 0)
+    #     np.save(filename, array)
+    #     arr_new = np.load(filename)
+    #     print("updated, saved and newly loaded array:", arr_new)
+    #     print("------------------------------------------")
+    for i in range(1,7,1):
+        filename = "./dataset/lines_acc/rotations/rot_noise" + str(i) + ".npy"
+        array = np.load(filename)
+        array = np.vstack((array, [99, 99, 99, 99]))
+        #print("loaded and appended array:", array)
+        np.save(filename, array)
+        arr_new = np.load(filename)
+        print("updated, saved and newly loaded array:", arr_new)
+        print("------------------------------------------")
+
+
 
 
 

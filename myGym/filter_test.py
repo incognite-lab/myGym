@@ -22,6 +22,8 @@ from pyquaternion import Quaternion
 import sys
 from scipy.interpolate import splprep, splev
 import matplotlib.pyplot as plt
+
+
 from myGym.envs.particle_filter import *
 from myGym.utils.filter_helpers import *
 
@@ -36,6 +38,8 @@ dt = 0.2 #Legth of one timestep in seconds
 Input retreiver and other necessary initialization functions:
 
 """
+import matplotlib
+matplotlib.use('TkAgg')
 
 
 def get_parameters_from_config(type):
@@ -115,8 +119,8 @@ def get_input():
     else:
         type = int(input("Enter trajectory type (1 for line, 2 for circle, 3 for spatial spline: )"))
         trajectory_dict = get_parameters_from_config(type)
-    trajectory_dict["filter_type"] = input("Enter the type of particle filter (1 for g-h, 2 for 6D, 3 for 3D with Kalman, 4 for simple Kalman")
-    trajectory_dict["vis"] = input("Do you want to visualize the filter process? (1 - yes, 2 - no) ")
+    trajectory_dict["filter_type"] = input("Enter the type of particle filter (1 for g-h, 2 for VelocityPF, 3 for PFK, 4 for simple Kalman")
+    trajectory_dict["vis"] = input("Do you want to visualize the filter process? (1 - yes, 2 - no, 3 for generating trajectories) ")
     if trajectory_dict["vis"] == '1':
         trajectory_dict["pause"] = input("Enter the length of each filter iteration (seconds): ")
     return trajectory_dict
@@ -214,8 +218,14 @@ def plot_comparison(diffs_meas, diffs_est, title, filename):
     measured_avg = np.average(diffs_meas)/3
     estimated_avg = np.average(diffs_est)/3
 
+
     # Plotting results
     fig, ax = plt.subplots()
+    print("visualizing errors:")
+
+    print("visualizing errors:")
+    print("visualizing errors:")
+    print("visualizing errors:")
     ax.text(.01, .95, 'Measurement MSE: ' + str(round(measured_avg, 5)), transform=ax.transAxes)
     plt.text(.01, .9, 'Estimate MSE: ' + str(round(estimated_avg, 5)), transform=ax.transAxes)
     ax.plot(k, diffs_est, label="Estimate SE")
@@ -307,8 +317,8 @@ def initialize_filter(type):
         position_filter = ParticleFilterGH(2500, 0.02, 0.02, g= 0.7, h = 0.4)
         rotation_filter = ParticleFilterGHRot(2500, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
     elif type == "2": #Particle 3D
-        position_filter = ParticleFilter6D(600, 0.02, 0.1, 0.02)
-        rotation_filter = ParticleFilter6DRot(2500, 0.02, np.deg2rad(1), np.deg2rad(4))
+        position_filter = ParticleFilterVelocity(600, 0.02, 0.1, 0.02)
+        rotation_filter = ParticleFilterVelocityRot(2500, 0.02, np.deg2rad(1), np.deg2rad(4))
     elif type == "3":
         position_filter = ParticleFilterWithKalman(2500, 0.02, 0.02, Q= 0.01/dt)
         rotation_filter = ParticleFilterWithKalmanRot(2500, np.deg2rad(1), np.deg2rad(4))
@@ -435,13 +445,13 @@ if __name__ == "__main__":
     params = get_input()
     #ground_truth, noisy_data, rotations, noisy_rotations = create_trajectory_points(params)
     if params["type"] == "line":
-        generator = LineGenerator(0.0225, 3, 0.125, [(-2.5, 2.5), (-2.5, 2.5), (0, 4)], accelerate=False)
+        generator = LineGenerator(0.0175, 3, 0.15, [(-2.5, 2.5), (-2.5, 2.5), (0, 4)], accelerate=False)
     elif params["type"] == "circle":
-        generator = CircleGenerator(0.0225)
+        generator = CircleGenerator(0.0175)
     elif params["type"] == "spline":
-        generator = SplineGenerator(0.0225, 4, 0.35)
+        generator = SplineGenerator(0.0175, 4, 0.35)
     else:
-        generator = LineGenerator(0.0225, 3, 0.15, [(-2, 2), (-2, 2), (0, 4)], accelerate=True)
+        generator = LineGenerator(0.0175, 3, 0.15, [(-2, 2), (-2, 2), (0, 4)], accelerate=True)
     #ground_truth, rotations = generator2.generate_1_circle()
     #ground_truth = generator2.generate_1_circle()
     #ground_truth, rotations = generator.generate_1_trajectory()
@@ -475,7 +485,8 @@ if __name__ == "__main__":
                 p.removeUserDebugItem(ids[j])
                 p.removeUserDebugItem(noise_ids[j])
 
-    if params["vis"] == "1":
+    elif params["vis"] == "1":
+        ground_truth, rotations, noisy_data, noisy_rotations = generator.generate_1_trajectory()
         env = visualize_env(arg_dict)
         env.reset()
         ids = visualize_trajectory(ground_truth, noisy_data)
@@ -483,7 +494,9 @@ if __name__ == "__main__":
         #sys.exit()
         resulting_pos_filter, resulting_rot_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, float(params["pause"]), type =params["filter_type"])
         filenameP = None
+
         visualize_errors(ground_truth, noisy_data, resulting_pos_filter.estimates, filenameP)
+
         filenameR =None
         visualize_rot_errors(rotations, noisy_rotations, resulting_rot_filter.estimates, filenameR)
     else:

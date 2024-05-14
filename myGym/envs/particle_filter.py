@@ -11,7 +11,6 @@ from filterpy.common import Q_discrete_white_noise
 class myKalmanFilter():
     """Returns a Kalman filter which implements constant velocity model"""
     def __init__(self, x, P, R, Q= 0.08, dt=0.2, Q_scale_factor = 1000, eps_max = 0.18):
-
         self.filter = KalmanFilter(dim_x=x.shape[0], dim_z=3)
         self.filter.x = np.array(x)
         self.filter.F = np.array([[1, dt, 0, 0, 0 ,0 ],
@@ -54,6 +53,7 @@ class myKalmanFilter():
 
 
     def apply_first_measurement(self, measurement):
+        print("measurement:", measurement)
         self.filter.x[0] = measurement[0]
         self.filter.x[2] = measurement[1]
         self.filter.x[4] = measurement[2]
@@ -306,7 +306,7 @@ class ParticleFilter(object):
             self.estimates[i, :] = estimates[i]
 
 
-class ParticleFilter6D(ParticleFilter):
+class ParticleFilterVelocity(ParticleFilter):
     """
     Particle filter which includes particle velocities for better prediction.
     Each particle has its velocity, which changes only based on noise. Those particles, that move correctly in
@@ -414,7 +414,7 @@ class ParticleFilter6D(ParticleFilter):
 
 
 
-class ParticleFilter6DRot(ParticleFilter):
+class ParticleFilterVelocityRot(ParticleFilter):
     """Idea is the same as ParticleFilter6D but with additional dimension for rotation"""
     def __init__(self, num_particles, process_std, vel_std, measurement_std, workspace_bounds = None, dt = 0.2, res_g = 0.5, rotflip_const = 0.1):
         super().__init__(num_particles, process_std, measurement_std, workspace_bounds, dt)
@@ -422,7 +422,6 @@ class ParticleFilter6DRot(ParticleFilter):
         self.vel_bounds = [(-1, 1), (-1, 1), (-1, 1), (-1, 1)] #Max velocity of a particle for uniform particles
         self.particles = None
         self.estimate = np.zeros(4)
-
         self.last_measured_position = None
         self.vel_estimate = np.zeros(4)
         self.process_std_const = process_std
@@ -553,8 +552,6 @@ class ParticleFilter6DRot(ParticleFilter):
         self.estimates = np.zeros((len(estimates), 4))
         for i in range(len(estimates)):
             self.estimates[i, :] = estimates[i]
-
-
 
 
 
@@ -743,7 +740,7 @@ class ParticleFilterWithKalman(ParticleFilter):
     """
 
     def __init__(self, num_particles, process_std, measurement_std, Q = None, R = None,
-                 workspace_bounds = None, dt = 0.2, factor_a = 0.1):
+                 workspace_bounds = None, dt = 0.2, std_a = 0.1):
         super().__init__(num_particles, process_std, measurement_std, workspace_bounds, dt)
         self.estimate = np.zeros(3)  # Actual state estimate - this is our tracked value
         self.estimate_var = 20  # Large value in the beginning
@@ -755,7 +752,7 @@ class ParticleFilterWithKalman(ParticleFilter):
         self.estimate_vars = []
         self.initialize_kalman(Q, R)
         self.dt = dt
-        self.factor_a = factor_a
+        self.factor_a = std_a
 
 
     def initialize_kalman(self, Q, R):

@@ -193,11 +193,6 @@ def visualize_env(arg_dict):
     return env
 
 
-def evaluate_multiple_trajectories(position_filter, rotation_filter, n):
-    #TODO: Evaluate given filter on n tracks. Return mean runtime and error
-    pass
-
-
 
 
 def get_arg_dict():

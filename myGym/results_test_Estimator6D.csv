@@ -1,0 +1,3 @@
+	num_particles	process_std	vel_std	measurement_std	res_g	mean_test_score	mean_score_time
+0	600	0.01	0.05	0.015	0.2		0.0034055709838867188
+1	600	0.01	0.05	0.02	0.2		0.0009238719940185547
