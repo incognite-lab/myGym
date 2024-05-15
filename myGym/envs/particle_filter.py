@@ -53,7 +53,6 @@ class myKalmanFilter():
 
 
     def apply_first_measurement(self, measurement):
-        print("measurement:", measurement)
         self.filter.x[0] = measurement[0]
         self.filter.x[2] = measurement[1]
         self.filter.x[4] = measurement[2]
@@ -507,10 +506,6 @@ class ParticleFilterVelocityRot(ParticleFilter):
         norm = np.linalg.norm(self.estimate + z)
         #print("norm:", norm)
         if norm < self.rotation_flip_const:
-            print("FLIPPING PARTICLES")
-            print("FLIPPING PARTICLES")
-            print("FLIPPING PARTICLES")
-            print("measurement:", z)
             self.reapply_measurement(z)
         distance_pos = np.linalg.norm(self.particles[:, 0:4] - z[0:4], axis=1)
         self.weights *= scipy.stats.norm(0, self.measurement_std).pdf(distance_pos)  # Multiply weights based on the
@@ -532,7 +527,6 @@ class ParticleFilterVelocityRot(ParticleFilter):
         """Determine initial values based on first measurement"""
         vel = self.estimate_vel()
         self.estimate = z
-        print("estimate:", z)
         initial_uncertainty_factor = 1.2  # Multiply std by this factor to account for initial uncertainty to better address
         # System nonlinearities
         self.last_measured_position = self.estimate
@@ -601,7 +595,6 @@ class ParticleFilterGH(ParticleFilter):
     def update(self, z):
         """Update particle weights based on the measurement likelihood of each particle"""
         distance_pos = np.linalg.norm(self.particles[:, 0:3] - z[0:3], axis = 1)
-        #print(distance_pos)
         self.weights *= scipy.stats.norm(0, self.measurement_std).pdf(distance_pos) #Multiply weights based on the
         #particle's Gaussian probability
         self.weights += 1.e-300 #Avoid round-off to zero
@@ -674,12 +667,6 @@ class ParticleFilterGHRot(ParticleFilter):
         """Update particle weights based on the measurement likelihood of each particle"""
         norm = np.linalg.norm(self.estimate + z)
         if norm < self.rotation_flip_const:
-            print("--------------------------------------------------------------------------------------------")
-            print("FLIPPED PARTICLES")
-            print("measurement:", z)
-            print("old estimate:", self.estimate)
-            print("old vel:", self.vel)
-            print("old acc: ", self.a)
             self.reapply_measurement(z)
             self.print_data = True
         distance_pos = np.linalg.norm(self.particles[:, 0:4] - z[0:4], axis = 1)
@@ -719,9 +706,6 @@ class ParticleFilterGHRot(ParticleFilter):
         self.a = self.h * self.a + (1-self.h)*(self.vel - last_vel)/self.dt
         self.vel += self.a * self.dt
         if self.print_data:
-            print("New estimate:", self.estimate)
-            print("New velocity:", self.vel)
-            print("New acceleration:", self.a)
             self.print_data = False
 
     def convert_estimates(self):

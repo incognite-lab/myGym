@@ -1,3 +1,0 @@
-	num_particles	process_std	measurement_std	g	h	rotflip_const	mean_test_score	mean_score_time
-1	600	0.01	0.02	0.2	0.25	0.1	-0.0035861875509605205	1.214137315750122
-0	600	0.01	0.05	0.2	0.25	0.1	-0.0036732276310012415	1.1417858600616455

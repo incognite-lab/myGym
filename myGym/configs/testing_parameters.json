@@ -3,16 +3,16 @@
   "ParticleFilterVelocity": {
     "num_particles" : [600],
     "process_std" : [0.01],
-    "vel_std" : [0.05],
+    "vel_std" : [0.05,0.02,0.03],
     "measurement_std" : [0.015, 0.02],
     "res_g": [0.2]
   },
 
   "ParticleFilterVelocityRot": {
-    "num_particles" : [ 600],
+    "num_particles" : [ 600,3000, 12000],
     "process_std" : [0.01],
     "vel_std" : [0.15, 0.2],
-    "measurement_std" : [0.05],
+    "measurement_std" : [0.05, 0.25, 0.4],
     "res_g": [0.75],
     "rotflip_const" : [ 0.1]
   },

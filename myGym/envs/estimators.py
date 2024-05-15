@@ -22,6 +22,8 @@ from stable_baselines.bench import Monitor
 from pyquaternion import Quaternion
 import sys
 from scipy.interpolate import splprep, splev
+
+from scipy.stats import uniform
 import matplotlib.pyplot as plt
 from myGym.envs.particle_filter import *
 from myGym.utils.filter_helpers import *
@@ -244,26 +246,35 @@ def evaluate_and_save(filter, parameters, est_dict, trajectory_types):
     """
     X, y = load_trajectories(trajectory_types)
     param_grid = dict()
-    with open("/home/student/Desktop/myGym/myGym/configs/" + parameters +".json") as json_file:
+    with open("/home/alblfred/myGym/myGym/configs/" + parameters +".json") as json_file:
         data = json.load(json_file)
         for key in data:
             param_grid[key] = data[key]
     cv = [(slice(None), slice(None))]
     estimator = est_dict[filter]
     grid_search = GridSearchCV(eval(estimator + "()"), param_grid=param_grid[filter],
-                               scoring="neg_mean_squared_error", cv=cv)
+                               scoring="neg_mean_squared_error", cv=cv, verbose = 1)
     grid_search.fit(X, y)
     create_and_save_dataframe(eval(estimator + "()"), grid_search, param_grid[filter], trajectory_types)
 
 
 
 
-# def initialize_estimators(filters):
-#     """
-#     Function that properly initializes Estimator objects
-#     """
-#     for filter in filters:
-#         pass
+def param_conversion_to_RS(param_grid, exclude_list):
+    """Converts the given parameter grid into uniform distributions from the lowest amount to the highest"""
+    new_param_grid = dict()
+    for key, value in param_grid:
+        if key in exclude_list:
+            new_param_grid[key] = value
+            continue
+        if len(value) > 1:
+            first_val = value[0]
+            last_val = value[-1]
+            new_param_grid[key] = uniform(first_val, last_val- first_val)
+        else:
+            new_param_grid[key] = value[0]
+    return new_param_grid
+
 
 
 def load_trajectories(types):
@@ -339,8 +350,8 @@ def create_and_save_dataframe(Estimator, grid_search, param_grid, trajectory_typ
         rename_dict[dataframe_list[i]] = rename_list[i]
     dataframe = dataframe.rename(columns = rename_dict)
     dataframe = dataframe.sort_values(by=['mean_test_score'], ascending = False, kind = "quicksort")
-    dataframe.to_csv("/home/student/Desktop/myGym/myGym/results/" + filter_name + "_" + trajectory_types_string + ".csv", sep='\t')
-
+    dataframe.to_csv("/home/alblfred/myGym/myGym/results/" + filter_name + "_" + trajectory_types_string + ".csv", sep='\t')
+    print("Saved one results table:", filter_name)
 
 
 if __name__ == "__main__":
@@ -366,6 +377,6 @@ if __name__ == "__main__":
     # #dataframe = dataframe.sort_values(by="mean_test_score")
     # #dataframe.to_csv("outKalman.csv", sep='\t')
     # create_and_save_dataframe(EstimatorVelocityRot(), grid_search, param_grid["ParticleVelocityFilter"])
-    filters = ["myKalmanFilterRot", "ParticleFilterVelocityRot", "ParticleFilterWithKalmanRot", "ParticleFilterGHRot"]
+    filters = ["ParticleFilterVelocityRot"]
     trajectory_types = ["lines_rot", "splines_rot", "circles_rot", "lines_acc_rot"]
     filter_gridsearch(filters, "testing_parameters", trajectory_types)
