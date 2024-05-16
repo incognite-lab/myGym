@@ -136,6 +136,8 @@ def visualize_trajectory(ground_truth, noisy_data):
     """Visualizes the trajectory of the ground truth and noisy data."""
     trajectory_ids = []
     noise_ids = []
+
+
     if np.linalg.norm(ground_truth) > 0.1:
         for i in range(ground_truth.shape[0] - 1):
             noise_id = p.addUserDebugLine(noisy_data[i, :], noisy_data[i+1, :])
@@ -217,6 +219,19 @@ def load_rotations(filename):
         quat = Quaternion(rot_file[i,:])
         rotations.append(quat)
     return rotations
+
+
+def load_trajectory(type):
+    fn_gt = "./dataset/visualizer_trajectories/" + type +".npy"
+    fn_nd = "./dataset/visualizer_trajectories/" + type + "_noise.npy"
+    fn_r = "./dataset/visualizer_trajectories/" + type + "_rot.npy"
+    fn_nr = "./dataset/visualizer_trajectories/" + type + "_rot_noise.npy"
+    ground_truth = np.load(fn_gt)
+    noisy_data = np.load(fn_nd)
+    rotations = np.load(fn_r)
+    noisy_rotations = np.load(fn_nr)
+    return ground_truth, rotations, noisy_data, noisy_rotations
+
 
 
 

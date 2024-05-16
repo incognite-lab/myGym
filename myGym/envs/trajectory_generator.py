@@ -4,7 +4,31 @@ This file serves as a dataset generator used to evaluate particle filter perform
 import numpy as np
 from pyquaternion import Quaternion
 from myGym.utils.filter_helpers import  fit_polynomial, create_circle, trajectory_length
+class multipleTrajectoryGenerator:
+    """Class that generates random multiple trajectories from lines, splines and circles."""
+    def __init__(self, num_trajectories, trajectory_parameters):
+        self.trajectory_parameters = trajectory_parameters
+        self.num_trajectories = num_trajectories
 
+
+    def generate_1_scenario(self):
+        """
+        Function that generates multiple trajectories as one dataset
+        """
+        #TODO: generate trajectories and combine them. Both positional and rotational
+        for type in self.trajectory_parameters:
+            parameters =  self.trajectory_parameters[type]
+            generator = self.initialize_generator(type, parameters)
+
+
+    def initialize_generator(self, type, params):
+        #TODO: finish this function
+        generator = None
+        if type == "line":
+            generator = LineGenerator(params["std"], params["exp_points"], params["distance_limit"], params["workspace_bounds"])
+        elif type == "circle":
+            generator = CircleGenerator(params["std"], params["exp_points"], params["distance_limit"])
+        return generator
 
 class TrajectoryGenerator:
 

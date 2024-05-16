@@ -4,7 +4,7 @@ from myGym import envs
 from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env
 
 from sklearn.base import BaseEstimator
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.metrics import make_scorer
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.metrics import mean_squared_error
@@ -52,30 +52,33 @@ class myEstimator(BaseEstimator):
         trajectory_start_index = 0
         for i in range(n):
             measurement = noisy_data[i]
-            if np.allclose(measurement, np.array([99]*measurement_dim)):
-                #New trajectory, resetting filter and saving current estimates
-                try:
-                    #At the start of a new trajectory - filter is already initialized
-                    self.filter.convert_estimates()
-                    # print("current filter estimates:", self.filter.estimates)
-                    # print("estimates shape:", self.filter.estimates.shape)
-                    # print("shape of x to be saved into:", self.x_[trajectory_start_index:i].shape)
-                    self.x_[trajectory_start_index:i, :] = self.filter.estimates
-                    self.x_[i] = measurement
-                    self.initialize_filter()
-                except:
-                    #At the start of first trajectory - filter hasn't been initialized yet
-                    self.initialize_filter()
-                    self.x_[i] = measurement
-                new_trajectory = True
-                continue
-            if new_trajectory:
-                self.filter.apply_first_measurement(measurement)
-                self.filter.state_estimate()
-                trajectory_start_index = i
-                new_trajectory = False
-                continue
+            self.x_[i] = measurement
+            continue
+            # if np.allclose(measurement, np.array([99]*measurement_dim)):
+            #     #New trajectory, resetting filter and saving current estimates
+            #     try:
+            #         #At the start of a new trajectory - filter is already initialized
+            #         self.filter.convert_estimates()
+            #         # print("current filter estimates:", self.filter.estimates)
+            #         # print("estimates shape:", self.filter.estimates.shape)
+            #         # print("shape of x to be saved into:", self.x_[trajectory_start_index:i].shape)
+            #         self.x_[trajectory_start_index:i, :] = self.filter.estimates
+            #         self.x_[i] = measurement
+            #         self.initialize_filter()
+            #     except:
+            #         #At the start of first trajectory - filter hasn't been initialized yet
+            #         self.initialize_filter()
+            #         self.x_[i] = measurement
+            #     new_trajectory = True
+            #     continue
+            # if new_trajectory:
+            #     self.filter.apply_first_measurement(measurement)
+            #     self.filter.state_estimate()
+            #     trajectory_start_index = i
+            #     new_trajectory = False
+            #     continue
             self.filter.filter_step(measurement)
+
         # print("PREDICTED VALUES",self.x_)
         return self.x_
 
@@ -219,7 +222,7 @@ class EstimatorKalmanRot(myEstimator):
                                                  self.rotflip_const)
 
 
-def filter_gridsearch(filters, parameters, trajectory_types):
+def filter_gridsearch(filters, parameters, trajectory_types, search_type):
     """
     All-encompassing testing function for using gridsearch
     """
@@ -235,46 +238,57 @@ def filter_gridsearch(filters, parameters, trajectory_types):
         "ParticleFilterWithKalmanRot" : "EstimatorPFKalmanRot",
     }
     for filter in filters:
-        evaluate_and_save(filter, parameters, filter_estimator_dict, trajectory_types)
+        evaluate_and_save(filter, parameters, filter_estimator_dict, trajectory_types, search_type)
 
 
+def load_params(paramstring):
+    param_grid = dict()
+    with open("/home/alblfred/myGym/myGym/configs/" + paramstring + ".json") as json_file:
+        data = json.load(json_file)
+        for key in data:
+            param_grid[key] = data[key]
+    return param_grid
 
-def evaluate_and_save(filter, parameters, est_dict, trajectory_types):
+
+def evaluate_and_save(filter, parameters, est_dict, trajectory_types, search_type):
     """
     Function that performs gridsearch on one estimator with parameters corresponding to the filter type.
     Results are saved in a .npy file.
     """
     X, y = load_trajectories(trajectory_types)
-    param_grid = dict()
-    with open("/home/alblfred/myGym/myGym/configs/" + parameters +".json") as json_file:
-        data = json.load(json_file)
-        for key in data:
-            param_grid[key] = data[key]
+    param_grid = load_params(parameters)
     cv = [(slice(None), slice(None))]
     estimator = est_dict[filter]
-    grid_search = GridSearchCV(eval(estimator + "()"), param_grid=param_grid[filter],
+    if search_type == "GridSearch":
+        search = GridSearchCV(eval(estimator + "()"), param_grid=param_grid[filter],
                                scoring="neg_mean_squared_error", cv=cv, verbose = 1)
-    grid_search.fit(X, y)
-    create_and_save_dataframe(eval(estimator + "()"), grid_search, param_grid[filter], trajectory_types)
-
-
+    else:
+        if filter == "myKalmanFilter" or filter == "myKalmanFilterRot":
+            exclude_list = []
+        else:
+            exclude_list = ["num_particles"]
+        search = RandomizedSearchCV(eval(estimator + "()"), param_conversion_to_RS(param_grid[filter], exclude_list),
+                                    scoring = "neg_mean_squared_error",
+                                    cv =cv, verbose = 1, n_iter = 10)
+    search.fit(X, y)
+    create_and_save_dataframe(eval(estimator + "()"), search, param_grid[filter], trajectory_types)
 
 
 def param_conversion_to_RS(param_grid, exclude_list):
     """Converts the given parameter grid into uniform distributions from the lowest amount to the highest"""
     new_param_grid = dict()
-    for key, value in param_grid:
+    for key in param_grid:
+        value = param_grid[key]
         if key in exclude_list:
             new_param_grid[key] = value
             continue
         if len(value) > 1:
             first_val = value[0]
             last_val = value[-1]
-            new_param_grid[key] = uniform(first_val, last_val- first_val)
+            new_param_grid[key] = uniform(first_val, last_val - first_val)
         else:
-            new_param_grid[key] = value[0]
+            new_param_grid[key] = value
     return new_param_grid
-
 
 
 def load_trajectories(types):
@@ -377,6 +391,7 @@ if __name__ == "__main__":
     # #dataframe = dataframe.sort_values(by="mean_test_score")
     # #dataframe.to_csv("outKalman.csv", sep='\t')
     # create_and_save_dataframe(EstimatorVelocityRot(), grid_search, param_grid["ParticleVelocityFilter"])
-    filters = ["ParticleFilterVelocityRot"]
-    trajectory_types = ["lines_rot", "splines_rot", "circles_rot", "lines_acc_rot"]
-    filter_gridsearch(filters, "testing_parameters", trajectory_types)
+    filters = ["myKalmanFilter"]
+    trajectory_types = ["lines", "lines_acc", "splines", "circles"]
+    filter_gridsearch(filters, "parameters", trajectory_types, "randomized_search")
+

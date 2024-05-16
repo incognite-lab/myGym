@@ -286,6 +286,7 @@ class ParticleFilter(object):
 
 
     def reapply_measurement(self, z):
+
         """When measurement is too far from prediction, move particles to the measurement"""
         self.estimate = z
         uncertainty_factor = 2  # multiply std by this factor to account for initial uncertainty to better address
@@ -565,7 +566,6 @@ class ParticleFilterGH(ParticleFilter):
         self.g = g
         self.h = h
         self.a = np.zeros(3)
-
 
 
     def create_uniform_particles(self):
