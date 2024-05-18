@@ -1,0 +1,26 @@
+{
+  "lines": {
+    "std": 0.02,
+    "exp_points": 3,
+    "distance_limit": 0.15,
+    "workspace_bounds": [[-2.5, 2.5], [-2.5, 2.5], [0, 4]]
+  },
+  "circle": {
+    "std": 0.02,
+    "r_min": 0.2,
+    "r_max": 1.6
+  },
+  "spline": {
+    "std": 0.02,
+    "exp_points": 4,
+    "distance_limit": 0.35
+  },
+  "lines_acc":
+  {
+    "std": 0.0225,
+    "exp_points": 3,
+    "distance_limit": 0.15,
+    "workspace_bounds": [[-2.5, 2.5], [-2.5, 2.5], [0, 4]]
+  }
+
+}

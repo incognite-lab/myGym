@@ -100,7 +100,7 @@ class myKalmanFilter():
 
 class myKalmanFilterRot(myKalmanFilter):
     """To make computations in quaternion, filter needs to be have four spatial dimensions"""
-    def __init__(self, x, P, R, Q= 0., dt=0.2, rotflip_const =0.1):
+    def __init__(self, x, P, R, Q= 0., dt=0.2, rotflip_const =0.1, eps_max = 0.18, Q_scale_factor=1000):
         self.filter = KalmanFilter(dim_x=x.shape[0], dim_z=4)
         self.filter.x = np.array(x)
         self.filter.F = np.array([[1, dt, 0, 0, 0, 0, 0, 0],
@@ -132,12 +132,9 @@ class myKalmanFilterRot(myKalmanFilter):
         self.estimate = np.zeros(4)
         self.estimate_vars = []
         self.estimates = []
-        self.process_std = Q  # Values for filename
-        self.measurement_std = R  # Values for filename
-        self.num_particles = 0  # Values for filename
         # For adaptive filtering below:
-        self.eps_max = 1
-        self.Q_scale_factor = 1000
+        self.eps_max = eps_max
+        self.Q_scale_factor = Q_scale_factor
         self.count = 0
         self.rotation_flip_const = rotflip_const
 
@@ -242,7 +239,7 @@ class ParticleFilter(object):
         """Update particle weights based on the measurement likelihood of each particle"""
         distance_pos = np.linalg.norm(self.particles[:, 0:3] - z[0:3], axis=1)
         self.weights *= scipy.stats.norm(0, self.measurement_std).pdf(distance_pos)  # Multiply weights based on the
-        # particle's Gaussian probability #PROBLEM - VKLADAM STD NIKOLIV VAR
+        # particle's Gaussian probability #PROBLEM - VKLADAM STD NIKOLIV VAR - NENI PROBLEM
         self.weights += 1.e-300  # Avoid round-off to zero
         self.weights = self.weights / np.sum(self.weights)  # Normalization
 

@@ -77,42 +77,59 @@ def get_parameters_from_config(type):
 
 def get_input():
     """Method to retreive user input. Returns dictionary with trajectory parameters."""
+    first_option = int(input("Enter 1 for filtering, 2 for MOT"))
     input_option = int(input("Enter 1 to generate trajectories, 2 to visualize filtration process"))
+    trajectory_dict = dict()
     if input_option == 1:
-        type = int(input("Enter trajectory type (1 for lines, 2 for circle, 3 for spline, 4 for lines with acceleration: )"))
-        trajectory_dict = dict()
-        if type == 1:
-            trajectory_dict["type"] = "lines"
+        if first_option == 1:
+            type = int(input("Enter trajectory type (1 for lines, 2 for circle, 3 for spline, 4 for lines with acceleration: )"))
 
-        elif type == 2:
-            trajectory_dict["type"] = "circle"
+            if type == 1:
+                trajectory_dict["type"] = "lines"
 
-        elif type == 3:
-            trajectory_dict["type"] = "spline"
+            elif type == 2:
+                trajectory_dict["type"] = "circle"
 
-        elif type == 4:
-            trajectory_dict["type"] = "lines_acc"
+            elif type == 3:
+                trajectory_dict["type"] = "spline"
+
+            elif type == 4:
+                trajectory_dict["type"] = "lines_acc"
+
+        elif first_option == 2:
+            trajectory_dict["type"] = "multiple"
+            trajectory_dict["traj_amount"] = int(input("Enter the amount of generated trajectories: "))
         trajectory_dict["action"] = '1'
     else:
-        type = int(
-            input("Enter trajectory type (1 for lines, 2 for circle, 3 for spline, 4 for lines with acceleration: )"))
         trajectory_dict = dict()
-        if type == 1:
-            trajectory_dict["type"] = "lines"
-        elif type == 2:
-            trajectory_dict["type"] = "circle"
-        elif type == 3:
-            trajectory_dict["type"] = "spline"
-        elif type == 4:
-            trajectory_dict["type"] = "lines_acc"
-        option = int(input("Enter 1 to generate a trajectory, 2 to load a trajectory from saved trajectories"))
-        if option == 1:
-            trajectory_dict["action"] = '3'
+        if first_option == 1:
+            type = int(
+                input("Enter trajectory type (1 for lines, 2 for circle, 3 for spline, 4 for lines with acceleration: )"))
+            if type == 1:
+                trajectory_dict["type"] = "lines"
+            elif type == 2:
+                trajectory_dict["type"] = "circle"
+            elif type == 3:
+                trajectory_dict["type"] = "spline"
+            elif type == 4:
+                trajectory_dict["type"] = "lines_acc"
+            option = int(input("Enter 1 to generate a trajectory, 2 to load a trajectory from saved trajectories"))
+            if option == 1:
+                trajectory_dict["action"] = '3'
+            else:
+                trajectory_dict["action"] = '2'
         else:
-            trajectory_dict["action"] = '2'
-    trajectory_dict["filter_type"] = input("Enter the type of particle filter (1 for g-h, 2 for VelocityPF, 3 for PFK, 4 for simple Kalman")
+            trajectory_dict["type"] = "multiple"
+            option = int(input("Enter 1 to generate a trajectory, 2 to load a trajectory from saved trajectories"))
+            if option == 1:
+                trajectory_dict["action"] = '3'
+            else:
+                trajectory_dict["action"] = '2'
+
+        trajectory_dict["filter_type"] = input("Enter the type of particle filter (1 for g-h, 2 for VelocityPF, 3 for PFK, 4 for simple Kalman")
     if trajectory_dict["action"] != '1':
         trajectory_dict["pause"] = input("Enter the length of each filter phase (predict, update, resample) in seconds: ")
+
     return trajectory_dict
 
 """
@@ -187,20 +204,24 @@ Evaluation plot functions:
 
 """
 
-def visualize_errors(ground_truth, noisy_data, estimates, filename):
+def visualize_errors(ground_truth, noisy_data, estimates):
     """
     Visualization of position errors in a plot.
     """
     diffs_meas = []
     diffs_est = []
+    print("squared errors:")
     for i in range(ground_truth.shape[0]):
-        diffs_meas.append(np.linalg.norm(ground_truth[i, :] - noisy_data[i, :])**2)
+        meas_error = np.linalg.norm(ground_truth[i, :] - noisy_data[i]) ** 2
+        est_error  = np.linalg.norm(ground_truth[i, :] - estimates[i]) ** 2
+        print("K:", i, "Error:", est_error)
+        diffs_meas.append(meas_error)
         diffs_est.append(np.linalg.norm(ground_truth[i, :] - estimates[i])**2)
     diffs_meas = np.array(diffs_meas)
-    plot_comparison(diffs_meas, diffs_est, "Position error evaluation", filename)
+    plot_comparison(diffs_meas, diffs_est, "Position error evaluation")
 
 
-def plot_comparison(diffs_meas, diffs_est, title, filename):
+def plot_comparison(diffs_meas, diffs_est, title):
     """Plots how the filter performed. Compares the error (difference between ground truth) of measured and estimated
     data."""
     diffs_meas = np.array(diffs_meas)
@@ -212,10 +233,6 @@ def plot_comparison(diffs_meas, diffs_est, title, filename):
     # Plotting results
     fig, ax = plt.subplots()
     print("visualizing errors:")
-
-    print("visualizing errors:")
-    print("visualizing errors:")
-    print("visualizing errors:")
     ax.text(.01, .95, 'Measurement MSE: ' + str(round(measured_avg, 5)), transform=ax.transAxes)
     plt.text(.01, .9, 'Estimate MSE: ' + str(round(estimated_avg, 5)), transform=ax.transAxes)
     ax.plot(k, diffs_est, label="Estimate SE")
@@ -226,7 +243,7 @@ def plot_comparison(diffs_meas, diffs_est, title, filename):
     plt.show()
 
 
-def visualize_rot_errors(rotations, noisy_rotations, estimates, filename):
+def visualize_rot_errors(rotations, noisy_rotations, estimates):
     """
     Visualization of rotation errors
     """
@@ -236,7 +253,7 @@ def visualize_rot_errors(rotations, noisy_rotations, estimates, filename):
         diffs_meas.append(Quaternion.absolute_distance(rotations[i], noisy_rotations[i])**2)
         diffs_est.append(Quaternion.absolute_distance(rotations[i], Quaternion(estimates[i]))**2)
     plot_rot_marginals(rotations, noisy_rotations, estimates)
-    plot_comparison(diffs_meas, diffs_est, "Rotation error evaluation", filename)
+    plot_comparison(diffs_meas, diffs_est, "Rotation error evaluation")
 
 
 
@@ -304,27 +321,27 @@ def initialize_filter(type):
     """Filter initialization based on user input. Parameters can be changed here manually"""
     position_filter, rotation_filter = None, None
     if type == "1": #Particle GH
-        position_filter = ParticleFilterGH(2500, 0.02, 0.02, g= 0.7, h = 0.4)
-        rotation_filter = ParticleFilterGHRot(2500, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
+        position_filter = ParticleFilterGH(600, 0.02, 0.02, g= 0.7, h = 0.4)
+        rotation_filter = ParticleFilterGHRot(600, np.deg2rad(1), np.deg2rad(4), g= 0.8, h = 0.8)
     elif type == "2": #Particle 3D
-        position_filter = ParticleFilterVelocity(800, 0.0225942, 0.38, 0.0106, res_g=0.3629)
-        rotation_filter = ParticleFilterVelocityRot(2500, 0.02, np.deg2rad(1), np.deg2rad(4))
+        position_filter = ParticleFilterVelocity(600, 0.0225942, 0.38, 0.0106, res_g=0.3629)
+        rotation_filter = ParticleFilterVelocityRot(600, 0.02, np.deg2rad(1), np.deg2rad(4))
     elif type == "3":
-        position_filter = ParticleFilterWithKalman(2500, 0.02, 0.02, Q= 0.01/dt)
-        rotation_filter = ParticleFilterWithKalmanRot(2500, np.deg2rad(1), np.deg2rad(4))
+        position_filter = ParticleFilterWithKalman(600, 0.02, 0.02, Q= 0.01/dt)
+        rotation_filter = ParticleFilterWithKalmanRot(600, np.deg2rad(1), np.deg2rad(4))
     elif type == "4": #Kalman
         x = np.array([0., 0., 0., 0., 0., 0.]) # [x, dx/dt, y, dy/dt, z, dz/dt]
         xr = np.array([0., 0., 0., 0., 0., 0., 0., 0.])
         P = np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
         #P = np.diag([100., 25., 64, 0.1, 0.1, 0.1])
-        Q = 0.08
-        R = 0.02
+        Q = 0.05
+        R = 0.015
         var_angle = np.deg2rad(90)
         var_angle_vel = np.deg2rad(20)
         Pr= np.diag([var_angle, var_angle_vel, var_angle, var_angle_vel, var_angle, var_angle_vel, var_angle, var_angle_vel])
         Qr = np.deg2rad(4)
         Rr = np.deg2rad(4)
-        position_filter = myKalmanFilter(x, P=P, Q=Q, R=R)
+        position_filter = myKalmanFilter(x, P=P, Q=Q, R=R, Q_scale_factor=499, eps_max =0.12)
         rotation_filter = myKalmanFilterRot(xr, P=Pr, Q=Qr, R=Rr)
     else:
         print("Entered wrong input type")
@@ -348,6 +365,103 @@ def filter_without_animation(noisy_data, noisy_rotations, type):
         rotation_filter.filter_step(rot_meas)
         position_filter.filter_step(measurement)
     return position_filter, rotation_filter
+
+
+
+def vis_anim_MOT(y, X, y_rot, X_rot, pause_length, type):
+    """
+    Visualization of MOT filtering
+    """
+    env.p.setGravity(0, 0, 0)
+    n = X.shape[0]
+    num_objects = int(y.shape[1]/3)
+    particle_batches = []
+    estimates_ids = []
+    measurements_ids = []
+    actual_state_ids = []
+    pos_filters = []
+    rot_filters = []
+    gts, rs, nds, nrs = convert_X_y_into_vis_data(X, y, X_rot, y_rot)
+
+    for i in range(num_objects):
+        position_filter, rotation_filter = initialize_filter(type)
+        pos_filters.append(position_filter)
+        rot_filters.append(rotation_filter)
+
+    for k in range(n):
+        #Iterate through measurement steps k
+        for j in range(num_objects):
+            #Select filter based on trajectory
+            position_filter = pos_filters[j]
+            rotation_filter = rot_filters[j]
+            #Iterate through every object and its trajectory on scene
+            measurement = nds[j][k, :]
+            if np.allclose(measurement, [88, 88, 88]):
+                continue
+            rot_meas = nrs[j][k, :]
+            rot = rs[j][k, :]
+            gt_val = gts[j][k, :]
+            if k == 0:
+                #Initialize PF based on first measurement
+                actual_state_ids.append(visualize_gt(gt_val))
+                measurements_ids.append(visualize_meas(measurement))
+
+                position_filter.apply_first_measurement(measurement)
+                position_filter.state_estimate()
+                if type != "4":
+                    particle_batch = visualize_particles(position_filter)
+                    particle_batches.append(particle_batch)
+                estimate_id = visualize_estimate(position_filter)
+                rotation_filter.apply_first_measurement(rot_meas)
+                rotation_filter.state_estimate()
+                estimates_ids.append(estimate_id)
+                continue
+
+            move_object(actual_state_ids[j], gt_val, rot)
+            move_object(measurements_ids[j], measurement, rot_meas)
+
+            #1) Predict movement
+            position_filter.predict()
+            if type != "4":
+                move_particles(particle_batches[j], position_filter.particles)
+            time.sleep(pause_length)
+
+            #2) Update based on measurement
+            position_filter.update(measurement)
+            if type != "4":
+                move_particles(particle_batches[j], position_filter.particles)
+            time.sleep(pause_length)
+            do_resample = True
+
+            #3) Compute estimate
+            if type != "4":
+                if np.linalg.norm(position_filter.estimate - measurement) > 0.15:
+                    position_filter.resample()
+                    position_filter.reapply_measurement(measurement)
+                    do_resample = False
+            position_filter.state_estimate()
+            if type != "4":
+                move_particles(particle_batches[j], position_filter.particles)
+            move_object(estimates_ids[j], position_filter.estimate, rotation_filter.estimate)
+            time.sleep(pause_length)
+
+            #4) Resample particles
+            if type != "4":
+                if position_filter.neff() < position_filter.num_particles/2 and do_resample:
+                    position_filter.resample()
+                move_particles(particle_batches[j], position_filter.particles)
+            time.sleep(pause_length)
+
+            #5) Compute rotation_filter step
+            rotation_filter.filter_step(rot_meas)
+
+            action = [0, 0, 0]
+            obs, reward, done, info = env.step(action)  # Necessary step for animation to continue
+            time.sleep(0.001)
+    return pos_filters, rot_filters
+
+
+
 
 
 def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, pause_length, type):
@@ -402,7 +516,7 @@ def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, pause_length,
         if type != "4":
             move_particles(particle_batch, position_filter.particles)
         time.sleep(pause_length)
-        move_estimate(estimate_id, position_filter.estimate, rotation_filter.estimate)
+        move_object(estimate_id, position_filter.estimate, rotation_filter.estimate)
         time.sleep(pause_length)
 
         #4) Resample particles
@@ -431,7 +545,6 @@ def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, pause_length,
 
 
 if __name__ == "__main__":
-
     params = get_input()
     #ground_truth, noisy_data, rotations, noisy_rotations = create_trajectory_points(params)
     if params["type"] == "lines":
@@ -440,9 +553,15 @@ if __name__ == "__main__":
         generator = CircleGenerator(0.0175)
     elif params["type"] == "spline":
         generator = SplineGenerator(0.0175, 4, 0.35)
-    else:
+    elif params["type"] == "lines_acc":
         generator = LineGenerator(0.0175, 3, 0.15, [(-2, 2), (-2, 2), (0, 4)], accelerate=True)
-    #ground_truth, rotations = generator2.generate_1_circle()
+    else:
+        #Multiple trajectories
+        if params["action"] != "2":
+            with open("./configs/MOT_trajectory_parameters.json") as json_file:
+                traj_params = json.load(json_file)
+            generator = MultipleTrajectoryGenerator(params["traj_amount"], traj_params)
+
     #ground_truth = generator2.generate_1_circle()
     #ground_truth, rotations = generator.generate_1_trajectory()
 
@@ -459,32 +578,55 @@ if __name__ == "__main__":
     if params["action"] == "1":
         env = visualize_env(arg_dict)
         env.reset()
-        saved_trajectory_index = 4
+        saved_trajectory_index = 0
         for i in range(20):
-            ground_truth, rotations, noisy_data, noisy_rotations = generator.generate_1_trajectory()
-            ids, noise_ids = visualize_trajectory(ground_truth, noisy_data)
-            test = input("Press 1 for saving trajectory, 0 for not saving")
-            if test == "1":
-                print("This trajectory was saved")
-                saved_trajectory_index += 1
-                generator.save_1_trajectory(ground_truth, rotations, noisy_data, noisy_rotations, i= str(saved_trajectory_index))
+            if params["type"] != "multiple":
+                ground_truth, rotations, noisy_data, noisy_rotations = generator.generate_1_trajectory()
+                ids, noise_ids = visualize_trajectory(ground_truth, noisy_data)
+                save = input("Press 1 for saving trajectory, 0 for not saving")
+                if save == "1":
+                    print("This trajectory was saved")
+                    saved_trajectory_index += 1
+                    generator.save_1_trajectory(ground_truth, rotations, noisy_data, noisy_rotations,
+                                                i=str(saved_trajectory_index))
+                else:
+                    print("This trajectory was not saved")
+                for j in range(len(ids)):
+                    p.removeUserDebugItem(ids[j])
+                    p.removeUserDebugItem(noise_ids[j])
             else:
-                print("This trajectory was not saved")
-            for j in range(len(ids)):
-                p.removeUserDebugItem(ids[j])
-                p.removeUserDebugItem(noise_ids[j])
+                X, y, X_rot, y_rot = generator.generate_1_scenario()
+                gts, rs, nds, nrs = convert_X_y_into_vis_data(X, y, X_rot, y_rot)
+                ids, noise_ids = visualize_multiple_trajectories(gts, nds)
+                save = input("Press 1 for saving trajectory, 0 for not saving")
+                if save == "1":
+                    print("This trajectory was saved")
+                    saved_trajectory_index += 1
+                    generator.save_1_trajectory(X,y, X_rot, y_rot)
+                else:
+                    print("This trajectory was not saved")
+                for j in range(len(ids)):
+                    p.removeUserDebugItem(ids[j])
+                    p.removeUserDebugItem(noise_ids[j])
 
     elif params["action"] == "2":
-        ground_truth, rotations, noisy_data, noisy_rotations = load_trajectory(params["type"])
-        print("PRINTING SHAPES:", ground_truth.shape)
-        print(ground_truth.shape)
-        print(noisy_data.shape)
-        print(rotations.shape)
-        print(noisy_rotations.shape)
-        env = visualize_env(arg_dict)
-        env.reset()
-        ids = visualize_trajectory(ground_truth, noisy_data)
-        resulting_pos_filter, resulting_rot_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, float(params["pause"]), type =params["filter_type"])
+        if params["type"] != "multiple":
+            ground_truth, rotations, noisy_data, noisy_rotations = load_trajectory(params["type"])
+            print("PRINTING SHAPES:", ground_truth.shape)
+            env = visualize_env(arg_dict)
+            env.reset()
+            ids = visualize_trajectory(ground_truth, noisy_data)
+            resulting_pos_filter, resulting_rot_filter = filter_without_animation(noisy_data, noisy_rotations, type =params["filter_type"])
+            visualize_errors(ground_truth, noisy_data, resulting_pos_filter.estimates)
+        else:
+            y, X, y_rot, X_rot = load_MOT_scenario()
+            gts, rs, nds, nrs = convert_X_y_into_vis_data(X, y, X_rot, y_rot)
+            env = visualize_env(arg_dict)
+            env.reset()
+            ids, noise_ids = visualize_multiple_trajectories(gts, nds)
+            resulting_pos_filters, resulting_rot_filters = vis_anim_MOT(y, X, y_rot, X_rot,
+                                    type = params["filter_type"], pause_length = float(params["pause"]))
+
     else:
         env = visualize_env(arg_dict)
         env.reset()

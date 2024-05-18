@@ -132,6 +132,19 @@ def visualize_estimate(particle_filter):
     return particle_id
 
 
+
+def visualize_gt(position):
+    shape_id = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.0175, 0.0175, 0.0175], rgbaColor=[0.1, 0.8, 0.1, 0.8])
+    gt_id = p.createMultiBody(baseVisualShapeIndex = shape_id, basePosition = position)
+    return gt_id
+
+
+def visualize_meas(position):
+    shape_id = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.02, 0.02, 0.02], rgbaColor=[0.75, 0.75, 0.1, 0.2])
+    gt_id = p.createMultiBody(baseVisualShapeIndex=shape_id, basePosition=position)
+    return gt_id
+
+
 def visualize_trajectory(ground_truth, noisy_data):
     """Visualizes the trajectory of the ground truth and noisy data."""
     trajectory_ids = []
@@ -140,10 +153,11 @@ def visualize_trajectory(ground_truth, noisy_data):
 
     if np.linalg.norm(ground_truth) > 0.1:
         for i in range(ground_truth.shape[0] - 1):
-            noise_id = p.addUserDebugLine(noisy_data[i, :], noisy_data[i+1, :])
-            id = p.addUserDebugLine(ground_truth[i, :], ground_truth[i+1, :])
-            trajectory_ids.append(id)
-            noise_ids.append(noise_id)
+            if not np.allclose(noisy_data[i +1], [88., 88., 88.]):
+                noise_id = p.addUserDebugLine(noisy_data[i, :], noisy_data[i+1, :])
+                id = p.addUserDebugLine(ground_truth[i, :], ground_truth[i+1, :])
+                trajectory_ids.append(id)
+                noise_ids.append(noise_id)
     return trajectory_ids, noise_ids
 
 
@@ -162,8 +176,8 @@ def move_particles(ids, positions):
         p.resetBasePositionAndOrientation(ids[i], positions[i, :3], [1, 0, 0, 0])
 
 
-def move_estimate(id, position, rotation):
-    """Moves estimate sphere in visual environment"""
+def move_object(id, position, rotation):
+    """Moves object sphere in visual environment"""
     p.resetBasePositionAndOrientation(id, position, [rotation[3], rotation[0], rotation[1], rotation[2]])
 
 
@@ -208,6 +222,20 @@ def get_arg_dict():
     return arg_dict
 
 
+def convert_X_y_into_vis_data(X, y, X_rot = None, y_rot= None):
+    """
+    Works for MOT - converts arrays X and y with multiple trajectories into a list of trajectories
+    """
+    trajectories, rot_trajectories, noisy_trajectories, noisy_rot_trajectories = [], [], [], []
+    num_trajectories = int(y.shape[1]/3)
+    print("trajectory amount:", num_trajectories)
+    for i in range(num_trajectories):
+        trajectories.append(y[:, 3*i:3*(i+1)])
+        rot_trajectories.append(y_rot[:, 4*i:4*(i+1)])
+        noisy_trajectories.append(X[:, 3*i:3*(i+1)])
+        noisy_rot_trajectories.append(X_rot[:, 4*i:4*(i+1)])
+    return trajectories, rot_trajectories, noisy_trajectories, noisy_rot_trajectories
+
 
 def load_rotations(filename):
     """
@@ -221,17 +249,34 @@ def load_rotations(filename):
     return rotations
 
 
+def visualize_multiple_trajectories(gts, nds):
+    ids, noise_ids = [], []
+    for i in range(len(gts)):
+        id, noise_id = visualize_trajectory(gts[i], nds[i])
+        ids.extend(id)
+        noise_ids.extend(noise_id)
+    return ids, noise_ids
+
+
 def load_trajectory(type):
     fn_gt = "./dataset/visualizer_trajectories/" + type +".npy"
     fn_nd = "./dataset/visualizer_trajectories/" + type + "_noise.npy"
     fn_r = "./dataset/visualizer_trajectories/" + type + "_rot.npy"
     fn_nr = "./dataset/visualizer_trajectories/" + type + "_rot_noise.npy"
-    ground_truth = np.load(fn_gt)
-    noisy_data = np.load(fn_nd)
-    rotations = np.load(fn_r)
-    noisy_rotations = np.load(fn_nr)
+    ground_truth = np.delete(np.load(fn_gt),-1, 0)
+    noisy_data = np.delete(np.load(fn_nd), -1, 0)
+    rotations = np.delete(np.load(fn_r), -1 , 0)
+    noisy_rotations = np.delete(np.load(fn_nr), -1, 0)
     return ground_truth, rotations, noisy_data, noisy_rotations
 
+
+def load_MOT_scenario():
+    """Loads predefined MOT set of trajectories"""
+    y = np.load("./dataset/MOT/ground_truth.npy")
+    X = np.load("./dataset/MOT/noisy_data.npy")
+    y_rot = np.load("./dataset/MOT/rotations.npy")
+    X_rot = np.load("./dataset/MOT/noisy_rotations.npy")
+    return y, X, y_rot, X_rot
 
 
 

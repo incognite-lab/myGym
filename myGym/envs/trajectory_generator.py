@@ -3,32 +3,103 @@ This file serves as a dataset generator used to evaluate particle filter perform
 """
 import numpy as np
 from pyquaternion import Quaternion
+import random
 from myGym.utils.filter_helpers import  fit_polynomial, create_circle, trajectory_length
-class multipleTrajectoryGenerator:
+import json
+
+
+class MultipleTrajectoryGenerator:
     """Class that generates random multiple trajectories from lines, splines and circles."""
-    def __init__(self, num_trajectories, trajectory_parameters):
+    def __init__(self, num_trajectories, trajectory_parameters, dt_std):
         self.trajectory_parameters = trajectory_parameters
         self.num_trajectories = num_trajectories
+        self.dt_std = dt_std
 
+
+    def save_1_trajectory(self, X, y, X_rot, y_rot):
+        filename_exists = True
+        i = 0
+        while filename_exists:
+            filename = "./dataset/MOT/ground_truth"+ str(i)+".npy"
+            try:
+                with open(filename, 'x') as file:
+                    filename_exists = False
+            except FileExistsError:
+                i+=1
+        np.save("./dataset/MOT/ground_truth" + str(i) + ".npy", y)
+        np.save("./dataset/MOT/noisy_data" + str(i) + ".npy", X)
+        np.save("./dataset/MOT/rotations" + str(i) + ".npy", y_rot)
+        np.save("./dataset/MOT/noisy_rotations" + str(i) + ".npy", X_rot)
+
+
+    def find_maximal_length(self, gt):
+        max = 0
+        for traj in gt:
+            if traj.shape[0] > max:
+                max = traj.shape[0]
+        return max
+
+    def generate_trajectories(self, generators):
+        gt, r, nd, nr = [], [], [], []
+        for i in range(self.num_trajectories):
+            generator = random.choice(generators)
+            ground_truth, rotations, noisy_data, noisy_rotations = generator.generate_1_trajectory()
+            rotations = generator.convert_1_rot_trajectory(rotations)
+            noisy_rotations = generator.convert_1_rot_trajectory(noisy_rotations)
+            gt.append(ground_truth)
+            r.append(rotations)
+            nd.append(noisy_data)
+            nr.append(noisy_rotations)
+        return gt, r, nd, nr
+
+    def initialize_X_and_y(self, gt):
+        max = self.find_maximal_length(gt)
+        X = np.array([99] * 3 * self.num_trajectories)
+        y = np.array([99] * 3 * self.num_trajectories)
+        X_rot = np.array([99] * 4 * self.num_trajectories)
+        y_rot = np.array([99] * 4 * self.num_trajectories)
+
+        X = np.vstack((X, np.full((max, 3*self.num_trajectories), 88.)))
+        y = np.vstack((y, np.full((max, 3*self.num_trajectories), 88.)))
+        X_rot = np.vstack((X_rot, np.full((max, 4*self.num_trajectories), 88.)))
+        y_rot = np.vstack((y_rot, np.full((max, 4*self.num_trajectories), 88.)))
+        return X, y, X_rot, y_rot
 
     def generate_1_scenario(self):
         """
         Function that generates multiple trajectories as one dataset
         """
-        #TODO: generate trajectories and combine them. Both positional and rotational
+        generators = []
         for type in self.trajectory_parameters:
             parameters =  self.trajectory_parameters[type]
             generator = self.initialize_generator(type, parameters)
-
+            generators.append(generator)
+        gt, r, nd, nr = self.generate_trajectories(generators)
+        X, y, X_rot, y_rot = self.initialize_X_and_y(gt)
+        for i in range(self.num_trajectories):
+            y[:gt[i].shape[0], 3*i:3*(i+1)] = gt[i]
+            X[:nd[i].shape[0], 3*i:3*(i+1)] = nd[i]
+            X_rot[:r[i].shape[0], 4*i:4*(i+1)] = r[i]
+            y_rot[:nr[i].shape[0]:, 4*i:4*(i+1)] = nr[i]
+        return X, y, X_rot, y_rot
 
     def initialize_generator(self, type, params):
-        #TODO: finish this function
-        generator = None
-        if type == "line":
-            generator = LineGenerator(params["std"], params["exp_points"], params["distance_limit"], params["workspace_bounds"])
+        if type == "lines":
+            generator = LineGenerator(params["std"], params["exp_points"], params["distance_limit"],
+                                      params["workspace_bounds"], accelerate = False)
         elif type == "circle":
-            generator = CircleGenerator(params["std"], params["exp_points"], params["distance_limit"])
+            generator = CircleGenerator(params["std"],  r_min =params["r_min"], r_max = params["r_max"])
+        elif type == "spline":
+            generator = SplineGenerator(params["std"], params["exp_points"], params["distance_limit"])
+        elif type == "lines_acc":
+            generator = LineGenerator(params["std"], params["exp_points"], params["distance_limit"],
+                                      params["workspace_bounds"], accelerate = True)
+        else:
+            print("entered wrong trajectory type:", type)
+            sys.exit()
         return generator
+
+
 
 class TrajectoryGenerator:
 
@@ -116,16 +187,25 @@ class TrajectoryGenerator:
         """
         Saves 1 position and rotation trajectory.
         """
-        filename = self.filename_basis + str(i)
-        filename_r = self.filename_basis_r + str(i)
-        filename_noise = self.filename_basis_noise + str(i)
-        filename_noisy_r = self.filename_basis_noise_r + str(i)
-        rot_traj = self.convert_1_rot_trajectory(rot_trajectory)
-        noisy_rot_traj = self.convert_1_rot_trajectory(noisy_rot)
-        np.save(filename, trajectory)
-        np.save(filename_r, rot_traj)
-        np.save(filename_noise, noisy_trajectory)
-        np.save(filename_noisy_r, noisy_rot_traj)
+        filename_exists = True
+        i = 0
+        while filename_exists:
+            filename = self.filename_basis + str(i) + ".npy"
+            try:
+                with open(filename, 'x') as file:
+                    filename_exists = False
+            except FileExistsError:
+                i += 1
+            filename = self.filename_basis + str(i)
+            filename_r = self.filename_basis_r + str(i)
+            filename_noise = self.filename_basis_noise + str(i)
+            filename_noisy_r = self.filename_basis_noise_r + str(i)
+            rot_traj = self.convert_1_rot_trajectory(rot_trajectory)
+            noisy_rot_traj = self.convert_1_rot_trajectory(noisy_rot)
+            np.save(filename, trajectory)
+            np.save(filename_r, rot_traj)
+            np.save(filename_noise, noisy_trajectory)
+            np.save(filename_noisy_r, noisy_rot_traj)
 
 
     def convert_1_rot_trajectory(self, rotation_trajectory):
@@ -191,15 +271,15 @@ class LineGenerator(TrajectoryGenerator):
         """
         super().__init__(std, velocity = v, dt = dt, workspace_bounds = workspace_bounds)
         if accelerate == False:
-            self.filename_basis = "./dataset/lines/positions/line"
-            self.filename_basis_r = "./dataset/lines/rotations/rot"
-            self.filename_basis_noise = "./dataset/lines/positions/line_noise"
-            self.filename_basis_noise_r = "./dataset/lines/rotations/rot_noise"
+            self.filename_basis = "./dataset/newly_generated/lines/positions/line"
+            self.filename_basis_r = "./dataset/newly_generated/lines/rotations/rot"
+            self.filename_basis_noise = "./dataset/newly_generated/lines/positions/line_noise"
+            self.filename_basis_noise_r = "./dataset/newly_generated/lines/rotations/rot_noise"
         else:
-            self.filename_basis = "./dataset/lines_acc/positions/line"
-            self.filename_basis_r = "./dataset/lines_acc/rotations/rot"
-            self.filename_basis_noise = "./dataset/lines_acc/positions/line_noise"
-            self.filename_basis_noise_r = "./dataset/lines_acc/rotations/rot_noise"
+            self.filename_basis = "./dataset/newly_generated/lines_acc/positions/line"
+            self.filename_basis_r = "./dataset/newly_generated/lines_acc/rotations/rot"
+            self.filename_basis_noise = "./dataset/newly_generated/lines_acc/positions/line_noise"
+            self.filename_basis_noise_r = "./dataset/newly_generated/lines_acc/rotations/rot_noise"
         self.exp_points = exp_points
         self.distance_limit = distance_limit
         self.accelerate = accelerate
@@ -301,7 +381,6 @@ class LineGenerator(TrajectoryGenerator):
 
     def generate_rotations(self, trajectory, omega, starting_rot = None):
         """Generates interpolated rotational trajectory for given trajectory."""
-        print("starting rot:", starting_rot)
         if starting_rot is None:
             q1 = Quaternion.random()
         else:
@@ -331,10 +410,10 @@ class CircleGenerator(TrajectoryGenerator):
         super().__init__(std, velocity=velocity, dt = dt, workspace_bounds=workspace_bounds)
         self.r_min = r_min
         self.r_max = r_max
-        self.filename_basis = "./dataset/circles/positions/circle"
-        self.filename_basis_r = "./dataset/circles/rotations/rot"
-        self.filename_basis_noise = "./dataset/circles/positions/circle_noise"
-        self.filename_basis_noise_r = "./dataset/circles/rotations/rot_noise"
+        self.filename_basis = "./dataset/newly_generated/circles/positions/circle"
+        self.filename_basis_r = "./dataset/newly_generated/circles/rotations/rot"
+        self.filename_basis_noise = "./dataset/newly_generated/circles/positions/circle_noise"
+        self.filename_basis_noise_r = "./dataset/newly_generated/circles/rotations/rot_noise"
 
 
     def generate_1_trajectory(self):
@@ -384,10 +463,10 @@ class SplineGenerator(TrajectoryGenerator):
         super().__init__(std, velocity=velocity, dt=dt, workspace_bounds=workspace_bounds)
         self.exp_points = exp_points
         self.distance_limit = distance_limit
-        self.filename_basis = "./dataset/splines/positions/spline"
-        self.filename_basis_r = "./dataset/splines/rotations/rot"
-        self.filename_basis_noise = "./dataset/splines/positions/spline_noise"
-        self.filename_basis_noise_r = "./dataset/splines/rotations/rot_noise"
+        self.filename_basis = "./dataset/newly_generated/splines/positions/spline"
+        self.filename_basis_r = "./dataset/newly_generated/splines/rotations/rot"
+        self.filename_basis_noise = "./dataset/newly_generated/splines/positions/spline_noise"
+        self.filename_basis_noise_r = "./dataset/splines/newly_generated/rotations/rot_noise"
 
 
     def generate_1_trajectory(self):
@@ -457,15 +536,20 @@ if __name__ == '__main__':
     #     arr_new = np.load(filename)
     #     print("updated, saved and newly loaded array:", arr_new)
     #     print("------------------------------------------")
-    for i in range(1,7,1):
-        filename = "./dataset/lines_acc/rotations/rot_noise" + str(i) + ".npy"
-        array = np.load(filename)
-        array = np.vstack((array, [99, 99, 99, 99]))
-        #print("loaded and appended array:", array)
-        np.save(filename, array)
-        arr_new = np.load(filename)
-        print("updated, saved and newly loaded array:", arr_new)
-        print("------------------------------------------")
+    with open("./configs/MOT_trajectory_parameters.json") as json_file:
+        traj_params = json.load(json_file)
+    print(traj_params)
+    scenario_gen = MultipleTrajectoryGenerator(3,traj_params)
+    print(scenario_gen.generate_1_scenario())
+    # for i in range(1,7,1):
+    #     filename = "./dataset/lines_acc/rotations/rot_noise" + str(i) + ".npy"
+    #     array = np.load(filename)
+    #     array = np.vstack((array, [99, 99, 99, 99]))
+    #     #print("loaded and appended array:", array)
+    #     np.save(filename, array)
+    #     arr_new = np.load(filename)
+    #     print("updated, saved and newly loaded array:", arr_new)
+    #     print("------------------------------------------")
 
 
 

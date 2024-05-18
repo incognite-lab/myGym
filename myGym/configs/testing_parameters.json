@@ -1,70 +1,74 @@
 {
 
+   "myKalmanFilter": {
+    "Q": [0.1, 0],
+    "R": [0.008, 0.025],
+    "eps_max": [0.2, 2.85],
+    "Q_scale_factor" : [10, 2000]
+  },
+
+    "ParticleFilterGH": {
+    "num_particles" : [600, 1000, 1500, 2500],
+    "process_std" : [0.01, 0.035],
+    "measurement_std" : [0.01, 0.04],
+    "g": [0.3, 1],
+    "h": [0, 1]
+  },
+
   "ParticleFilterVelocity": {
-    "num_particles" : [600],
-    "process_std" : [0.01],
-    "vel_std" : [0.05,0.02,0.03],
-    "measurement_std" : [0.015, 0.02],
-    "res_g": [0.2]
+    "num_particles" : [600, 1000, 1500, 2500],
+    "process_std" : [0.01, 0.5],
+    "vel_std" : [0.01, 0.375],
+    "measurement_std" : [0.0075, 0.25],
+    "res_g": [ 0, 1]
   },
 
-  "ParticleFilterVelocityRot": {
-    "num_particles" : [ 600,3000, 12000],
-    "process_std" : [0.01],
-    "vel_std" : [0.15, 0.2],
-    "measurement_std" : [0.05, 0.25, 0.4],
-    "res_g": [0.75],
-    "rotflip_const" : [ 0.1]
+    "ParticleFilterWithKalman" : {
+    "num_particles" : [600, 1000, 1500, 2500],
+    "process_std" : [0.004, 0.025],
+    "measurement_std" : [0.0175, 0.04],
+    "Q": [0.02, 1.5],
+    "R": [0.025, 0.1],
+    "std_a": [0.04, 0.85]
   },
 
-  "ParticleFilterGH": {
-    "num_particles" : [600 ],
-    "process_std" : [0.01],
-    "measurement_std" : [0.05],
-    "g": [0.2],
-    "h": [0.25, 0.5]
-  },
-
-  "ParticleFilterGHRot": {
-    "num_particles" : [600],
-    "process_std" : [0.01],
-    "measurement_std" : [0.05, 0.02],
-    "g": [0.2],
-    "h": [0.25],
-    "rotflip_const": [ 0.1]
-  },
-
-  "ParticleFilterWithKalman" : {
-    "num_particles" : [600],
-    "process_std" : [0.01],
-    "measurement_std" : [0.01, 0.02],
-    "Q": [0.1],
-    "R": [0.05],
-    "std_a": [0.08]
-  },
-
-  "ParticleFilterWithKalmanRot" : {
-    "num_particles" : [600],
-    "process_std" : [0.01],
-    "measurement_std" : [0.01, 0.02],
-    "Q": [0.1],
-    "R": [0.05],
-    "std_a": [0.08],
-    "rotflip_const": [0.05]
-  },
-
-  "myKalmanFilter": {
-    "Q": [0.05],
-    "R": [0.015],
-    "eps_max": [0.12],
-    "Q_scale_factor" : [200, 500]
-  },
 
   "myKalmanFilterRot": {
-    "Q": [0.05, 0.08, 0.12],
-    "R": [0.015, 0.02, 0.025],
-    "eps_max": [0.12, 0.18, 0.25, 0.4],
-    "Q_scale_factor" : [200, 500, 1000, 1200],
-    "rotflip_const": [0.05, 0.075, 0.1]
+    "Q": [0.3, 0.7],
+    "R": [0.004, 0.06],
+    "eps_max": [0.05, 1.2],
+    "Q_scale_factor" : [10, 3500],
+    "rotflip_const": [0.1]
+  },
+
+
+   "ParticleFilterGHRot": {
+    "num_particles" : [600, 1000, 1500, 2500],
+    "process_std" : [0.2, 0.6],
+    "measurement_std" : [0.14, 0.325],
+    "g": [0.4, 1],
+    "h": [0, 1],
+    "rotflip_const" : [0.1]
+  },
+
+
+  "ParticleFilterVelocityRot": {
+    "num_particles" : [600, 1000, 1500, 2500],
+    "process_std" : [ 0.2, 0.46],
+    "vel_std" : [0.15, 0.7],
+    "measurement_std" : [0.275,  0.6],
+    "res_g": [0, 1],
+    "rotflip_const" : [0.1]
+  },
+
+
+  "ParticleFilterWithKalmanRot" : {
+    "num_particles" : [600, 1000, 1500, 2500],
+    "process_std" : [0.1, 0.375],
+    "measurement_std" : [0.26, 0.5],
+    "Q": [0.25, 3],
+    "R": [0.25, 3],
+    "std_a": [0.75, 2.35],
+    "rotflip_const" : [0.1]
   }
 }
