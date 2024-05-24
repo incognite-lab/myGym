@@ -1,0 +1,44 @@
+{
+    #Environment
+    "env_name"  :"Gym-v0",
+    "workspace" :"table",
+    "engine"    :"pybullet",
+    "render"    :"opengl",
+    "camera"    :1,
+    "gui"       :1,
+    "visualize" :1,
+    "visgym"    :0,
+    #Robot
+    "robot"         :"kuka",
+    "robot_action"  :"step",
+    "robot_init"    :[0.0, 0.4, 0.4],
+    "max_velocity"  :1,
+    "max_force"     :70,
+    "action_repeat" :1,
+    #Task
+    "natural_language"      :0,
+    "rddl": {"protoactions":["Approach"], "num_task_range":[1,3], "allowed_objects":["Apple", "Tuna"], "allowed_predicates":["Near"]},
+    "observation"           : {"actual_state":"obj_xyz", "goal_state":"obj_xyz"}, # this is ignored
+    #Distractor
+    "distractors"           : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
+                                           "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
+    #Reward
+    "vae_path"      :null,
+    "yolact_path"   :null,
+    "yolact_config" :null,
+    #Train
+    "train_framework"   :"tensorflow",
+    "algo"              :"ppo2",
+    "num_networks" : 1,
+    "max_episode_steps" :1024,
+    "algo_steps"        :1024,
+    "steps"             :200000,
+    "pretrained_model"  :null,
+    "multiprocessing"   :false,
+    #Evaluation
+    "eval_freq"     :10000,
+    "eval_episodes" :10,
+    #Saving and logging
+    "logdir"    :"trained_models/test",
+    "record"    :0
+    }

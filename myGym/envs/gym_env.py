@@ -2,7 +2,7 @@ import copy
 from typing import List
 
 from myGym.envs import robot, env_object
-from myGym.envs import taskmanager as t
+from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
 from collections import ChainMap
@@ -19,6 +19,7 @@ from myGym.envs.human import Human
 import myGym.utils.colors as cs
 from myGym.utils.helpers import get_module_type
 from myGym.envs.natural_language import NaturalLanguage
+from myGym.envs.task import TaskModule
 
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
@@ -31,8 +32,8 @@ class GymEnv(CameraEnv):
     Environment class for particular environment based on myGym basic environment classes
 
     Parameters:
-        :param task_objects: (list of strings) Objects that are relevant for performing the task
         :param observation: (dict) Template dictionary of what should be part of the network observation
+        :param rddl: (dict) Template dictionary for task creation via rddl
         :param workspace: (string) Workspace in gym, where training takes place (collabtable, maze, drawer, ...)
         :param dimension_velocity: (float) Maximum allowed velocity for robot movements in individual x,y,z axis
         :param used_objects: (list of strings) Names of extra objects (not task objects) that can appear in the scene
@@ -61,12 +62,11 @@ class GymEnv(CameraEnv):
     """
 
     def __init__(self,
-                 task_objects,
                  observation,
+                 rddl={},
                  framework="ray",
                  workspace="table",
                  dimension_velocity=0.05,
-                 used_objects=None,
                  action_repeat=1,
                  color_dict={},
                  robot='kuka',
@@ -78,8 +78,6 @@ class GymEnv(CameraEnv):
                  num_networks=1,
                  network_switcher="gt",
                  distractors=None,
-                 reward='distance',
-                 distance_type='euclidean',
                  active_cameras=None,
                  dataset=False,
                  obs_space=None,
@@ -106,11 +104,10 @@ class GymEnv(CameraEnv):
         self.action_repeat          = action_repeat
         self.dimension_velocity     = dimension_velocity
         self.active_cameras         = active_cameras
-        self.used_objects           = used_objects
         self.action_repeat          = action_repeat
         self.color_dict             = color_dict
         self.task_type              = task_type
-        self.task_objects_dict     = task_objects
+        self.rddl_config = rddl
         self.framework = framework
         self.vision_source = get_module_type(self.obs_type)
         self.task_objects = []
@@ -120,9 +117,7 @@ class GymEnv(CameraEnv):
         self.yolact_config = yolact_config
         self.has_distractor         = distractors["list"] != None
         self.distractors            = distractors
-        self.distance_type          = distance_type
         self.objects_area_borders = None
-        self.reward = reward
         self.dist = d.DistractorModule(distractors["moveable"], distractors["movement_endpoints"],
                                        distractors["constant_speed"], distractors["movement_dims"], env=self)
         self.dataset   = dataset
@@ -155,12 +150,12 @@ class GymEnv(CameraEnv):
             # # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
             # self.num_networks = 3
         self.rng = np.random.default_rng(seed=0)
-        self.task_objects_were_given_as_list = isinstance(self.task_objects_dict, list)
-        self.n_subtasks = len(self.task_objects_dict) if self.task_objects_were_given_as_list else 1
         if self.reach_gesture and not self.nl_mode:
             raise Exception("Reach gesture task can't be started without natural language mode")
 
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
+        self.task = TaskModule(self, rddl["num_task_range"], rddl["protoactions"], rddl["allowed_objects"], rddl["allowed_predicates"], self.p)
+        self.task.build_scene_for_task()
 
     def _init_task_and_reward(self):
         if self.reward == 'distractor':

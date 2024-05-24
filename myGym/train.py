@@ -78,14 +78,13 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
     env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"], "framework":"stable_baselines",
                      "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
                      "robot_action": arg_dict["robot_action"],"max_velocity": arg_dict["max_velocity"], 
-                     "max_force": arg_dict["max_force"],"task_type": arg_dict["task_type"],
-                     "action_repeat": arg_dict["action_repeat"],
-                     "task_objects":arg_dict["task_objects"], "observation":arg_dict["observation"], "distractors":arg_dict["distractors"],
+                     "max_force": arg_dict["max_force"],
+                     "action_repeat": arg_dict["action_repeat"], "rddl": arg_dict["rddl"],
+                     "observation":arg_dict["observation"], "distractors":arg_dict["distractors"],
                      "num_networks":arg_dict.get("num_networks", 1), "network_switcher":arg_dict.get("network_switcher", "gt"),
-                     "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
                      "active_cameras": arg_dict["camera"], "color_dict":arg_dict.get("color_dict", {}),
                      "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
-                     "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
+                     "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"],
                      "natural_language": bool(arg_dict["natural_language"]),
                      "training": bool(for_train)
@@ -332,7 +331,7 @@ def main():
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
-    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["task_type"],arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["algo"])))
+    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["algo"])))
     model_logdir = model_logdir_ori
     add = 2
     while True:

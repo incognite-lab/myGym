@@ -33,8 +33,8 @@ class EnvObject(VisionModule):
         self.init_orientation = orientation
         self.fixed = fixed
         self.is_robot = is_robot
-        self.name = os.path.splitext(os.path.basename(self.urdf_path))[0]
-        self.virtual = True if "virtual" in self.name else False
+        self.o_name = os.path.splitext(os.path.basename(self.urdf_path))[0]
+        self.virtual = True if "virtual" in self.o_name else False
         self.object_ldamping = 1
         self.object_adamping = 1
         self.object_lfriction = 100
@@ -308,9 +308,9 @@ class EnvObject(VisionModule):
         Get object's name. Uses data from URDF.
 
         Returns:
-            :return self.name: (string) Object's name
+            :return self.o_name: (string) Object's name
         """
-        return self.name
+        return self.o_name
 
     def get_uid(self):
         """
