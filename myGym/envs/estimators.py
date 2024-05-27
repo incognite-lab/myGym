@@ -51,6 +51,16 @@ class primitiveEstimator(BaseEstimator):
         return self.x_
 
 
+class MOT_estimator(BaseEstimator):
+    """
+    Estimator for mutliple objects
+    """
+    def fit(self, X, y=None):
+        self.y_ = y
+        self.x_ = X
+        return self
+
+
 class myEstimator(BaseEstimator):
 
     def fit(self, X, y=None):
@@ -62,13 +72,15 @@ class myEstimator(BaseEstimator):
         """
         Entire filtration algorithm present here. X is noisy data representing the measurements.
         """
+
         noisy_data = X
         n = X.shape[0]
         new_trajectory = False
         self.x_ = np.zeros_like(X)
-
+        iter_time_max = 0
         measurement_dim = X.shape[1]
         for i in range(n):
+            start = time.time()
             measurement = noisy_data[i]
             if np.allclose(measurement, np.array([99]*measurement_dim)):
                 #New trajectory, resetting filter
@@ -87,7 +99,14 @@ class myEstimator(BaseEstimator):
             else:
                 self.filter.filter_step(measurement)
                 self.x_[i] = self.filter.estimate
+            end = time.time()
+            iter_time = end - start
+            #print("Filter iteration time = ", iter_time)
+            if iter_time > iter_time_max:
+                iter_time_max = iter_time
+
         #visualize_errors(self.y_, X, self.x_)
+        print("longest iteration time:", iter_time_max)
         return self.x_
 
 
@@ -249,8 +268,6 @@ def filter_gridsearch(filters, parameters, trajectory_types, search_type, iterat
 
 
 def load_params(paramstring):
-    if type(paramstrintg) == dict:
-        return paramstring
     param_grid = dict()
     with open("/home/alblfred/myGym/myGym/configs/" + paramstring + ".json") as json_file:
         data = json.load(json_file)
@@ -382,14 +399,14 @@ def create_and_save_dataframe(Estimator, grid_search, param_grid, trajectory_typ
         rename_list.append(key)
         dataframe_list.append("param_" + key)
     dataframe_list.append("mean_test_score")
-    dataframe_list.append("mean_fit_time")
+    dataframe_list.append("mean_score_time")
     dataframe = pd.DataFrame(grid_search.cv_results_)[dataframe_list]
     rename_dict = {}
     for i in range(len(rename_list)):
         rename_dict[dataframe_list[i]] = rename_list[i]
     dataframe = dataframe.rename(columns = rename_dict)
     dataframe = dataframe.sort_values(by=['mean_test_score'], ascending = False, kind = "quicksort")
-    dataframe.to_csv("/home/alblfred/myGym/myGym/results/a_fittime_" + filter_name + "_" + trajectory_types_string + ".csv", sep='\t')
+    dataframe.to_csv("/home/alblfred/myGym/myGym/results/TODELETE" + filter_name + "_" + trajectory_types_string + ".csv", sep='\t')
     print("Saved one results table:", filter_name)
 
 
@@ -424,19 +441,10 @@ if __name__ == "__main__":
     trajectory_types2 = ["circles", "splines"]
     trajectory_types1_rot = ["lines_rot", "lines_acc_rot"]
     trajectory_types2_rot = ["circles_rot", "splines_rot"]
-    # filter_gridsearch(filters, "parameters", trajectory_types1, "GridSearch", 20)
-    # filter_gridsearch(filters, "parameters", trajectory_types2, "GridSearch", 20)
-    # filter_gridsearch(filters_rot, "parameters", trajectory_types1_rot, "GridSearch", 20)
-    # filter_gridsearch(filters_rot, "parameters", trajectory_types2_rot, "GridSearch", 20)
-
-    for file_name in glob.glob("./results/" + '*.csv'):
-        x = pd.read_csv(file_name, low_memory=False)
-    dicts = load_params_from_csv("./results/EstimatorGH_circles_splines_.csv")
-    for params in dicts:
-        filter_gridsearch(filters, params, trajectory_types1, "GridSearch", 20)
-        filter_gridsearch(filters, params, trajectory_types2, "GridSearch", 20)
-        filter_gridsearch(filters_rot, params, trajectory_types1_rot, "GridSearch", 20)
-        filter_gridsearch(filters_rot, params, trajectory_types2_rot, "GridSearch", 20)
+    filter_gridsearch(filters, "parameters", trajectory_types1, "randomized_search", 5)
+    filter_gridsearch(filters, "parameters", trajectory_types2, "randomized_search", 5)
+    filter_gridsearch(filters_rot, "parameters", trajectory_types1_rot, "randomized_search", 5)
+    filter_gridsearch(filters_rot, "parameters", trajectory_types2_rot, "randomized_search", 5)
     # X, y = load_trajectories(["lines"])
     # param_grid = {"param1": [10, 20], "param2": [10, 20]}
     # cv = [(slice(None), slice(None))]

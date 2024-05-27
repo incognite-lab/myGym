@@ -20,12 +20,6 @@
       <inertia ixx="0.000343501" ixy="0" ixz="-1.88563e-05" iyy="0.000493898" iyz="2.09863e-06" izz="0.000215252"/>
       <origin rpy="0 0 0" xyz="-0.00207 0 -0.02636"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/HeadYaw.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/HeadYaw_0.10.stl" scale="1 1 1"/>
@@ -48,12 +42,6 @@
       <inertia ixx="0.00597209" ixy="0" ixz="0.000125138" iyy="0.0059054" iyz="4.3428e-07" izz="0.00570374"/>
       <origin rpy="0 0 0" xyz="0.00312 0 0.11152"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/HeadPitch_0.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/HeadPitch_0.10.stl" scale="1 1 1"/>
@@ -72,12 +60,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/HeadPitch_1.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
   </link>
   <joint name="HeadPitch_2_joint" type="fixed">
     <parent link="Head"/>
@@ -90,12 +73,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/HeadPitch_2.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
   </link>
   <joint name="HeadPitch_3_joint" type="fixed">
     <parent link="Head"/>
@@ -108,12 +86,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/HeadPitch_3.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
   </link>
   <joint name="HeadPitch_4_joint" type="fixed">
     <parent link="Head"/>
@@ -126,12 +99,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/HeadPitch_4.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
   </link>
   <!-- End links for the Head -->
 
@@ -148,12 +116,7 @@
       <inertia ixx="0.00502422" ixy="0" ixz="-2.54911e-05" iyy="0.00640971" iyz="0.000159449" izz="0.00441082"/>
       <origin rpy="0 0 0" xyz="0.00032 0 -0.07068"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/HipRoll.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0.079"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/HipRoll_0.10.stl" scale="1 1 1"/>
@@ -176,12 +139,7 @@
       <inertia ixx="0.034351" ixy="0" ixz="0.000223034" iyy="0.0303122" iyz="-8.37542e-05" izz="0.0143771"/>
       <origin rpy="0 0 0" xyz="0.00237 0 -0.01754"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/HipPitch_0.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0.268"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/HipPitch_0.10.stl" scale="1 1 1"/>
@@ -200,12 +158,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0.268"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/HipPitch_1.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0.268"/>
-    </visual>
+
   </link>
   <!-- End Pelvis link -->
 
@@ -223,12 +176,7 @@
       <inertia ixx="0.129229" ixy="-0.000401943" ixz="0.00048556" iyy="0.122839" iyz="-1.01666e-08" izz="0.108168"/>
       <origin rpy="0 0 0" xyz="0.00220451 0 0.082271"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/KneePitch_0.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/KneePitch_0.10.stl" scale="1 1 1"/>
@@ -247,12 +195,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/KneePitch_1.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
   </link>
   <!-- End KneePitch link -->
 
@@ -289,15 +232,10 @@
       <inertia ixx="0.0452761" ixy="0" ixz="0.00499091" iyy="0.0432702" iyz="-0.000266886" izz="0.0258881"/>
       <origin rpy="0 0 0" xyz="0.00322 0 0.12871"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Torso_0.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0.139"/>
-    </visual>
+
     <collision>
       <geometry>
-        <mesh filename="meshes/pepper/Torso_0.10.stl" scale="1 1 1"/>
+        <mesh filename="meshes/pepper/Torso_0.10.stl" scale="0 0 0"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0"/><!--0 0 0.139-->
     </collision>
@@ -313,12 +251,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0.0695"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Torso_1.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0.0695"/>
-    </visual>
+
   </link>
   <joint name="Torso_2_joint" type="fixed">
     <parent link="torso"/>
@@ -331,12 +264,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0.0695"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Torso_2.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0.0695"/>
-    </visual>
+
   </link>
   <joint name="Torso_3_joint" type="fixed">
     <parent link="torso"/>
@@ -349,12 +277,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0.0695"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Torso_3.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0.0695"/>
-    </visual>
+
   </link>
   <joint name="Torso_4_joint" type="fixed">
     <parent link="torso"/>
@@ -367,12 +290,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0.0695"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Torso_4.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0.0695"/>
-    </visual>
+
   </link>
   <!-- End torso links -->
 
@@ -389,12 +307,7 @@
       <inertia ixx="0.000361198" ixy="-1.98347e-06" ixz="6.35907e-07" iyy="0.000137229" iyz="-5.68878e-06" izz="0.000399194"/>
       <origin rpy="0 0 0" xyz="0.00018 -0.019 0.00099"/> <!-- 0.00018 0.01856 0.00099-->
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/LShoulderPitch.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/LShoulderPitch_0.10.stl" scale="1 1 1"/>
@@ -417,12 +330,7 @@
       <inertia ixx="0.000500872" ixy="-3.55918e-05" ixz="8.51263e-05" iyy="0.00126284" iyz="9.06813e-06" izz="0.00115718"/>
       <origin rpy="0 0 0" xyz="0.08151 0.01284 -0.01017"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/LShoulderRoll_0.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/LShoulderRoll_0.10.stl" scale="1 1 1"/>
@@ -441,12 +349,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/LShoulderRoll_1.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
   </link>
   <!-- End LShoulderRoll -->
 
@@ -463,12 +366,7 @@
       <inertia ixx="0.000122971" ixy="9.86024e-07" ixz="-2.55838e-05" iyy="0.000331766" iyz="-1.98925e-06" izz="0.000303047"/>
       <origin rpy="0 0 0" xyz="-0.02297 -0.00019 0.00119"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/LElbowYaw.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/LElbowYaw_0.10.stl" scale="1 1 1"/>
@@ -491,12 +389,7 @@
       <inertia ixx="0.00156513" ixy="1.47517e-05" ixz="-6.05746e-05" iyy="0.00173219" iyz="-1.7619e-07" izz="0.000273081"/>
       <origin rpy="0 0 0" xyz="0.0593 0.00271 -0.01014"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/LElbowRoll_0.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/LElbowRoll_0.10.stl" scale="1 1 1"/>
@@ -515,12 +408,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/LElbowRoll_1.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
   </link>
   <!-- End definition of LElbowRoll -->
 
@@ -537,12 +425,7 @@
       <inertia ixx="0.000151643" ixy="1.06629e-05" ixz="2.89509e-06" iyy="0.000431099" iyz="-3.13715e-06" izz="0.000456172"/>
       <origin rpy="0 0 0" xyz="0.03536 -0.00072 -0.00207"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/LWristYaw.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/LWristYaw_vhacd.obj" scale="1 1 1"/>
@@ -588,12 +471,7 @@
       <inertia ixx="0.000361198" ixy="1.98347e-06" ixz="6.35907e-07" iyy="0.000137229" iyz="5.68878e-06" izz="0.000399194"/>
       <origin rpy="0 0 0" xyz="0.00018 0.019 0.00099"/><!--0.00018 0.01856 0.00099-->
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/RShoulderPitch.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/RShoulderPitch_0.10.stl" scale="1 1 1"/>
@@ -616,12 +494,7 @@
       <inertia ixx="0.000500872" ixy="3.55918e-05" ixz="8.51263e-05" iyy="0.00126284" iyz="-9.06813e-06" izz="0.00115718"/>
       <origin rpy="0 0 0" xyz="0.08151 -0.01284 -0.01017"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/RShoulderRoll_0.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/RShoulderRoll_0.10.stl" scale="1 1 1"/>
@@ -640,12 +513,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/RShoulderRoll_1.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
   </link>
   <!-- End RShoulderRoll -->
 
@@ -662,12 +530,7 @@
       <inertia ixx="0.000122971" ixy="-9.86024e-07" ixz="-2.55838e-05" iyy="0.000331766" iyz="1.98925e-06" izz="0.000303047"/>
       <origin rpy="0 0 0" xyz="--0.02297 0.00019 0.00119"/><!-- -0.02297 0.00019 0.00119-->
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/RElbowYaw.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/RElbowYaw_0.10.stl" scale="1 1 1"/>
@@ -690,12 +553,7 @@
       <inertia ixx="0.00156513" ixy="-1.47517e-05" ixz="-6.05746e-05" iyy="0.00173219" iyz="1.7619e-07" izz="0.000273081"/>
       <origin rpy="0 0 0" xyz="0.0593 -0.00271 -0.01014"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/RElbowRoll_0.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/RElbowRoll_0.10.stl" scale="1 1 1"/>
@@ -714,12 +572,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/RElbowRoll_1.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
   </link>
   <!-- End RElbowRoll -->
 
@@ -736,12 +589,7 @@
       <inertia ixx="0.000151643" ixy="-1.06629e-05" ixz="2.89509e-06" iyy="0.000431099" iyz="3.13715e-06" izz="0.000456172"/>
       <origin rpy="0 0 0" xyz="0.03536 0.00072 -0.00207"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/RWristYaw.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/RWristYaw_vhacd.obj" scale="1 1 1"/>
@@ -1194,12 +1042,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1221,12 +1064,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1248,12 +1086,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1275,12 +1108,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
@@ -1302,12 +1130,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1329,12 +1152,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1356,12 +1174,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1383,12 +1196,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
@@ -1410,12 +1218,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1437,12 +1240,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1464,12 +1262,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1491,12 +1284,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
@@ -1518,12 +1306,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1545,12 +1328,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1572,12 +1350,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1599,12 +1372,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1626,12 +1394,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
@@ -1653,12 +1416,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1680,12 +1438,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
@@ -1707,12 +1460,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
@@ -1734,12 +1482,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
@@ -1761,12 +1504,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1788,12 +1526,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1815,12 +1548,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
@@ -1842,12 +1570,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1870,12 +1593,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
@@ -1897,12 +1615,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>s
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Phalax.obj" scale="1 1 1"/>
@@ -1925,12 +1638,7 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
       <origin rpy="-1.57 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="-1.57 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/PhalaxEnd.obj" scale="1 1 1"/>
@@ -1952,12 +1660,7 @@
       <inertia ixx="0.00299756" ixy="6.3068e-07" ixz="5.56903e-06" iyy="0.00303229" iyz="-9.0408e-07" izz="0.00296585"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Wheel.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Wheel_0.10.stl" scale="1 1 1"/>
@@ -1978,12 +1681,8 @@
       <inertia ixx="0.00299756" ixy="6.3068e-07" ixz="5.56903e-06" iyy="0.00303229" iyz="-9.0408e-07" izz="0.00296585"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Wheel.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+="0 0 0" xyz="0 0 0"/>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Wheel_0.10.stl" scale="1 1 1"/>
@@ -2004,12 +1703,7 @@
       <inertia ixx="0.00299756" ixy="6.3068e-07" ixz="5.56903e-06" iyy="0.00303229" iyz="-9.0408e-07" izz="0.00296585"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="meshes/pepper/Wheel.obj" scale="1 1 1"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-    </visual>
+
     <collision>
       <geometry>
         <mesh filename="meshes/pepper/Wheel_0.10.stl" scale="1 1 1"/>

@@ -4,8 +4,42 @@ This file serves as a dataset generator used to evaluate particle filter perform
 import numpy as np
 from pyquaternion import Quaternion
 import random
-from myGym.utils.filter_helpers import  fit_polynomial, create_circle, trajectory_length
+from myGym.utils.filter_helpers import  fit_polynomial, create_circle, trajectory_length, calculate_t_vec_multimeasurements, noise_and_sort
 import json
+import pandas as pd
+
+
+"""
+MOT trajectory params:
+    "circle": {
+    "std": 0.02,
+    "r_min": 0.2,
+    "r_max": 1.6,
+     "dt_std": 0.04
+  },
+  "spline": {
+    "std": 0.02,
+    "exp_points": 4,
+    "distance_limit": 0.35,
+    "dt_std": 0.04"
+  },
+  "lines_acc":
+  {
+    "std": 0.0225,
+    "exp_points": 3,
+    "distance_limit": 0.15,
+    "workspace_bounds": [[-2.5, 2.5], [-2.5, 2.5], [0, 4]],
+    "dt_std": 0.04
+  },
+   "lines": {
+    "std": 0.02,
+    "exp_points": 3,
+    "distance_limit": 0.15,
+    "workspace_bounds": [[-2.5,2.5], [-2.5, 2.5], [0, 4]],
+    "dt_std": 0.08
+  },
+}
+"""
 
 
 class MultipleTrajectoryGenerator:
@@ -40,30 +74,58 @@ class MultipleTrajectoryGenerator:
         return max
 
     def generate_trajectories(self, generators):
-        gt, r, nd, nr = [], [], [], []
+        gt, r, nd, nr, t_vecs = [], [], [], [], []
         for i in range(self.num_trajectories):
             generator = random.choice(generators)
-            ground_truth, rotations, noisy_data, noisy_rotations = generator.generate_1_trajectory()
-            rotations = generator.convert_1_rot_trajectory(rotations)
-            noisy_rotations = generator.convert_1_rot_trajectory(noisy_rotations)
+            ground_truth, rotations, noisy_data, noisy_rotations, t_vec = generator.generate_1_trajectory()
+            if self.dt_std is None:
+                rotations = generator.convert_1_rot_trajectory(rotations)
+                noisy_rotations = generator.convert_1_rot_trajectory(noisy_rotations)
             gt.append(ground_truth)
             r.append(rotations)
             nd.append(noisy_data)
             nr.append(noisy_rotations)
-        return gt, r, nd, nr
+            t_vecs.append(t_vec)
+            generator.print_name()
+        return gt, r, nd, nr, t_vecs
+
 
     def initialize_X_and_y(self, gt):
         max = self.find_maximal_length(gt)
-        X = np.array([99] * 3 * self.num_trajectories)
-        y = np.array([99] * 3 * self.num_trajectories)
-        X_rot = np.array([99] * 4 * self.num_trajectories)
-        y_rot = np.array([99] * 4 * self.num_trajectories)
+        X = np.array([99] * 4 * self.num_trajectories)
+        y = np.array([99] * 4 * self.num_trajectories)
+        X_rot = np.array([99] * 5 * self.num_trajectories)
+        y_rot = np.array([99] * 5 * self.num_trajectories)
 
-        X = np.vstack((X, np.full((max, 3*self.num_trajectories), 88.)))
-        y = np.vstack((y, np.full((max, 3*self.num_trajectories), 88.)))
-        X_rot = np.vstack((X_rot, np.full((max, 4*self.num_trajectories), 88.)))
-        y_rot = np.vstack((y_rot, np.full((max, 4*self.num_trajectories), 88.)))
+        X = np.vstack((X, np.full((max, 4*self.num_trajectories), 88.)))
+        y = np.vstack((y, np.full((max, 4*self.num_trajectories), 88.)))
+        X_rot = np.vstack((X_rot, np.full((max, 5*self.num_trajectories), 88.)))
+        y_rot = np.vstack((y_rot, np.full((max, 5*self.num_trajectories), 88.)))
         return X, y, X_rot, y_rot
+
+    def generate_1_scenario_old(self):
+        """
+        Function that generates multiple trajectories as one dataset - deprecated version
+        """
+        generators = []
+        for type in self.trajectory_parameters:
+            parameters =  self.trajectory_parameters[type]
+            generator = self.initialize_generator(type, parameters)
+            generators.append(generator)
+        gt, r, nd, nr, t_vecs = self.generate_trajectories(generators)
+        X, y, X_rot, y_rot = self.initialize_X_and_y(gt)
+        for i in range(self.num_trajectories):
+            y[:gt[i].shape[0], 4*i:4*i+3] = gt[i]
+            X[:nd[i].shape[0], 4*i:4*i+3] = nd[i]
+            X_rot[:r[i].shape[0], 5*i:5*i+4] = r[i]
+            y_rot[:nr[i].shape[0]:, 5*i:5*i+4] = nr[i]
+            #Adding t_vecs
+            y[:gt[i].shape[0], 4*i + 3] = t_vecs[i]
+            X[:nd[i].shape[0], 4*i + 3] = t_vecs[i]
+            X_rot[:r[i].shape[0], 5*i + 4] = t_vecs[i]
+            y_rot[:nr[i].shape[0]:, 5*i + 4] = t_vecs[i]
+        return X, y, X_rot, y_rot
+
 
     def generate_1_scenario(self):
         """
@@ -71,39 +133,35 @@ class MultipleTrajectoryGenerator:
         """
         generators = []
         for type in self.trajectory_parameters:
-            parameters =  self.trajectory_parameters[type]
+            parameters = self.trajectory_parameters[type]
             generator = self.initialize_generator(type, parameters)
             generators.append(generator)
-        gt, r, nd, nr = self.generate_trajectories(generators)
-        X, y, X_rot, y_rot = self.initialize_X_and_y(gt)
-        for i in range(self.num_trajectories):
-            y[:gt[i].shape[0], 3*i:3*(i+1)] = gt[i]
-            X[:nd[i].shape[0], 3*i:3*(i+1)] = nd[i]
-            X_rot[:r[i].shape[0], 4*i:4*(i+1)] = r[i]
-            y_rot[:nr[i].shape[0]:, 4*i:4*(i+1)] = nr[i]
-        return X, y, X_rot, y_rot
+        gts, rs, nds, nrs, t_vecs = self.generate_trajectories(generators)
+        #print("nrs:", nrs)
+        return noise_and_sort(gts, rs, nds, nrs, t_vecs)
 
     def initialize_generator(self, type, params):
+        dt_std = None
+        if self.dt_std is not None:
+            dt_std = params["dt_std"]
         if type == "lines":
             generator = LineGenerator(params["std"], params["exp_points"], params["distance_limit"],
-                                      params["workspace_bounds"], accelerate = False)
+                                      params["workspace_bounds"], accelerate = False, dt = 0.2, dt_std= dt_std)
         elif type == "circle":
-            generator = CircleGenerator(params["std"],  r_min =params["r_min"], r_max = params["r_max"])
+            generator = CircleGenerator(params["std"],  r_min =params["r_min"], r_max = params["r_max"], dt_std= dt_std)
         elif type == "spline":
-            generator = SplineGenerator(params["std"], params["exp_points"], params["distance_limit"])
+            generator = SplineGenerator(params["std"], params["exp_points"], params["distance_limit"], dt_std= dt_std)
         elif type == "lines_acc":
             generator = LineGenerator(params["std"], params["exp_points"], params["distance_limit"],
-                                      params["workspace_bounds"], accelerate = True)
+                                      params["workspace_bounds"], accelerate = True, dt_std= dt_std)
         else:
             print("entered wrong trajectory type:", type)
             sys.exit()
         return generator
 
-
-
 class TrajectoryGenerator:
 
-    def __init__(self, std, velocity = 0.2, dt = 0.2, workspace_bounds = None):
+    def __init__(self, std, velocity = 0.2, dt = 0.2, workspace_bounds = None, dt_std = None):
         self.std = std
         self.v = velocity
         self.dt = dt
@@ -111,7 +169,7 @@ class TrajectoryGenerator:
             self.workspace_bounds = [(-2, 2), (-2, 2), (0, 4)]
         else:
             self.workspace_bounds = workspace_bounds
-
+        self.dt_std = dt_std
         self.filename_basis = "./dataset/unknown"
         self.filename_basis_r = "./dataset/unknown_r"
         self.filename_basis_noise = "./dataset/unknown_noise"
@@ -123,6 +181,10 @@ class TrajectoryGenerator:
     ||||||
     vvvvvv
     """
+
+
+    def print_name(self):
+        print("current generator:", self.__class__.__name__)
 
     def check_min_distance(self, new_point, keypoints):
         for point in keypoints:
@@ -168,7 +230,7 @@ class TrajectoryGenerator:
         noisy_traj = self.add_noise(traj, self.std)
         rotations = [Quaternion(0, 0, 0, 0)]*100
         noisy_rotations = self.add_rotation_noise(rotations)
-        return traj, noisy_traj, rotations, noisy_rotations
+        return traj, noisy_traj, rotations, noisy_rotations, None
 
     """
     End generator functions
@@ -260,7 +322,7 @@ class TrajectoryGenerator:
 
 class LineGenerator(TrajectoryGenerator):
 
-    def __init__(self, std, exp_points, distance_limit, workspace_bounds, accelerate = False, dt = 0.2, v = 0.2):
+    def __init__(self, std, exp_points, distance_limit, workspace_bounds, accelerate = False, dt = 0.2, v = 0.2, dt_std = None):
         """
         Parameters:
             std : float (standard deviation of measured noise)
@@ -269,7 +331,7 @@ class LineGenerator(TrajectoryGenerator):
             worskpace_bounds : list of tuples (Every point on the trajectory must be located inside of these x, y, z bounds)
             accelerate : vool (determine whether object moves with constant velocity or acceleration)
         """
-        super().__init__(std, velocity = v, dt = dt, workspace_bounds = workspace_bounds)
+        super().__init__(std, velocity = v, dt = dt, workspace_bounds = workspace_bounds, dt_std = dt_std)
         if accelerate == False:
             self.filename_basis = "./dataset/newly_generated/lines/positions/line"
             self.filename_basis_r = "./dataset/newly_generated/lines/rotations/rot"
@@ -283,7 +345,6 @@ class LineGenerator(TrajectoryGenerator):
         self.exp_points = exp_points
         self.distance_limit = distance_limit
         self.accelerate = accelerate
-
 
 
     def generate_1_trajectory(self):
@@ -301,11 +362,47 @@ class LineGenerator(TrajectoryGenerator):
                 y = np.random.uniform(y_range[0], y_range[1])
                 z = np.random.uniform(z_range[0], z_range[1])
             key_points.append([x, y, z])
-        if self.accelerate:
-            return self.create_trajectory_const_acc(key_points)
+        if self.dt_std is None:
+            if self.accelerate:
+                return self.create_trajectory_const_acc(key_points)
+            else:
+                return self.create_trajectory_const_vel(key_points)
         else:
-            return self.create_trajectory_const_vel(key_points)
+            n_gt, n_r, n_nd, n_nr, n_t = self.create_traj_noisy_dt(key_points)
+            dt_std = self.dt_std
+            self.dt_std = None
 
+            if self.accelerate:
+                ground_truth, rotations, noisy_data, noisy_rotations, t = self.create_trajectory_const_acc(key_points)
+            else:
+                ground_truth, rotations, noisy_data, noisy_rotations, t = self.create_trajectory_const_vel(key_points)
+
+            rotations = self.convert_1_rot_trajectory(rotations)
+
+            noisy_rotations = self.convert_1_rot_trajectory(noisy_rotations)
+            noisy_rotations[:, :4] = np.full_like(noisy_rotations[:, :4], 88)
+            n_r = self.convert_1_rot_trajectory(n_r)
+            n_nr = self.convert_1_rot_trajectory(n_nr)
+
+            r = np.vstack((n_r, rotations))
+            nr = np.vstack((n_nr, noisy_rotations))
+            t_vec = np.hstack((n_t, t))
+            noisy_data[:, :3] = np.full_like(noisy_data[:, :3], 88)
+
+            gt = np.vstack((n_gt, ground_truth))
+            nd = np.vstack((n_nd, noisy_data))
+
+
+            self.dt_std = dt_std
+            return gt, r, nd, nr, t_vec
+
+
+    def create_MOT_traj(self):
+        n_gt, n_r, n_nd, n_nr, n_t = self.generate_1_trajectory()
+        self.dt_std = None #Setting dt_std to None to make a regular time interval trajectory
+        ground_truth, rotations, noisy_data, noisy_rotations, t = self.generate_1_trajectory()
+
+        return gt, r, nd, nr, t_vec
 
 
     def create_trajectory_const_vel(self, keypoints):
@@ -316,6 +413,8 @@ class LineGenerator(TrajectoryGenerator):
         lines = []
         rot_lines = []
         starting_rot = None
+        t_vec = []
+        last_t = 0
         for i in range(len(keypoints) - 1):
             start = np.array(keypoints[i])
             end = np.array(keypoints[i + 1])
@@ -326,12 +425,78 @@ class LineGenerator(TrajectoryGenerator):
             rot_lines.extend(rot_line)
             starting_rot = rot_line[-1]
             lines.append(line)
+            t = np.linspace(last_t, last_t + self.dt * (n-1), n)
+            t_vec.extend(t)
+            last_t = t[-1]
         lines = tuple(lines)
         trajectory = np.vstack(lines)
         noisy_trajectory = self.add_noise(trajectory, self.std)
         noisy_rotations = self.add_rotation_noise(rot_lines)
-        return trajectory, rot_lines, noisy_trajectory, noisy_rotations
 
+        return trajectory, rot_lines, noisy_trajectory, noisy_rotations, t_vec
+
+    def generate_noisy_dt_line(self, start, end):
+        """
+        Creates a trajectory with measurement times being noisy
+        """
+        v = 0.2
+        length = np.linalg.norm(end - start)
+        direction_vector = (end-start)/length
+        n = int(length /(v*self.dt))
+        if not self.accelerate:
+            t_vec_base = np.linspace(0, n * self.dt, n)
+            time_noise = np.random.normal(0, self.dt_std, n)
+            t_vec = t_vec_base + time_noise
+            if t_vec[0] < 0:
+                t_vec -= t_vec[0]
+            line = np.zeros((n, 3))
+            line[0, :] = start
+            for i in range(n -1):
+                line[i+1, :] = line[i, :] + v * direction_vector * (t_vec[i + 1] - t_vec[i])
+        else:
+            line, t_vec = self.const_acc_single_line(start, end, 0.2)
+        return line, t_vec
+
+    def create_traj_noisy_dt(self, keypoints):
+        lines = []
+        rot_lines = []
+        starting_rot = None
+        t_vec = []
+        last_t = 0
+        for i in range(len(keypoints) - 1):
+            start =  np.array(keypoints[i])
+            end = np.array(keypoints[i + 1])
+            line, t = self.generate_noisy_dt_line(start, end)
+            t +=last_t
+            last_t = t[-1]
+            t_vec.extend(t)
+            lines.append(line)
+            # print("Line:", line)
+            rot_line = self.generate_noisy_dt_rotations(line, np.deg2rad(15), starting_rot)  # CONSTANTS
+            rot_lines.extend(rot_line)
+            starting_rot = rot_line[-1]
+        lines = tuple(lines)
+        trajectory = np.vstack(lines)
+        noisy_trajectory = self.add_noise(trajectory, self.std)
+        noisy_rotations = self.add_rotation_noise(rot_lines)
+        return trajectory, rot_lines, noisy_trajectory, noisy_rotations, t_vec
+
+    def generate_noisy_dt_rotations(self, line, omega, starting_rot = None):
+        if starting_rot is None:
+            q1 = Quaternion.random()
+        else:
+            q1 = starting_rot
+        end = line[-1, :]
+        start = line[0, :]
+        q2 = Quaternion.random()
+        while not self.check_rotation_distance(q1,q2, line, omega):
+            q2 = Quaternion.random()
+        rotations = []
+        diff_vector = end - start
+        for i in range(line.shape[0]):
+            amount = np.linalg.norm((line[i, :] - start))/ np.linalg.norm(diff_vector)
+            rotations.append(Quaternion.slerp(q1, q2, amount))
+        return rotations
 
     def create_trajectory_const_acc(self, keypoints):
         """
@@ -341,32 +506,48 @@ class LineGenerator(TrajectoryGenerator):
         lines = []
         rot_lines = []
         starting_rot = None
+        t_vec = []
+        last_t = 0
         for i in range(len(keypoints) - 1):
-            line = self.const_acc_single_line(np.array(keypoints[i]), np.array(keypoints[i + 1]))
+            line, t = self.const_acc_single_line(np.array(keypoints[i]), np.array(keypoints[i + 1]), 0.2)
             lines.append(line)
+            t+=last_t
+            print("last_t:", last_t)
+            last_t = t[-1]
             #print("Line:", line)
             rot_line = self.generate_rotations(line, np.deg2rad(15), starting_rot)  # CONSTANTS
             rot_lines.extend(rot_line)
             starting_rot = rot_line[-1]
+            t_vec.extend(t)
         lines = tuple(lines)
         trajectory = np.vstack(lines)
         noisy_trajectory = self.add_noise(trajectory, self.std)
         noisy_rotations = self.add_rotation_noise(rot_lines)
-        return trajectory, rot_lines, noisy_trajectory, noisy_rotations
+        return trajectory, rot_lines, noisy_trajectory, noisy_rotations, t_vec
 
-
-    def const_acc_single_line(self, start, end):
+    def const_acc_single_line(self, start, end, determine_velocity = None):
         """
         Creates single line simulating object moving with constant acceleration.
         """
-        avg_velocity = np.random.uniform(0.1, 0.3)  # CONSTANTS
+        if determine_velocity is None:
+            avg_velocity = np.random.uniform(0.1, 0.3)  # CONSTANTS
+        else:
+            avg_velocity = determine_velocity
         v_max = 2*avg_velocity
 
         length = np.linalg.norm(end - start)
         t = length / avg_velocity
 
         n = int(t/self.dt)
-        #t_vec = np.linspace(0, t, n)
+        if self.dt_std is not None:
+            t_vec_base = np.linspace(0, n * self.dt, n)
+            time_noise = np.random.normal(0, self.dt_std, n)
+            t_vec = t_vec_base + time_noise
+            if t_vec[0] < 0:
+                t_vec -= t_vec[0]
+        else:
+            t_vec = np.linspace(0, (n-1) * self.dt, n)
+
         if n%2 == 0:
             v = np.concatenate((np.linspace(0, v_max, int(n/2)), np.linspace(v_max, 0, int(n/2))))
         else:
@@ -375,12 +556,19 @@ class LineGenerator(TrajectoryGenerator):
         trajectory = np.zeros((n, 3))
         trajectory[0, :] = start
         for i in range(n-1):
-            trajectory[i+1, :] = trajectory[i, :] + v[i] * direction_vector * self.dt
-        return trajectory
+            if self.dt_std is None:
+                #Trajectory has constant dt interval, will be used for filtering
+                trajectory[i+1, :] = trajectory[i, :] + v[i] * direction_vector * self.dt
+            else:
+                #Trajectory has noisy dt interval, will be used for MOT
+                trajectory[i + 1, :] = trajectory[i, :] + v[i] * direction_vector * (t_vec[i + 1] - t_vec[i])
 
+        return trajectory, t_vec
 
     def generate_rotations(self, trajectory, omega, starting_rot = None):
-        """Generates interpolated rotational trajectory for given trajectory."""
+        """
+        Generates interpolated rotational trajectory for given trajectory.
+        """
         if starting_rot is None:
             q1 = Quaternion.random()
         else:
@@ -406,8 +594,8 @@ class CircleGenerator(TrajectoryGenerator):
         r_max : float (maximal radius for circle generation)
     """
 
-    def __init__(self, std, workspace_bounds = None, dt = 0.2, r_min = 0.2, r_max = 2, velocity = 0.2):
-        super().__init__(std, velocity=velocity, dt = dt, workspace_bounds=workspace_bounds)
+    def __init__(self, std, workspace_bounds = None, dt = 0.2, r_min = 0.2, r_max = 2, velocity = 0.2, dt_std = None):
+        super().__init__(std, velocity=velocity, dt = dt, workspace_bounds=workspace_bounds, dt_std=dt_std)
         self.r_min = r_min
         self.r_max = r_max
         self.filename_basis = "./dataset/newly_generated/circles/positions/circle"
@@ -424,7 +612,32 @@ class CircleGenerator(TrajectoryGenerator):
         center_y = np.random.uniform(self.workspace_bounds[1][0] + r, self.workspace_bounds[1][1] -r)
         center_z = np.random.uniform(self.workspace_bounds[2][0] + r, self.workspace_bounds[2][1] -r)
         center = np.array([center_x, center_y, center_z])
-        return self.create_trajectory(center, r, normal)
+        if self.dt_std is not None:
+            dt_std = self.dt_std
+            n_gt, n_r, n_nd, n_nr, n_t = self.create_trajectory(center, r, normal)
+            self.dt_std = None
+            ground_truth, rotations, noisy_data, noisy_rotations, t = self.create_trajectory(center,
+                                                                                                               r, normal)
+            rotations = self.convert_1_rot_trajectory(rotations)
+            noisy_rotations = self.convert_1_rot_trajectory(noisy_rotations)
+            noisy_rotations[:, :4] = np.full_like(noisy_rotations[:, :4], 88)
+
+            n_r = self.convert_1_rot_trajectory(n_r)
+            n_nr = self.convert_1_rot_trajectory(n_nr)
+
+            r = np.vstack((n_r, rotations))
+            nr = np.vstack((n_nr, noisy_rotations))
+            t_vec = np.hstack((n_t, t))
+            noisy_data[:, :3] = np.full_like(noisy_data[:, :3], 88)
+
+            gt = np.vstack((n_gt, ground_truth))
+            nd = np.vstack((n_nd, noisy_data))
+            self.dt_std = dt_std
+            return gt, r, nd, nr, t_vec
+
+        else:
+            return self.create_trajectory(center, r, normal)
+
 
 
     def create_trajectory(self, center, radius, normal):
@@ -433,12 +646,11 @@ class CircleGenerator(TrajectoryGenerator):
         """
         length = 2*np.pi*radius
         n = int(length / (self.v*self.dt))
-
-        trajectory = create_circle(radius, center, normal, n)
+        trajectory, t_vec = create_circle(radius, center, normal, n, self.dt_std)
         rotation_trajectory = self.generate_rotations(trajectory, np.deg2rad(25))
         noisy_trajectory = self.add_noise(trajectory, self.std)
         noisy_rotations = self.add_rotation_noise(rotation_trajectory)
-        return trajectory, rotation_trajectory, noisy_trajectory, noisy_rotations
+        return trajectory, rotation_trajectory, noisy_trajectory, noisy_rotations, t_vec
 
 
     def generate_rotations(self, trajectory, omega, starting_rot = None):
@@ -457,10 +669,12 @@ class CircleGenerator(TrajectoryGenerator):
 
 
 
+
+
 class SplineGenerator(TrajectoryGenerator):
 
-    def __init__(self, std, exp_points, distance_limit, workspace_bounds = None, dt = 0.2, velocity = 0.2):
-        super().__init__(std, velocity=velocity, dt=dt, workspace_bounds=workspace_bounds)
+    def __init__(self, std, exp_points, distance_limit, workspace_bounds = None, dt = 0.2, velocity = 0.2, dt_std = None):
+        super().__init__(std, velocity=velocity, dt=dt, workspace_bounds=workspace_bounds, dt_std = dt_std)
         self.exp_points = exp_points
         self.distance_limit = distance_limit
         self.filename_basis = "./dataset/newly_generated/splines/positions/spline"
@@ -484,18 +698,51 @@ class SplineGenerator(TrajectoryGenerator):
                 y = np.random.uniform(y_range[0], y_range[1])
                 z = np.random.uniform(z_range[0], z_range[1])
             key_points.append([x, y, z])
-        return self.create_trajectory(key_points)
+        if self.dt_std is None:
+            return self.create_trajectory(key_points)
+        else:
+            n_gt, n_r, n_nd, n_nr, n_t = self.create_trajectory(key_points)
+            dt_std = self.dt_std
+            self.dt_std = None
+            ground_truth, rotations, noisy_data, noisy_rotations, t = self.create_trajectory(key_points)
+            while len(rotations) < ground_truth.shape[0]:
+                rotations.append(rotations[-1])
+                noisy_rotations.append(noisy_rotations[-1])
+            while len(n_r) < n_gt.shape[0]:
+                n_r.append(n_r[-1])
+                n_nr.append(n_nr[-1])
+            rotations = self.convert_1_rot_trajectory(rotations)
 
+            noisy_rotations = self.convert_1_rot_trajectory(noisy_rotations)
+            noisy_rotations[:, :4] = np.full_like(noisy_rotations[:, :4], 88)
+            n_r = self.convert_1_rot_trajectory(n_r)
+            n_nr = self.convert_1_rot_trajectory(n_nr)
+
+            r = np.vstack((n_r, rotations))
+            nr = np.vstack((n_nr, noisy_rotations))
+            t_vec = np.hstack((n_t, t))
+            noisy_data[:, :3] = np.full_like(noisy_data[:, :3], 88)
+
+            gt = np.vstack((n_gt, ground_truth))
+            nd = np.vstack((n_nd, noisy_data))
+
+            self.dt_std = dt_std
+            print('SHAPES:')
+            print("ground truth: ", gt.shape)
+            print("rotations: ", r.shape)
+            print("noisy data: ", nd.shape)
+            print("noisy rotations: ", nr.shape)
+            print("t_vec: ", t_vec.shape)
+            return gt, r, nd, nr, t_vec
 
     def create_trajectory(self, keypoints):
         """
         Given list of keypoints, create a spline along with rotational trajectory and added noise to both.
         """
         keypoints = np.array(keypoints)
-        trajectory = np.zeros((40, 3))
-        trajectory[:, :3] = fit_polynomial(keypoints,40)
+        trajectory, time = fit_polynomial(keypoints,40)
         new_n = int(trajectory_length(trajectory)/(self.v * self.dt))
-        trajectory = fit_polynomial(keypoints, new_n)
+        trajectory, t_vec = fit_polynomial(keypoints, new_n, dt_std = self.dt_std)
         starting_rot = None
         rotations = []
         for i in range(len(keypoints) - 1):
@@ -504,7 +751,7 @@ class SplineGenerator(TrajectoryGenerator):
         rotations.append(rotations[-1])
         noisy_trajectory = self.add_noise(trajectory, self.std)
         noisy_rotations = self.add_rotation_noise(rotations)
-        return trajectory, rotations, noisy_trajectory, noisy_rotations
+        return trajectory, rotations, noisy_trajectory, noisy_rotations, t_vec
 
 
     def generate_rotations(self, trajectory, start, end, omega, starting_rot = None):
@@ -527,6 +774,8 @@ class SplineGenerator(TrajectoryGenerator):
 
 
 
+
+
 if __name__ == '__main__':
     # for i in range(1,7,1):
     #     filename = "./dataset/circles/rotations/rot" + str(i) + ".npy"
@@ -539,7 +788,7 @@ if __name__ == '__main__':
     with open("./configs/MOT_trajectory_parameters.json") as json_file:
         traj_params = json.load(json_file)
     print(traj_params)
-    scenario_gen = MultipleTrajectoryGenerator(3,traj_params)
+    scenario_gen = MultipleTrajectoryGenerator(3,traj_params, dt_std = 0.18)
     print(scenario_gen.generate_1_scenario())
     # for i in range(1,7,1):
     #     filename = "./dataset/lines_acc/rotations/rot_noise" + str(i) + ".npy"

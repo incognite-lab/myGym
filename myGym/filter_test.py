@@ -8,6 +8,7 @@ import gym
 from myGym import envs
 from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env
 
+import pandas as pd
 import numpy as np
 import time
 from numpy import matrix
@@ -123,12 +124,15 @@ def get_input():
             option = int(input("Enter 1 to generate a trajectory, 2 to load a trajectory from saved trajectories"))
             if option == 1:
                 trajectory_dict["action"] = '3'
+                trajectory_dict["traj_amount"] = int(input("Enter the amount of generated trajectories: "))
             else:
                 trajectory_dict["action"] = '2'
 
         trajectory_dict["filter_type"] = input("Enter the type of particle filter (1 for g-h, 2 for VelocityPF, 3 for PFK, 4 for simple Kalman")
     if trajectory_dict["action"] != '1':
         trajectory_dict["pause"] = input("Enter the length of each filter phase (predict, update, resample) in seconds: ")
+        if trajectory_dict["filter_type"] != '4':
+            trajectory_dict["particle_vis_option"] = input("Enter visualization option of particles (1 for all particles, 2 for just a few, 3 for none)")
 
     return trajectory_dict
 
@@ -215,6 +219,7 @@ def visualize_errors(ground_truth, noisy_data, estimates):
         meas_error = np.linalg.norm(ground_truth[i, :] - noisy_data[i]) ** 2
         est_error  = np.linalg.norm(ground_truth[i, :] - estimates[i]) ** 2
         print("K:", i, "Error:", est_error)
+        print("K;", i, "measurement_error", meas_error)
         diffs_meas.append(meas_error)
         diffs_est.append(np.linalg.norm(ground_truth[i, :] - estimates[i])**2)
     diffs_meas = np.array(diffs_meas)
@@ -326,9 +331,9 @@ def initialize_filter(type):
     elif type == "2": #Particle 3D
         position_filter = ParticleFilterVelocity(600, 0.0225942, 0.38, 0.0106, res_g=0.3629)
         rotation_filter = ParticleFilterVelocityRot(600, 0.02, np.deg2rad(1), np.deg2rad(4))
-    elif type == "3":
-        position_filter = ParticleFilterWithKalman(600, 0.02, 0.02, Q= 0.01/dt)
-        rotation_filter = ParticleFilterWithKalmanRot(600, np.deg2rad(1), np.deg2rad(4))
+    elif type == "3":#PFK
+        position_filter = ParticleFilterWithKalman(1500, 0.00860, 0.03373, Q= 0.05076, R = 0.07527, std_a=0.31746)
+        rotation_filter = ParticleFilterWithKalmanRot(1500, 0.1582, 0.4987, Q= 0.76, R =2.62, factor_a = 0.868)
     elif type == "4": #Kalman
         x = np.array([0., 0., 0., 0., 0., 0.]) # [x, dx/dt, y, dy/dt, z, dz/dt]
         xr = np.array([0., 0., 0., 0., 0., 0., 0., 0.])
@@ -367,8 +372,228 @@ def filter_without_animation(noisy_data, noisy_rotations, type):
     return position_filter, rotation_filter
 
 
+def vis_anim_MOT_proof_of_concept(y, X, lens, X_rot, pause_length, type, num_objects):
+    env.p.setGravity(0, 0, 0)
+    p_length = 0.002
+    n = max(lens)
+    print(lens)
+    Cdiag = np.diag([1]*num_objects)
+    Coffdiag = np.full((num_objects, num_objects), 0.000)
+    C = Cdiag + Coffdiag
+    print(C)
+    particle_batches = [None] * num_objects
+    estimates_ids = [None] * num_objects
+    measurements_ids = [None] * num_objects
+    actual_state_ids = [None] * num_objects
+    pos_filters = []
+    last_X_index = 0
+    rot = [1, 0, 0, 0]
+    ground_truths = []
+    noisy_data = []
+    for i in range(num_objects):
+        position_filter, rotation_filter = initialize_filter(type)
+        pos_filters.append(position_filter)
+        ground_truths.append(np.zeros((lens[i], 3)))
+        noisy_data.append(np.zeros((lens[i], 3)))
+    for k in range(n):
+        print("doing filter iteration:", k)
+        measurements_step_k = []
+        num_objects_at_step_k = 0
+        index = 0
+        meas_classes = []
+        while X[last_X_index + index, 3] == k*0.2:
+            num_objects_at_step_k += 1
+            index += 1
+            if last_X_index + index >= X.shape[0]:
+                break
+        for j in range(num_objects_at_step_k):
+            print("num_objects_at_step_k:", num_objects_at_step_k)
+            #Collecting current step measurements
+            gt_val = y[last_X_index + j, :3]
+            meas = X[last_X_index + j, :3]
+            meas_class = int(X[last_X_index+ j, 4])
+            measurements_step_k.append(meas)
+            meas_classes.append(meas_class)
+            # min_dist = np.inf
 
-def vis_anim_MOT(y, X, y_rot, X_rot, pause_length, type):
+            pos_filter = pos_filters[meas_class] # Choosing the particular filter based on 100% accurate data association
+
+            ground_truths[meas_class][k, :3] = gt_val
+            noisy_data[meas_class][k, :3] = meas
+            if k == 0:
+
+                # Initialize visualization of estimate and actual state
+                actual_state_ids[meas_class] = visualize_gt(gt_val)
+                measurements_ids[meas_class] = visualize_meas(meas)
+
+                # Applying first filter measurement and estimating state
+                pos_filter.apply_first_measurement(meas)
+                pos_filter.state_estimate()
+                pos_filter.object_class = meas_class
+
+                # Visualizing particles and estimate
+                particle_batch = visualize_particles(pos_filter, params["particle_vis_option"])
+                particle_batches[meas_class] = particle_batch
+                estimate_id = visualize_estimate(pos_filter)
+                estimates_ids[meas_class] = estimate_id
+                continue
+
+            # pos_filter = None
+            # for filter in pos_filters:
+            #     distance = np.linalg.norm(filter.estimate - meas)
+            #     if distance < min_dist:
+            #         min_dist = distance
+            #         pos_filter = filter
+
+            assert pos_filter.object_class == meas_class
+            move_object(actual_state_ids[meas_class], gt_val, rot)
+            move_object(measurements_ids[meas_class], meas, rot)
+            time.sleep(p_length)
+
+            # 1) Predict movement
+            pos_filter.predict()
+            move_particles(particle_batches[meas_class], pos_filter.particles)
+            time.sleep(p_length)
+
+            # 2) Update based on measurement - ALL filters
+            #pos_filter.update(meas)
+
+            for l in range(len(pos_filters)):
+                weightsum = pos_filters[l].update_MOT(meas, meas_class)
+                print("updated filter", pos_filters[l].object_class, "with measurement", meas_class)
+                print("average weight contribution", weightsum/pos_filters[l].num_particles)
+            time.sleep(p_length)
+
+
+            # 3) Compute estimate
+
+            # pos_filter.state_estimate()
+            # move_object(estimates_ids[meas_class], pos_filter.estimate, rot)
+            # time.sleep(p_length)
+            # print("dt of pos filter:", pos_filter.dt)
+
+            # 4) Resample particles
+            # if pos_filter.neff() < pos_filter.num_particles/2:
+            #     pos_filter.resample()
+            # move_particles(particle_batch, pos_filter.particles)
+        for l in range(len(pos_filters)):
+            filter = pos_filters[l]
+            filter.state_estimate_MOT()
+            move_object(estimates_ids[filter.object_class], filter.estimate, rot)
+            time.sleep(p_length)
+            if filter.neff() < filter.num_particles / 2:
+                filter.resample()
+            filter.reset_weights()
+            move_particles(particle_batches[filter.object_class], filter.particles)
+            time.sleep(p_length)
+
+
+        last_X_index += num_objects_at_step_k
+    return pos_filters, ground_truths, noisy_data
+
+def vis_anim_MOT(y, X, y_rot, X_rot, pause_length, type, num_objects):
+    env.p.setGravity(0, 0, 0)
+    n = X.shape[0]
+    particle_batches = [None]*num_objects
+    estimates_ids = [None]*num_objects
+    measurements_ids = [None]*num_objects
+    actual_state_ids = [None]*num_objects
+    pos_filters = []
+    rot_filters = []
+    initialized_filters = set()
+
+    for i in range(num_objects):
+        position_filter, rotation_filter = initialize_filter(type)
+        pos_filters.append(position_filter)
+        rot_filters.append(rotation_filter)
+
+    for k in range(n):
+        measurement = X[k, :3]
+        rot_meas = X_rot[k, :4]
+        meas_time = X[k, 3]
+        meas_class = int(X[k, 4])
+        gt_val = y[k, :3]
+        rot = y_rot[k, : 4]
+        pos_filter = pos_filters[meas_class] #Choosing the particular filter based on 100% accurate data association
+        rot_filter = rot_filters[meas_class]
+        #If filter of given class has not been initialized yet
+        if meas_class not in initialized_filters:
+            #Initialize visualization of estimate and actual state
+            actual_state_ids[meas_class] = visualize_gt(gt_val)
+            measurements_ids[meas_class] = visualize_meas(measurement)
+
+            #Applying first filter measurement and estimating state
+            pos_filter.apply_first_measurement(measurement)
+            pos_filter.state_estimate_MOT(meas_time)
+
+            #Visualizing particles and estimate
+            particle_batch = visualize_particles(pos_filter, params["particle_vis_option"])
+            particle_batches[meas_class] = particle_batch
+            estimate_id = visualize_estimate(pos_filter)
+
+            #Performing rotation filter first measurement
+            rot_filter.apply_first_measurement(rot_meas)
+            rot_filter.state_estimate_MOT(meas_time)
+            #Saving initialized data to list and set
+            estimates_ids[meas_class] = estimate_id
+            initialized_filters.add(meas_class)
+            continue
+
+        #If there is no measurement value at given timestep (at times 0.2, 0.4, 0.6...)
+        if np.allclose(measurement, [88, 88, 88]):
+            #Perform filter prediction
+            pos_filter.predict_MOT(meas_time)
+            rot_filter.predict_MOT(meas_time)
+            #Estimate state to compare with ground truth
+            pos_filter.state_estimate_MOT(meas_time)
+            rot_filter.state_estimate_MOT(meas_time)
+            #Move particles in visualization
+            move_particles(particle_batches[meas_class], pos_filter.particles)
+            print("estimate:", pos_filter.estimate)
+            print("ground_truth:", gt_val)
+            move_object(estimates_ids[meas_class], pos_filter.estimate, rot_filter.estimate)
+            continue
+        #New step of filter -> need to move visualization of ground truth and measurement
+        move_object(actual_state_ids[meas_class], gt_val, rot)
+        move_object(measurements_ids[meas_class], measurement, rot_meas)
+
+        # 1) Predict movement
+        pos_filter.predict_MOT(meas_time)
+        move_particles(particle_batches[meas_class], pos_filter.particles)
+        time.sleep(pause_length)
+
+        # 2) Update based on measurement
+        pos_filter.update(measurement)
+        time.sleep(pause_length)
+        do_resample = True
+
+        #3) Compute estimate
+        if pos_filter.neff() < pos_filter.num_particles/50:
+            pos_filter.resample()
+            pos_filter.reapply_measurement(measurement)
+        pos_filter.state_estimate_MOT(meas_time)
+        print("estimate:", pos_filter.estimate)
+        print("ground_truth:", gt_val)
+        print("estimate_id:", estimates_ids[meas_class])
+        move_object(estimates_ids[meas_class], pos_filter.estimate, rot_filter.estimate)
+        time.sleep(pause_length)
+
+        #4) Resample particles
+        if pos_filter.neff() < pos_filter.num_particles / 2 and do_resample:
+            pos_filter.resample()
+        move_particles(particle_batches[meas_class], pos_filter.particles)
+        time.sleep(pause_length)
+
+        #5) Compute rot filter step
+        rot_filter.filter_step(rot_meas)
+        action = [0, 0, 0]
+        obs, reward, done, info = env.step(action)  # Necessary step for animation to continue
+        time.sleep(0.001)
+    return pos_filters, rot_filters
+
+
+
+def vis_anim_MOT_old(y, X, y_rot, X_rot, pause_length, type):
     """
     Visualization of MOT filtering
     """
@@ -409,7 +634,7 @@ def vis_anim_MOT(y, X, y_rot, X_rot, pause_length, type):
                 position_filter.apply_first_measurement(measurement)
                 position_filter.state_estimate()
                 if type != "4":
-                    particle_batch = visualize_particles(position_filter)
+                    particle_batch = visualize_particles(position_filter, params["particle_vis_option"])
                     particle_batches.append(particle_batch)
                 estimate_id = visualize_estimate(position_filter)
                 rotation_filter.apply_first_measurement(rot_meas)
@@ -435,7 +660,7 @@ def vis_anim_MOT(y, X, y_rot, X_rot, pause_length, type):
 
             #3) Compute estimate
             if type != "4":
-                if np.linalg.norm(position_filter.estimate - measurement) > 0.15:
+                if position_filter.neff() < position_filter.num_particles/30:
                     position_filter.resample()
                     position_filter.reapply_measurement(measurement)
                     do_resample = False
@@ -487,7 +712,7 @@ def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, pause_length,
             position_filter.apply_first_measurement(measurement)
             position_filter.state_estimate()
             if type != "4":
-                particle_batch = visualize_particles(position_filter)
+                particle_batch = visualize_particles(position_filter, params["particle_vis_option"])
             estimate_id = visualize_estimate(position_filter)
             rotation_filter.apply_first_measurement(rot_meas)
             rotation_filter.state_estimate()
@@ -507,11 +732,11 @@ def vis_anim(ground_truth, noisy_data, rotations, noisy_rotations, pause_length,
 
         do_resample = True
         #3) Compute estimate
-        if type != "4":
-            if position_filter.neff() < position_filter.num_particles/30:
-                position_filter.resample()
-                position_filter.reapply_measurement(measurement)
-                do_resample = False
+        # if type != "4":
+        #     if position_filter.neff() < position_filter.num_particles/30:
+        #         position_filter.resample()
+        #         position_filter.reapply_measurement(measurement)
+        #         do_resample = False
         position_filter.state_estimate()
         if type != "4":
             move_particles(particle_batch, position_filter.particles)
@@ -560,7 +785,7 @@ if __name__ == "__main__":
         if params["action"] != "2":
             with open("./configs/MOT_trajectory_parameters.json") as json_file:
                 traj_params = json.load(json_file)
-            generator = MultipleTrajectoryGenerator(params["traj_amount"], traj_params)
+            generator = MultipleTrajectoryGenerator(params["traj_amount"], traj_params, dt_std = None) #CONSTAND dt_std
 
     #ground_truth = generator2.generate_1_circle()
     #ground_truth, rotations = generator.generate_1_trajectory()
@@ -581,8 +806,8 @@ if __name__ == "__main__":
         saved_trajectory_index = 0
         for i in range(20):
             if params["type"] != "multiple":
-                ground_truth, rotations, noisy_data, noisy_rotations = generator.generate_1_trajectory()
-                ids, noise_ids = visualize_trajectory(ground_truth, noisy_data)
+                ground_truth, rotations, noisy_data, noisy_rotations, t_vec = generator.generate_1_trajectory()
+                ids, noise_ids, cube_ids = visualize_trajectory_timesteps(ground_truth, noisy_data)
                 save = input("Press 1 for saving trajectory, 0 for not saving")
                 if save == "1":
                     print("This trajectory was saved")
@@ -591,13 +816,14 @@ if __name__ == "__main__":
                                                 i=str(saved_trajectory_index))
                 else:
                     print("This trajectory was not saved")
-                for j in range(len(ids)):
-                    p.removeUserDebugItem(ids[j])
-                    p.removeUserDebugItem(noise_ids[j])
+                p.removeAllUserDebugItems()
+                for j in range(len(cube_ids)):
+                    p.removeBody(cube_ids[j])
             else:
+
                 X, y, X_rot, y_rot = generator.generate_1_scenario()
-                gts, rs, nds, nrs = convert_X_y_into_vis_data(X, y, X_rot, y_rot)
-                ids, noise_ids = visualize_multiple_trajectories(gts, nds)
+                gts, rs, nds, nrs = convert_X_y_into_vis_data(X, y, X_rot, y_rot, params["traj_amount"])
+                ids, noise_ids, cube_ids = visualize_multiple_trajectories(gts, nds)
                 save = input("Press 1 for saving trajectory, 0 for not saving")
                 if save == "1":
                     print("This trajectory was saved")
@@ -605,14 +831,14 @@ if __name__ == "__main__":
                     generator.save_1_trajectory(X,y, X_rot, y_rot)
                 else:
                     print("This trajectory was not saved")
-                for j in range(len(ids)):
-                    p.removeUserDebugItem(ids[j])
-                    p.removeUserDebugItem(noise_ids[j])
+                p.removeAllUserDebugItems()
+                for j in range(len(cube_ids)):
+                    p.removeBody(cube_ids[j])
 
     elif params["action"] == "2":
         if params["type"] != "multiple":
             ground_truth, rotations, noisy_data, noisy_rotations = load_trajectory(params["type"])
-            print("PRINTING SHAPES:", ground_truth.shape)
+            #print("PRINTING SHAPES:", ground_truth.shape)
             env = visualize_env(arg_dict)
             env.reset()
             ids = visualize_trajectory(ground_truth, noisy_data)
@@ -620,33 +846,90 @@ if __name__ == "__main__":
             visualize_errors(ground_truth, noisy_data, resulting_pos_filter.estimates)
         else:
             y, X, y_rot, X_rot = load_MOT_scenario()
-            gts, rs, nds, nrs = convert_X_y_into_vis_data(X, y, X_rot, y_rot)
+            traj_amount = determine_traj_amount(y)
+            gts, rs, nds, nrs = convert_X_y_into_vis_data(X, y, X_rot, y_rot, traj_amount)
+            df = pd.DataFrame(y)
+            # df.to_csv("./testing tables/last_day/ground_truth.csv")
+            # df2 = pd.DataFrame(X)
+            # df.to_csv("./testing tables/last_day/noisy_data.csv")
+            # df3 = pd.DataFrame(X_rot)
+            # df.to_csv("./testing tables/last_day/rotations.csv")
+            # df4 = pd.DataFrame(y_rot)
+            # df.to_csv("./testing tables/last_day/noisy_rotations.csv")
             env = visualize_env(arg_dict)
             env.reset()
-            ids, noise_ids = visualize_multiple_trajectories(gts, nds)
-            resulting_pos_filters, resulting_rot_filters = vis_anim_MOT(y, X, y_rot, X_rot,
-                                    type = params["filter_type"], pause_length = float(params["pause"]))
+            ids, noise_ids, cube_ids = visualize_multiple_trajectories(gts, nds)
+            lens = []
+            for traj in gts:
+                lens.append(traj.shape[0])
+
+            resulting_pos_filters, ground_truths, noisy_data = vis_anim_MOT_proof_of_concept(y, X, lens, X_rot,
+                                    type = params["filter_type"], pause_length = float(params["pause"]), num_objects = 3)
+            for i in range(len(resulting_pos_filters)):
+                visualize_errors(ground_truths[i], noisy_data[i], resulting_pos_filters[i].estimates)
 
     else:
         env = visualize_env(arg_dict)
         env.reset()
         saved_trajectory_index = 4
-        ground_truth, rotations, noisy_data, noisy_rotations = generator.generate_1_trajectory()
+        if params["type"] != "multiple":
+            ground_truth, rotations, noisy_data, noisy_rotations, t_vec = generator.generate_1_trajectory()
+        else:
+            X, y, X_rot, y_rot = generator.generate_1_scenario()
+            gts, rs, nds, nrs = convert_X_y_into_vis_data(X, y, X_rot, y_rot, params["traj_amount"])
         for i in range(50):
-            ids, noise_ids = visualize_trajectory(ground_truth, noisy_data)
-            test = input("Press 1 for saving trajectory, 0 for not saving")
+            if params["type"] != "multiple":
+                ids, noise_ids = visualize_trajectory(ground_truth, noisy_data)
+            else:
+                ids, noise_ids, cube_ids = visualize_multiple_trajectories(gts, nds)
+            test = input("Press 1 for using trajectory, 0 for generating a new one")
             if test == "1":
                 print("This trajectory will be used for filtration")
                 saved_trajectory_index += 1
+                # df = pd.DataFrame(y)
+                # df.to_csv("./testing tables/last_day/ground_truth.csv")
+                # df2 = pd.DataFrame(X)
+                # df.to_csv("./testing tables/last_day/noisy_data.csv")
+                # df3 = pd.DataFrame(X_rot)
+                # df.to_csv("./testing tables/last_day/rotations.csv")
+                # df4 = pd.DataFrame(y_rot)
+                # df.to_csv("./testing tables/last_day/noisy_rotations.csv")
                 break
             else:
                 print("Generating new trajectory")
-                ground_truth, rotations, noisy_data, noisy_rotations = generator.generate_1_trajectory()
+                if params["type"] != "multiple":
+                    ground_truth, rotations, noisy_data, noisy_rotations, t_vec = generator.generate_1_trajectory()
+                else:
+                    X, y, X_rot, y_rot = generator.generate_1_scenario()
+                    gts, rs, nds, nrs = convert_X_y_into_vis_data(X, y, X_rot, y_rot, params["traj_amount"])
+
+
                 for j in range(len(ids)):
                     p.removeUserDebugItem(ids[j])
                     p.removeUserDebugItem(noise_ids[j])
-        resulting_pos_filter, resulting_rot_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations,
+
+        if params["type"] != "multiple":
+            resulting_pos_filter, resulting_rot_filter = vis_anim(ground_truth, noisy_data, rotations, noisy_rotations,
                                                               float(params["pause"]), type=params["filter_type"])
+        else:
+            traj_amount = determine_traj_amount(y)
+            gts, rs, nds, nrs = convert_X_y_into_vis_data(X, y, X_rot, y_rot, traj_amount)
+
+            #ids, noise_ids, cube_ids = visualize_multiple_trajectories(gts, nds)
+            lens = []
+            for traj in gts:
+                lens.append(traj.shape[0])
+            print("lens:", lens)
+            resulting_pos_filters, ground_truths, noisy_data = vis_anim_MOT_proof_of_concept(y, X, lens, X_rot,
+                                                                                             type=params["filter_type"],
+                                                                                             pause_length=float(
+                                                                                                 params["pause"]),
+                                                                                             num_objects=traj_amount)
+            for i in range(len(resulting_pos_filters)):
+                visualize_errors(ground_truths[i], noisy_data[i], resulting_pos_filters[i].estimates)
+
+
+
 
 
 

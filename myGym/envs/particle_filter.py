@@ -8,6 +8,142 @@ from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
 
 
+class MOTFilter:
+    """
+    Wrapper class that combines multiple filters and their actions for MOT
+    """
+    def __init__(self, object_classes, filter_type, filter_params, classes_mapping):
+        self.object_classes = object_classes
+        self.pos_filters = [] #array for position filters
+        self.rot_filters = [] #array for rotation filters
+        self.initialized_classes = []
+        self.filter_type = filter_type
+        self.filter_params = filter_params
+        self.classes_mapping = classes_mapping
+        self.weights = None
+        self.particles = None
+
+
+    def initialize_1_filter(self, measurement_class):
+        #TODO: initialize filter with measurement class and save it to self.initialized_classes
+        pos_filter, rot_filter = self.filter_init()
+        pos_filter.set_object_class(measurement_class)
+        rot_filter.set_object_class(measurement_class)
+        self.initialized_classes.append(measurement_class)
+        self.pos_filters.append(pos_filter)
+        self.rot_filters.append(rot_filter)
+
+    def predict(self, time):
+        """Predict with all initialized_filters."""
+        for i in range(len(self.pos_filters)):
+            self.pos_filters[i].predict_MOT(time)
+            self.rot_filters[i].predict_MOT(time)
+
+
+    def map_class_weights(self, measured_class):
+        """
+        From measured object class, retrieve weight related to probability of given filter class being in accordance
+        with the measured class
+        """
+        class_vector = np.zeros(self.classes_mapping.shape[0])
+        class_vector[measured_class - 1] = 1
+        class_weights = self.classes_mapping@class_vector
+        return class_weights
+
+
+    def update(self, z):
+        """
+        JPDA update considering all initialized_filters
+        """
+        all_particle_set = self.get_particle_set()
+        distance_pos = np.linalg.norm(all_particle_set[:, 0:3] - z[0:3], axis=1)
+        weights = np.ones_like(distance_pos)/len(distance_pos) #initialize equal weights
+        weights *= scipy.stats.norm(0, self.measurement_std).pdf(distance_pos)
+        weights += 1.e-300  # Avoid round-off to zero
+        weights = weights / np.sum(weights)  # Normalization
+        measured_class = z[3]
+        class_weights = self.map_class_weights(measured_class)
+        last_weight_index = 0
+        for i in range(len(self.pos_filters)):
+            pos_filter = self.pos_filters[i]
+            class_weight = class_weights[pos_filter.object_class - 1]
+            pos_filter.weights = weights[:pos_filter.num_particles]
+            pos_filter.weights *= class_weight
+            weights[last_weight_index:last_weight_index + pos_filter.num_particles] = pos_filter.weights
+            last_weight_index += pos_filter.num_particles
+        self.weights = weights
+        self.particles = all_particle_set
+
+
+    def local_updates(self):
+        #TODO: maybe perform local updates for all filters?
+        pass
+
+    def state_estimate(self):
+        estimate = np.average(self.particles, weights=self.weights, axis=0)
+        return estimate
+
+
+    def resample(self):
+        indexes = filterpy.monte_carlo.systematic_resample(self.weights)
+        self.particles[:] = self.particles[indexes]
+        self.weights.fill(1 / self.self.particles.shape[0])
+        self.load_global_particles_into_filters()
+
+
+    def load_global_particles_into_filters(self):
+        last_index = 0
+        for i in range(len(self.pos_filters)):
+            pos_filter = self.pos_filters[i]
+            pos_filter.particles = self.particles[last_index:last_index + pos_filter.num_particles]
+            last_index += pos_filter.num_particles
+
+
+
+
+    def get_particle_set(self):
+        """
+        Combine positional particles from all initialized_filters into one array
+        """
+        particles_list = []
+        for i in range(len(self.pos_filters)):
+            particles_list.append(self.pos_filters[i].particles[:, :3])
+        particles = tuple(particles_list)
+        particle_set = np.vstack(particles)
+        return particle_set
+
+    def filter_init(self):
+        pos_filter = None
+        rot_filter = None
+        if self.filter_type == 'ParticleFilterGH':
+            pos_filter = ParticleFilterGH(self.filter_params["num_particles"], self.filter_params["process_std"],
+                                      self.filter_params["measurement_std"],
+                                      g = self.filter_params["g"], h = self.filter_params["h"])
+            rot_filter = ParticleFilterGHRot(self.filter_params["num_particles"], self.filter_params["process_std"],
+                                      self.filter_params["measurement_std"],
+                                      g = self.filter_params["g"], h = self.filter_params["h"],
+                                             rotflip_const=self.filter_params["rotflip_const"])
+        elif self.filter_type == 'ParticleFilterVelocity':
+            pos_filter = ParticleFilterVelocity(self.filter_params["num_particles"], self.filter_params["process_std"],
+                                            self.filter_params["vel_std"], self.filter_params["measurement_std"],
+                                            res_g = self.filter_params["res_g"])
+            rot_filter = ParticleFilterVelocityRot(self.filter_params["num_particles"], self.filter_params["process_std"],
+                                            self.filter_params["vel_std"], self.filter_params["measurement_std"],
+                                            res_g = self.filter_params["res_g"], rotflip_const="rotflip_const")
+        elif self.filter_type == 'ParticleFilterWithKalman':
+            pos_filter = ParticleFilterWithKalman(self.filter_params["num_particles"], self.filter_params["process_std"],
+                                              self.filter_params["measurement_std"], Q =self.filter_params["Q"],
+                                              R = self.filter_params["R"], std_a = self.filter_params["std_a"])
+            rot_filter = ParticleFilterWithKalmanRot(self.filter_params["num_particles"], self.filter_params["process_std"],
+                                              self.filter_params["measurement_std"], Q =self.filter_params["Q"],
+                                              R = self.filter_params["R"], factor_a = self.filter_params["std_a"],
+                                                     rotflip_const=self.filter_params["rotflip_const"])
+        return pos_filter, rot_filter
+
+
+
+
+
 class myKalmanFilter():
     """Returns a Kalman filter which implements constant velocity model"""
     def __init__(self, x, P, R, Q= 0.08, dt=0.2, Q_scale_factor = 1000, eps_max = 0.18):
@@ -46,9 +182,6 @@ class myKalmanFilter():
 
     def get_est(self):
         state = np.array([self.filter.x[0], self.filter.x[2], self.filter.x[4]])
-        #self.filter.x[0] = state[0]
-        #self.filter.x[2] = state[1]
-        #self.filter.x[4] = state[2]
         return state
 
 
@@ -188,7 +321,15 @@ class ParticleFilter(object):
         self.vel = np.random.normal([0, 0, 0], [self.process_std]*3, (1, 3))
         self.particles = None
         self.estimate = np.zeros(3)
+        self.current_time = 0 #Keeps track of current filtering time, used in MOT
+        self.last_predict_time = 0
+        self.object_class = None
+        self.weight_contributions = []
 
+
+
+    def set_object_class(self, obj_class):
+        self.object_class = obj_class
 
     def apply_first_measurement(self, measurement):
         """Determine initial values based on first measurement"""
@@ -239,7 +380,7 @@ class ParticleFilter(object):
         """Update particle weights based on the measurement likelihood of each particle"""
         distance_pos = np.linalg.norm(self.particles[:, 0:3] - z[0:3], axis=1)
         self.weights *= scipy.stats.norm(0, self.measurement_std).pdf(distance_pos)  # Multiply weights based on the
-        # particle's Gaussian probability #PROBLEM - VKLADAM STD NIKOLIV VAR - NENI PROBLEM
+        # particle's Gaussian probability
         self.weights += 1.e-300  # Avoid round-off to zero
         self.weights = self.weights / np.sum(self.weights)  # Normalization
 
@@ -301,6 +442,53 @@ class ParticleFilter(object):
         self.estimates = np.zeros((len(estimates), self.particles.shape[1]))
         for i in range(len(estimates)):
             self.estimates[i, :] = estimates[i]
+
+
+    def predict_MOT(self, time):
+        """
+        Predict part of MOT algorithm - collects all measurements from buffer and does predict based on all of them
+        """
+        self.dt = time -self.last_predict_time #Time elapsed since last filter predict/update
+        self.predict()
+
+
+    def update_MOT(self, measurement, meas_class):
+        if self.object_class == meas_class:
+            gamma = 1
+        else:
+            gamma = 0.05
+        distance_pos = np.linalg.norm(self.particles[:, 0:3] - measurement[0:3], axis=1)
+        weights_contrib = scipy.stats.norm(0, self.measurement_std).pdf(distance_pos) * gamma
+        self.weights += scipy.stats.norm(0, self.measurement_std).pdf(distance_pos) * gamma  # Multiply weights based on the
+        # particle's Gaussian probability
+        self.weights += 1.e-300  # Avoid round-off to zero
+        return np.sum(weights_contrib)
+
+    def state_estimate_MOT(self):
+        # self.dt = time - self.last_predict_time
+        # if self.dt < 0.0001:
+        #     self.dt = 0.01
+        # print("performing state estimation at time", time, "last_predict_time", self.last_predict_time, "that makes dt", self.dt)
+        # self.last_predict_time = time
+        #self.weights = self.weights / np.sum(self.weights)
+        self.weights = self.weights / np.sum(self.weights)
+        self.state_estimate()
+
+    def MOT_step_finish(self, time):
+        self.weights = self.weights / np.sum(self.weights)
+        #self.state_estimate_MOT()
+
+    def filter_step_MOT(self, measurement_buffer):
+        pass
+
+
+    def reset_weights(self):
+        zero_hypothesis_weight = scipy.stats.norm(0, self.measurement_std).pdf(self.measurement_std * 4)
+        #print("zero_hypothesis_weight", zero_hypothesis_weight)
+
+        self.weights.fill(1/self.num_particles)
+
+
 
 
 class ParticleFilterVelocity(ParticleFilter):
@@ -784,11 +972,11 @@ class ParticleFilterWithKalman(ParticleFilter):
         n = self.num_particles
         a = np.linalg.norm([self.kalman.x[1], self.kalman.x[3], self.kalman.x[5]])
         vel = self.vel #+ np.random.randn(3)
-
+        time_factor = self.dt/0.2
         self.particles[:, :3] += vel * self.dt  # #CONSTANTS BELOW:
-        self.particles[:, 0] += np.random.randn(n) * a * self.factor_a + self.process_std * np.random.randn(n)
-        self.particles[:, 1] += np.random.randn(n) * a * self.factor_a + self.process_std * np.random.randn(n)
-        self.particles[:, 2] += np.random.randn(n) * a * self.factor_a + self.process_std * np.random.randn(n)
+        self.particles[:, 0] += np.random.randn(n) * a * time_factor * self.factor_a + time_factor * self.process_std * np.random.randn(n)
+        self.particles[:, 1] += np.random.randn(n) * a * time_factor * self.factor_a + time_factor* self.process_std * np.random.randn(n)
+        self.particles[:, 2] += np.random.randn(n) * a * time_factor *self.factor_a + time_factor *self.process_std * np.random.randn(n)
 
         self.kalman.predict()
 
@@ -810,6 +998,9 @@ class ParticleFilterWithKalman(ParticleFilter):
         self.estimate_vars.append(self.estimate_var)
         self.kalman.update((self.estimate - last_estimate) / self.dt)
         self.vel = self.get_velocity()
+
+
+
 
 
     def get_velocity(self):
