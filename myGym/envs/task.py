@@ -2,6 +2,7 @@ import pybullet as p
 import random
 import myGym.envs.scene_objects
 from rddl.rddl_sampler import RDDLWorld
+import pkg_resources, os
 
 class TaskModule():
     """
@@ -25,6 +26,8 @@ class TaskModule():
         self.current_task_sequence = None
         self.subtask_over = False
         self.current_task = None
+        self.scene_entities = []
+        self.scene_objects = []
         self.rddl_world = RDDLWorld()
 
     def sample_num_subtasks(self):
@@ -35,33 +38,15 @@ class TaskModule():
         n_samples = self.sample_num_subtasks()
         task_sequence = self.rddl_world.sample_generator(n_samples)
         self.current_task_sequence = task_sequence
+        print("Generated a new action sequence")
 
     def get_next_task(self):
         if self.current_task_sequence == None:
             self.create_new_task_sequence()
         self.current_task = next(self.current_task_sequence)
-
-        # while True:
-        #     try:
-        #         action = next(gen)
-        #     except StopIteration:
-        #         break
-        #     print(f"Generated action: {action}")
-        #     print("World state after action:")
-        #     rddl_world.show_world_state()
-        #     print("")
-        #     actions.append(action)
-
-        # variables = rddl_world.get_created_variables()
-
-        # str_actions = '\n\t'.join([repr(a) for a in actions])
-        # print(f"Actions:\n\t{str_actions}")
-        # str_variables = '\n\t'.join([repr(v) for v in variables])
-        # print(f"Variables:\n\t{str_variables}")
-        # print("> Initial state:")
-        # rddl_world.show_initial_world_state()
-        # print("> Goal state:")
-        # rddl_world.show_goal_world_state()
+        print(f"Current task: {self.current_task}")
+        print("Desired world state after action:")
+        self.rddl_world.show_world_state()
 
     def build_scene_for_task(self):
         if self.current_task is None:
@@ -71,7 +56,19 @@ class TaskModule():
             if "Gripper" in str(entity.type):
                 pass
             else:
-                entity.type(env=self.env, pybullet_client=self.p)
+                pos = entity.type.get_random_object_position(self.env.reachable_borders)
+                orn =  entity.type.get_random_z_rotation()
+                kw = {"env": self.env, "position":pos, "orientation":orn, "pybullet_client":self.p, "fixed":False, "observation":self.env.vision_source,
+                      "vae_path":self.env.vae_path, "yolact_path":self.env.yolact_path, "yolact_config":self.env.yolact_config}
+                o = entity.type(**kw)
+                entity.bind(o)
+                if o.rgba is None:
+                    o.set_color(self.env.get_random_color())
+                else:
+                    o.set_color(o.get_color_rgba())
+                self.scene_objects.append(o)
+                self.scene_entities.append(entity)
+
 
     def get_world_state(self):
         """

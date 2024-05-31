@@ -118,12 +118,14 @@ class GymEnv(CameraEnv):
         self.has_distractor         = distractors["list"] != None
         self.distractors            = distractors
         self.objects_area_borders = None
+        self.reachable_borders = None
         self.dist = d.DistractorModule(distractors["moveable"], distractors["movement_endpoints"],
                                        distractors["constant_speed"], distractors["movement_dims"], env=self)
         self.dataset   = dataset
         self.obs_space = obs_space
         self.visualize = visualize
         self.visgym    = visgym
+        self.check_obs_template()
         self.logdir    = logdir
         self.workspace_dict = get_workspace_dict()
         if not hasattr(self, "task"):
@@ -154,26 +156,11 @@ class GymEnv(CameraEnv):
             raise Exception("Reach gesture task can't be started without natural language mode")
 
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
-        self.task = TaskModule(self, rddl["num_task_range"], rddl["protoactions"], rddl["allowed_objects"], rddl["allowed_predicates"], self.p)
-        self.task.build_scene_for_task()
 
     def _init_task_and_reward(self):
-        if self.reward == 'distractor':
-            self.has_distractor = True
-            self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
-        reward_classes = {
-            "1-network": {"F": F, "A": A, "switch": SwitchRewardNew, "turn": TurnRewardNew, "FM": FaM, "FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
-                          "FMOM": FaMOaM, "FMLFR": FaMaLaFaR},
-            "2-network": {"switch": SwitchRewardNew, "turn": TurnRewardNew, "FM": FaM, "AG": AaG},
-            "3-network": {"FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
-                          "FMOM": FaMOaM, "AGM": AaGaM},
-            "4-network": {"FMLFR": FaMaLaFaR, "AGMD" : AaGaMaD},
-            "5-network": {"AGMDW" : AaGaMaDaW}}
-    
-        scheme = "{}-network".format(str(self.num_networks))
-        assert self.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
-        self.task = t.TaskModule(env=self, number_tasks=len(self.task_objects_dict))
-        self.reward = reward_classes[scheme][self.reward](env=self, task=self.task)
+        self.task = TaskModule(self, self.rddl_config["num_task_range"], self.rddl_config["protoactions"], self.rddl_config["allowed_objects"], self.rddl_config["allowed_predicates"], self.p)
+        self.task.build_scene_for_task()
+        self.reward = self.task.current_task.__class__()
 
 
     def get_observation_dict(self):
@@ -211,6 +198,7 @@ class GymEnv(CameraEnv):
         if ws_texture: self._change_texture(self.workspace, self._load_texture(ws_texture))
         self._change_texture("floor", self._load_texture("parquet1.jpg"))
         self.objects_area_borders = self.workspace_dict[self.workspace]['borders']
+        self.reachable_borders = self.workspace_dict[self.workspace]['reachable_borders']
         kwargs = {"position": self.workspace_dict[self.workspace]['robot']['position'],
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
                   "init_joint_poses": self.robot_init_joint_poses, "max_velocity": self.max_velocity,
@@ -551,41 +539,12 @@ class GymEnv(CameraEnv):
 
     def check_obs_template(self):
         """
-        Checks if observations are set according to rules and computes observation dim
+        @TODO Add smart and variable observation space constructor
 
         Returns:
             :return obsdim: (int) Dimensionality of observation
         """
-        t = self.obs_type
-        assert "actual_state" and "goal_state" in t.keys(), \
-            "Observation setup in config must contain actual_state and goal_state"
-        if t["additional_obs"]:
-            assert [x in ["joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"] for x in
-                    t["additional_obs"]], "Failed to parse some of the additional_obs in config"
-        assert t["actual_state"] in ["endeff_xyz", "endeff_6D", "obj_xyz", "obj_6D", "vae", "yolact", "voxel", "dope"],\
-            "failed to parse actual_state in Observation config"
-        assert t["goal_state"] in ["obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"],\
-            "failed to parse goal_state in Observation config"
-        if "endeff" not in t["actual_state"]:
-            assert t["actual_state"] == t["goal_state"], \
-                "actual_state and goal_state in Observation must have the same format"
-        else:
-            assert t["actual_state"].split("_")[-1] == t["goal_state"] .split("_")[-1], "Actual state and goal state must " \
-                                                                                        "have the same number of dimensions!"
-            if "endeff_xyz" in t["additional_obs"] or "endeff_6D" in t["additional_obs"]:
-                warnings.warn("Observation config: endeff_xyz already in actual_state, no need to have it in additional_obs. Removing it")
-                [self.obs_type["additional_obs"].remove(x) for x in t["additional_obs"] if "endeff" in x]
-        obsdim = 0
-        for x in [t["actual_state"], t["goal_state"]]:
-            get_datalen = {"joints_xyz":len(self.get_linkstates_unpacked()),
-                           "joints_angles":len(self.robot.get_joints_states()),
-                           "endeff_xyz":3,
-                           "endeff_6D":7,
-                           "dope":7, "obj_6D":7, "distractor": 3, "touch":1, "yolact":3, "voxel":3, "obj_xyz":3,
-                           "vae":4}  # @TODO
-            obsdim += get_datalen[x]
-        for x in t["additional_obs"]:
-            obsdim += get_datalen[x]
+        obsdim = 7+7 # 7 values for actual state (object or gripper 6D + gripper open/close), same for goal state
         return obsdim
 
     def successful_finish(self, info):
@@ -722,11 +681,14 @@ class GymEnv(CameraEnv):
             :return color: (list) RGB color
         """
         if object.name not in self.color_dict:
-            return cs.draw_random_rgba()
+            return self.get_random_color()
         else:
             color_name = random.sample(self.color_dict[object.name], 1)[0]
             color = cs.name_to_rgba(color_name)
         return color
+    
+    def get_random_color(self):
+        return cs.draw_random_rgba()
 
     def get_task_objects(self, with_none=False) -> List[EnvObject]:
         objects = [self.task_objects["actual_state"], self.task_objects["goal_state"]]

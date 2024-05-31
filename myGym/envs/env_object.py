@@ -26,7 +26,7 @@ class EnvObject(VisionModule):
     """
     def __init__(self, urdf_path, env, position=[0, 0, 0],
                  orientation=[0, 0, 0, 0], fixed=False,
-                 pybullet_client=None, observation="ground_truth", vae_path=None, yolact_path=None, yolact_config=None, is_robot=False):
+                 pybullet_client=None, observation="ground_truth", vae_path=None, yolact_path=None, yolact_config=None, is_robot=False, rgba=None):
         self.p = pybullet_client
         self.urdf_path = urdf_path
         self.init_position = position
@@ -40,7 +40,8 @@ class EnvObject(VisionModule):
         self.object_lfriction = 100
         self.object_rfriction = 100
         self.object_mass = 10
-        self. object_stiffness = 1
+        self.color_rgba = rgba
+        self.object_stiffness = 1
         if not self.virtual and not self.is_robot:    
             self.uid = self.load()
             self.bounding_box = self.get_bounding_box()
@@ -359,21 +360,21 @@ class EnvObject(VisionModule):
         return super().get_obj_bbox_for_obs(self, img)
 
     @staticmethod
-    def get_random_object_position(boarders):
+    def get_random_object_position(borders):
         """
         Generate random position in defined volume
 
         Parameters:
-            :param boarders: (list) Volume, where position may be generated ([x,x,y,y,z,z])
+            :param borders: (list) Volume, where position may be generated ([x,x,y,y,z,z])
         Returns:
             :return pos: (list) Position in specified volume ([x,y,z])
         """
-        if any(isinstance(i, list) for i in boarders):
-            boarders = boarders[random.randint(0,len(boarders)-1)]
+        if any(isinstance(i, list) for i in borders):
+            borders = borders[random.randint(0,len(borders)-1)]
         pos = []
-        pos.append(random.uniform(boarders[0], boarders[1])) #x
-        pos.append(random.uniform(boarders[2], boarders[3])) #y
-        pos.append(random.uniform(boarders[4], boarders[5])) #z
+        pos.append(random.uniform(borders[0], borders[1])) #x
+        pos.append(random.uniform(borders[2], borders[3])) #y
+        pos.append(random.uniform(borders[4], borders[5])) #z
         return pos
 
     @staticmethod
