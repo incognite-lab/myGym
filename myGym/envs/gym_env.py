@@ -159,8 +159,13 @@ class GymEnv(CameraEnv):
 
     def _init_task_and_reward(self):
         self.task = TaskModule(self, self.rddl_config["num_task_range"], self.rddl_config["protoactions"], self.rddl_config["allowed_objects"], self.rddl_config["allowed_predicates"], self.p)
+        # generates task sequence and initializes scene with objects accordingly. The first action is set as self.task.current_task
         self.task.build_scene_for_task()
-        self.reward = self.task.current_task.__class__()
+        self.reward = self.task.current_task
+        from rddl.actions import ApproachReward
+        a = ApproachReward(self.robot, self.task.scene_objects[0])
+        self.task.current_task.bind()
+        obs_entities = self.task.current_task._reward.get_relevant_entities()
 
 
     def get_observation_dict(self):
