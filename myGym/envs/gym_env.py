@@ -128,6 +128,7 @@ class GymEnv(CameraEnv):
         self.check_obs_template()
         self.logdir    = logdir
         self.workspace_dict = get_workspace_dict()
+        self.robot = None
         if not hasattr(self, "task"):
           self.task = None
 
@@ -160,12 +161,11 @@ class GymEnv(CameraEnv):
     def _init_task_and_reward(self):
         self.task = TaskModule(self, self.rddl_config["num_task_range"], self.rddl_config["protoactions"], self.rddl_config["allowed_objects"], self.rddl_config["allowed_predicates"], self.p)
         # generates task sequence and initializes scene with objects accordingly. The first action is set as self.task.current_task
-        self.task.build_scene_for_task()
-        self.reward = self.task.current_task
-        from rddl.actions import ApproachReward
-        a = ApproachReward(self.robot, self.task.scene_objects[0])
-        self.task.current_task.bind()
-        obs_entities = self.task.current_task._reward.get_relevant_entities()
+        self.task.build_scene_for_task_sequence()
+        self.reward = self.task.current_task.reward
+        self.compute_reward = self.task.current_task.compute_reward
+        obs_entities = self.reward.get_relevant_entities()
+        self.robot = self.task.rddl_robot.type
 
 
     def get_observation_dict(self):
@@ -204,13 +204,12 @@ class GymEnv(CameraEnv):
         self._change_texture("floor", self._load_texture("parquet1.jpg"))
         self.objects_area_borders = self.workspace_dict[self.workspace]['borders']
         self.reachable_borders = self.workspace_dict[self.workspace]['reachable_borders']
-        kwargs = {"position": self.workspace_dict[self.workspace]['robot']['position'],
+        self.robot_kwargs = {"position": self.workspace_dict[self.workspace]['robot']['position'],
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
                   "init_joint_poses": self.robot_init_joint_poses, "max_velocity": self.max_velocity,
                   "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
                   "pybullet_client": self.p, "env": self, "observation":self.vision_source, "vae_path":self.vae_path, 
                   "yolact_path":self.yolact_path, "yolact_config": self.yolact_config}
-        self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
         if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
 
 
@@ -244,7 +243,6 @@ class GymEnv(CameraEnv):
             from gymnasium import spaces
         else:
             from gym import spaces
-        self._init_task_and_reward()
         if self.obs_space == "dict":
             goaldim = int(self.obsdim / 2) if self.obsdim % 2 == 0 else int(self.obsdim / 3)
             self.observation_space = spaces.Dict(
@@ -261,11 +259,12 @@ class GymEnv(CameraEnv):
         """
         Set action space dimensions and range
         """
+        self._init_task_and_reward()
         if self.framework == "ray":
             from gymnasium import spaces
         else:
             from gym import spaces
-        action_dim = self.robot.get_action_dimension()
+        action_dim = self.robot.get_action_dimension(self)
         if "step" in self.robot_action:
             self.action_low = np.array([-1] * action_dim)
             self.action_high = np.array([1] * action_dim)

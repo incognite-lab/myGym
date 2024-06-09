@@ -1,6 +1,8 @@
 import random
 import myGym.envs.scene_objects # allows binding with rddl
+from myGym.envs.scene_objects import TiagoGripper
 from rddl.rddl_sampler import RDDLWorld
+from rddl.entities import Gripper, ObjectEntity
 
 class TaskModule():
     """
@@ -23,16 +25,39 @@ class TaskModule():
         self.current_task_length = None
         self.current_task_sequence = None
         self.subtask_over = False
+        self.rddl_robot = None
         self.current_task = None
         self.scene_entities = []
         self.scene_objects = []
-        self.rddl_world = RDDLWorld()
+        self.rddl_world = RDDLWorld(allowed_actions=self.cfg_strings_to_classes(self.allowed_protoactions), 
+                                    allowed_entities=self.cfg_strings_to_classes(self.allowed_objects) + [TiagoGripper], 
+                                    allowed_initial_actions=self.cfg_strings_to_classes(self.allowed_protoactions))
 
     def sample_num_subtasks(self):
         '''Whenever a new sequence of actions is desired, this function chooses a random
           length of the sequence based on the range from config. '''
         self.current_task_length = random.randint(*self.number_tasks_range)
         return self.current_task_length
+    
+    def cfg_strings_to_classes(self, cfg:list):
+        """Looks up the classes corresponding to names in cfg and returns a list of them.
+        Args:
+            cfg (list): list of strings with names of entities, e.g., ["Approach", "Drop"] or ["Banana", "Tuna"]
+        Raises:
+            Exception: When the class is not found by rddl, that usually means it is not defined in scene_objects.py
+        Returns:
+            _type_: list of classes
+        """
+        list_of_classes = []
+        for n in cfg:
+            n_fixed = n[0].upper() + n[1:].lower()
+            try:
+                cl = getattr(myGym.envs.scene_objects, n_fixed)
+                list_of_classes.append(cl)
+            except:
+                raise Exception("Entity {} not found by RDDL! Check scene_objects.py for this class".format(n_fixed))
+        return list_of_classes
+
     
     def create_new_task_sequence(self):
         '''Calls rddl to make a new sequence of actions (subtasks).'''
@@ -51,23 +76,26 @@ class TaskModule():
         print("Desired world state after action:")
         self.rddl_world.show_world_state()
 
-    def build_scene_for_task(self):
+    def build_scene_for_task_sequence(self):
         '''After a new sequence of actions (subtasks) is created, this function will create the physical scene according to the 
         symbolic template. '''
-        if self.current_task is None:
-            # If there is no action sequence, first create one
+        if self.current_task == None:
+            # if there is no action sequence, first make a new one
             self.get_next_task()
         scene_entities = self.rddl_world.get_created_variables()
         for entity in scene_entities:
-            if "Gripper" in str(entity.type):
-                pass # @TODO robot already in the scene, we just need to bind self.env.robot with rddl Gripper
-            else:
+            if issubclass(entity.type, Gripper) and not entity.is_bound():
+                robot = entity.type(self.env.robot_type, robot_action=self.env.robot_action, task_type=self.env.task_type, **self.env.robot_kwargs)
+                entity.bind(robot)
+                self.rddl_robot = entity
+            elif not entity.is_bound():
                 pos = entity.type.get_random_object_position(self.env.reachable_borders) # @TODO needs to be constrained by predicates
                 orn =  entity.type.get_random_z_rotation() #@TODO needs to be constrained by predicates
 
                 kw = {"env": self.env, "position":pos, "orientation":orn, "pybullet_client":self.p, "fixed":False, "observation":self.env.vision_source,
-                      "vae_path":self.env.vae_path, "yolact_path":self.env.yolact_path, "yolact_config":self.env.yolact_config}
+                    "vae_path":self.env.vae_path, "yolact_path":self.env.yolact_path, "yolact_config":self.env.yolact_config}
                 self.spawn_object_for_rddl(entity, **kw)
+
                 
 
     def spawn_object_for_rddl(self, rddl_entity, env, position, orientation, pybullet_client, 
