@@ -7,33 +7,33 @@ import json, commentjson
 import gym
 from myGym import envs
 import myGym.utils.cfg_comparator as cfg
-from stable_baselines.common.policies import MlpPolicy
-from stable_baselines.common import make_vec_env
-from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines.bench import Monitor
-from stable_baselines import results_plotter
-from stable_baselines.her import GoalSelectionStrategy, HERGoalEnvWrapper
+#from stable_baselines.common.policies import MlpPolicy
+#from stable_baselines.common import make_vec_env
+from stable_baselines3.common.vec_env import DummyVecEnv
+#from stable_baselines.bench import Monitor
+#from stable_baselines import results_plotter
+from stable_baselines3.her import GoalSelectionStrategy #, HERGoalEnvWrapper
 # For now I am importing both with slightly modified names P-PyTorch T-TensorFlow
-from stable_baselines import PPO1 as PPO1_T, PPO2 as PPO2_T, HER as HER_T, SAC as SAC_T
-from stable_baselines import TD3 as TD3_T, A2C as A2C_T, ACKTR as ACKTR_T, TRPO as TRPO_T
+#from stable_baselines import PPO1 as PPO1_T, PPO2 as PPO2_T, HER as HER_T, SAC as SAC_T
+#from stable_baselines import TD3 as TD3_T, A2C as A2C_T, ACKTR as ACKTR_T, TRPO as TRPO_T
 try:
     from stable_baselines3 import PPO as PPO_P, A2C as A2C_P, SAC as SAC_P, TD3 as TD3_P
 except:
     print("Torch isn't probably installed correctly")
 
-from myGym.stable_baselines_mygym.algo import MyAlgo
-from myGym.stable_baselines_mygym.policies import MyMlpPolicy
-from myGym.stable_baselines_mygym.TorchPPO import TorchPPO
-from myGym.stable_baselines_mygym.TorchPPOpolicies import TorchMlpPolicy
+# from myGym.stable_baselines_mygym.algo import MyAlgo
+# from myGym.stable_baselines_mygym.policies import MyMlpPolicy
+# from myGym.stable_baselines_mygym.TorchPPO import TorchPPO
+# from myGym.stable_baselines_mygym.TorchPPOpolicies import TorchMlpPolicy
 
 
 #from stable_baselines.gail import ExpertDataset, generate_expert_traj
-from stable_baselines.sac.policies import MlpPolicy as MlpPolicySAC
-#from stable_baselines.ddpg.policies import MlpPolicy as MlpPolicyDDPG
-from stable_baselines.td3.policies import MlpPolicy as MlpPolicyTD3
+# from stable_baselines.sac.policies import MlpPolicy as MlpPolicySAC
+# #from stable_baselines.ddpg.policies import MlpPolicy as MlpPolicyDDPG
+# from stable_baselines.td3.policies import MlpPolicy as MlpPolicyTD3
 
 # Import helper classes and functions for monitoring
-from myGym.utils.callbackstf2 import ProgressBarManager, SaveOnBestTrainingRewardCallback,  PlottingCallback, CustomEvalCallback
+from myGym.utils.callbackstf2 import ProgressBarManager, SaveOnBestTrainingRewardCallback, CustomEvalCallback
 
 # This is global variable for the type of engine we are working with
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
@@ -67,45 +67,37 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
         plt.show()
 
 def configure_env(arg_dict, model_logdir=None, for_train=True):
-    if arg_dict["engine"] == "pybullet":
-        env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
-                         "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
-                         "robot_action": arg_dict["robot_action"], "task_type": arg_dict["task_type"], "num_subgoals": arg_dict["num_subgoals"],
-                         "task_objects":arg_dict["task_objects"], "distractors":arg_dict["distractors"],
-                         "distractor_moveable":arg_dict["distractor_moveable"],
-                         "distractor_constant_speed":arg_dict["distractor_constant_speed"],
-                         "distractor_movement_dimensions":arg_dict["distractor_movement_dimensions"],
-                         "distractor_movement_endpoints":arg_dict["distractor_movement_endpoints"],
-                         "coefficient_kd":arg_dict["coefficient_kd"],
-                         "coefficient_kw":arg_dict["coefficient_kw"],
-                         "coefficient_ka":arg_dict["coefficient_ka"],
-                         "observed_links_num":arg_dict["observed_links_num"],
-                         "reward_type": arg_dict["reward_type"],
-                         "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
-                         "object_sampling_area": arg_dict["object_sampling_area"], "active_cameras": arg_dict["camera"],
-                         "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
-                         "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
-                         "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"]}
-        if for_train:
-            env_arguments["gui_on"] = False
-        else:
-            env_arguments["gui_on"] = arg_dict["gui"]
+    env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"], "framework":"stable_baselines",
+                     "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
+                     "robot_action": arg_dict["robot_action"],"max_velocity": arg_dict["max_velocity"], 
+                     "max_force": arg_dict["max_force"],
+                     "action_repeat": arg_dict["action_repeat"], "rddl": arg_dict["rddl"],
+                     "observation":arg_dict["observation"], "distractors":arg_dict["distractors"],
+                     "num_networks":arg_dict.get("num_networks", 1), "network_switcher":arg_dict.get("network_switcher", "gt"),
+                     "active_cameras": arg_dict["camera"], "color_dict":arg_dict.get("color_dict", {}),
+                     "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
+                     "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
+                     "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"],
+                     "natural_language": bool(arg_dict["natural_language"]),
+                     "training": bool(for_train)
+                     }
+    if for_train:
+        env_arguments["gui_on"] = arg_dict["gui"]
+    else:
+        env_arguments["gui_on"] = arg_dict["gui"]
 
-        if arg_dict["algo"] == "her":
-            env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
-        else:
-            env = gym.make(arg_dict["env_name"], **env_arguments)
-    elif arg_dict["engine"] == "mujoco":
-        if arg_dict["multiprocessing"]:
-            # ACKTR, PPO2, A2C, DDPG can use vectorized environments, but the only way to display the results (for me) is using CV2 imshow. -(TensorFlow comment)
-            env = make_vec_env(arg_dict["env_name"], n_envs=arg_dict["vectorized_envs"])
-        else:
-            env = gym.make(arg_dict["env_name"])
+    if arg_dict["algo"] == "her":
+        env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
+    else:
+        env = gym.make(arg_dict["env_name"], **env_arguments)
     if for_train:
         if arg_dict["engine"] == "mujoco":
             env = VecMonitor(env, model_logdir) if arg_dict["multiprocessing"] else Monitor(env, model_logdir)
         elif arg_dict["engine"] == "pybullet":
-            env = Monitor(env, model_logdir, info_keywords=tuple('d'))
+           try:
+                env = Monitor(env, model_logdir, info_keywords=tuple('d'))
+           except:
+                pass
 
     if arg_dict["algo"] == "her":
         env = HERGoalEnvWrapper(env)
@@ -113,22 +105,22 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
 
 
 def configure_implemented_combos(env, model_logdir, arg_dict):
-    implemented_combos = {"ppo2": {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]},
-                          "ppo": {"tensorflow": [PPO1_T, (MlpPolicy, env),  {"verbose": 1}],},
-                          "sac": {"tensorflow": [SAC_T, (MlpPolicySAC, env), {"verbose": 1}],},
-                          "td3": {"tensorflow": [TD3_T, (MlpPolicyTD3, env), {"verbose": 1}],},
-                          "acktr": {"tensorflow": [ACKTR_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]},
-                          "trpo": {"tensorflow": [TRPO_T, (MlpPolicy, env), {"verbose": 1}]},
-                          "a2c":    {"tensorflow": [A2C_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}],},
-                          "torchppo": {"tensorflow": [TorchPPO, (TorchMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]},
-                          "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]},
-                          "dual":   {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]}}
+    implemented_combos = {"ppo":{}, "sac":{}, "td3":{}, "a2c":{}}
+    # implemented_combos = {"ppo2": {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]},
+    #                       "ppo": {"tensorflow": [PPO1_T, (MlpPolicy, env),  {"verbose": 1}],},
+    #                       "sac": {"tensorflow": [SAC_T, (MlpPolicySAC, env), {"verbose": 1}],},
+    #                       "td3": {"tensorflow": [TD3_T, (MlpPolicyTD3, env), {"verbose": 1}],},
+    #                       "acktr": {"tensorflow": [ACKTR_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]},
+    #                       "trpo": {"tensorflow": [TRPO_T, (MlpPolicy, env), {"verbose": 1}]},
+    #                       "a2c":    {"tensorflow": [A2C_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}],},
+    #                       "torchppo": {"tensorflow": [TorchPPO, (TorchMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]},
+    #                       "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]},
+    #                       "dual":   {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]}}
 
-    if "PPO_P" in sys.modules:
-        implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env), {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir}]
-        implemented_combos["sac"]["pytorch"] = [SAC_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
-        implemented_combos["td3"]["pytorch"] = [TD3_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
-        implemented_combos["a2c"]["pytorch"] = [A2C_P, ('MlpPolicy', env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]
+    implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env), {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir}]
+    implemented_combos["sac"]["pytorch"] = [SAC_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
+    implemented_combos["td3"]["pytorch"] = [TD3_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
+    implemented_combos["a2c"]["pytorch"] = [A2C_P, ('MlpPolicy', env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]
 
     return implemented_combos
 
@@ -171,8 +163,8 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 
     start_time = time.time()
     callbacks_list = []
-    auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env, engine=arg_dict["engine"], multiprocessing=arg_dict["multiprocessing"])
-    callbacks_list.append(auto_save_callback)
+    #auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env, engine=arg_dict["engine"], multiprocessing=arg_dict["multiprocessing"])
+    #callbacks_list.append(auto_save_callback)
     if arg_dict["eval_freq"]:
         eval_env = configure_env(arg_dict, model_logdir, for_train=False)
         eval_callback = CustomEvalCallback(eval_env, log_path=model_logdir,
@@ -272,9 +264,9 @@ def main():
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
     if not os.path.isabs(arg_dict["logdir"]):
-        arg_dict["logdir"] = pkg_resources.resource_filename("myGym", arg_dict["logdir"])
+        arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
-    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["task_type"],arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["reward_type"],arg_dict["algo"])))
+    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["algo"])))
     model_logdir = model_logdir_ori
     add = 2
     while True:
@@ -289,6 +281,7 @@ def main():
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
     train(env, implemented_combos, model_logdir, arg_dict, arg_dict["pretrained_model"])
     print(model_logdir)
+
 
 if __name__ == "__main__":
     main()

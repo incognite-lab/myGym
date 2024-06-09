@@ -27,8 +27,8 @@
     "yolact_path"   :null,
     "yolact_config" :null,
     #Train
-    "train_framework"   :"tensorflow",
-    "algo"              :"ppo2",
+    "train_framework"   :"pytorch",
+    "algo"              :"ppo",
     "num_networks" : 1,
     "max_episode_steps" :1024,
     "algo_steps"        :1024,
