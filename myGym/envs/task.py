@@ -88,6 +88,7 @@ class TaskModule():
                 robot = entity.type(self.env.robot_type, robot_action=self.env.robot_action, task_type=self.env.task_type, **self.env.robot_kwargs)
                 entity.bind(robot)
                 self.rddl_robot = entity
+                self.scene_objects.append(robot)
             elif not entity.is_bound():
                 pos = entity.type.get_random_object_position(self.env.reachable_borders) # @TODO needs to be constrained by predicates
                 orn =  entity.type.get_random_z_rotation() #@TODO needs to be constrained by predicates

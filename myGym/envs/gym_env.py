@@ -159,36 +159,38 @@ class GymEnv(CameraEnv):
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 
     def _init_task_and_reward(self):
+        """Main communicator with rddl. Passes arguments from config to RDDLWorld, tells rddl to make a task sequence and to build
+        a scene accordingly, including robot. Work in progress"""
         self.task = TaskModule(self, self.rddl_config["num_task_range"], self.rddl_config["protoactions"], self.rddl_config["allowed_objects"], self.rddl_config["allowed_predicates"], self.p)
         # generates task sequence and initializes scene with objects accordingly. The first action is set as self.task.current_task
-        self.task.build_scene_for_task_sequence()
-        self.reward = self.task.current_task.reward
-        self.compute_reward = self.task.current_task.compute_reward
-        obs_entities = self.reward.get_relevant_entities()
-        self.robot = self.task.rddl_robot.type
+        self.task.build_scene_for_task_sequence() # it also loads the robot. must be done his way so that rddl knows about the robot
+        self.reward = self.task.current_task.reward # reward class
+        self.compute_reward = self.task.current_task.compute_reward # function that computes reward (no inputs needed, already bound to the objects)
+        obs_entities = self.reward.get_relevant_entities() # does not work yet, must be done in rddl
+        self.robot = self.task.rddl_robot.type # robot class as we know it
 
 
-    def get_observation_dict(self):
-        """
-        Get task relevant observation data based on reward signal source
+    # def get_observation_dict(self):
+    #     """
+    #     Get task relevant observation data based on reward signal source
 
-        Returns:
-            :return self._observation: (array) Task relevant observation data, positions of task objects 
-        """
-        info_dict = self.obs_type
-        for key in ["actual_state", "goal_state"]:
-            if "endeff" in info_dict[key]:
-                    xyz = self.env.task_objects["robot"].get_obj_position_for_obs(self.image,self.depth)
-                    xyz = xyz[:3] if "xyz" in info_dict else xyz
-            else:
-                    xyz = self.env.task_objects[key].get_obj_position_for_obs(self.image,self.depth)
-            info_dict[key] = xyz
-        self._observation = self.get_additional_obs(info_dict, self.env.task_objects["robot"])
-        return self._observation
+    #     Returns:
+    #         :return self._observation: (array) Task relevant observation data, positions of task objects 
+    #     """
+    #     info_dict = self.obs_type
+    #     for key in ["actual_state", "goal_state"]:
+    #         if "endeff" in info_dict[key]:
+    #                 xyz = self.env.task_objects["robot"].get_obj_position_for_obs(self.image,self.depth)
+    #                 xyz = xyz[:3] if "xyz" in info_dict else xyz
+    #         else:
+    #                 xyz = self.env.task_objects[key].get_obj_position_for_obs(self.image,self.depth)
+    #         info_dict[key] = xyz
+    #     self._observation = self.get_additional_obs(info_dict, self.env.task_objects["robot"])
+    #     return self._observation
 
     def _setup_scene(self):
         """
-        Set-up environment scene. Load static objects, apply textures. Load robot.
+        Set-up environment scene. Load static objects, apply textures.
         """
         self._add_scene_object_uid(self._load_static_scene_urdf(path="rooms/plane.urdf", name="floor"), "floor")
         if self.visgym:
@@ -259,7 +261,7 @@ class GymEnv(CameraEnv):
         """
         Set action space dimensions and range
         """
-        self._init_task_and_reward()
+        self._init_task_and_reward() # we first need rddl to make a robot
         if self.framework == "ray":
             from gymnasium import spaces
         else:
@@ -271,7 +273,6 @@ class GymEnv(CameraEnv):
             # if "gripper" in self.robot_action:
             #    self.action_low = np.insert(self.action_low, action_dim, self.robot.gjoints_limits[0][1])
             #    self.action_high = np.insert(self.action_high, action_dim,self.robot.gjoints_limits[1][1])
-
 
         elif "absolute" in self.robot_action:
             if any(isinstance(i, list) for i in self.objects_area_borders):
@@ -424,21 +425,21 @@ class GymEnv(CameraEnv):
 
         return self.flatten_obs(self._observation.copy())
 
-    def shift_next_subtask(self):
-        # put current init and goal back in env_objects
-        self.env_objects["distractor"].extend([self.env_objects["actual_state"], self.env_objects["goal_state"]])
-        # set the next subtask objects as the actual and goal state and remove them from env_objects
-        self.env_objects["actual_state"] = self.env_objects["distractor"][0]
-        self.env_objects["goal_state"] = self.env_objects["distractor"][1]
-        del self.env_objects["distractor"][:2]
-        self.task_objects["distractor"] = self.env_objects["distractor"].copy()
-        # copy the state to task_objects and change colors
-        self.task_objects["actual_state"] = self.env_objects["actual_state"]
-        self.task_objects["goal_state"] = self.env_objects["goal_state"]
-        self.highlight_active_object(self.env_objects["actual_state"], "init")
-        self.highlight_active_object(self.env_objects["goal_state"], "goal")
-        for o in self.env_objects["distractor"][-2:]:
-            self.highlight_active_object(o, "done")
+    # def shift_next_subtask(self):  # now handled in task.py
+    #     # put current init and goal back in env_objects
+    #     self.env_objects["distractor"].extend([self.env_objects["actual_state"], self.env_objects["goal_state"]])
+    #     # set the next subtask objects as the actual and goal state and remove them from env_objects
+    #     self.env_objects["actual_state"] = self.env_objects["distractor"][0]
+    #     self.env_objects["goal_state"] = self.env_objects["distractor"][1]
+    #     del self.env_objects["distractor"][:2]
+    #     self.task_objects["distractor"] = self.env_objects["distractor"].copy()
+    #     # copy the state to task_objects and change colors
+    #     self.task_objects["actual_state"] = self.env_objects["actual_state"]
+    #     self.task_objects["goal_state"] = self.env_objects["goal_state"]
+    #     self.highlight_active_object(self.env_objects["actual_state"], "init")
+    #     self.highlight_active_object(self.env_objects["goal_state"], "goal")
+    #     for o in self.env_objects["distractor"][-2:]:
+    #         self.highlight_active_object(o, "done")
 
     def flatten_obs(self, obs):
         """ Returns the input obs dict as flattened list """
@@ -459,45 +460,48 @@ class GymEnv(CameraEnv):
 
     def get_observation(self):
         """
-        Get observation data from the environment
+        Get observation data from the environment. Probably should be moved to task.py
 
         Returns:
             :return observation: (array) Represented position of task relevant objects
         """
-        self.observation["task_objects"] = self.get_observation_dict()
+        ## !!!! This is a provisory solution until self.task.current_task.reward.get_relevant_entities() returns the relevant objects.
+        ## Now we just take the position and orientation for every object in the scene including gripper, but that is legit in very few cases
+        obs = []
+        for o in self.task.scene_objects:
+            obs += list(o.get_position())
+            obs += list(o.get_orientation())
+        self.observation = obs
         if self.dataset:
-            self.observation["camera_data"] = self.render(mode="rgb_array")
-            self.observation["objects"] = self.env_objects
-            self.observation["additional_obs"] = {}
-            return self.observation
-        return self.observation["task_objects"]
+            raise NotImplemented # TODO one day
+        return self.observation
 
 
-    def get_additional_obs(self, d, robot):
-        info = d.copy()
-        info["additional_obs"] = {}
-        for key in d["additional_obs"]:
-            if key == "joints_xyz":
-                o = []
-                info["additional_obs"]["joints_xyz"] = self.get_linkstates_unpacked()
-            elif key == "joints_angles":
-                info["additional_obs"]["joints_angles"] = self.robot.get_joints_states()
-            elif key == "endeff_xyz":
-                info["additional_obs"]["endeff_xyz"] = self.robot.get_obj_position_for_obs(self.image, self.depth)[:3]  
-            elif key == "endeff_6D":
-                info["additional_obs"]["endeff_6D"] = list(self.robot.get_obj_position_for_obs(self.image, self.depth)) \
-                                                      + list(self.robot.get_obj_orientation_for_obs(self.image)) 
-            elif key == "touch":
-                if hasattr(self.env.env_objects["actual_state"], "magnetized_objects"):
-                    obj_touch = self.env.env_objects["goal_state"]
-                else:
-                    obj_touch = self.env.env_objects["actual_state"]
-                touch = self.env.robot.touch_sensors_active(obj_touch) or len(self.env.robot.magnetized_objects)>0
-                info["additional_obs"]["touch"] = [1] if touch else [0]
-            elif key == "distractor":
-                poses = [self.env.task_objects["distractor"][x].get_obj_position_for_obs(self.image, self.depth) for x in range(len(self.env.task_objects["distractor"]))]
-                info["additional_obs"]["distractor"] = [p for sublist in poses for p in sublist]
-        return info
+    # def get_additional_obs(self, d, robot):
+    #     info = d.copy()
+    #     info["additional_obs"] = {}
+    #     for key in d["additional_obs"]:
+    #         if key == "joints_xyz":
+    #             o = []
+    #             info["additional_obs"]["joints_xyz"] = self.get_linkstates_unpacked()
+    #         elif key == "joints_angles":
+    #             info["additional_obs"]["joints_angles"] = self.robot.get_joints_states()
+    #         elif key == "endeff_xyz":
+    #             info["additional_obs"]["endeff_xyz"] = self.robot.get_obj_position_for_obs(self.image, self.depth)[:3]  
+    #         elif key == "endeff_6D":
+    #             info["additional_obs"]["endeff_6D"] = list(self.robot.get_obj_position_for_obs(self.image, self.depth)) \
+    #                                                   + list(self.robot.get_obj_orientation_for_obs(self.image)) 
+    #         elif key == "touch":
+    #             if hasattr(self.env.env_objects["actual_state"], "magnetized_objects"):
+    #                 obj_touch = self.env.env_objects["goal_state"]
+    #             else:
+    #                 obj_touch = self.env.env_objects["actual_state"]
+    #             touch = self.env.robot.touch_sensors_active(obj_touch) or len(self.env.robot.magnetized_objects)>0
+    #             info["additional_obs"]["touch"] = [1] if touch else [0]
+    #         elif key == "distractor":
+    #             poses = [self.env.task_objects["distractor"][x].get_obj_position_for_obs(self.image, self.depth) for x in range(len(self.env.task_objects["distractor"]))]
+    #             info["additional_obs"]["distractor"] = [p for sublist in poses for p in sublist]
+    #     return info
 
 
     def step(self, action):
@@ -518,7 +522,7 @@ class GymEnv(CameraEnv):
         if self.dataset:
             reward, done, info = 0, False, {}
         else:
-            reward = self.reward.compute(observation=self._observation)
+            reward = self.compute_reward()  # this uses rddl protoaction, no arguments needed
             self.episode_reward += reward
             # self.task.check_goal()
             done = self.episode_over
@@ -528,13 +532,9 @@ class GymEnv(CameraEnv):
         if self.task.subtask_over:
             self.reset(only_subtask=True)
         # return self._observation, reward, done, info
-        return self.flatten_obs(self._observation.copy()), reward, done, info
+        return self._observation.copy(), reward, done, info
 
-    def compute_reward(self, achieved_goal, desired_goal, info):
-        # @TODO: Reward computation for HER, argument for .compute()
-        reward = self.reward.compute(np.append(achieved_goal, desired_goal))
-        return reward
-    
+  
     def get_linkstates_unpacked(self):
         o = []
         [[o.append(x) for x in z] for z in self.robot.observe_all_links()]
@@ -548,7 +548,7 @@ class GymEnv(CameraEnv):
         Returns:
             :return obsdim: (int) Dimensionality of observation
         """
-        obsdim = 7+7 # 7 values for actual state (object or gripper 6D + gripper open/close), same for goal state
+        obsdim = 6+6 # 6 values for actual state (object or gripper 6D), same for goal state
         return obsdim
 
     def successful_finish(self, info):
@@ -613,57 +613,57 @@ class GymEnv(CameraEnv):
         for object in self.env_objects:
             object.draw_bounding_box()
 
-    def _place_object(self, obj_info):
-        fixed = True if obj_info["fixed"] == 1 else False
-        pos = env_object.EnvObject.get_random_object_position(obj_info["sampling_area"])
-        orn = env_object.EnvObject.get_random_z_rotation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
-        object = env_object.EnvObject(obj_info["urdf"], self, pos, orn, pybullet_client=self.p, fixed=fixed, observation=self.vision_source, vae_path=self.vae_path, yolact_path=self.yolact_path, yolact_config=self.yolact_config)
-        if self.color_dict: object.set_color(self.color_of_object(object))
-        return object
+    # def _place_object(self, obj_info):  ### Moved to task.py
+    #     fixed = True if obj_info["fixed"] == 1 else False
+    #     pos = env_object.EnvObject.get_random_object_position(obj_info["sampling_area"])
+    #     orn = env_object.EnvObject.get_random_z_rotation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
+    #     object = env_object.EnvObject(obj_info["urdf"], self, pos, orn, pybullet_client=self.p, fixed=fixed, observation=self.vision_source, vae_path=self.vae_path, yolact_path=self.yolact_path, yolact_config=self.yolact_config)
+    #     if self.color_dict: object.set_color(self.color_of_object(object))
+    #     return object
 
-    def _randomly_place_objects(self, object_dict):
-        """
-        Place dynamic objects to the scene randomly
+    # def _randomly_place_objects(self, object_dict):
+    #     """
+    #     Place dynamic objects to the scene randomly
 
-        Parameters:
-            :param n: (int) Number of objects to place in the scene
-            :param object_names: (list of strings) Objects that may be placed to the scene
-            :param random_pos: (bool) Whether to place object to random positions in the scene
-        Returns:
-            :return env_objects: (list of objects) Objects that are present in the current scene
-        """
-        env_objects = []
-        if not "init" in object_dict.keys():  # solves used_objects
-            for idx, o in enumerate(object_dict["obj_list"]):
-                  if o["obj_name"] != "null":
-                      urdf = self._get_urdf_filename(o["obj_name"])
-                      if urdf:
-                        object_dict["obj_list"][idx]["urdf"] = urdf
-                      else:
-                        del object_dict["obj_list"][idx]
-            if "num_range" in object_dict.keys():
-                for x in range(random.randint(object_dict["num_range"][0], object_dict["num_range"][1])):
-                    env_o = self._place_object(random.choice(object_dict["obj_list"]))
-                    self.highlight_active_object(env_o, "other")
-                    env_objects.append(env_o)
-            else:
-                for o in object_dict["obj_list"]:
-                    if o["obj_name"] != "null":
-                        env_o = self._place_object(o)
-                        self.highlight_active_object(env_o, "other")
-                        env_objects.append(env_o)
-        else:  # solves task_objects
-            for o in ['init', 'goal']:
-                d = object_dict[o]
-                if d["obj_name"] != "null":
-                    d["urdf"] = self._get_urdf_filename(d["obj_name"])
-                    n = "actual_state" if o == "init" else "goal_state"
-                    env_o = self._place_object(d)
-                    self.highlight_active_object(env_o, o)
-                    env_objects.append({n: env_o})
-                elif d["obj_name"] == "null" and o == "init":
-                    env_objects.append({"actual_state": self.robot})
-        return env_objects
+    #     Parameters:
+    #         :param n: (int) Number of objects to place in the scene
+    #         :param object_names: (list of strings) Objects that may be placed to the scene
+    #         :param random_pos: (bool) Whether to place object to random positions in the scene
+    #     Returns:
+    #         :return env_objects: (list of objects) Objects that are present in the current scene
+    #     """
+    #     env_objects = []
+    #     if not "init" in object_dict.keys():  # solves used_objects
+    #         for idx, o in enumerate(object_dict["obj_list"]):
+    #               if o["obj_name"] != "null":
+    #                   urdf = self._get_urdf_filename(o["obj_name"])
+    #                   if urdf:
+    #                     object_dict["obj_list"][idx]["urdf"] = urdf
+    #                   else:
+    #                     del object_dict["obj_list"][idx]
+    #         if "num_range" in object_dict.keys():
+    #             for x in range(random.randint(object_dict["num_range"][0], object_dict["num_range"][1])):
+    #                 env_o = self._place_object(random.choice(object_dict["obj_list"]))
+    #                 self.highlight_active_object(env_o, "other")
+    #                 env_objects.append(env_o)
+    #         else:
+    #             for o in object_dict["obj_list"]:
+    #                 if o["obj_name"] != "null":
+    #                     env_o = self._place_object(o)
+    #                     self.highlight_active_object(env_o, "other")
+    #                     env_objects.append(env_o)
+    #     else:  # solves task_objects
+    #         for o in ['init', 'goal']:
+    #             d = object_dict[o]
+    #             if d["obj_name"] != "null":
+    #                 d["urdf"] = self._get_urdf_filename(d["obj_name"])
+    #                 n = "actual_state" if o == "init" else "goal_state"
+    #                 env_o = self._place_object(d)
+    #                 self.highlight_active_object(env_o, o)
+    #                 env_objects.append({n: env_o})
+    #             elif d["obj_name"] == "null" and o == "init":
+    #                 env_objects.append({"actual_state": self.robot})
+    #     return env_objects
 
     def highlight_active_object(self, env_o, obj_role):
         if obj_role == "goal":
@@ -675,21 +675,21 @@ class GymEnv(CameraEnv):
         else:
             env_o.set_color(cs.name_to_rgba("gray"))
 
-    def color_of_object(self, object):
-        """
-        Set object's color
+    # def color_of_object(self, object):
+    #     """
+    #     Set object's color
 
-        Parameters:
-            :param object: (object) Object
-        Returns:
-            :return color: (list) RGB color
-        """
-        if object.name not in self.color_dict:
-            return self.get_random_color()
-        else:
-            color_name = random.sample(self.color_dict[object.name], 1)[0]
-            color = cs.name_to_rgba(color_name)
-        return color
+    #     Parameters:
+    #         :param object: (object) Object
+    #     Returns:
+    #         :return color: (list) RGB color
+    #     """
+    #     if object.name not in self.color_dict:
+    #         return self.get_random_color()
+    #     else:
+    #         color_name = random.sample(self.color_dict[object.name], 1)[0]
+    #         color = cs.name_to_rgba(color_name)
+    #     return color
     
     def get_random_color(self):
         return cs.draw_random_rgba()
