@@ -45,5 +45,6 @@ dependencies:
     - torch==2.2.0
     - torchvision==0.17.2
     - urllib3==2.2.0
+    - stable-baselines3==1.2.0
 prefix: /home/sejnogab/.conda/envs/mygymrl
 
