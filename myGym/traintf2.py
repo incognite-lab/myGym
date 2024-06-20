@@ -133,23 +133,16 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     with open(conf_pth, "w") as f:
         json.dump(arg_dict, f, indent=4)
 
-    try:
-        model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
-        model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
-        if pretrained_model:
-            if not os.path.isabs(pretrained_model):
-                pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
-            env = model_args[1]
-            vec_env = DummyVecEnv([lambda: env])
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env)
-        else:
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0](*model_args, **model_kwargs)
-    except:
-        if arg_dict["algo"] in implemented_combos.keys():
-            err = "{} is only implemented with {}".format(arg_dict["algo"], list(implemented_combos[arg_dict["algo"]].keys())[0])
-        else:
-            err = "{} algorithm is not implemented.".format(arg_dict["algo"])
-        raise Exception(err)
+    model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
+    model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
+    if pretrained_model:
+        if not os.path.isabs(pretrained_model):
+            pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
+        env = model_args[1]
+        vec_env = DummyVecEnv([lambda: env])
+        model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env)
+    else:
+        model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0](*model_args, **model_kwargs)
 
     if arg_dict["algo"] == "gail":
         # Multi processing: (using MPI)

@@ -40,12 +40,12 @@ dependencies:
     - pywavelets==1.5.0
     - pyyaml==6.0.1
     - scikit-image==0.22.0
-    - torch==2.2.2
+    - Shimmy==2.0.0
     - tensorflow-addons==0.23.0
     - tensorflow-io-gcs-filesystem==0.36.0
     - torch==2.2.0
     - torchvision==0.17.2
     - urllib3==2.2.0
-    - stable-baselines3==1.2.0
+    - stable-baselines3==2.3.2
 prefix: /home/sejnogab/.conda/envs/mygymrl
 
