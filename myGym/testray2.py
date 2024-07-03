@@ -1,0 +1,194 @@
+import gym
+import ray
+import argparse
+import json, commentjson
+import time
+from ray.rllib.algorithms.ppo import PPOConfig
+from ray.rllib.algorithms.sac.sac import SACConfig
+from ray.rllib.algorithms.appo import APPOConfig
+from ray.rllib.algorithms.ddpg import DDPGConfig
+from ray.rllib.algorithms.marwil import MARWILConfig
+from ray.rllib.algorithms.impala import ImpalaConfig
+from gymnasium.wrappers import EnvCompatibility
+from ray.tune.registry import register_env
+from myGym.envs.gym_env import GymEnv
+from ray.rllib.algorithms.algorithm import Algorithm
+import sys
+
+
+from ray.rllib.policy.policy import Policy
+
+
+NUM_WORKERS = 1
+
+
+def get_parser():
+    parser = argparse.ArgumentParser()
+    #Envinronment
+    parser.add_argument("-cfg", "--config", default="./configs/train_A_RDDL.json", help="Can be passed instead of all arguments")
+    parser.add_argument("-rt", "--ray_tune", action='store_true', help="Whether to train with ray grid search")
+    parser.add_argument("-n", "--env_name", type=str, help="The name of environment")
+    parser.add_argument("-ws", "--workspace", type=str, help="The name of workspace")
+    parser.add_argument("-p", "--engine", type=str,  help="Name of the simulation engine you want to use")
+    parser.add_argument("-sd", "--seed", type=int, help="Seed number")
+    parser.add_argument("-d", "--render", type=str,  help="Type of rendering: opengl, opencv")
+    parser.add_argument("-c", "--camera", type=int, help="The number of camera used to render and record")
+    parser.add_argument("-vi", "--visualize", type=int,  help="Whether visualize camera render and vision in/out or not: 1 or 0")
+    parser.add_argument("-vg", "--visgym", type=int,  help="Whether visualize gym background: 1 or 0")
+    parser.add_argument("-g", "--gui", type=int, help="Wether the GUI of the simulation should be used or not: 1 or 0")
+    #Robot
+    parser.add_argument("-b", "--robot", type=str, help="Robot to train: kuka, panda, jaco ...")
+    parser.add_argument("-bi", "--robot_init", nargs="*", type=float, help="Initial robot's end-effector position")
+    parser.add_argument("-ba", "--robot_action", type=str, help="Robot's action control: step - end-effector relative position, absolute - end-effector absolute position, joints - joints' coordinates")
+    parser.add_argument("-mv", "--max_velocity", type=float, help="Maximum velocity of robotic arm")
+    parser.add_argument("-mf", "--max_force", type=float, help="Maximum force of robotic arm")
+    parser.add_argument("-ar", "--action_repeat", type=int, help="Substeps of simulation without action from env")
+    #Task
+    parser.add_argument("-tt", "--task_type", type=str,  help="Type of task to learn: reach, push, throw, pick_and_place")
+    parser.add_argument("-to", "--task_objects", nargs="*", type=str, help="Object (for reach) or a pair of objects (for other tasks) to manipulate with")
+    parser.add_argument("-u", "--used_objects", nargs="*", type=str, help="List of extra objects to randomly appear in the scene")
+    #Distractors
+    parser.add_argument("-di", "--distractors", type=str, help="Object (for reach) to evade")
+    parser.add_argument("-dm", "--distractor_moveable", type=int, help="can distractor move (0/1)")
+    parser.add_argument("-ds", "--distractor_constant_speed", type=int, help="is speed of distractor constant (0/1)")
+    parser.add_argument("-dd", "--distractor_movement_dimensions", type=int, help="in how many directions can the distractor move (1/2/3)")
+    parser.add_argument("-de", "--distractor_movement_endpoints", nargs="*", type=float, help="2 coordinates (starting point and ending point)")
+    parser.add_argument("-no", "--observed_links_num", type=int, help="number of robot links in observation space")
+    #Reward
+    parser.add_argument("-re", "--reward", type=str,  help="Defines how to compute the reward")
+    parser.add_argument("-dt", "--distance_type", type=str, help="Type of distance metrics: euclidean, manhattan")
+    #Train
+    parser.add_argument("-w", "--train_framework", type=str,  help="Name of the training framework you want to use: {tensorflow, pytorch}")
+    parser.add_argument("-a", "--algo", type=str,  help="The learning algorithm to be used (ppo2 or her)")
+    parser.add_argument("-s", "--steps", type=int, help="The number of steps to train")
+    parser.add_argument("-ms", "--max_episode_steps", type=int,  help="The maximum number of steps per episode")
+    parser.add_argument("-ma", "--algo_steps", type=int,  help="The number of steps per for algo training (PPO2,A2C)")
+    #Evaluation
+    parser.add_argument("-ef", "--eval_freq", type=int,  help="Evaluate the agent every eval_freq steps")
+    parser.add_argument("-e", "--eval_episodes", type=int,  help="Number of episodes to evaluate performance of the robot")
+    #Saving and Logging
+    parser.add_argument("-l", "--logdir", type=str,  help="Where to save results of training and trained models")
+    parser.add_argument("-r", "--record", type=int, help="1: make a gif of model perfomance, 2: make a video of model performance, 0: don't record")
+    #Mujoco
+    parser.add_argument("-i", "--multiprocessing", type=int,  help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
+    parser.add_argument("-v", "--vectorized_envs", type=int,  help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
+    #Paths
+    parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")
+    parser.add_argument("-vp", "--vae_path", type=str, help="Path to a trained VAE in 2dvu reward type")
+    parser.add_argument("-yp", "--yolact_path", type=str, help="Path to a trained Yolact in 3dvu reward type")
+    parser.add_argument("-yc", "--yolact_config", type=str, help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
+    parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
+    return parser
+
+
+def configure_implemented_combos(arg_dict):
+    implemented_combos = {"ppo": PPOConfig, "sac": SACConfig, "marwil": MARWILConfig, "appo":APPOConfig, "ddpg":DDPGConfig}
+    return implemented_combos[arg_dict["algo"]]
+
+
+def build_env(arg_dict, model_logdir=None, for_train=True):
+    env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
+                     "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
+                     "robot_action": arg_dict["robot_action"],"max_velocity": arg_dict["max_velocity"],
+                     "max_force": arg_dict["max_force"],"task_type": arg_dict["task_type"],
+                     "action_repeat": arg_dict["action_repeat"],
+                     "task_objects":arg_dict["task_objects"], "observation":arg_dict["observation"], "distractors":arg_dict["distractors"],
+                     "num_networks":arg_dict.get("num_networks", 1), "network_switcher":arg_dict.get("network_switcher", "gt"),
+                     "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
+                     "active_cameras": arg_dict["camera"], "color_dict":arg_dict.get("color_dict", {}),
+                     "max_episode_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
+                     "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
+                     "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"],
+                     "natural_language": bool(arg_dict["natural_language"]),
+                     }
+    if for_train:
+        env_arguments["gui_on"] = arg_dict["gui"]
+    else:
+        env_arguments["gui_on"] = arg_dict["gui"]
+
+    if arg_dict["algo"] == "her":
+        env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
+    else:
+        env = gym.make(arg_dict["env_name"], **env_arguments)
+    if for_train:
+        if arg_dict["engine"] == "mujoco":
+            env = VecMonitor(env, model_logdir) if arg_dict["multiprocessing"] else Monitor(env, model_logdir)
+        elif arg_dict["engine"] == "pybullet":
+           try:
+                env = Monitor(env, model_logdir, info_keywords=tuple('d'))
+           except:
+                pass
+
+    if arg_dict["algo"] == "her":
+        env = HERGoalEnvWrapper(env)
+    return env
+
+def get_arguments(parser):
+    args = parser.parse_args()
+    with open(args.config, "r") as f:
+            arg_dict = commentjson.load(f)
+    for key, value in vars(args).items():
+        if value is not None and key != "config":
+            if key in ["robot_init"]:
+                arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
+            else:
+                arg_dict[key] = value
+    return arg_dict, args
+
+
+def configure_env(arg_dict, for_train=True):
+    env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
+                     "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
+                     "robot_action": arg_dict["robot_action"],"max_velocity": arg_dict["max_velocity"],
+                     "max_force": arg_dict["max_force"],"task_type": arg_dict["task_type"],
+                     "action_repeat": arg_dict["action_repeat"],
+                     "task_objects":arg_dict["task_objects"], "observation":arg_dict["observation"], "distractors":arg_dict["distractors"],
+                     "num_networks":arg_dict.get("num_networks", 1), "network_switcher":arg_dict.get("network_switcher", "gt"),
+                     "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
+                     "active_cameras": arg_dict["camera"], "color_dict":arg_dict.get("color_dict", {}),
+                     "max_episode_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
+                     "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
+                     "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"], "algo":arg_dict["algo"]}
+    if for_train:
+        env_arguments["gui_on"] = arg_dict["gui"]
+    else:
+        env_arguments["gui_on"] = arg_dict["gui"]
+    return env_arguments
+
+
+def env_creator(env_config):
+        env = EnvCompatibility(GymEnv(**env_config))
+        env.spec.max_episode_steps = 512
+        return env
+
+def test_model(arg_dict):
+    # Define the configuration for the trainer
+    register_env('GymEnv-v0', env_creator)
+    env_args = configure_env(arg_dict, for_train=False)
+
+    # Create environment
+    env_args.pop("algo")
+    env = env_creator(env_args)
+
+    state = env.reset()[0]
+    env.render()
+    done = False
+
+    # learned policy from checkpoint
+    testing_policy = Policy.from_checkpoint("./trained_models/A/A_table_tiago_tiago_dual_absolute_gripper_ppo_2/") #Specify model policy path name
+
+    while not done:
+        action = testing_policy.compute_single_action(state)[0]
+        state, reward, done, _ = env.step(action)[:4]
+
+        # Render the environment
+        env.render()
+
+    env.close()
+    ray.shutdown()
+
+if __name__ == "__main__":
+    ray.init(num_gpus=1, num_cpus=5)
+    parser = get_parser()
+    arg_dict, args = get_arguments(parser)
+    test_model(arg_dict)
