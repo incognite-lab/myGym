@@ -404,6 +404,7 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     for e in range(arg_dict["eval_episodes"]):
         done = False
         obs = env.reset()
+        print("Observation:", obs)
         is_successful = 0
         distance_error = 0
         step_sum = 0
@@ -475,6 +476,10 @@ def main():
         print("Path to the model using --model_path argument not specified. Testing random actions in selected environment.")
         arg_dict["gui"] = 1
         env = configure_env(arg_dict, model_logdir, for_train=0)
+        print("ACTIVE CAMERAS:", env.active_cameras)
+        print("PRINTING ENV:", env)
+        print("PRINTING ENV:", env)
+        print("PRINTING ENV:", env)
         test_env(env, arg_dict)
         
     else:        

@@ -137,6 +137,15 @@ def get_parser():
     parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
     return parser
 
+
+def create_filename(arg_dict):
+    """Creates directory for saved policy checkpoint"""
+    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join(
+        (arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"], arg_dict["robot_action"], arg_dict["algo"])))
+    model_logdir = model_logdir_ori
+
+
+
 def get_arguments(parser):
     args = parser.parse_args()
     with open(args.config, "r") as f:
@@ -149,11 +158,11 @@ def get_arguments(parser):
                 arg_dict[key] = value
     return arg_dict, args
 
-def train(args, arg_dict, algorithm, num_steps, algo_steps):
+def train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name):
 
     algo = (
             algorithm()
-            .rollouts(num_rollout_workers=NUM_WORKERS, batch_mode="complete_episodes") # You can try to increase or decrease based on your systems specs
+            .rollouts(num_rollout_workers=NUM_WORKERS, batch_mode="complete_episodes", create_env_on_local_worker = False) # You can try to increase or decrease based on your systems specs
             .resources(num_gpus=1, num_gpus_per_worker=1/NUM_WORKERS) # You can try to increase or decrease based on your systems specs
             .environment(env='GymEnv-v0', env_config=arg_dict)
             .framework('torch')
@@ -171,14 +180,15 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps):
             print(pretty_print(result))
             # stop training of the target train steps or reward are reached
             if _ % 50 == 0:
-                algo.save(arg_dict['logdir'])
+                policy = algo.get_policy()
+                policy.export_checkpoint(dir_name)
                 print(f"Checkpoint saved in directory {arg_dict['logdir']}")
 
             if result["timesteps_total"] >= num_steps:
                 break
         algo.stop()
-        #checkpoint_path = arg_dict['logdir']  # specify your directory and file name here
-        algo.save(arg_dict['logdir'])
+        policy = algo.get_policy()
+        policy.export_checkpoint(dir_name)
     else:
         print("Running train loop with Ray Tune.")
         ray.tune.run(
@@ -223,6 +233,7 @@ def main():
         except:
             model_logdir = "_".join((model_logdir_ori, str(add)))
             add += 1
+    dir_name = model_logdir
 
     num_steps = arg_dict["steps"]
     algo_steps = arg_dict["algo_steps"]
@@ -232,7 +243,7 @@ def main():
     #    assert arg_dict["algo"] == "ppo", "Training without ray tune only works with PPO (rllib limitation)"
     algorithm = configure_implemented_combos(arg_dict)
     arg_dict.pop("algo")
-    train(args, arg_dict, algorithm, num_steps, algo_steps)
+    train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name)
 
 
 if __name__ == "__main__":
