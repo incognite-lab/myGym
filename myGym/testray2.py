@@ -175,7 +175,9 @@ def test_model(arg_dict):
     done = False
 
     # learned policy from checkpoint
-    testing_policy = Policy.from_checkpoint("./trained_models/A/A_table_tiago_tiago_dual_absolute_gripper_ppo_2/") #Specify model policy path name
+    model_path = arg_dict["model_path"] + "policies/default_policy/"
+    #model_pah =  "./trained_models/A/A_table_tiago_tiago_dual_absolute_gripper_ppo_2/"
+    testing_policy = Policy.from_checkpoint(model_path) #Specify model policy path name
 
     while not done:
         action = testing_policy.compute_single_action(state)[0]
