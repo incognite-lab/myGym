@@ -187,6 +187,70 @@ def env_creator(env_config):
         return env
 
 
+def test_env(arg_dict):
+    register_env('GymEnv-v0', env_creator)
+    env_args = configure_env(arg_dict, for_train=False)
+
+    # Create environment
+    env_args.pop("algo")
+    env = env_creator(env_args)
+
+    if arg_dict["gui"] == 0:
+        print ("Add --gui 1 parameter to visualize environment")
+        quit()
+
+    p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+
+    for e in range(50):
+        observation = env.reset()[0]
+        for t in range(arg_dict["max_episode_steps"]):
+            if arg_dict["control"] == "oraculum":
+                if t == 0:
+                    action = env.action_space.sample()
+                else:
+                    if "absolute" in arg_dict["robot_action"]:
+                        if env.env.reward.reward_name == "approach":
+                            if env.env.reward.rewards_num <= 2:
+                                action[:3] = info['o']["goal_state"][:3]
+                            else:
+                                action[:3] = info['o']["actual_state"][:3]
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 1
+                                action[4] = 1
+                        if env.env.reward.reward_name == "grasp":
+                            print("grasp but no gripper")
+                            print(arg_dict["robot_action"])
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 0
+                                action[4] = 0
+                                print("gripper")
+                        if env.env.reward.reward_name == "move":
+                            action[:3] = info['o']["goal_state"][:3]
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 0
+                                action[4] = 0
+                        if env.env.reward.reward_name == "drop":
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 1
+                                action[4] = 1
+                        if env.env.reward.reward_name == "withdraw":
+                            action[:3] = np.array(info['o']["actual_state"][:3]) + np.array([0,0,0.4])
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 1
+                                action[4] = 1
+                    else:
+                        print("ERROR - Oraculum mode only works for absolute actions")
+                        quit()
+            observation, reward, done, _, info = env.step(action)[:5]
+            time.sleep(0.01)
+            if done:
+                print("Episode finished after {} timesteps".format(t + 1))
+                break
+
+
+
+
+
 def test_model(arg_dict):
     # Define the configuration for the trainer
     register_env('GymEnv-v0', env_creator)
@@ -252,5 +316,11 @@ def test_model(arg_dict):
 if __name__ == "__main__":
     ray.init(num_gpus=1, num_cpus=5)
     parser = get_parser()
+    parser.add_argument("-ct", "--control", default="slider",
+                        help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     arg_dict, args = get_arguments(parser)
-    test_model(arg_dict)
+    if arg_dict.get("model_path") is None:
+        print("Path to the model using --model_path argument not specified. Testing actions in environment.")
+        test_env(arg_dict)
+    else:
+        test_model(arg_dict)
