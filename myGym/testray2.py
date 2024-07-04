@@ -227,10 +227,10 @@ def test_model(arg_dict):
             env.render()
         success_episodes_num += is_successful
         distance_error_sum += distance_error
-    env.close()
+
     mean_distance_error = distance_error_sum / arg_dict["eval_episodes"]
     mean_steps_num = steps_sum // arg_dict["eval_episodes"]
-
+    env.close()
     #Evaluation summary printout
     print("#---------Evaluation-Summary---------#")
     print("{} of {} episodes ({} %) were successful".format(success_episodes_num, arg_dict["eval_episodes"],
@@ -239,13 +239,14 @@ def test_model(arg_dict):
     print("Mean number of steps {}".format(mean_steps_num))
     print("#------------------------------------#")
     model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
-    file = open(os.path.join(model_logdir, "train_" + model_name + ".txt"), 'a')
+    file = open(os.path.join(arg_dict['logdir'], "train_" + model_name + ".txt"), 'a')
     file.write("\n")
     file.write("#Evaluation results: \n")
     file.write("#{} of {} episodes were successful \n".format(success_episodes_num, arg_dict["eval_episodes"]))
     file.write("#Mean distance error is {:.2f}% \n".format(mean_distance_error * 100))
     file.write("#Mean number of steps {}\n".format(mean_steps_num))
     file.close()
+
     ray.shutdown()
 
 if __name__ == "__main__":

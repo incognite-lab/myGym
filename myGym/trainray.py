@@ -158,6 +158,9 @@ def get_arguments(parser):
                 arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
             else:
                 arg_dict[key] = value
+        else:
+            if key in ["checkpoint"]:
+                arg_dict[key] = args.checkpoint
     return arg_dict, args
 
 def train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name):
@@ -195,7 +198,7 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name):
             if result["timesteps_total"] >= num_steps:
                 break
         algo.stop()
-        # policy = algo.get_policy()
+        # policy = algo.get_policy()gis
         # policy.export_checkpoint(dir_name)
         algo.save(dir_name)
     else:
