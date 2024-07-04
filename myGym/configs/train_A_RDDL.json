@@ -43,12 +43,12 @@
     "num_networks"      :1,
     "max_episode_steps" :512,
     "algo_steps"        :512,
-    "steps"             :30000,
+    "steps"             :1000000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
     "eval_freq"     :100000,
-    "eval_episodes" :30,
+    "eval_episodes" :2,
     #Saving and logging
     "logdir"    :"trained_models/A",
     "record"    :0
