@@ -21,6 +21,8 @@ from train import get_parser, get_arguments, AVAILABLE_SIMULATION_ENGINES
 from gymnasium.wrappers import EnvCompatibility
 from ray.tune.registry import register_env
 from myGym.envs.gym_env import GymEnv
+from ray.rllib.algorithms.algorithm import Algorithm
+
 
 NUM_WORKERS = 1
 ALGO = PPOConfig
@@ -159,18 +161,23 @@ def get_arguments(parser):
     return arg_dict, args
 
 def train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name):
-
-    algo = (
-            algorithm()
-            .rollouts(num_rollout_workers=NUM_WORKERS, batch_mode="complete_episodes", create_env_on_local_worker = False) # You can try to increase or decrease based on your systems specs
-            .resources(num_gpus=1, num_gpus_per_worker=1/NUM_WORKERS) # You can try to increase or decrease based on your systems specs
-            .environment(env='GymEnv-v0', env_config=arg_dict)
-            .framework('torch')
-            .training(train_batch_size=512)
-            .build()
-        )
+    if algorithm is not None:
+        #If learning from scratch, create a new algorithm object
+        algo = (
+                algorithm()
+                .rollouts(num_rollout_workers=NUM_WORKERS, batch_mode="complete_episodes", create_env_on_local_worker = False) # You can try to increase or decrease based on your systems specs
+                .resources(num_gpus=1, num_gpus_per_worker=1/NUM_WORKERS) # You can try to increase or decrease based on your systems specs
+                .environment(env='GymEnv-v0', env_config=arg_dict)
+                .framework('torch')
+                .training(train_batch_size=512)
+                .build()
+            )
+    else:
+        #If learning from checkpoint, load already trained algorithm
+        algo = Algorithm.from_checkpoint(dir_name)
 
     if not args.ray_tune:
+
         # manual training with train loop using PPO and fixed learning rate
         print("Running manual train loop without Ray Tune.")
         # use fixed learning rate instead of grid search (needs tune)
@@ -180,15 +187,17 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name):
             print(pretty_print(result))
             # stop training of the target train steps or reward are reached
             if _ % 50 == 0:
-                policy = algo.get_policy()
-                policy.export_checkpoint(dir_name)
-                print(f"Checkpoint saved in directory {arg_dict['logdir']}")
+                # policy = algo.get_policy()
+                # policy.export_checkpoint(dir_name)
+                algo.save(dir_name)
+                print(f"Checkpoint saved in directory {dir_name}")
 
             if result["timesteps_total"] >= num_steps:
                 break
         algo.stop()
-        policy = algo.get_policy()
-        policy.export_checkpoint(dir_name)
+        # policy = algo.get_policy()
+        # policy.export_checkpoint(dir_name)
+        algo.save(dir_name)
     else:
         print("Running train loop with Ray Tune.")
         ray.tune.run(
@@ -213,6 +222,7 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name):
 
 def main():
     parser = get_parser()
+    parser.add_argument("-chp", "--checkpoint", default=None, help="Path to algorithm checkpoint (e.g. ./trained_models/A/A_table_tiago_tiago_dual_absolute_gripper_ppo/)")
     arg_dict, args = get_arguments(parser)
     ray.init(num_gpus=1, num_cpus=5)
 
@@ -225,14 +235,21 @@ def main():
     os.makedirs(arg_dict["logdir"], exist_ok=True)
     model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["task_type"],arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["algo"])))
     model_logdir = model_logdir_ori
-    add = 2
-    while True:
-        try:
-            os.makedirs(model_logdir, exist_ok=False)
-            break
-        except:
-            model_logdir = "_".join((model_logdir_ori, str(add)))
-            add += 1
+    algorithm = None
+    if arg_dict["checkpoint"] is None:
+        #Create a new directory when training an algorithm from scratch
+        add = 2
+        while True:
+            try:
+                os.makedirs(model_logdir, exist_ok=False)
+                break
+            except:
+                model_logdir = "_".join((model_logdir_ori, str(add)))
+                add += 1
+        algorithm = configure_implemented_combos(arg_dict)
+    else:
+        #Use already established directory to save further checkpoints when loading algorithm from checkpoint
+        model_logdir = arg_dict["checkpoint"]
     dir_name = model_logdir
 
     num_steps = arg_dict["steps"]
@@ -241,7 +258,7 @@ def main():
     register_env('GymEnv-v0', env_creator)
     #if not args.ray_tune:
     #    assert arg_dict["algo"] == "ppo", "Training without ray tune only works with PPO (rllib limitation)"
-    algorithm = configure_implemented_combos(arg_dict)
+
     arg_dict.pop("algo")
     train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name)
 

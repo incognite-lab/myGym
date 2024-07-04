@@ -476,10 +476,6 @@ def main():
         print("Path to the model using --model_path argument not specified. Testing random actions in selected environment.")
         arg_dict["gui"] = 1
         env = configure_env(arg_dict, model_logdir, for_train=0)
-        print("ACTIVE CAMERAS:", env.active_cameras)
-        print("PRINTING ENV:", env)
-        print("PRINTING ENV:", env)
-        print("PRINTING ENV:", env)
         test_env(env, arg_dict)
         
     else:        
