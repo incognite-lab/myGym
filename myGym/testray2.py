@@ -13,7 +13,9 @@ from gymnasium.wrappers import EnvCompatibility
 from ray.tune.registry import register_env
 from myGym.envs.gym_env import GymEnv
 from ray.rllib.algorithms.algorithm import Algorithm
+import pybullet as p
 import sys
+import os
 
 
 from ray.rllib.policy.policy import Policy
@@ -84,6 +86,29 @@ def get_parser():
 def configure_implemented_combos(arg_dict):
     implemented_combos = {"ppo": PPOConfig, "sac": SACConfig, "marwil": MARWILConfig, "appo":APPOConfig, "ddpg":DDPGConfig}
     return implemented_combos[arg_dict["algo"]]
+
+
+def visualize_infotext(action, env, info):
+    p.addUserDebugText(f"Episode:{env.env.episode_number}",
+        [.65, 1., 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
+    p.addUserDebugText(f"Step:{env.env.episode_steps}",
+        [.67, 1, .40], textSize=1.0, lifeTime=0.5, textColorRGB=[0.2, 0.8, 1])
+    p.addUserDebugText(f"Subtask:{env.env.task.current_task}",
+        [.69, 1, 0.35], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
+    p.addUserDebugText(f"Network:{env.env.reward.current_network}",
+        [.71, 1, 0.3], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+    p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),2))}",
+        [.73, 1, 0.25], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
+    p.addUserDebugText(f"Actual_state:{matrix(np.around(np.array(env.env.observation['task_objects']['actual_state'][:3]),2))}",
+        [.75, 1, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
+    p.addUserDebugText(f"End_effector:{matrix(np.around(np.array(env.env.robot.end_effector_pos),2))}",
+        [.77, 1, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
+    p.addUserDebugText(f"        Object:{matrix(np.around(np.array(info['o']['actual_state']),2))}",
+        [.8, 1, 0.10], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+    p.addUserDebugText(f"Velocity:{env.env.max_velocity}",
+        [.79, 1, 0.05], textSize=1.0, lifeTime=0.5, textColorRGB=[0.6, 0.8, .3])
+    p.addUserDebugText(f"Force:{env.env.max_force}",
+        [.81, 1, 0.00], textSize=1.0, lifeTime=0.5, textColorRGB=[0.3, 0.2, .4])
 
 
 def build_env(arg_dict, model_logdir=None, for_train=True):
@@ -161,6 +186,7 @@ def env_creator(env_config):
         env.spec.max_episode_steps = 512
         return env
 
+
 def test_model(arg_dict):
     # Define the configuration for the trainer
     register_env('GymEnv-v0', env_creator)
@@ -170,23 +196,56 @@ def test_model(arg_dict):
     env_args.pop("algo")
     env = env_creator(env_args)
 
-    state = env.reset()[0]
-    env.render()
-    done = False
+
+
+
+    #variables for evaluation
+    success_episodes_num = 0
+    distance_error_sum = 0
+    steps_sum = 0
+
 
     # learned policy from checkpoint
     model_path = arg_dict["model_path"] + "policies/default_policy/"
-    #model_pah =  "./trained_models/A/A_table_tiago_tiago_dual_absolute_gripper_ppo_2/"
+    #model_path =  "./trained_models/A/A_table_tiago_tiago_dual_absolute_gripper_ppo_2/"
     testing_policy = Policy.from_checkpoint(model_path) #Specify model policy path name
 
-    while not done:
-        action = testing_policy.compute_single_action(state)[0]
-        state, reward, done, _ = env.step(action)[:4]
-
-        # Render the environment
-        env.render()
-
+    #Evaluation loop
+    for e in range(arg_dict["eval_episodes"]):
+        # Initial state
+        state = env.reset()[0]
+        is_successful = 0
+        distance_error = 0
+        done = False
+        while not done:
+            steps_sum += 1
+            action = testing_policy.compute_single_action(state)[0]
+            state, reward, done, _, info = env.step(action)[:5]
+            is_successful = not info['f']
+            distance_error = info['d']
+            # Render the environment
+            env.render()
+        success_episodes_num += is_successful
+        distance_error_sum += distance_error
     env.close()
+    mean_distance_error = distance_error_sum / arg_dict["eval_episodes"]
+    mean_steps_num = steps_sum // arg_dict["eval_episodes"]
+
+    #Evaluation summary printout
+    print("#---------Evaluation-Summary---------#")
+    print("{} of {} episodes ({} %) were successful".format(success_episodes_num, arg_dict["eval_episodes"],
+                                                            success_episodes_num / arg_dict["eval_episodes"] * 100))
+    print("Mean distance error is {:.2f}%".format(mean_distance_error * 100))
+    print("Mean number of steps {}".format(mean_steps_num))
+    print("#------------------------------------#")
+    model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
+    file = open(os.path.join(model_logdir, "train_" + model_name + ".txt"), 'a')
+    file.write("\n")
+    file.write("#Evaluation results: \n")
+    file.write("#{} of {} episodes were successful \n".format(success_episodes_num, arg_dict["eval_episodes"]))
+    file.write("#Mean distance error is {:.2f}% \n".format(mean_distance_error * 100))
+    file.write("#Mean number of steps {}\n".format(mean_steps_num))
+    file.close()
     ray.shutdown()
 
 if __name__ == "__main__":
