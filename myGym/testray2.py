@@ -16,6 +16,7 @@ from ray.rllib.algorithms.algorithm import Algorithm
 import pybullet as p
 import sys
 import os
+import numpy as np
 
 
 from ray.rllib.policy.policy import Policy
@@ -242,7 +243,10 @@ def test_env(arg_dict):
                         print("ERROR - Oraculum mode only works for absolute actions")
                         quit()
             observation, reward, done, _, info = env.step(action)[:5]
-            time.sleep(0.01)
+            #print("info:", info)
+            gripper_pos = info['o']['additional_obs']['endeff_xyz']
+            action[:3] = gripper_pos
+            env.step(action)
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
                 break
