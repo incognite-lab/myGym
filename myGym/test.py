@@ -471,7 +471,6 @@ def main():
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
-        return
     if arg_dict.get("model_path") is None:
         print("Path to the model using --model_path argument not specified. Testing random actions in selected environment.")
         arg_dict["gui"] = 1
