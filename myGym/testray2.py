@@ -14,6 +14,7 @@ from ray.tune.registry import register_env
 from myGym.envs.gym_env import GymEnv
 from ray.rllib.algorithms.algorithm import Algorithm
 import pybullet as p
+import pybullet_data
 import sys
 import os
 import numpy as np
@@ -149,6 +150,51 @@ def build_env(arg_dict, model_logdir=None, for_train=True):
         env = HERGoalEnvWrapper(env)
     return env
 
+
+def detect_key(keypress,arg_dict,action):
+
+    if 97 in keypress.keys() and keypress[97] == 1: # A
+        action[2] += .03
+        print(action)
+    if 122 in keypress.keys() and keypress[122] == 1: # Z/Y
+        action[2] -= .03
+        print(action)
+    if 65297 in keypress.keys() and keypress[65297] == 1: # ARROW UP
+        action[1] -= .03
+        print(action)
+    if 65298 in keypress.keys() and keypress[65298] == 1: # ARROW DOWN
+        action[1] += .03
+        print(action)
+    if 65295 in keypress.keys() and keypress[65295] == 1: # ARROW LEFT
+        action[0] += .03
+        print(action)
+    if 65296 in keypress.keys() and keypress[65296] == 1: # ARROW RIGHT
+        action[0] -= .03
+        print(action)
+    if 120 in keypress.keys() and keypress[120] == 1: # X
+        action[3] -= .005
+        action[4] -= .005
+        print(action)
+    if 99 in keypress.keys() and keypress[99] == 1: # C
+        action[3] += .005
+        action[4] += .005
+        print(action)
+    # if 100 in keypress.keys() and keypress[100] == 1:
+    #     cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
+    #     change_dynamics(cube[cubecount],lfriction,rfriction,ldamping,adamping)
+    #     cubecount +=1
+    if "step" in arg_dict["robot_action"]:
+        action[:3] = np.multiply(action [:3],10)
+    elif "joints" in arg_dict["robot_action"]:
+        print("Robot action: Joints - KEYBOARD CONTROL UNDER DEVELOPMENT")
+        quit()
+    #for i in range (env.action_space.shape[0]):
+    #    env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
+    #    env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
+    return action
+
+
+
 def get_arguments(parser):
     args = parser.parse_args()
     with open(args.config, "r") as f:
@@ -189,6 +235,8 @@ def env_creator(env_config):
 
 
 def test_env(arg_dict):
+    arg_dict["vsampling"] = 0
+    arg_dict["vinfo"] = 0
     register_env('GymEnv-v0', env_creator)
     env_args = configure_env(arg_dict, for_train=False)
 
@@ -196,16 +244,104 @@ def test_env(arg_dict):
     env_args.pop("algo")
     env = env_creator(env_args)
 
+    p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+    p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
+    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+
+    joints = ['Joint1', 'Joint2', 'Joint3', 'Joint4', 'Joint5', 'Joint6', 'Joint7', 'Joint 8', 'Joint 9', 'Joint10',
+              'Joint11', 'Joint12', 'Joint13', 'Joint14', 'Joint15', 'Joint16', 'Joint17', 'Joint 18', 'Joint 19']
+    jointparams = ['Jnt1', 'Jnt2', 'Jnt3', 'Jnt4', 'Jnt5', 'Jnt6', 'Jnt7', 'Jnt 8', 'Jnt 9', 'Jnt10', 'Jnt11', 'Jnt12',
+                   'Jnt13', 'Jnt14', 'Jnt15', 'Jnt16', 'Jnt17', 'Jnt 18', 'Jnt 19']
+
     if arg_dict["gui"] == 0:
         print ("Add --gui 1 parameter to visualize environment")
         quit()
 
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+    p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
+    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+
+    if arg_dict["control"] == "slider":
+        p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
+        if "joints" in arg_dict["robot_action"]:
+            if 'gripper' in arg_dict["robot_action"]:
+                print ("gripper is present")
+                for i in range (env.action_space.shape[0]):
+                    if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
+                        joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
+                    else:
+                        joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], .02)
+            else:
+                for i in range (env.action_space.shape[0]):
+                    joints[i] = p.addUserDebugParameter(joints[i],env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
+        elif "absolute" in arg_dict["robot_action"]:
+            if 'gripper' in arg_dict["robot_action"]:
+                print ("gripper is present")
+                for i in range (env.action_space.shape[0]):
+                    if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
+                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
+                    else:
+                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
+            else:
+                for i in range (env.action_space.shape[0]):
+                    joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
+        elif "step" in arg_dict["robot_action"]:
+            if 'gripper' in arg_dict["robot_action"]:
+                print ("gripper is present")
+                for i in range (env.action_space.shape[0]):
+                    if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
+                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
+                    else:
+                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
+            else:
+                for i in range (env.action_space.shape[0]):
+                    joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
+
+
+    if arg_dict["control"] == "keyboard":
+        action = arg_dict["robot_init"]
+        if "gripper" in arg_dict["robot_action"]:
+            action.append(.1)
+            action.append(.1)
+
+    if arg_dict["control"] == "random":
+        action = env.action_space.sample()
+    if arg_dict["control"] == "keyboard":
+        action = arg_dict["robot_init"]
+        # if "gripper" in arg_dict["robot_action"]:
+        #     action.append(.1)
+        #     action.append(.1)
+    if arg_dict["control"] == "slider":
+        action = []
+        for i in range(env.action_space.shape[0]):
+            jointparams[i] = p.readUserDebugParameter(joints[i])
+            action.append(jointparams[i])
+
 
     for e in range(50):
         observation = env.reset()[0]
         for t in range(arg_dict["max_episode_steps"]):
-            if arg_dict["control"] == "oraculum":
+
+            if arg_dict["control"] == "slider":
+                action = []
+                for i in range(env.action_space.shape[0]):
+                    jointparams[i] = p.readUserDebugParameter(joints[i])
+                    action.append(jointparams[i])
+                    # env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
+                    # env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
+
+            if arg_dict["control"] == "observation":
+                if t == 0:
+                    action = env.action_space.sample()
+                else:
+                    if "joints" in arg_dict["robot_action"]:
+                        action = info['o']["additional_obs"]["joints_angles"] #n
+                    elif "absolute" in arg_dict["robot_action"]:
+                        action = info['o']["actual_state"]
+                    else:
+                        action = [0,0,0]
+
+            elif arg_dict["control"] == "oraculum":
                 if t == 0:
                     action = env.action_space.sample()
                 else:
@@ -219,12 +355,10 @@ def test_env(arg_dict):
                                 action[3] = 1
                                 action[4] = 1
                         if env.env.reward.reward_name == "grasp":
-                            print("grasp but no gripper")
-                            print(arg_dict["robot_action"])
+                            #print(arg_dict["robot_action"])
                             if "gripper" in arg_dict["robot_action"]:
                                 action[3] = 0
                                 action[4] = 0
-                                print("gripper")
                         if env.env.reward.reward_name == "move":
                             action[:3] = info['o']["goal_state"][:3]
                             if "gripper" in arg_dict["robot_action"]:
@@ -242,11 +376,33 @@ def test_env(arg_dict):
                     else:
                         print("ERROR - Oraculum mode only works for absolute actions")
                         quit()
+
+            elif arg_dict["control"] == "keyboard":
+                keypress = p.getKeyboardEvents()
+                # print(action)
+                # if env.env.reward.reward_name == "grasp":
+                #     #print("grasping")
+                # else:
+                #     print("reward name:", env.env.reward.reward_name)
+                action = detect_key(keypress, arg_dict, action)
+            elif arg_dict["control"] == "random":
+                    action = env.action_space.sample()
+
+
             observation, reward, done, _, info = env.step(action)[:5]
+
             #print("info:", info)
-            gripper_pos = info['o']['additional_obs']['endeff_xyz']
-            action[:3] = gripper_pos
-            env.step(action)
+            if arg_dict["control"] == "oraculum":
+                gripper_pos = info['o']['additional_obs']['endeff_xyz']
+                action[:3] = gripper_pos
+                env.step(action)
+            elif "step" in arg_dict["robot_action"]:
+                action[:3] = [0,0,0]
+                gripper_pos = np.array(info['o']['additional_obs']['endeff_xyz'])
+                object_pos = np.array(info['o']['actual_state'])[:3]
+                dist = np.linalg.norm(object_pos - gripper_pos)
+                #print("object distance:", dist)
+
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
                 break
