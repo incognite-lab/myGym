@@ -84,7 +84,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "num_networks":arg_dict.get("num_networks", 1), "network_switcher":arg_dict.get("network_switcher", "gt"),
                      "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
                      "active_cameras": arg_dict["camera"], "color_dict":arg_dict.get("color_dict", {}),
-                     "max_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
+                     "max_episode_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
                      "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"],
                      "natural_language": bool(arg_dict["natural_language"]),

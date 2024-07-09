@@ -856,7 +856,7 @@
   <joint name="endeffector_gjoint" type="fixed">
     <parent link="gripper"/>
     <child link="endeffector"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 -0.15"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 -0.20"/>
   </joint>
   <link name="endeffector">
     <visual>
@@ -918,7 +918,7 @@
     <parent link="gripper_right_link"/>
     <child link="gripper_right_right_finger_link"/>
     <axis xyz="1 0 0"/>
-    <limit effort="16" lower="0.044" upper="0.045" velocity="10"/>
+    <limit effort="16" lower="0.0" upper="0.045" velocity="10"/>
   </joint>
   <link name="gripper_right_left_finger_link">
     <inertial>
@@ -939,6 +939,6 @@
     <parent link="gripper_right_link"/>
     <child link="gripper_right_left_finger_link"/>
     <axis xyz="-1 0 0"/>
-    <limit effort="16" lower="0.044" upper="0.045" velocity="10"/>
+    <limit effort="16" lower="0.0" upper="0.045" velocity="10"/>
   </joint>
 </robot>

@@ -6,6 +6,7 @@ import time
 import numpy as np
 from gym.utils import seeding
 import gym
+from gym import envs
 import inspect
 from myGym.envs.camera import Camera
 import pkg_resources
@@ -31,16 +32,19 @@ class BaseEnv(gym.Env):
     def __init__(self,
                  gui_on=True,
                  objects_dir_path=pkg_resources.resource_filename("myGym", "envs/"),
-                 max_steps=1024,
+                 max_episode_steps=1024,
                  show_bounding_boxes_gui=False,
                  changing_light_gui=False,
                  shadows_on_gui=True
                  ):
         self.gui_on = gui_on
-        self.max_steps = max_steps
+        self.max_episode_steps = max_episode_steps
+        self.spec = envs.spec('Gym-v0')
+        self.spec.max_episode_steps = max_episode_steps
         self.show_bounding_boxes_gui = show_bounding_boxes_gui
         self.changing_light_gui = changing_light_gui
         self.shadows_on_gui = shadows_on_gui
+        self.static_scene_objects = {}
 
         # Set episode information
         self.episode_start_time = None
@@ -80,10 +84,13 @@ class BaseEnv(gym.Env):
         Connect to the PyBullet physics server in SHARED_MEMORY, GUI or DIRECT mode
         """
         if self.gui_on:
-            self.p = bc.BulletClient(connection_mode=pybullet.GUI)
-            # if (self.p < 0):
-            #     self.p = bc.BulletClient(connection_mode=p.GUI)
-            self._set_gui_mode()
+            try:
+                self.p = bc.BulletClient(connection_mode=pybullet.GUI)
+                # if (self.p < 0):
+                #     self.p = bc.BulletClient(connection_mode=p.GUI)
+                self._set_gui_mode()
+            except: #multithread training allows only one gui instance
+                self.p = bc.BulletClient(connection_mode=pybullet.DIRECT)
         else:
             self.p = bc.BulletClient(connection_mode=pybullet.DIRECT)
         self.p.setPhysicsEngineParameter(enableFileCaching=0)
