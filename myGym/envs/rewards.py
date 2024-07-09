@@ -24,6 +24,7 @@ class Reward:
         #self.check_num_networks()
         self.network_rewards = [0] * self.num_networks
         self.use_magnet = True
+        self.reward_name = None
 
     def network_switch_control(self, observation):
         if self.env.num_networks <= 1:
@@ -3004,6 +3005,7 @@ class TwoStagePnP(DualPoke):
             self.env.episode_failed = True
         self.network_rewards[0] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,1,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
+        self.reward_name = "approach"
         return reward
 
     def move_compute(self, object, goal):
@@ -3031,6 +3033,7 @@ class TwoStagePnP(DualPoke):
         ix = 1 if self.num_networks > 1 else 0
         self.network_rewards[ix] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.65,1,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
+        self.reward_name = "move"
         return reward
 
 class ThreeStagePnP(TwoStagePnP):
@@ -3099,6 +3102,7 @@ class ThreeStagePnP(TwoStagePnP):
         ix = 1 if self.num_networks > 1 else 0
         self.network_rewards[ix] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.65,1,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
+        self.reward_name = "move"
         return reward
 
 
@@ -3126,6 +3130,7 @@ class ThreeStagePnP(TwoStagePnP):
             self.env.episode_over = True
         self.network_rewards[-1] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
+        self.reward_name = "drop"
         return reward
 
     def gripper_reached_object(self, gripper, object):
@@ -3441,6 +3446,7 @@ class ThreeStagePnPRot(ThreeStagePnP):
         #    self.env.episode_failed = True
         self.network_rewards[0] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.reward_name = "approach"
         return reward
     
     def move_compute(self, object, goal):
@@ -3459,6 +3465,7 @@ class ThreeStagePnPRot(ThreeStagePnP):
         ix = 1 if self.num_networks > 1 else 0
         self.network_rewards[ix] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.reward_name = "move"
         return reward
     
     
@@ -3572,6 +3579,7 @@ class ThreeStageSwipeRot(ThreeStagePnP):
         #    self.env.episode_failed = True
         self.network_rewards[0] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.59,1,0.6], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.reward_name = "approach"
         return reward
     
     def move_compute(self, object, pregoal):
@@ -3590,6 +3598,7 @@ class ThreeStageSwipeRot(ThreeStagePnP):
         ix = 1 if self.num_networks > 1 else 0
         self.network_rewards[ix] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.reward_name = "move"
         return reward
     
     
@@ -3671,6 +3680,7 @@ class ThreeStageSwipe(ThreeStageSwipeRot):
         ix = 1 if self.num_networks > 1 else 0
         self.network_rewards[ix] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.59,1,0.6], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.reward_name = "move"
         return reward
 
 
@@ -3709,6 +3719,7 @@ class FourStagePnP(ThreeStagePnP):
             self.env.episode_over   = True
             self.env.episode_failed = True
         self.network_rewards[1] += reward
+        self.reward_name = "approach"
         return reward
     
     def move_compute(self, object, goal):
@@ -3724,6 +3735,7 @@ class FourStagePnP(ThreeStagePnP):
         self.last_move_dist = dist
         #ix = 1 if self.num_networks > 1 else 0
         self.network_rewards[2] += reward
+        self.reward_name = "move"
         return reward
 
 
@@ -3745,6 +3757,7 @@ class FourStagePnP(ThreeStagePnP):
             self.env.episode_info = "Task finished in initial configuration"
             self.env.episode_over = True
         self.network_rewards[3] += reward
+        self.reward_name = "drop"
         return reward
 
     def compute(self, observation=None):
@@ -3862,6 +3875,7 @@ class FourStagePnPRot(ThreeStagePnPRot):
         #    self.env.episode_failed = True
         self.network_rewards[0] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.reward_name = "approach"
         return reward
     
     def place_compute(self, object, goal):
@@ -3887,6 +3901,7 @@ class FourStagePnPRot(ThreeStagePnPRot):
             self.env.episode_over = True
         self.network_rewards[-1] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.1, textColorRGB=[0,0,125])
+        self.reward_name = "drop"
         return reward
     
     def move_compute(self, object, goal):
@@ -3905,6 +3920,7 @@ class FourStagePnPRot(ThreeStagePnPRot):
         ix = 1 if self.num_networks > 1 else 0
         self.network_rewards[ix] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[ix]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.reward_name = "move"
         return reward
     
     
@@ -4129,7 +4145,6 @@ class Protorewards(Reward):
         self.near_threshold = 0.1
         self.lift_threshold = 0.1
         self_above_threshold = 0.1
-    
     def compute(self, observation=None):
         #inherit and define your sequence of protoactions here
         pass
@@ -4153,6 +4168,7 @@ class Protorewards(Reward):
         self.last_find_dist = dist
         self.network_rewards[self.current_network] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,0.6,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.reward_name = "approach"
         return reward
 
 
@@ -4208,6 +4224,7 @@ class Protorewards(Reward):
         self.last_move_dist = dist
         self.network_rewards[self.current_network] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65, 0.6,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.reward_name = "move"
         return reward
     
     
@@ -4249,6 +4266,7 @@ class Protorewards(Reward):
         self.last_leave_dist = dist
         self.network_rewards[self.current_network] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[-1]}", [0.65,1,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
+        self.reward_name = "withdraw"
         return reward
     
 
@@ -4578,7 +4596,7 @@ class TurnRewardNew(Protorewards):
 
 # PROTOREWARDS
 
-class Protorewards(Reward):
+class ProtorewardsRDDL(Reward):
 
     def reset(self):
         self.last_owner = None
@@ -4611,7 +4629,6 @@ class Protorewards(Reward):
         self.lift_threshold = 0.1
         self_above_threshold = 0.1
         self.reward_name = None
-        self.rewards_num = []
 
     def compute(self, observation=None):
         # inherit and define your sequence of protoactions here
@@ -4817,11 +4834,11 @@ class Protorewards(Reward):
 
 # ATOMIC ACTIONS - Examples of 1-5 protorewards
 
-class A(Protorewards):
+class A(ProtorewardsRDDL):
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        owner = self.decide(goal_position, object_position, gripper_position, gripper_states)
+        owner = self.decide(observation)
         target = [[object_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute][owner](*target)
         self.last_owner = owner
@@ -4829,7 +4846,8 @@ class A(Protorewards):
         self.rewards_num = 1
         return reward
 
-    def decide(self, goal_position, object_position, gripper_position, gripper_states):
+    def decide(self, observation = None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         if self.gripper_approached_object(object_position, goal_position):
             if self.gripper_opened(gripper_states):
                 # self.current_network += 1
@@ -4838,11 +4856,11 @@ class A(Protorewards):
         return self.current_network
 
 
-class AaG(Protorewards):
+class AaG(ProtorewardsRDDL):
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        owner = self.decide(goal_position, object_position, gripper_position, gripper_states)
+        owner = self.decide(observation)
         target = [[object_position, goal_position, gripper_states], [object_position, goal_position, gripper_states]][
             owner]
         reward = [self.approach_compute, self.grasp_compute][owner](*target)
@@ -4851,7 +4869,8 @@ class AaG(Protorewards):
         self.rewards_num = 2
         return reward
 
-    def decide(self, goal_position, object_position, gripper_position, gripper_states):
+    def decide(self, observation = None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         if self.gripper_approached_object(object_position, goal_position):
             if self.gripper_opened(gripper_states):
                 self.current_network = 1
@@ -4863,11 +4882,11 @@ class AaG(Protorewards):
         return self.current_network
 
 
-class AaGaM(Protorewards):
+class AaGaM(ProtorewardsRDDL):
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        owner = self.decide(goal_position, object_position, gripper_position, gripper_states)
+        owner = self.decide(observation)
         target = \
         [[gripper_position, object_position, gripper_states], [gripper_position, object_position, gripper_states],
          [object_position, goal_position, gripper_states]][owner]
@@ -4877,7 +4896,8 @@ class AaGaM(Protorewards):
         self.rewards_num = 3
         return reward
 
-    def decide(self, goal_position, object_position, gripper_position, gripper_states):
+    def decide(self, observation = None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         if self.current_network == 0:
             if self.gripper_approached_object(gripper_position, object_position):
                 if self.gripper_opened(gripper_states):
@@ -4894,11 +4914,11 @@ class AaGaM(Protorewards):
         return self.current_network
 
 
-class AaGaMaD(Protorewards):
+class AaGaMaD(ProtorewardsRDDL):
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        owner = self.decide(goal_position, object_position, gripper_position, gripper_states)
+        owner = self.decide(observation)
         target = [[gripper_position, object_position, gripper_states],
                   [gripper_position, object_position, gripper_states],
                   [object_position, goal_position, gripper_states],
@@ -4909,7 +4929,8 @@ class AaGaMaD(Protorewards):
         self.rewards_num = 4
         return reward
 
-    def decide(self, goal_position, object_position, gripper_position, gripper_states):
+    def decide(self, observation = None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         if self.current_network == 0:
             if self.gripper_approached_object(gripper_position, object_position):
                 if self.gripper_opened(gripper_states):
@@ -4930,11 +4951,11 @@ class AaGaMaD(Protorewards):
         return self.current_network
 
 
-class AaGaMaDaW(Protorewards):
+class AaGaMaDaW(ProtorewardsRDDL):
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        owner = self.decide(goal_position, object_position, gripper_position, gripper_states)
+        owner = self.decide(observation)
         target = [[gripper_position, object_position, gripper_states],
                   [gripper_position, object_position, gripper_states],
                   [object_position, goal_position, gripper_states],
@@ -4948,7 +4969,8 @@ class AaGaMaDaW(Protorewards):
         self.rewards_num = 5
         return reward
 
-    def decide(self, goal_position, object_position, gripper_position, gripper_states):
+    def decide(self, observation = None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         if self.current_network == 0:
             if self.gripper_approached_object(gripper_position, object_position):
                 if self.gripper_opened(gripper_states):

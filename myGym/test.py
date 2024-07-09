@@ -268,10 +268,43 @@ def test_env(env, arg_dict):
             if arg_dict["control"] == "oraculum":
                 if t == 0:
                     action = env.action_space.sample()
-                else:    
-
+                else:
                     if "absolute" in arg_dict["robot_action"]:
-                        action = info['o']["goal_state"]
+                        if env.env.reward.reward_name == "approach":
+                            try:
+                                if env.env.reward.rewards_num <= 2:
+                                    action[:3] = info['o']["goal_state"][:3]
+                                else:
+                                    action[:3] = info['o']["actual_state"][:3]
+                            except:
+                                try:
+                                    action[:3] = info['o']["actual_state"][:3]
+                                except:
+                                    action[:3] = info['o']["goal_state"][:3]
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 1
+                                action[4] = 1
+                        elif env.env.reward.reward_name == "grasp":
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 0
+                                action[4] = 0
+                        elif env.env.reward.reward_name == "move":
+                            action[:3] = info['o']["goal_state"][:3]
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 0
+                                action[4] = 0
+                        elif env.env.reward.reward_name == "drop":
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 1
+                                action[4] = 1
+                        elif env.env.reward.reward_name == "withdraw":
+                            action[:3] = np.array(info['o']["actual_state"][:3]) + np.array([0, 0, 0.4])
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 1
+                                action[4] = 1
+                        else:
+                            #Old rewards -> reward name is None
+                            action[:3] = info['o']["goal_state"][:3]
                     else:
                         print("ERROR - Oraculum mode only works for absolute actions")
                         quit()
@@ -440,6 +473,8 @@ def main():
     parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")      
     arg_dict = get_arguments(parser)
     model_logdir = os.path.dirname(arg_dict.get("model_path",""))
+    print("Algo:", arg_dict["algo"])
+    print("Algo:", arg_dict["algo"])
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
