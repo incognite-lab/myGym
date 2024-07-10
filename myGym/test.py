@@ -112,30 +112,30 @@ def detect_key(keypress,arg_dict,action):
 
     if 97 in keypress.keys() and keypress[97] == 1: # A
         action[2] += .03
-        print(action)
+        #print(action)
     if 122 in keypress.keys() and keypress[122] == 1: # Z/Y
         action[2] -= .03
-        print(action)
+        #print(action)
     if 65297 in keypress.keys() and keypress[65297] == 1: # ARROW UP
         action[1] -= .03
-        print(action)
+        #print(action)
     if 65298 in keypress.keys() and keypress[65298] == 1: # ARROW DOWN
         action[1] += .03
-        print(action)
+        #print(action)
     if 65295 in keypress.keys() and keypress[65295] == 1: # ARROW LEFT
         action[0] += .03
-        print(action)
+        #print(action)
     if 65296 in keypress.keys() and keypress[65296] == 1: # ARROW RIGHT
         action[0] -= .03
-        print(action)
+        #print(action)
     if 120 in keypress.keys() and keypress[120] == 1: # X
         action[3] -= .03
         action[4] -= .03
-        print(action)
+        #print(action)
     if 99 in keypress.keys() and keypress[99] == 1: # C
         action[3] += .03
         action[4] += .03
-        print(action)
+        #print(action)
     # if 100 in keypress.keys() and keypress[100] == 1:
     #     cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
     #     change_dynamics(cube[cubecount],lfriction,rfriction,ldamping,adamping)
@@ -314,12 +314,14 @@ def test_env(env, arg_dict):
                 keypress = p.getKeyboardEvents()
                 #print(action)    
                 action =  detect_key(keypress,arg_dict,action)
+                #if t %10 == 1:
+                    #print("Endeffector state:", info['o'])
             elif arg_dict["control"] == "random":
                 action = env.action_space.sample()
 
             
             deg = np.rad2deg(action)
-            print (f"Action:{deg}")
+            #print (f"Action:{deg}")
             observation, reward, done, info = env.step(action)
             
             if arg_dict["vtrajectory"] == True:
@@ -330,7 +332,7 @@ def test_env(env, arg_dict):
                 
                 #visualize_goal(info)
             #if debug_mode:
-            print("Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation, env.env.observation))
+            #print("Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation, env.env.observation))
                 #if t>=1:
                     #action = matrix(np.around(np.array(action),5))
                     #oaction = env.env.robot.get_joints_states()

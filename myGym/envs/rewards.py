@@ -4145,6 +4145,8 @@ class Protorewards(Reward):
         self.near_threshold = 0.1
         self.lift_threshold = 0.1
         self_above_threshold = 0.1
+        #TO DELETE:
+        self.iter = 1
     def compute(self, observation=None):
         #inherit and define your sequence of protoactions here
         pass
@@ -4164,7 +4166,9 @@ class Protorewards(Reward):
         
         reward = self.last_find_dist - dist
         self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
-        
+        if self.iter % 10 == 0:
+            print("reward:", reward * 1000)
+        self.iter += 1
         self.last_find_dist = dist
         self.network_rewards[self.current_network] += reward
         self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65,0.6,0.7], lifeTime=0.5, textColorRGB=[0,0,125])
@@ -4661,9 +4665,13 @@ class ProtorewardsRDDL(Reward):
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
         reward = (self.last_approach_dist - dist) + ((gripdist - self.last_grip_dist) * 0.2)
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
+
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65, 0.6, 0.7], lifeTime=0.5,
+                                    textColorRGB=[0, 0, 125])
         self.reward_name = "approach"
         return reward
 

@@ -11,7 +11,7 @@
     "visgym"    :0,
     #Robot
     "robot"         :"tiago_dual",
-    "robot_action"  :"absolute_gripper",
+    "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.4],
     "max_velocity"  :5,
     "max_force"     :300,
@@ -39,7 +39,7 @@
     "yolact_config" :null,
     #Train
     "train_framework"   :"tensorflow",
-    "algo"              :"multippo2",
+    "algo"              :"multiacktr",
     "num_networks"      :4,
     "max_episode_steps" :512,
     "algo_steps"        :512,
