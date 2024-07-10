@@ -24,7 +24,7 @@ from myGym.envs.gym_env import GymEnv
 from ray.rllib.algorithms.algorithm import Algorithm
 
 
-NUM_WORKERS = 1
+NUM_WORKERS = 3
 ALGO = PPOConfig
 
 def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
