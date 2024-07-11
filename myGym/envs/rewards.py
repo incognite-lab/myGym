@@ -4166,8 +4166,6 @@ class Protorewards(Reward):
         
         reward = self.last_find_dist - dist
         self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8,0.55], lifeTime=0.5, textColorRGB=[0,125,0])
-        if self.iter % 10 == 0:
-            print("reward:", reward * 1000)
         self.iter += 1
         self.last_find_dist = dist
         self.network_rewards[self.current_network] += reward
