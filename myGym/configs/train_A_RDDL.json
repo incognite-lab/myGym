@@ -11,7 +11,7 @@
     "visgym"    :0,
     #Robot
     "robot"         :"tiago_dual",
-    "robot_action"  :"joints",
+    "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.4],
     "max_velocity"  :2,
     "max_force"     :300,
@@ -43,7 +43,7 @@
     "num_networks"      :1,
     "max_episode_steps" :512,
     "algo_steps"        :512,
-    "steps"             :100000,
+    "steps"             :10000000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
