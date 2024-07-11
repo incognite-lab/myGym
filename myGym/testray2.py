@@ -443,8 +443,8 @@ def test_model(arg_dict):
         done = False
         while not done:
             steps_sum += 1
-            action = testing_policy.compute_single_action(state)[0]
-            state, reward, done, _, info = env.step(action)[:5]
+            action = testing_policy.compute_single_action(state)
+            state, reward, done, _, info = env.step(action[0])[:5]
             is_successful = not info['f']
             distance_error = info['d']
             # Render the environment

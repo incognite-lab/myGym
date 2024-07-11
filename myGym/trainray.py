@@ -168,7 +168,7 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name):
         #If learning from scratch, create a new algorithm object
         algo = (
                 algorithm()
-                .rollouts(num_rollout_workers=NUM_WORKERS, batch_mode="complete_episodes", create_env_on_local_worker = False) # You can try to increase or decrease based on your systems specs
+                .rollouts(num_rollout_workers=NUM_WORKERS, batch_mode="complete_episodes") # You can try to increase or decrease based on your systems specs
                 .resources(num_gpus=1, num_gpus_per_worker=1/NUM_WORKERS) # You can try to increase or decrease based on your systems specs
                 .environment(env='GymEnv-v0', env_config=arg_dict)
                 .framework('torch')
@@ -183,6 +183,7 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name):
 
         # manual training with train loop using PPO and fixed learning rate
         print("Running manual train loop without Ray Tune.")
+
         # use fixed learning rate instead of grid search (needs tune)
         # run manual training loop and print results after each iteration
         for _ in range(int(num_steps/algo_steps)):
