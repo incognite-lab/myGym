@@ -432,7 +432,8 @@ def test_model(arg_dict):
     # learned policy from checkpoint
     model_path = arg_dict["model_path"] + "policies/default_policy/"
     #model_path =  "./trained_models/A/A_table_tiago_tiago_dual_absolute_gripper_ppo_2/"
-    testing_policy = Policy.from_checkpoint(model_path) #Specify model policy path name
+    #testing_policy = Policy.from_checkpoint(model_path) #Specify model policy path name
+    algo = Algorithm.from_checkpoint(arg_dict["model_path"])
 
     #Evaluation loop
     for e in range(arg_dict["eval_episodes"]):
@@ -443,8 +444,9 @@ def test_model(arg_dict):
         done = False
         while not done:
             steps_sum += 1
-            action = testing_policy.compute_single_action(state)
-            state, reward, done, _, info = env.step(action[0])[:5]
+            action = algo.compute_single_action(state, explore = False)
+            print("action:", action)
+            state, reward, done, _, info = env.step(action)[:5]
             is_successful = not info['f']
             distance_error = info['d']
             # Render the environment

@@ -3,10 +3,15 @@
 #from stable_baselines import results_plotter
 
 #from pygifsicle import optimize
+
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from typing import Union, List, Dict, Any, Optional
 from tqdm.auto import tqdm
 import numpy as np
-from utils.callbacks import MyCallbacks
+from ray.tune.logger import pretty_print
+
+#from utils.callbacks import MyCallbacks
+#from myGym.trainray import delete_unnecessary_logs
 #from stable_baselines.common.vec_env import VecEnv, sync_envs_normalization, DummyVecEnv
 #from stable_baselines.common.evaluation import evaluate_policy
 
@@ -14,125 +19,246 @@ from utils.callbacks import MyCallbacks
 
 
 
-class MyCallbacks(DefaultCallbacks):
-    def on_episode_start(
-        self,
-        *,
-        worker: RolloutWorker,
-        base_env: BaseEnv,
-        policies: Dict[str, Policy],
-        episode: Episode,
-        env_index: int,
-        **kwargs,
-    ):
-        # Make sure this episode has just been started (only initial obs
-        # logged so far).
-        assert episode.length == 0, (
-            "ERROR: `on_episode_start()` callback should be called right "
-            "after env reset!"
-        )
-        # Create lists to store angles in
-        episode.user_data["pole_angles"] = []
-        episode.hist_data["pole_angles"] = []
+def delete_unnecessary_logs(res):
+    """Deletes unnecessary logged metrics after each episode to get a more readable log"""
+    result = res.copy()
+    unnecessary_keys = {
+                        "info": {
+                                "learner":
+                                       {
+                                           "default_policy" :{
+                                                "curr_entropy_coeff": None, "curr_kl_coeff": None, "curr_lr": None,
+                                                "default_optimizer_lr":None
+                                            },
+                                           "__all__": None
+                                       }
+                                ,"num_agent_steps_trained": None, "num_env_steps_sampled": None,
+                            "num_env_steps_trained": None
+                        },
+                        "sampler_perf":{
+                                "mean_env_render_ms": None
+                        },
+                        "sampler_results":{
+                                "connector_metrics": None, "custom_metrics" : None, "episode_media": None, "num_faulty_episodes": None,
+                                "policy_reward_max":None, "policy_reward_mean": None, "policy_reward_min": None, "sampler_perf": None,
+                                "episode_len_mean": None, "episode_reward_mean": None, "episode_reward_max": None, "episode_reward_min": None,
+                                "episodes_this_iter": None
+                        },
+                        "connector_metrics": None, "counters": None, "date": None, "done": None, "episode_media": None,
+                        "episodes_total": None, "hostname": None, "node_ip": None, "num_agent_steps_sampled": None,
+                        "num_agent_steps_trained": None, "num_env_steps_sampled": None, "num_env_steps_trained": None,
+                        "num_env_steps_trained_this_iter": None, "num_env_steps_trained_throughput_per_sec": None,
+                        "num_faulty_episodes": None,"num_in_flight_async_reqs": None, "num_remote_worker_restarts": None,
+                        "num_steps_trained_this_iter": None, "pid": None, "time_total_s": None, "timers": None,
+                        "trial_id": None, "custom_metrics": None, "policy_reward_max": None, "policy_reward_min": None,
+                        "policy_reward_mean": None, "agent_timesteps_total": None
+                    }
+    result = remove_keys_in_dict(result, unnecessary_keys)
+    return result
 
-    def on_episode_step(
-        self,
-        *,
-        worker: RolloutWorker,
-        base_env: BaseEnv,
-        policies: Dict[str, Policy],
-        episode: Episode,
-        env_index: int,
-        **kwargs,
-    ):
-        # Make sure this episode is ongoing.
-        assert episode.length > 0, (
-            "ERROR: `on_episode_step()` callback should not be called right "
-            "after env reset!"
-        )
-        pole_angle = abs(episode.last_observation_for()[2])
-        raw_angle = abs(episode.last_raw_obs_for()[2])
-        assert pole_angle == raw_angle
-        episode.user_data["pole_angles"].append(pole_angle)
+def remove_keys_in_dict(change_dict, rm_dict):
+    """Recursive function to delete specific keys from a nested dictionary"""
+    ch_copy = change_dict.copy()
+    rm_copy = rm_dict.copy()
+    for key in rm_copy.keys():
 
-        # Sometimes our pole is moving fast. We can look at the latest velocity
-        # estimate from our environment and log high velocities.
-        if np.abs(episode.last_info_for()["pole_angle_vel"]) > 0.25:
-            print("This is a fast pole!")
+        val = rm_copy[key]
+        if val == None:
+            #Remove dictionary value
 
-    def on_episode_end(
-        self,
-        *,
-        worker: RolloutWorker,
-        base_env: BaseEnv,
-        policies: Dict[str, Policy],
-        episode: Episode,
-        env_index: int,
-        **kwargs,
-    ):
-        # Check if there are multiple episodes in a batch, i.e.
-        # "batch_mode": "truncate_episodes".
-        if worker.config.batch_mode == "truncate_episodes":
-            # Make sure this episode is really done.
-            assert episode.batch_builder.policy_collectors["default_policy"].batches[
-                -1
-            ]["dones"][-1], (
-                "ERROR: `on_episode_end()` should only be called "
-                "after episode is done!"
-            )
-        pole_angle = np.mean(episode.user_data["pole_angles"])
-        episode.custom_metrics["pole_angle"] = pole_angle
-        episode.hist_data["pole_angles"] = episode.user_data["pole_angles"]
+            del ch_copy[key]
+        elif isinstance(val, dict):
+            ch_copy[key] = remove_keys_in_dict(ch_copy[key], rm_copy[key]).copy()
+    return ch_copy
 
-    def on_sample_end(self, *, worker: RolloutWorker, samples: SampleBatch, **kwargs):
-        # We can also do our own sanity checks here.
-        assert (
-            samples.count == 2000
-        ), f"I was expecting 2000 here, but got {samples.count}!"
-
-    def on_train_result(self, *, algorithm, result: dict, **kwargs):
-        # you can mutate the result dict to add new fields to return
-        result["callback_ok"] = True
-
-        # Normally, RLlib would aggregate any custom metric into a mean, max and min
-        # of the given metric.
-        # For the sake of this example, we will instead compute the variance and mean
-        # of the pole angle over the evaluation episodes.
-        pole_angle = result["custom_metrics"]["pole_angle"]
-        var = np.var(pole_angle)
-        mean = np.mean(pole_angle)
-        result["custom_metrics"]["pole_angle_var"] = var
-        result["custom_metrics"]["pole_angle_mean"] = mean
-        # We are not interested in these original values
-        del result["custom_metrics"]["pole_angle"]
-        del result["custom_metrics"]["num_batches"]
-
-    def on_learn_on_batch(
-        self, *, policy: Policy, train_batch: SampleBatch, result: dict, **kwargs
+class EvalCallbackRay(DefaultCallbacks):
+    def on_evaluate_start(
+            self,
+            *,
+            algorithm: "Algorithm",
+            **kwargs,
     ) -> None:
-        result["sum_actions_in_train_batch"] = train_batch["actions"].sum()
-        # Log the sum of actions in the train batch.
-        print(
-            "policy.learn_on_batch() result: {} -> sum actions: {}".format(
-                policy, result["sum_actions_in_train_batch"]
-            )
-        )
+        """Callback before evaluation starts.
 
-    def on_postprocess_trajectory(
+        This method gets called at the beginning of Algorithm.evaluate().
+
+        Args:
+            algorithm: Reference to the algorithm instance.
+            metrics_logger: The MetricsLogger object inside the `Algorithm`. Can be
+                used to log custom metrics before running the next round of evaluation.
+            kwargs: Forward compatibility placeholder.
+        """
+        print("#---------Starting evaluation--------------# ")
+    def on_evaluate_end(
         self,
         *,
-        worker: RolloutWorker,
-        episode: Episode,
-        agent_id: str,
-        policy_id: str,
-        policies: Dict[str, Policy],
-        postprocessed_batch: SampleBatch,
-        original_batches: Dict[str, Tuple[Policy, SampleBatch]],
+        algorithm: "Algorithm",
+        evaluation_metrics: dict,
         **kwargs,
-    ):
-        if "num_batches" not in episode.custom_metrics:
-            episode.custom_metrics["num_batches"] = 0
-        episode.custom_metrics["num_batches"] += 1
+    ) -> None:
+        """Runs when the evaluation is done.
+
+        Runs at the end of Algorithm.evaluate().
+
+        Args:
+            algorithm: Reference to the algorithm instance.
+            metrics_logger: The MetricsLogger object inside the `Algorithm`. Can be
+                used to log custom metrics after the most recent evaluation round.
+            evaluation_metrics: Results dict to be returned from algorithm.evaluate().
+                You can mutate this object to add additional metrics.
+            kwargs: Forward compatibility placeholder.
+        """
+
+        cropped_metrics = delete_unnecessary_logs(evaluation_metrics)
+        ep_lengths = cropped_metrics["sampler_results"]["hist_stats"]["episode_lengths"]
+        success_count = 0.
+        ep_len_sum = 0
+        episodes = len(ep_lengths)
+        for ep_len in ep_lengths:
+            if ep_len != 512:
+                success_count += 1.
+            ep_len_sum += ep_len
+        success_rate =  success_count/episodes
+        mean_steps_num = ep_len_sum/episodes
+        print("#---------Evaluation-Summary---------#")
+        print("{} of {} episodes ({} %) were successful".format(success_count, episodes,
+                                                                success_rate * 100))
+        print("Mean number of steps {}".format(mean_steps_num))
+        print("#------------------------------------#")
+        model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
+
+        file = open(os.path.join(model_logdir, "train_" + model_name + ".txt"), 'a')
+        file.write("\n")
+        file.write("#Evaluation results: \n")
+        file.write("#{} of {} episodes were successful \n".format(success_episodes_num, arg_dict["eval_episodes"]))
+        file.write("#Mean number of steps {}\n".format(mean_steps_num))
+        file.close()
+        #print(pretty_print(cropped_metrics))
+
+
+# class MyCallbacks(DefaultCallbacks):
+#     def on_episode_start(
+#         self,
+#         *,
+#         worker: RolloutWorker,
+#         base_env: BaseEnv,
+#         policies: Dict[str, Policy],
+#         episode: Episode,
+#         env_index: int,
+#         **kwargs,
+#     ):
+#         # Make sure this episode has just been started (only initial obs
+#         # logged so far).
+#         assert episode.length == 0, (
+#             "ERROR: `on_episode_start()` callback should be called right "
+#             "after env reset!"
+#         )
+#         # Create lists to store angles in
+#         episode.user_data["pole_angles"] = []
+#         episode.hist_data["pole_angles"] = []
+#
+#     def on_episode_step(
+#         self,
+#         *,
+#         worker: RolloutWorker,
+#         base_env: BaseEnv,
+#         policies: Dict[str, Policy],
+#         episode: Episode,
+#         env_index: int,
+#         **kwargs,
+#     ):
+#         # Make sure this episode is ongoing.
+#         assert episode.length > 0, (
+#             "ERROR: `on_episode_step()` callback should not be called right "
+#             "after env reset!"
+#         )
+#         pole_angle = abs(episode.last_observation_for()[2])
+#         raw_angle = abs(episode.last_raw_obs_for()[2])
+#         assert pole_angle == raw_angle
+#         episode.user_data["pole_angles"].append(pole_angle)
+#
+#         # Sometimes our pole is moving fast. We can look at the latest velocity
+#         # estimate from our environment and log high velocities.
+#         if np.abs(episode.last_info_for()["pole_angle_vel"]) > 0.25:
+#             print("This is a fast pole!")
+#
+#     def on_episode_end(
+#         self,
+#         *,
+#         worker: RolloutWorker,
+#         base_env: BaseEnv,
+#         policies: Dict[str, Policy],
+#         episode: Episode,
+#         env_index: int,
+#         **kwargs,
+#     ):
+#         # Check if there are multiple episodes in a batch, i.e.
+#         # "batch_mode": "truncate_episodes".
+#         if worker.config.batch_mode == "truncate_episodes":
+#             # Make sure this episode is really done.
+#             assert episode.batch_builder.policy_collectors["default_policy"].batches[
+#                 -1
+#             ]["dones"][-1], (
+#                 "ERROR: `on_episode_end()` should only be called "
+#                 "after episode is done!"
+#             )
+#         pole_angle = np.mean(episode.user_data["pole_angles"])
+#         episode.custom_metrics["pole_angle"] = pole_angle
+#         episode.hist_data["pole_angles"] = episode.user_data["pole_angles"]
+#
+#     def on_sample_end(self, *, worker: RolloutWorker, samples: SampleBatch, **kwargs):
+#         # We can also do our own sanity checks here.
+#         assert (
+#             samples.count == 2000
+#         ), f"I was expecting 2000 here, but got {samples.count}!"
+#
+#     def on_train_result(self, *, algorithm, result: dict, **kwargs):
+#         # you can mutate the result dict to add new fields to return
+#         result["callback_ok"] = True
+#
+#         # Normally, RLlib would aggregate any custom metric into a mean, max and min
+#         # of the given metric.
+#         # For the sake of this example, we will instead compute the variance and mean
+#         # of the pole angle over the evaluation episodes.
+#         pole_angle = result["custom_metrics"]["pole_angle"]
+#         var = np.var(pole_angle)
+#         mean = np.mean(pole_angle)
+#         result["custom_metrics"]["pole_angle_var"] = var
+#         result["custom_metrics"]["pole_angle_mean"] = mean
+#         # We are not interested in these original values
+#         del result["custom_metrics"]["pole_angle"]
+#         del result["custom_metrics"]["num_batches"]
+#
+#     def on_learn_on_batch(
+#         self, *, policy: Policy, train_batch: SampleBatch, result: dict, **kwargs
+#     ) -> None:
+#         result["sum_actions_in_train_batch"] = train_batch["actions"].sum()
+#         # Log the sum of actions in the train batch.
+#         print(
+#             "policy.learn_on_batch() result: {} -> sum actions: {}".format(
+#                 policy, result["sum_actions_in_train_batch"]
+#             )
+#         )
+#
+#     def on_postprocess_trajectory(
+#         self,
+#         *,
+#         worker: RolloutWorker,
+#         episode: Episode,
+#         agent_id: str,
+#         policy_id: str,
+#         policies: Dict[str, Policy],
+#         postprocessed_batch: SampleBatch,
+#         original_batches: Dict[str, Tuple[Policy, SampleBatch]],
+#         **kwargs,
+#     ):
+#         if "num_batches" not in episode.custom_metrics:
+#             episode.custom_metrics["num_batches"] = 0
+#         episode.custom_metrics["num_batches"] += 1
+#
+#
+
+
 
 
 # class CustomEvalCallback(EvalCallback):
