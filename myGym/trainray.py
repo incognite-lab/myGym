@@ -22,9 +22,10 @@ from gymnasium.wrappers import EnvCompatibility
 from ray.tune.registry import register_env
 from myGym.envs.gym_env import GymEnv
 from ray.rllib.algorithms.algorithm import Algorithm
+from myGym.utils.callbacks import EvalCallbackRay
 
 
-NUM_WORKERS = 3
+NUM_WORKERS = 5
 ALGO = PPOConfig
 
 def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
@@ -139,12 +140,60 @@ def get_parser():
     parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
     return parser
 
+def remove_keys_in_dict(change_dict, rm_dict):
+    """Recursive function to delete specific keys from a nested dictionary"""
+    ch_copy = change_dict.copy()
+    rm_copy = rm_dict.copy()
+    for key in rm_copy.keys():
 
-def create_filename(arg_dict):
-    """Creates directory for saved policy checkpoint"""
-    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join(
-        (arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"], arg_dict["robot_action"], arg_dict["algo"])))
-    model_logdir = model_logdir_ori
+        val = rm_copy[key]
+        if val == None:
+            #Remove dictionary value
+
+            del ch_copy[key]
+        elif isinstance(val, dict):
+            ch_copy[key] = remove_keys_in_dict(ch_copy[key], rm_copy[key]).copy()
+    return ch_copy
+
+def delete_unnecessary_logs(res):
+    """Deletes unnecessary logged metrics after each episode to get a more readable log"""
+    result = res.copy()
+    unnecessary_keys = {
+                        "info": {
+                                "learner":
+                                       {
+                                           "default_policy" :{
+                                                "curr_entropy_coeff": None, "curr_kl_coeff": None, "curr_lr": None,
+                                                "default_optimizer_lr":None
+                                            },
+                                           "__all__": None
+                                       }
+                                ,"num_agent_steps_trained": None, "num_env_steps_sampled": None,
+                            "num_env_steps_trained": None
+                        },
+                        "sampler_perf":{
+                                "mean_env_render_ms": None
+                        },
+                        "sampler_results":{
+                                "connector_metrics": None, "custom_metrics" : None, "episode_media": None, "num_faulty_episodes": None,
+                                "policy_reward_max":None, "policy_reward_mean": None, "policy_reward_min": None, "sampler_perf": None,
+                                "episode_len_mean": None, "episode_reward_mean": None, "episode_reward_max": None, "episode_reward_min": None,
+                                "episodes_this_iter": None
+                        },
+                        "connector_metrics": None, "counters": None, "date": None, "done": None, "episode_media": None,
+                        "episodes_total": None, "hostname": None, "node_ip": None, "num_agent_steps_sampled": None,
+                        "num_agent_steps_trained": None, "num_env_steps_sampled": None, "num_env_steps_trained": None,
+                        "num_env_steps_trained_this_iter": None, "num_env_steps_trained_throughput_per_sec": None,
+                        "num_faulty_episodes": None,"num_in_flight_async_reqs": None, "num_remote_worker_restarts": None,
+                        "num_steps_trained_this_iter": None, "pid": None, "time_total_s": None, "timers": None,
+                        "trial_id": None, "custom_metrics": None, "policy_reward_max": None, "policy_reward_min": None,
+                        "policy_reward_mean": None, "agent_timesteps_total": None
+                    }
+    result = remove_keys_in_dict(result, unnecessary_keys)
+    return result
+
+
+
 
 
 
@@ -173,6 +222,8 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name):
                 .environment(env='GymEnv-v0', env_config=arg_dict)
                 .framework('torch')
                 .training(train_batch_size=512)
+                .evaluation(evaluation_interval = 10, evaluation_duration = 10)#arg_dict["eval_freq"], arg_dict["eval_episodes"]
+                .callbacks(EvalCallbackRay)
                 .build()
             )
     else:
@@ -188,7 +239,12 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name):
         # run manual training loop and print results after each iteration
         for _ in range(int(num_steps/algo_steps)):
             result = algo.train() # Runs one logical iteration of training.
+            #print("original results:", pretty_print(result))
+            result = delete_unnecessary_logs(result)
+            #print("RESULT: \n", result)
+            print("#---------Iteration-Info---------#")
             print(pretty_print(result))
+            print("#---------End_Iter_Info----------#")
             # stop training of the target train steps or reward are reached
             if _ % 50 == 0:
                 # policy = algo.get_policy()
