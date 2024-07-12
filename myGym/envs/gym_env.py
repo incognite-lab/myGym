@@ -319,7 +319,7 @@ class GymEnv(CameraEnv):
             :return self._observation: (list) Observation data of the environment
         """
         if not only_subtask:
-            self.robot.reset(random_robot=random_robot)
+            self.task.rddl_robot.reset(random_robot=random_robot)
             super().reset(hard=hard)
 
             if not self.nl_mode:
