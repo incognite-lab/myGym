@@ -222,7 +222,7 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name):
                 .environment(env='GymEnv-v0', env_config=arg_dict)
                 .framework('torch')
                 .training(train_batch_size=512)
-                .evaluation(evaluation_interval = 10, evaluation_duration = 10)#arg_dict["eval_freq"], arg_dict["eval_episodes"]
+                .evaluation(evaluation_interval = arg_dict["eval_freq"], evaluation_duration = arg_dict["eval_episodes"])#arg_dict["eval_freq"], arg_dict["eval_episodes"]
                 .callbacks(EvalCallbackRay)
                 .build()
             )
