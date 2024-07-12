@@ -9,6 +9,7 @@ from typing import Union, List, Dict, Any, Optional
 from tqdm.auto import tqdm
 import numpy as np
 from ray.tune.logger import pretty_print
+import os
 
 #from utils.callbacks import MyCallbacks
 #from myGym.trainray import delete_unnecessary_logs
@@ -108,9 +109,10 @@ class EvalCallbackRay(DefaultCallbacks):
                 You can mutate this object to add additional metrics.
             kwargs: Forward compatibility placeholder.
         """
+        #print("#---------Evaluation metrics--------------- ")
+        #print(pretty_print(evaluation_metrics))
 
-        cropped_metrics = delete_unnecessary_logs(evaluation_metrics)
-        ep_lengths = cropped_metrics["sampler_results"]["hist_stats"]["episode_lengths"]
+        ep_lengths = evaluation_metrics["evaluation"]["hist_stats"]["episode_lengths"]
         success_count = 0.
         ep_len_sum = 0
         episodes = len(ep_lengths)
@@ -118,22 +120,28 @@ class EvalCallbackRay(DefaultCallbacks):
             if ep_len != 512:
                 success_count += 1.
             ep_len_sum += ep_len
+
+        mean_reward = evaluation_metrics["evaluation"]["episode_reward_mean"]
         success_rate =  success_count/episodes
         mean_steps_num = ep_len_sum/episodes
+        print("")
         print("#---------Evaluation-Summary---------#")
         print("{} of {} episodes ({} %) were successful".format(success_count, episodes,
                                                                 success_rate * 100))
         print("Mean number of steps {}".format(mean_steps_num))
+        print("Mean reward {}".format(mean_reward))
         print("#------------------------------------#")
-        model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
+        logdir = getattr(algorithm, "logdir")
+        print("Saving eval_results to:", logdir)
 
-        file = open(os.path.join(model_logdir, "train_" + model_name + ".txt"), 'a')
+        file = open(os.path.join(logdir, "eval.txt"), 'a')
         file.write("\n")
         file.write("#Evaluation results: \n")
-        file.write("#{} of {} episodes were successful \n".format(success_episodes_num, arg_dict["eval_episodes"]))
+        file.write("#{} of {} episodes were successful \n".format(success_count, episodes))
         file.write("#Mean number of steps {}\n".format(mean_steps_num))
+        file.write("Mean reward {}\n".format(mean_reward))
+        file.write("#-------------------------------------#\n")
         file.close()
-        #print(pretty_print(cropped_metrics))
 
 
 # class MyCallbacks(DefaultCallbacks):
