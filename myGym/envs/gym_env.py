@@ -167,7 +167,9 @@ class GymEnv(CameraEnv):
         self.reward = self.task.current_task.reward # reward class
         self.compute_reward = self.task.current_task.compute_reward # function that computes reward (no inputs needed, already bound to the objects)
         obs_entities = self.reward.get_relevant_entities() # does not work yet, must be done in rddl
-        self.robot = self.task.rddl_robot.type # robot class as we know it
+        self.robot = self.task.rddl_robot # robot class as we know it
+        # try to access a variable defined in robot.py
+        print(self.robot.num_joints)
 
 
     # def get_observation_dict(self):
@@ -322,97 +324,97 @@ class GymEnv(CameraEnv):
             self.task.rddl_robot.reset(random_robot=random_robot)
             super().reset(hard=hard)
 
-            if not self.nl_mode:
-                other_objects = []
-                if self.task_objects_were_given_as_list:
-                    task_objects_dict = copy.deepcopy(self.task_objects_dict)
-                else:
-                    if not self.reach_gesture:
-                        init = self.rng.choice(self.task_objects_dict["init"])
-                        goal = self.rng.choice(self.task_objects_dict["goal"])
-                        objects = self.task_objects_dict["init"] + self.task_objects_dict["goal"]
-                        task_objects_dict = [{"init": init, "goal": goal}]
-                        other_objects = self._randomly_place_objects({"obj_list": [o for o in objects if o != init and o != goal]})
-                    else:
-                        goal = self.rng.choice(self.task_objects_dict["goal"])
-                        task_objects_dict = [{"init": {"obj_name":"null"}, "goal": goal}]
-                        other_objects = self._randomly_place_objects({"obj_list": [o for o in self.task_objects_dict["goal"] if o != goal]})
+        #     if not self.nl_mode:
+        #         other_objects = []
+        #         # if self.task_objects_were_given_as_list:
+        #         #     task_objects_dict = copy.deepcopy(self.task_objects_dict)
+        #         # else:
+        #         #     if not self.reach_gesture:
+        #         #         init = self.rng.choice(self.task_objects_dict["init"])
+        #         #         goal = self.rng.choice(self.task_objects_dict["goal"])
+        #         #         objects = self.task_objects_dict["init"] + self.task_objects_dict["goal"]
+        #         #         task_objects_dict = [{"init": init, "goal": goal}]
+        #         #         other_objects = self._randomly_place_objects({"obj_list": [o for o in objects if o != init and o != goal]})
+        #         #     else:
+        #         #         goal = self.rng.choice(self.task_objects_dict["goal"])
+        #         #         task_objects_dict = [{"init": {"obj_name":"null"}, "goal": goal}]
+        #         #         other_objects = self._randomly_place_objects({"obj_list": [o for o in self.task_objects_dict["goal"] if o != goal]})
 
-                all_subtask_objects = [x for i, x in enumerate(task_objects_dict) if i != self.task.current_task]
-                subtasks_processed = [list(x.values()) for x in all_subtask_objects]
-                subtask_objects = self._randomly_place_objects({"obj_list": list(chain.from_iterable(subtasks_processed))})
-                self.env_objects = {"env_objects": self._randomly_place_objects(self.used_objects)}
-                if self.task_objects_were_given_as_list:
-                    self.env_objects["env_objects"] += other_objects
-                self.task_objects = self._randomly_place_objects(task_objects_dict[self.task.current_task])
-                self.task_objects = dict(ChainMap(*self.task_objects))
-                if subtask_objects:
-                    self.task_objects["distractor"] = subtask_objects
-            else:
-                init_objects = []
-                if not self.reach_gesture:
-                    init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
-                    for i, c in enumerate(cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
-                        init_objects[i].set_color(c)
-                goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
-                for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=self.task_type != "reach", excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
-                    goal_objects[i].set_color(c)
+        #         all_subtask_objects = [x for i, x in enumerate(task_objects_dict) if i != self.task.current_task]
+        #         subtasks_processed = [list(x.values()) for x in all_subtask_objects]
+        #         subtask_objects = self._randomly_place_objects({"obj_list": list(chain.from_iterable(subtasks_processed))})
+        #         self.env_objects = {"env_objects": self._randomly_place_objects(self.used_objects)}
+        #         if self.task_objects_were_given_as_list:
+        #             self.env_objects["env_objects"] += other_objects
+        #         self.task_objects = self._randomly_place_objects(task_objects_dict[self.task.current_task])
+        #         self.task_objects = dict(ChainMap(*self.task_objects))
+        #         if subtask_objects:
+        #             self.task_objects["distractor"] = subtask_objects
+        #     else:
+        #         init_objects = []
+        #         if not self.reach_gesture:
+        #             init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
+        #             for i, c in enumerate(cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+        #                 init_objects[i].set_color(c)
+        #         goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
+        #         for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=self.task_type != "reach", excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+        #             goal_objects[i].set_color(c)
 
-                if self.training or (not self.training and self.reach_gesture) and self.nl_mode:
-                    # setting the objects and generating a description based on them
-                    self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
-                    self.nl.generate_subtask_with_random_description()
+        #         if self.training or (not self.training and self.reach_gesture) and self.nl_mode:
+        #             # setting the objects and generating a description based on them
+        #             self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
+        #             self.nl.generate_subtask_with_random_description()
 
-                    # resetting the objects to remove the knowledge about whether an object is an init or a goal
-                    self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-                    self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
-                else:
-                    success = False
-                    i = 0
+        #             # resetting the objects to remove the knowledge about whether an object is an init or a goal
+        #             self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
+        #             self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
+        #         else:
+        #             success = False
+        #             i = 0
 
-                    while (not success):
-                        try:
-                            if i > 0:
-                                print("Unknown task description format. Actual format is very strict. "
-                                      "All articles must be included. Examples of valid subtask descriptions in general:")
-                                print("\"reach the cyan cube\"")
-                                print("\"reach the transparent pink cube left to the gray cube\"")
-                                print("\"pick the orange cube and place it to the same position as the pink cube\"")
-                                print("Pay attention to the fact that colors, task and objects in your case can be different!")
-                                print("To leave the program use Ctrl + Z!")
-                            if self.nl:
-                                self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
-                                # resetting the objects to remove the knowledge about whether an object is an init or a goal
-                                self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-                                self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
-                            success = True
-                            break
-                        except:
-                            pass
-                        i += 1
+        #             while (not success):
+        #                 try:
+        #                     if i > 0:
+        #                         print("Unknown task description format. Actual format is very strict. "
+        #                               "All articles must be included. Examples of valid subtask descriptions in general:")
+        #                         print("\"reach the cyan cube\"")
+        #                         print("\"reach the transparent pink cube left to the gray cube\"")
+        #                         print("\"pick the orange cube and place it to the same position as the pink cube\"")
+        #                         print("Pay attention to the fact that colors, task and objects in your case can be different!")
+        #                         print("To leave the program use Ctrl + Z!")
+        #                     if self.nl:
+        #                         self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
+        #                         # resetting the objects to remove the knowledge about whether an object is an init or a goal
+        #                         self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
+        #                         self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
+        #                     success = True
+        #                     break
+        #                 except:
+        #                     pass
+        #                 i += 1
 
-                self.task_objects = {"actual_state": init if init is not None else self.robot, "goal_state": goal}
-                other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
-                self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
+        #         self.task_objects = {"actual_state": init if init is not None else self.robot, "goal_state": goal}
+        #         other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
+        #         self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
 
-                # will set the task and the reward
-                self._set_observation_space()
-        if only_subtask:
-            if self.task.current_task < (len(self.task_objects_dict)) and not self.nl_mode:
-                self.shift_next_subtask()
-        if self.has_distractor:
-            distrs = []
-            if self.distractors["list"]:
-                for distractor in self.distractors["list"]:
-                    distrs.append(
-                        self.dist.place_distractor(distractor, self.p, self.task_objects["goal_state"].get_position()))
-            if self.task_objects["distractor"]:
-                self.task_objects["distractor"].extend(distrs)
-            else:
-                self.task_objects["distractor"] = distrs
-        self.env_objects = {**self.task_objects, **self.env_objects}
+        #         # will set the task and the reward
+        #         self._set_observation_space()
+        # if only_subtask:
+        #     if self.task.current_task < (len(self.task_objects_dict)) and not self.nl_mode:
+        #         self.shift_next_subtask()
+        # if self.has_distractor:
+        #     distrs = []
+        #     if self.distractors["list"]:
+        #         for distractor in self.distractors["list"]:
+        #             distrs.append(
+        #                 self.dist.place_distractor(distractor, self.p, self.task_objects["goal_state"].get_position()))
+        #     if self.task_objects["distractor"]:
+        #         self.task_objects["distractor"].extend(distrs)
+        #     else:
+        #         self.task_objects["distractor"] = distrs
+        # self.env_objects = {**self.task_objects, **self.env_objects}
         self.task.reset_task()
-        self.reward.reset()
+        #self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
 
@@ -423,7 +425,7 @@ class GymEnv(CameraEnv):
             if only_subtask and self.nl_text_id is not None:
                 self.p.removeUserDebugItem(self.nl_text_id)
 
-        return self.flatten_obs(self._observation.copy())
+        return self._observation.copy()
 
     # def shift_next_subtask(self):  # now handled in task.py
     #     # put current init and goal back in env_objects
