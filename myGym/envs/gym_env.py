@@ -194,7 +194,7 @@ class GymEnv(CameraEnv):
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
                   "init_joint_poses": self.robot_init_joint_poses, "max_velocity": self.max_velocity,
                   "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
-                  "pybullet_client": self.p, "env": self, "observation":self.vision_source, "vae_path":self.vae_path, 
+                  "pybullet_client": self.p, "env": self, "observation":self.vision_source, "vae_path":self.vae_path,
                   "yolact_path":self.yolact_path, "yolact_config": self.yolact_config}
         if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
 
@@ -205,7 +205,7 @@ class GymEnv(CameraEnv):
                                transform['position'],  self.p.getQuaternionFromEuler(transform['orientation']),
                                useFixedBase=fixedbase,
                                useMaximalCoordinates=maxcoords)
-    
+
     def _load_static_scene_urdf(self, path, name, fixedbase=True):
         transform = self.workspace_dict[self.workspace]['transform']
         object = env_object.EnvObject(pkg_resources.resource_filename("myGym", os.path.join("envs", path)), self, transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase, observation=self.vision_source, vae_path=self.vae_path, yolact_path=self.yolact_path, yolact_config=self.yolact_config)
@@ -382,14 +382,14 @@ class GymEnv(CameraEnv):
             self.episode_reward += reward
             done = self.episode_over #@TODO replace with actual is_done value from RDDL
             info = {'d': 0.9, 'f': int(self.episode_failed),
-                    'o': self._observation} # @TODO replace 'd' with actual distance values obtained from rddl or make own implementation
+                    'o': self._observation} # @TODOreplace 'd' with actual distance values obtained from rddl or make own implementation
         if done: self.successful_finish(info)
         if self.task.subtask_over:
             self.reset(only_subtask=True)
         # return self._observation, reward, done, info
         return np.asarray(self._observation.copy(), dtype="float32"), reward, done, info
 
-  
+
     def get_linkstates_unpacked(self):
         o = []
         [[o.append(x) for x in z] for z in self.robot.observe_all_links()]
@@ -479,7 +479,7 @@ class GymEnv(CameraEnv):
         else:
             env_o.set_color(cs.name_to_rgba("gray"))
 
-    
+
     def get_random_color(self):
         return cs.draw_random_rgba()
 
