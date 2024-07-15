@@ -144,6 +144,7 @@ class GymEnv(CameraEnv):
         self.nl_mode = natural_language
         if self.nl_mode:
             self.nl = NaturalLanguage(self)
+        self.use_magnet = True # @TODO provisory solution, used when _gripper in self.robot_action. We should make adjustable in config whether to use asctual gripper control or magnet
         self.nl_text_id = None
         self.training = training
         if self.nl_mode:
@@ -165,30 +166,11 @@ class GymEnv(CameraEnv):
         # generates task sequence and initializes scene with objects accordingly. The first action is set as self.task.current_task
         self.task.build_scene_for_task_sequence() # it also loads the robot. must be done his way so that rddl knows about the robot
         self.reward = self.task.current_task.reward # reward class
-        self.compute_reward = self.task.current_task.compute_reward # function that computes reward (no inputs needed, already bound to the objects)
+        self.compute_reward = self.task.current_task.reward # function that computes reward (no inputs needed, already bound to the objects)
         obs_entities = self.reward.get_relevant_entities() # does not work yet, must be done in rddl
         self.robot = self.task.rddl_robot # robot class as we know it
-        # try to access a variable defined in robot.py
-        print(self.robot.num_joints)
 
 
-    # def get_observation_dict(self):
-    #     """
-    #     Get task relevant observation data based on reward signal source
-
-    #     Returns:
-    #         :return self._observation: (array) Task relevant observation data, positions of task objects 
-    #     """
-    #     info_dict = self.obs_type
-    #     for key in ["actual_state", "goal_state"]:
-    #         if "endeff" in info_dict[key]:
-    #                 xyz = self.env.task_objects["robot"].get_obj_position_for_obs(self.image,self.depth)
-    #                 xyz = xyz[:3] if "xyz" in info_dict else xyz
-    #         else:
-    #                 xyz = self.env.task_objects[key].get_obj_position_for_obs(self.image,self.depth)
-    #         info_dict[key] = xyz
-    #     self._observation = self.get_additional_obs(info_dict, self.env.task_objects["robot"])
-    #     return self._observation
 
     def _setup_scene(self):
         """
@@ -268,7 +250,7 @@ class GymEnv(CameraEnv):
             from gymnasium import spaces
         else:
             from gym import spaces
-        action_dim = self.robot.get_action_dimension(self)
+        action_dim = self.robot.get_action_dimension()
         if "step" in self.robot_action:
             self.action_low = np.array([-1] * action_dim)
             self.action_high = np.array([1] * action_dim)
@@ -323,96 +305,7 @@ class GymEnv(CameraEnv):
         if not only_subtask:
             self.task.rddl_robot.reset(random_robot=random_robot)
             super().reset(hard=hard)
-
-        #     if not self.nl_mode:
-        #         other_objects = []
-        #         # if self.task_objects_were_given_as_list:
-        #         #     task_objects_dict = copy.deepcopy(self.task_objects_dict)
-        #         # else:
-        #         #     if not self.reach_gesture:
-        #         #         init = self.rng.choice(self.task_objects_dict["init"])
-        #         #         goal = self.rng.choice(self.task_objects_dict["goal"])
-        #         #         objects = self.task_objects_dict["init"] + self.task_objects_dict["goal"]
-        #         #         task_objects_dict = [{"init": init, "goal": goal}]
-        #         #         other_objects = self._randomly_place_objects({"obj_list": [o for o in objects if o != init and o != goal]})
-        #         #     else:
-        #         #         goal = self.rng.choice(self.task_objects_dict["goal"])
-        #         #         task_objects_dict = [{"init": {"obj_name":"null"}, "goal": goal}]
-        #         #         other_objects = self._randomly_place_objects({"obj_list": [o for o in self.task_objects_dict["goal"] if o != goal]})
-
-        #         all_subtask_objects = [x for i, x in enumerate(task_objects_dict) if i != self.task.current_task]
-        #         subtasks_processed = [list(x.values()) for x in all_subtask_objects]
-        #         subtask_objects = self._randomly_place_objects({"obj_list": list(chain.from_iterable(subtasks_processed))})
-        #         self.env_objects = {"env_objects": self._randomly_place_objects(self.used_objects)}
-        #         if self.task_objects_were_given_as_list:
-        #             self.env_objects["env_objects"] += other_objects
-        #         self.task_objects = self._randomly_place_objects(task_objects_dict[self.task.current_task])
-        #         self.task_objects = dict(ChainMap(*self.task_objects))
-        #         if subtask_objects:
-        #             self.task_objects["distractor"] = subtask_objects
-        #     else:
-        #         init_objects = []
-        #         if not self.reach_gesture:
-        #             init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
-        #             for i, c in enumerate(cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
-        #                 init_objects[i].set_color(c)
-        #         goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
-        #         for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=self.task_type != "reach", excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
-        #             goal_objects[i].set_color(c)
-
-        #         if self.training or (not self.training and self.reach_gesture) and self.nl_mode:
-        #             # setting the objects and generating a description based on them
-        #             self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
-        #             self.nl.generate_subtask_with_random_description()
-
-        #             # resetting the objects to remove the knowledge about whether an object is an init or a goal
-        #             self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-        #             self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
-        #         else:
-        #             success = False
-        #             i = 0
-
-        #             while (not success):
-        #                 try:
-        #                     if i > 0:
-        #                         print("Unknown task description format. Actual format is very strict. "
-        #                               "All articles must be included. Examples of valid subtask descriptions in general:")
-        #                         print("\"reach the cyan cube\"")
-        #                         print("\"reach the transparent pink cube left to the gray cube\"")
-        #                         print("\"pick the orange cube and place it to the same position as the pink cube\"")
-        #                         print("Pay attention to the fact that colors, task and objects in your case can be different!")
-        #                         print("To leave the program use Ctrl + Z!")
-        #                     if self.nl:
-        #                         self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
-        #                         # resetting the objects to remove the knowledge about whether an object is an init or a goal
-        #                         self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-        #                         self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
-        #                     success = True
-        #                     break
-        #                 except:
-        #                     pass
-        #                 i += 1
-
-        #         self.task_objects = {"actual_state": init if init is not None else self.robot, "goal_state": goal}
-        #         other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
-        #         self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
-
-        #         # will set the task and the reward
-        #         self._set_observation_space()
-        # if only_subtask:
-        #     if self.task.current_task < (len(self.task_objects_dict)) and not self.nl_mode:
-        #         self.shift_next_subtask()
-        # if self.has_distractor:
-        #     distrs = []
-        #     if self.distractors["list"]:
-        #         for distractor in self.distractors["list"]:
-        #             distrs.append(
-        #                 self.dist.place_distractor(distractor, self.p, self.task_objects["goal_state"].get_position()))
-        #     if self.task_objects["distractor"]:
-        #         self.task_objects["distractor"].extend(distrs)
-        #     else:
-        #         self.task_objects["distractor"] = distrs
-        # self.env_objects = {**self.task_objects, **self.env_objects}
+        # @TODO I removed support of nl_mode, which is dependent on the old structure. We need to add nl_support again in later phases
         self.task.reset_task()
         #self.reward.reset()
         self.p.stepSimulation()
@@ -424,24 +317,7 @@ class GymEnv(CameraEnv):
             self.nl_text_id = self.p.addUserDebugText(self.nl.get_previously_generated_subtask_description(), [2, 0, 1], textSize=1)
             if only_subtask and self.nl_text_id is not None:
                 self.p.removeUserDebugItem(self.nl_text_id)
-
-        return self._observation.copy()
-
-    # def shift_next_subtask(self):  # now handled in task.py
-    #     # put current init and goal back in env_objects
-    #     self.env_objects["distractor"].extend([self.env_objects["actual_state"], self.env_objects["goal_state"]])
-    #     # set the next subtask objects as the actual and goal state and remove them from env_objects
-    #     self.env_objects["actual_state"] = self.env_objects["distractor"][0]
-    #     self.env_objects["goal_state"] = self.env_objects["distractor"][1]
-    #     del self.env_objects["distractor"][:2]
-    #     self.task_objects["distractor"] = self.env_objects["distractor"].copy()
-    #     # copy the state to task_objects and change colors
-    #     self.task_objects["actual_state"] = self.env_objects["actual_state"]
-    #     self.task_objects["goal_state"] = self.env_objects["goal_state"]
-    #     self.highlight_active_object(self.env_objects["actual_state"], "init")
-    #     self.highlight_active_object(self.env_objects["goal_state"], "goal")
-    #     for o in self.env_objects["distractor"][-2:]:
-    #         self.highlight_active_object(o, "done")
+        return np.asarray(self._observation.copy(), dtype="float32")
 
     def flatten_obs(self, obs):
         """ Returns the input obs dict as flattened list """
@@ -470,40 +346,16 @@ class GymEnv(CameraEnv):
         ## !!!! This is a provisory solution until self.task.current_task.reward.get_relevant_entities() returns the relevant objects.
         ## Now we just take the position and orientation for every object in the scene including gripper, but that is legit in very few cases
         obs = []
-        for o in self.task.scene_objects:
-            obs += list(o.get_position())
-            obs += list(o.get_orientation())
+        relevant_entities = self.reward.get_relevant_entities()
+        for e in relevant_entities:
+            obs += list(e.get_position())
+            obs += list(e.get_orientation())
+        if "gripper" in self.robot_action:
+            obs += int(self.robot.gripper_active)
         self.observation = obs
         if self.dataset:
-            raise NotImplemented # TODO one day
+            raise NotImplemented # @TODO one day
         return self.observation
-
-
-    # def get_additional_obs(self, d, robot):
-    #     info = d.copy()
-    #     info["additional_obs"] = {}
-    #     for key in d["additional_obs"]:
-    #         if key == "joints_xyz":
-    #             o = []
-    #             info["additional_obs"]["joints_xyz"] = self.get_linkstates_unpacked()
-    #         elif key == "joints_angles":
-    #             info["additional_obs"]["joints_angles"] = self.robot.get_joints_states()
-    #         elif key == "endeff_xyz":
-    #             info["additional_obs"]["endeff_xyz"] = self.robot.get_obj_position_for_obs(self.image, self.depth)[:3]  
-    #         elif key == "endeff_6D":
-    #             info["additional_obs"]["endeff_6D"] = list(self.robot.get_obj_position_for_obs(self.image, self.depth)) \
-    #                                                   + list(self.robot.get_obj_orientation_for_obs(self.image)) 
-    #         elif key == "touch":
-    #             if hasattr(self.env.env_objects["actual_state"], "magnetized_objects"):
-    #                 obj_touch = self.env.env_objects["goal_state"]
-    #             else:
-    #                 obj_touch = self.env.env_objects["actual_state"]
-    #             touch = self.env.robot.touch_sensors_active(obj_touch) or len(self.env.robot.magnetized_objects)>0
-    #             info["additional_obs"]["touch"] = [1] if touch else [0]
-    #         elif key == "distractor":
-    #             poses = [self.env.task_objects["distractor"][x].get_obj_position_for_obs(self.image, self.depth) for x in range(len(self.env.task_objects["distractor"]))]
-    #             info["additional_obs"]["distractor"] = [p for sublist in poses for p in sublist]
-    #     return info
 
 
     def step(self, action):
@@ -519,22 +371,23 @@ class GymEnv(CameraEnv):
             :return info: (dict) Additional information about step
         """
         self._apply_action_robot(action)
+        print("robot action: {}".format(action))
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
         if self.dataset:
             reward, done, info = 0, False, {}
         else:
             reward = self.compute_reward()  # this uses rddl protoaction, no arguments needed
+            print("Reward by RDDL: {}".format(reward))
             self.episode_reward += reward
-            # self.task.check_goal()
-            done = self.episode_over
-            info = {'d': self.task.last_distance / self.task.init_distance, 'f': int(self.episode_failed),
-                    'o': self._observation} # @TODO 
+            done = self.episode_over #@TODO replace with actual is_done value from RDDL
+            info = {'d': 0.9, 'f': int(self.episode_failed),
+                    'o': self._observation} # @TODO replace 'd' with actual distance values obtained from rddl or make own implementation
         if done: self.successful_finish(info)
         if self.task.subtask_over:
             self.reset(only_subtask=True)
         # return self._observation, reward, done, info
-        return self._observation.copy(), reward, done, info
+        return np.asarray(self._observation.copy(), dtype="float32"), reward, done, info
 
   
     def get_linkstates_unpacked(self):
@@ -545,12 +398,14 @@ class GymEnv(CameraEnv):
 
     def check_obs_template(self):
         """
-        @TODO Add smart and variable observation space constructor
+        @TODO Add smart and variable observation space constructor based on config? 
 
         Returns:
             :return obsdim: (int) Dimensionality of observation
         """
-        obsdim = 6+6 # 6 values for actual state (object or gripper 6D), same for goal state
+        obsdim = 14 # 7 values for actual state (object or gripper pose and orientation) and same for goal state
+        if "gripper" in self.robot_action:
+            obsdim += 1 # binary value for gripper close or open
         return obsdim
 
     def successful_finish(self, info):
@@ -571,7 +426,6 @@ class GymEnv(CameraEnv):
         Parameters:
             :param action: (list) Action data returned by trained model
         """
-        use_magnet = self.reward.get_magnetization_status()
         for i in range(self.action_repeat):
             objects = self.env_objects
             self.robot.apply_action(action, env_objects=objects)
@@ -615,58 +469,6 @@ class GymEnv(CameraEnv):
         for object in self.env_objects:
             object.draw_bounding_box()
 
-    # def _place_object(self, obj_info):  ### Moved to task.py
-    #     fixed = True if obj_info["fixed"] == 1 else False
-    #     pos = env_object.EnvObject.get_random_object_position(obj_info["sampling_area"])
-    #     orn = env_object.EnvObject.get_random_z_rotation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
-    #     object = env_object.EnvObject(obj_info["urdf"], self, pos, orn, pybullet_client=self.p, fixed=fixed, observation=self.vision_source, vae_path=self.vae_path, yolact_path=self.yolact_path, yolact_config=self.yolact_config)
-    #     if self.color_dict: object.set_color(self.color_of_object(object))
-    #     return object
-
-    # def _randomly_place_objects(self, object_dict):
-    #     """
-    #     Place dynamic objects to the scene randomly
-
-    #     Parameters:
-    #         :param n: (int) Number of objects to place in the scene
-    #         :param object_names: (list of strings) Objects that may be placed to the scene
-    #         :param random_pos: (bool) Whether to place object to random positions in the scene
-    #     Returns:
-    #         :return env_objects: (list of objects) Objects that are present in the current scene
-    #     """
-    #     env_objects = []
-    #     if not "init" in object_dict.keys():  # solves used_objects
-    #         for idx, o in enumerate(object_dict["obj_list"]):
-    #               if o["obj_name"] != "null":
-    #                   urdf = self._get_urdf_filename(o["obj_name"])
-    #                   if urdf:
-    #                     object_dict["obj_list"][idx]["urdf"] = urdf
-    #                   else:
-    #                     del object_dict["obj_list"][idx]
-    #         if "num_range" in object_dict.keys():
-    #             for x in range(random.randint(object_dict["num_range"][0], object_dict["num_range"][1])):
-    #                 env_o = self._place_object(random.choice(object_dict["obj_list"]))
-    #                 self.highlight_active_object(env_o, "other")
-    #                 env_objects.append(env_o)
-    #         else:
-    #             for o in object_dict["obj_list"]:
-    #                 if o["obj_name"] != "null":
-    #                     env_o = self._place_object(o)
-    #                     self.highlight_active_object(env_o, "other")
-    #                     env_objects.append(env_o)
-    #     else:  # solves task_objects
-    #         for o in ['init', 'goal']:
-    #             d = object_dict[o]
-    #             if d["obj_name"] != "null":
-    #                 d["urdf"] = self._get_urdf_filename(d["obj_name"])
-    #                 n = "actual_state" if o == "init" else "goal_state"
-    #                 env_o = self._place_object(d)
-    #                 self.highlight_active_object(env_o, o)
-    #                 env_objects.append({n: env_o})
-    #             elif d["obj_name"] == "null" and o == "init":
-    #                 env_objects.append({"actual_state": self.robot})
-    #     return env_objects
-
     def highlight_active_object(self, env_o, obj_role):
         if obj_role == "goal":
             env_o.set_color(cs.name_to_rgba("transparent green"))
@@ -677,21 +479,6 @@ class GymEnv(CameraEnv):
         else:
             env_o.set_color(cs.name_to_rgba("gray"))
 
-    # def color_of_object(self, object):
-    #     """
-    #     Set object's color
-
-    #     Parameters:
-    #         :param object: (object) Object
-    #     Returns:
-    #         :return color: (list) RGB color
-    #     """
-    #     if object.name not in self.color_dict:
-    #         return self.get_random_color()
-    #     else:
-    #         color_name = random.sample(self.color_dict[object.name], 1)[0]
-    #         color = cs.name_to_rgba(color_name)
-    #     return color
     
     def get_random_color(self):
         return cs.draw_random_rgba()

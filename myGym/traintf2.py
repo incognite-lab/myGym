@@ -11,7 +11,7 @@ import myGym.utils.cfg_comparator as cfg
 #from stable_baselines.common import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv
 #from stable_baselines.bench import Monitor
-#from stable_baselines import results_plotter
+from myGym.utils import results_plotter
 from stable_baselines3.her import GoalSelectionStrategy #, HERGoalEnvWrapper
 # For now I am importing both with slightly modified names P-PyTorch T-TensorFlow
 #from stable_baselines import PPO1 as PPO1_T, PPO2 as PPO2_T, HER as HER_T, SAC as SAC_T
@@ -54,10 +54,7 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
     plt.savefig(os.path.join(model_logdir, model_name) + '_distance_results.png')
     plt.close()
     plt.close()
-    if isinstance(env, HERGoalEnvWrapper):
-        results_plotter.plot_curves([(np.arange(len(env.env.episode_final_distance)),np.asarray(env.env.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
-    else:
-        results_plotter.plot_curves([(np.arange(len(env.unwrapped.episode_final_distance)),np.asarray(env.unwrapped.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
+    results_plotter.plot_curves([(np.arange(len(env.unwrapped.episode_final_distance)),np.asarray(env.unwrapped.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
     plt.gcf().set_size_inches(8, 6)
     plt.ylabel("Step Distances")
     plt.savefig(os.path.join(model_logdir, model_name) + "_final_distance_results.png")
@@ -174,9 +171,8 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     print("Training time: {:.2f} s".format(time.time() - start_time))
 
     # info_keywords in monitor class above is neccessary for pybullet to save_results
-    # when using the info_keywords for mujoco we get an error
-    if arg_dict["engine"] == "pybullet":
-        save_results(arg_dict, model_name, env, model_logdir)
+    # if arg_dict["engine"] == "pybullet":
+    #     save_results(arg_dict, model_name, env, model_logdir)
     return model
 
 def get_parser():
