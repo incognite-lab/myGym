@@ -177,7 +177,7 @@ class GymEnv(CameraEnv):
     #     Get task relevant observation data based on reward signal source
 
     #     Returns:
-    #         :return self._observation: (array) Task relevant observation data, positions of task objects 
+    #         :return self._observation: (array) Task relevant observation data, positions of task objects
     #     """
     #     info_dict = self.obs_type
     #     for key in ["actual_state", "goal_state"]:
@@ -212,7 +212,7 @@ class GymEnv(CameraEnv):
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
                   "init_joint_poses": self.robot_init_joint_poses, "max_velocity": self.max_velocity,
                   "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
-                  "pybullet_client": self.p, "env": self, "observation":self.vision_source, "vae_path":self.vae_path, 
+                  "pybullet_client": self.p, "env": self, "observation":self.vision_source, "vae_path":self.vae_path,
                   "yolact_path":self.yolact_path, "yolact_config": self.yolact_config}
         if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
 
@@ -223,7 +223,7 @@ class GymEnv(CameraEnv):
                                transform['position'],  self.p.getQuaternionFromEuler(transform['orientation']),
                                useFixedBase=fixedbase,
                                useMaximalCoordinates=maxcoords)
-    
+
     def _load_static_scene_urdf(self, path, name, fixedbase=True):
         transform = self.workspace_dict[self.workspace]['transform']
         object = env_object.EnvObject(pkg_resources.resource_filename("myGym", os.path.join("envs", path)), self, transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase, observation=self.vision_source, vae_path=self.vae_path, yolact_path=self.yolact_path, yolact_config=self.yolact_config)
@@ -268,7 +268,7 @@ class GymEnv(CameraEnv):
             from gymnasium import spaces
         else:
             from gym import spaces
-        action_dim = self.robot.get_action_dimension(self)
+        action_dim = self.robot.get_action_dimension()
         if "step" in self.robot_action:
             self.action_low = np.array([-1] * action_dim)
             self.action_high = np.array([1] * action_dim)
@@ -489,10 +489,10 @@ class GymEnv(CameraEnv):
     #         elif key == "joints_angles":
     #             info["additional_obs"]["joints_angles"] = self.robot.get_joints_states()
     #         elif key == "endeff_xyz":
-    #             info["additional_obs"]["endeff_xyz"] = self.robot.get_obj_position_for_obs(self.image, self.depth)[:3]  
+    #             info["additional_obs"]["endeff_xyz"] = self.robot.get_obj_position_for_obs(self.image, self.depth)[:3]
     #         elif key == "endeff_6D":
     #             info["additional_obs"]["endeff_6D"] = list(self.robot.get_obj_position_for_obs(self.image, self.depth)) \
-    #                                                   + list(self.robot.get_obj_orientation_for_obs(self.image)) 
+    #                                                   + list(self.robot.get_obj_orientation_for_obs(self.image))
     #         elif key == "touch":
     #             if hasattr(self.env.env_objects["actual_state"], "magnetized_objects"):
     #                 obj_touch = self.env.env_objects["goal_state"]
@@ -529,14 +529,14 @@ class GymEnv(CameraEnv):
             # self.task.check_goal()
             done = self.episode_over
             info = {'d': self.task.last_distance / self.task.init_distance, 'f': int(self.episode_failed),
-                    'o': self._observation} # @TODO 
+                    'o': self._observation} # @TODO
         if done: self.successful_finish(info)
         if self.task.subtask_over:
             self.reset(only_subtask=True)
         # return self._observation, reward, done, info
         return self._observation.copy(), reward, done, info
 
-  
+
     def get_linkstates_unpacked(self):
         o = []
         [[o.append(x) for x in z] for z in self.robot.observe_all_links()]
@@ -692,7 +692,7 @@ class GymEnv(CameraEnv):
     #         color_name = random.sample(self.color_dict[object.name], 1)[0]
     #         color = cs.name_to_rgba(color_name)
     #     return color
-    
+
     def get_random_color(self):
         return cs.draw_random_rgba()
 
