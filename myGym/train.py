@@ -1,5 +1,6 @@
 import random
 import copy
+from typing import Callable
 
 import pkg_resources
 import os, sys, time, yaml
@@ -10,13 +11,23 @@ import json, commentjson
 import gym
 from myGym import envs
 import myGym.utils.cfg_comparator as cfg
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common import make_vec_env
-from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines.bench import Monitor
-from stable_baselines import results_plotter
-from stable_baselines.her import GoalSelectionStrategy, HERGoalEnvWrapper
+# from stable_baselines.common.vec_env import DummyVecEnv
+# from stable_baselines.bench import Monitor
+# from stable_baselines import results_plotter
+# from stable_baselines.her import GoalSelectionStrategy, HERGoalEnvWrapper
+try:
+    #from stable_baselines3.common.policies import MlpPolicy
+    #from stable_baselines3.common import make_vec_env
+    from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+    from stable_baselines3.common.monitor import Monitor
+    #from stable_baselines3 import results_plotter
+    from stable_baselines3.her import GoalSelectionStrategy, HERGoalEnvWrapper
+    from stable_baselines3.common.env_util import make_vec_env
+except Exception as e:
+    print(e)
 # For now I am importing both with slightly modified names P-PyTorch T-TensorFlow
 from stable_baselines import PPO1 as PPO1_T, PPO2 as PPO2_T, HER as HER_T, SAC as SAC_T, DDPG as DDPG_T
 from stable_baselines import TD3 as TD3_T, A2C as A2C_T, ACKTR as ACKTR_T, TRPO as TRPO_T, GAIL as GAIL_T
@@ -46,6 +57,8 @@ from myGym.envs.natural_language import NaturalLanguage
 # This is global variable for the type of engine we are working with
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
+
+NUM_CPU = 5
 
 
 def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
@@ -110,6 +123,24 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
     return env
 
 
+def make_env(arg_dict: dict, rank: int, seed: int = 0) -> Callable:
+    """
+        Utility function for multiprocessed env.
+
+        :param arg_dict: (dict) the environment ID
+        :param seed: (int) the inital seed for RNG
+        :param rank: (int) index of the subprocess
+        :return: (Callable)
+        """
+    def _init() -> gym.Env:
+        env = configure_env(arg_dict)
+        env.reset(seed=seed + rank)
+        return env
+
+    set_random_seed(seed)
+    return _init
+
+
 def configure_implemented_combos(env, model_logdir, arg_dict):
     implemented_combos = {"ppo2": {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "ppo": {"tensorflow": [PPO1_T, (MlpPolicy, env),  {"verbose": 1, "tensorboard_log": model_logdir}],},
@@ -127,12 +158,11 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                           "multippo2":  {"tensorflow": [MultiPPO2,   (MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"],"n_models": arg_dict["num_networks"], "verbose": 1, "tensorboard_log": model_logdir}]},
                           "multiacktr":  {"tensorflow": [MultiACKTR,   (MlpPolicy, env),    {"n_steps": arg_dict["algo_steps"],"n_models": arg_dict["num_networks"], "verbose": 1, "tensorboard_log": model_logdir}]}}
 
-    if "PPO_P" in sys.modules:
-        implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env), {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir}]
-        implemented_combos["sac"]["pytorch"] = [SAC_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
-        implemented_combos["td3"]["pytorch"] = [TD3_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
-        implemented_combos["a2c"]["pytorch"] = [A2C_P, ('MlpPolicy', env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]
-
+    #if "PPO_P" in sys.modules:
+    implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env), {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir, "device": "cpu"}]
+    implemented_combos["sac"]["pytorch"] = [SAC_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
+    implemented_combos["td3"]["pytorch"] = [TD3_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
+    implemented_combos["a2c"]["pytorch"] = [A2C_P, ('MlpPolicy', env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]
     return implemented_combos
 
 
@@ -161,6 +191,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         vec_env = DummyVecEnv([lambda: env])
         model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env)
     else:
+
         model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0](*model_args, **model_kwargs)
 
     if arg_dict["algo"] == "gail":
@@ -177,7 +208,6 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             # Note: in practice, you need to train for 1M steps to have a working policy
     #if arg_dict["algo"] == "her":
         #model = HER_T('MlpPolicy', env, DDPG_T, n_sampled_goal=1, goal_selection_strategy='future', verbose=1)
-        
     start_time = time.time()
     callbacks_list = []
     if pretrained_model:
@@ -347,7 +377,12 @@ def main():
             model_logdir = "_".join((model_logdir_ori, str(add)))
             add += 1
 
-    env = configure_env(arg_dict, model_logdir, for_train=1)
+
+
+    if arg_dict["multiprocessing"]:
+        env = SubprocVecEnv([make_env(arg_dict["env_name"], i) for i in range(NUM_CPU)])
+    else:
+        env = configure_env(arg_dict, model_logdir, for_train=1)
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
     train(env, implemented_combos, model_logdir, arg_dict, arg_dict["pretrained_model"])
     print(model_logdir)

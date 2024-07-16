@@ -68,7 +68,7 @@ class CustomEvalCallback(EvalCallback):
         self.camera_id = camera_id
         self.record_steps_limit = record_steps_limit
         self.is_tb_set = False
-
+        print("eval_env:", eval_env)
         # Convert to VecEnv for consistency
         # if not isinstance(eval_env, VecEnv):
         #     eval_env = DummyVecEnv([lambda: eval_env])
