@@ -2,7 +2,7 @@ import time
 import warnings
 
 import tensorflow as tf
-from gym.spaces import Box, Discrete
+from gymnasium.spaces import Box, Discrete
 
 from stable_baselines import logger
 from stable_baselines.a2c.a2c import A2CRunner
@@ -17,7 +17,7 @@ from stable_baselines.common.math_util import safe_mean
 from stable_baselines.common.misc_util import set_global_seeds
 import commentjson
 import numpy as np
-import gym
+import gymnasium as gym
 import os
 from collections import deque
 

@@ -1,5 +1,5 @@
 from ast import arg
-import gym
+import gymnasium as gym
 from myGym import envs
 import cv2
 from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env
