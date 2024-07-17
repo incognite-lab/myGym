@@ -43,8 +43,8 @@ class TaskModule():
         self.stored_observation = []
         self.obs_template = observation
         self.vision_module = VisionModule(observation=observation, env=env, vae_path=vae_path, yolact_path=yolact_path, yolact_config=yolact_config)
-        self.vision_src = self.vision_module.src
         self.obsdim = self.check_obs_template()
+        self.vision_src = self.vision_module.src
         self.writebool = False
 
     def reset_task(self):
@@ -140,6 +140,16 @@ class TaskModule():
         self._observation = self.get_additional_obs(info_dict, self.env.task_objects["robot"])
         return self._observation
 
+
+    def get_world_state(self):
+        """
+        Get all objects in the scene including scene objects, interactive objects and robot
+
+        Returns:
+            :return observation: (dict) Task relevant observation data, positions of task objects 
+        """
+        pass
+
     def check_vision_failure(self):
         """
         Check if YOLACT vision model fails repeatedly during episode
@@ -166,6 +176,17 @@ class TaskModule():
         if (time.time() - self.env.episode_start_time) > self.env.episode_max_time:
             self.env.episode_info = "Episode maximum time {} s exceeded".format(self.env.episode_max_time)
             return True
+        return False
+    
+    def check_episode_steps(self):
+        """
+        Check if maximum episode steps was exceeded
+
+        Returns:
+            :return: (bool)
+        """
+        if self.env.episode_steps == self.env.max_episode_steps:
+            self.end_episode_fail("Max amount of steps reached")
         return False
 
     def check_object_moved(self, object, threshold=0.3):
@@ -315,7 +336,7 @@ class TaskModule():
         """
         
         finished = None
-        if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip', 'FMOT', 'FROM', 'FROT', 'FMOM', 'FM','F']: #all tasks ending with R (FMR) have to have distrot checker
+        if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip', 'FMOT', 'FROM', 'FROT', 'FMOM', 'FM','F','A','AG','AGM','AGMD','AGMDW']: #all tasks ending with R (FMR) have to have distrot checker
             finished = self.check_distance_threshold(self._observation)  
         if self.task_type in ['pnprot','pnpswipe','FMR', 'FMOR', 'FMLFR', 'compositional']:
             finished = self.check_distrot_threshold(self._observation)  
@@ -352,7 +373,7 @@ class TaskModule():
                     self.end_episode_fail("Finished with wrong dice result thrown")
                 return finished
             self.end_episode_success()
-        if self.check_time_exceeded() or self.env.episode_steps == self.env.max_steps:
+        if self.check_time_exceeded() or self.env.episode_steps == self.env.max_episode_steps:
             self.end_episode_fail("Max amount of steps reached")
         if "ground_truth" not in self.vision_src and (self.check_vision_failure()):
             self.stored_observation = []
@@ -585,8 +606,9 @@ class TaskModule():
         for x in [t["actual_state"], t["goal_state"]]:
             get_datalen = {"joints_xyz":len(self.get_linkstates_unpacked()),
                            "joints_angles":len(self.env.robot.get_joints_states()),
-                           "endeff_xyz":3,
-                           "endeff_6D":7,
+                           "endeff_xyz":len(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)[:3]),
+                           "endeff_6D":len(list(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)) \
+                                                      + list(self.vision_module.get_obj_orientation(self.env.robot))),
                            "dope":7, "obj_6D":7, "distractor": 3, "touch":1, "yolact":3, "voxel":3, "obj_xyz":3,
                            "vae":self.vision_module.obsdim}
             obsdim += get_datalen[x]

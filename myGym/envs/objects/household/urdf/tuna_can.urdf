@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="tuna_can">
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0. 0. 0." />
+      <mass value="0.5" />
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001" />
+    </inertial>
+    <visual name="tuna_can">
+      <origin xyz="0. 0. 0." />
+      <geometry>
+        <mesh filename="../obj/tuna_can.obj" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0. 0. 0." />
+      <geometry>
+        <mesh filename="../obj/tuna_can_vhacd.obj" />
+      </geometry>
+    </collision>
+  </link>
+</robot>

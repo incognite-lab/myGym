@@ -121,33 +121,34 @@ def visualize_infotext(action, env, info):
 def detect_key(keypress, arg_dict, action):
     if 97 in keypress.keys() and keypress[97] == 1:  # A
         action[2] += .03
-        print(action)
-    if 122 in keypress.keys() and keypress[122] == 1:  # Z/Y
+        #print(action)
+    if 122 in keypress.keys() and keypress[122] == 1: # Z/Y
         action[2] -= .03
-        print(action)
-    if 65297 in keypress.keys() and keypress[65297] == 1:  # ARROW UP
+        #print(action)
+    if 65297 in keypress.keys() and keypress[65297] == 1: # ARROW UP
         action[1] -= .03
-        print(action)
-    if 65298 in keypress.keys() and keypress[65298] == 1:  # ARROW DOWN
+        #print(action)
+    if 65298 in keypress.keys() and keypress[65298] == 1: # ARROW DOWN
         action[1] += .03
-        print(action)
-    if 65295 in keypress.keys() and keypress[65295] == 1:  # ARROW LEFT
+        #print(action)
+    if 65295 in keypress.keys() and keypress[65295] == 1: # ARROW LEFT
         action[0] += .03
-        print(action)
-    if 65296 in keypress.keys() and keypress[65296] == 1:  # ARROW RIGHT
+        #print(action)
+    if 65296 in keypress.keys() and keypress[65296] == 1: # ARROW RIGHT
         action[0] -= .03
-        print(action)
-    if 120 in keypress.keys() and keypress[120] == 1:  # X
+        #print(action)
+    if 120 in keypress.keys() and keypress[120] == 1: # X
         action[3] -= .03
         action[4] -= .03
-        print(action)
-    if 99 in keypress.keys() and keypress[99] == 1:  # C
+        #print(action)
+    if 99 in keypress.keys() and keypress[99] == 1: # C
         action[3] += .03
         action[4] += .03
-        print(action)
-    # if 100 in keypress.keys() and keypress[100] == 1: cube[cubecount] = p.loadURDF(pkg_resources.resource_filename(
-    # "myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
-    # change_dynamics(cube[cubecount],lfriction,rfriction,ldamping,adamping) cubecount +=1
+        #print(action)
+    # if 100 in keypress.keys() and keypress[100] == 1:
+    #     cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
+    #     change_dynamics(cube[cubecount],lfriction,rfriction,ldamping,adamping)
+    #     cubecount +=1
     if "step" in arg_dict["robot_action"]:
         action[:3] = np.multiply(action[:3], 10)
     elif "joints" in arg_dict["robot_action"]:
@@ -266,9 +267,42 @@ def test_env(env, arg_dict):
                 if t == 0:
                     action = env.action_space.sample()
                 else:
-
                     if "absolute" in arg_dict["robot_action"]:
-                        action = info['o']["goal_state"]
+                        if env.env.reward.reward_name == "approach":
+                            try:
+                                if env.env.reward.rewards_num <= 2:
+                                    action[:3] = info['o']["goal_state"][:3]
+                                else:
+                                    action[:3] = info['o']["actual_state"][:3]
+                            except:
+                                try:
+                                    action[:3] = info['o']["actual_state"][:3]
+                                except:
+                                    action[:3] = info['o']["goal_state"][:3]
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 1
+                                action[4] = 1
+                        elif env.env.reward.reward_name == "grasp":
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 0
+                                action[4] = 0
+                        elif env.env.reward.reward_name == "move":
+                            action[:3] = info['o']["goal_state"][:3]
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 0
+                                action[4] = 0
+                        elif env.env.reward.reward_name == "drop":
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 1
+                                action[4] = 1
+                        elif env.env.reward.reward_name == "withdraw":
+                            action[:3] = np.array(info['o']["actual_state"][:3]) + np.array([0, 0, 0.4])
+                            if "gripper" in arg_dict["robot_action"]:
+                                action[3] = 1
+                                action[4] = 1
+                        else:
+                            #Old rewards -> reward name is None
+                            action[:3] = info['o']["goal_state"][:3]
                     else:
                         print("ERROR - Oraculum mode only works for absolute actions")
                         quit()
@@ -280,7 +314,7 @@ def test_env(env, arg_dict):
                 action = env.action_space.sample()
 
             deg = np.rad2deg(action)
-            print(f"Action:{deg}")
+            #print (f"Action:{deg}")
             observation, reward, done, info = env.step(action)
 
             if arg_dict["vtrajectory"] == True:
@@ -476,6 +510,9 @@ def main():
         print("THREADING")
         multi_main(args, parameters)
     model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
+    model_logdir = os.path.dirname(arg_dict.get("model_path",""))
+    print("Algo:", arg_dict["algo"])
+    print("Algo:", arg_dict["algo"])
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")

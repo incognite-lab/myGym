@@ -11,8 +11,6 @@ from myGym.envs.env_object import EnvObject
 from myGym.envs.rewards import *
 import numpy as np
 from itertools import chain
-from gym import spaces
-from scipy.spatial.transform import Rotation
 import random
 
 from myGym.utils.helpers import get_workspace_dict
@@ -21,6 +19,7 @@ from myGym.envs.human import Human
 import myGym.utils.colors as cs
 from myGym.envs.vision_module import get_module_type
 from myGym.envs.natural_language import NaturalLanguage
+from gym import spaces
 
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
@@ -65,6 +64,7 @@ class GymEnv(CameraEnv):
     def __init__(self,
                  task_objects,
                  observation,
+                 framework="ray",
                  workspace="table",
                  dimension_velocity=0.05,
                  used_objects=None,
@@ -112,6 +112,7 @@ class GymEnv(CameraEnv):
         self.color_dict             = color_dict
         self.task_type              = task_type
         self.task_objects_dict     = task_objects
+        self.framework = framework
         self.task_objects = []
         self.env_objects = []
         self.vae_path = vae_path
@@ -166,14 +167,21 @@ class GymEnv(CameraEnv):
             self.has_distractor = True
             self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
         reward_classes = {
-            "1-network": {"distance": DistanceReward, "complex_distance": ComplexDistanceReward, "sparse": SparseReward,
-                          "distractor": VectorReward, "poke": PokeReachReward, "push": PushReward, "switch": SwitchReward,
-                          "btn": ButtonReward, "turn": TurnReward, "pnp": SingleStagePnP, "dice": DiceReward, "F": F},
-            "2-network": {"poke": DualPoke, "pnp": TwoStagePnP, "pnpbgrip": TwoStagePnPBgrip, "push": TwoStagePushReward, "switch": SwitchRewardNew, "turn": TurnRewardNew, "FM": FaM},
-            "3-network": {"pnp": ThreeStagePnP, "pnprot": ThreeStagePnPRot, "pnpswipe": ThreeStageSwipe, "FMR": FaMaR,"FROM": FaROaM,  "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
-                          "pnpswiperot": ThreeStageSwipeRot, "FMOM": FaMOaM},
-            "4-network": {"pnp": FourStagePnP, "pnprot": FourStagePnPRot, "FMLFR": FaMaLaFaR}}
-    
+            "1-network": {"distance": DistanceReward, "complex_distance": ComplexDistanceReward,
+                          "sparse": SparseReward,
+                          "distractor": VectorReward, "poke": PokeReachReward, "push": PushReward,
+                          "switch": SwitchReward,
+                          "btn": ButtonReward, "turn": TurnReward, "pnp": SingleStagePnP, "dice": DiceReward,
+                          "F": F, "A": A},
+            "2-network": {"poke": DualPoke, "pnp": TwoStagePnP, "pnpbgrip": TwoStagePnPBgrip,
+                          "push": TwoStagePushReward, "switch": SwitchRewardNew, "turn": TurnRewardNew, "FM": FaM, "AG": AaG},
+            "3-network": {"pnp": ThreeStagePnP, "pnprot": ThreeStagePnPRot, "pnpswipe": ThreeStageSwipe,
+                          "FMR": FaMaR, "FROM": FaROaM, "FMOR": FaMOaR, "FMOT": FaMOaT, "FROT": FaROaT,
+                          "pnpswiperot": ThreeStageSwipeRot, "FMOM": FaMOaM, "AGM": AaGaM},
+            "4-network": {"pnp": FourStagePnP, "pnprot": FourStagePnPRot, "FMLFR": FaMaLaFaR, "AGMD" : AaGaMaD},
+            "5-network": {"AGMDW": AaGaMaDaW}
+        }
+
         scheme = "{}-network".format(str(self.num_networks))
         assert self.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
         self.task = t.TaskModule(task_type=self.task_type,
@@ -190,14 +198,14 @@ class GymEnv(CameraEnv):
         """
         Set-up environment scene. Load static objects, apply textures. Load robot.
         """
-        self._add_scene_object_uid(self._load_urdf(path="rooms/plane.urdf"), "floor")
+        self._add_scene_object_uid(self._load_static_scene_urdf(path="rooms/plane.urdf", name="floor"), "floor")
         if self.visgym:
             self._add_scene_object_uid(self._load_urdf(path="rooms/room.urdf"), "gym")
             #self._change_texture("gym", self._load_texture("verticalmaze.jpg"))
             [self._add_scene_object_uid(self._load_urdf(path="rooms/visual/" + self.workspace_dict[w]['urdf']), w)
              for w in self.workspace_dict if w != self.workspace]
         self._add_scene_object_uid(
-            self._load_urdf(path="rooms/collision/" + self.workspace_dict[self.workspace]['urdf']), self.workspace)
+            self._load_static_scene_urdf(path="rooms/collision/" + self.workspace_dict[self.workspace]['urdf'], name=self.workspace), self.workspace)
         ws_texture = self.workspace_dict[self.workspace]['texture'] if get_module_type(
             self.obs_type) != "vae" else "grey.png"
         if ws_texture: self._change_texture(self.workspace, self._load_texture(ws_texture))
@@ -215,9 +223,15 @@ class GymEnv(CameraEnv):
     def _load_urdf(self, path, fixedbase=True, maxcoords=True):
         transform = self.workspace_dict[self.workspace]['transform']
         return self.p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", path)),
-                               transform['position'], self.p.getQuaternionFromEuler(transform['orientation']),
+                               transform['position'],  self.p.getQuaternionFromEuler(transform['orientation']),
                                useFixedBase=fixedbase,
                                useMaximalCoordinates=maxcoords)
+    
+    def _load_static_scene_urdf(self, path, name, fixedbase=True):
+        transform = self.workspace_dict[self.workspace]['transform']
+        object = env_object.EnvObject(pkg_resources.resource_filename("myGym", os.path.join("envs", path)), transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase)
+        self.static_scene_objects[name] = object
+        return object.uid
 
     def _change_texture(self, name, texture_id):
         self.p.changeVisualShape(self.get_scene_object_uid_by_name(name), -1,
@@ -425,76 +439,12 @@ class GymEnv(CameraEnv):
         for o in self.env_objects["distractor"][-2:]:
             self.highlight_active_object(o, "done")
 
-    def get_dice_value(self, quaternion):
-        def noramalize(q):
-            return q/np.linalg.norm(q)
-        
-        faces = np.array([
-            [0,0,1],
-            [0,1,0],
-            [1,0,0],
-            [0,0,-1],
-            [0,-1,0],
-            [-1,0,0],
-        ])
-
-        rot_mtx = Rotation.from_quat(noramalize(quaternion)).as_matrix()
-
-        rotated_faces = np.dot(rot_mtx, faces.T).T
-
-        top_face_index = np.argmax(rotated_faces[:,2])
-        
-        face_nums = [2, 5, 1, 4, 6, 3] #states that first face has number 2 on it, second 5 and so on...
-
-        return top_face_index + 1
-    
-    def quaternion_mult(self, q1, q2):
-        w1, x1, y1, z1 = q1
-        w2, x2, y2, z2 = q2
-
-        w = w1*w2 - x1*x2 - y1*y2 - z1*z2
-        x = w1*x2 + x1*w2 + y1*z2 - z1*y2
-        y = w1*y2 - x1*z2 + y1*w2 + z1*x2
-        z = w1*z2 + x1*y2 - y1*x2 + z1*w2
-        return np.array([w,x,y,z])
-
-    def q_inv(self, q):
-        w, x, y, z = q
-        norm = w**2 + x**2 + y**2 + z**2
-        return np.array([w,-x,-y,-z])/norm
-
-    def rotate(self, vec, quat):
-        
-        w, x, y, z = quat
-        norm = w**2 + x**2 + y**2 + z**2
-        quat = quat/norm
-        qcon = self.q_inv(quat)
-        rvect = self.quaternion_mult(quat, np.concatenate(([0], vec)))
-        rvect = self.quaternion_mult(rvect, qcon)[1:]
-        return rvect
-
     def flatten_obs(self, obs):
-        """ Returns the input obs dict as flattened list""" 
+        """ Returns the input obs dict as flattened list """
         if len(obs["additional_obs"].keys()) != 0 and not self.dataset:
             obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
         if not self.dataset:
             obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])
-    
-        # Code snippet for HER dicethrow
-        #vec = self.rotate(np.array([1,0,0]) ,np.array(obs["actual_state"][3:]))     #this array must be se manually, [0,0,1] for 1, [1,0,0] for 6, [0,0,-1] for 2
-        
-        #print(obs["actual_state"][:3])
-        #div = vec - np.array([0,0,1])
-        #res = np.matmul(div, div)
-        
-        #mult = np.matmul(np.array([0,0,1]),vec)
-        #rad = np.arccos(mult)
-        #deg = np.degrees(rad)
-        #print(deg)
-        
-        #print("Sending Reward")
-        #obs = {"observation" : obs['actual_state'], "achieved_goal" : np.array([res]), "desired_goal" : np.array([0])}
-        #print(obs)y
         return obs
 
     def _set_cameras(self):
@@ -543,7 +493,7 @@ class GymEnv(CameraEnv):
             self.episode_reward += reward
             # self.task.check_goal()
             done = self.episode_over
-            info = {'d': self.task.last_distance / self.task.init_distance, 'f': int(self.episode_failed),
+            info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
         if done: self.successful_finish(info)
         if self.task.subtask_over:
@@ -563,7 +513,7 @@ class GymEnv(CameraEnv):
             :param info: (dict) logged information about training
         """
         self.episode_final_reward.append(self.episode_reward)
-        self.episode_final_distance.append(self.task.last_distance / self.task.init_distance)
+        #self.episode_final_distance.append(self.task.last_distance / self.task.init_distance)
         self.episode_number += 1
         self._print_episode_summary(info)
 
@@ -583,7 +533,8 @@ class GymEnv(CameraEnv):
             self.p.stepSimulation()
         # print(f"Substeps:{i}")
         self.episode_steps += 1
-
+        #print(f"Episode step: {self.episode_steps}")
+        
     def choose_goal_object_by_human_with_keys(self, objects: List[EnvObject]) -> EnvObject:
         self.text_id = self.p.addUserDebugText("Point the human's finger via arrow keys at the goal object and press enter", [1, 0, 0.5], textSize=1)
         move_factor = 10  # times 1 cm
@@ -672,7 +623,7 @@ class GymEnv(CameraEnv):
 
     def highlight_active_object(self, env_o, obj_role):
         if obj_role == "goal":
-            env_o.set_color(cs.name_to_rgba("transparent green"))
+            env_o.set_color(cs.name_to_rgba("red"))
         elif obj_role == "init":
             env_o.set_color(cs.name_to_rgba("green"))
         elif obj_role == "done":
