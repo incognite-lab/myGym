@@ -2395,7 +2395,6 @@ class TwoStagePushReward(PokeReachReward):
         # -0.75; 0.05
         # 0.75; 1.05
         if cube_position[0] > 0.75 or cube_position[0] < -0.75 or cube_position[1] > 1.05 or cube_position[1] < 0.05:
-            print("reset")
             self.env.episode_failed = True
             return True
         return False
@@ -3140,10 +3139,8 @@ class ThreeStagePnP(TwoStagePnP):
         #print("GRIPPER IN REACHED OBJECT:", gripper)
         #print("OBJECT IN REACHED OBJECT:", object)
         if "gripper" in self.env.robot_action:
-            print("calculating distance")
             if self.task.calc_distance(gripper, object) <= 0.1:
                 self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[200, 10, 0, .7])
-                print("Returning true:")
                 return True
             else:
                 self.env.p.changeVisualShape(self.env.env_objects["actual_state"].uid, -1, rgbaColor=[255, 0, 0, 1])
@@ -4689,7 +4686,7 @@ class ProtorewardsRDDL(Reward):
         return reward
 
     def grasp_compute(self, gripper, object, gripper_states):
-        self.env.robot.set_magnetization(False)
+        self.env.robot.set_magnetization(True)
         dist = self.task.calc_distance(gripper[:3], object[:3])
         gripdist = sum(gripper_states)
         if self.last_approach_dist is None:
@@ -4719,7 +4716,7 @@ class ProtorewardsRDDL(Reward):
         return reward
 
     def move_compute(self, object, goal, gripper_states):
-        self.env.robot.set_magnetization(True)
+        self.env.robot.set_magnetization(False)
         object_XY = object[:3]
         goal_XY = goal[:3]
         gripdist = sum(gripper_states)

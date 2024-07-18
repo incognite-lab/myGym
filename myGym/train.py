@@ -15,6 +15,14 @@ from queue import Queue
 import gym
 import numpy as np
 import pkg_resources
+import os, sys, time, yaml
+import argparse
+import numpy as np
+import matplotlib.pyplot as plt
+import json, commentjson
+import gym
+from myGym import envs
+import myGym.utils.cfg_comparator as cfg
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from stable_baselines.common.policies import MlpPolicy
@@ -24,6 +32,7 @@ from stable_baselines.her import HERGoalEnvWrapper
 # For now, I am importing both with slightly modified names P-PyTorch T-TensorFlow
 from stable_baselines import PPO1 as PPO1_T, PPO2 as PPO2_T, HER as HER_T, SAC as SAC_T, DDPG as DDPG_T
 from stable_baselines import TD3 as TD3_T, A2C as A2C_T, ACKTR as ACKTR_T, TRPO as TRPO_T, GAIL as GAIL_T
+
 
 try:
     from stable_baselines3 import PPO as PPO_P, A2C as A2C_P, SAC as SAC_P, TD3 as TD3_P
@@ -44,7 +53,8 @@ from stable_baselines.ddpg.policies import MlpPolicy as MlpPolicyDDPG
 from stable_baselines.td3.policies import MlpPolicy as MlpPolicyTD3
 
 # Import helper classes and functions for monitoring
-from myGym.utils.callbacks import SaveOnBestTrainingRewardCallback, CustomEvalCallback
+from myGym.utils.callbacks import ProgressBarManager, SaveOnBestTrainingRewardCallback, PlottingCallback, \
+    CustomEvalCallback
 from myGym.envs.natural_language import NaturalLanguage
 
 # This is global variable for the type of engine we are working with
@@ -59,6 +69,7 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
     print("Congratulations! Training with {} timesteps succeed!".format(arg_dict["steps"]))
 
 
+
 def configure_env(arg_dict, model_logdir=None, for_train=True):
     env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                      "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
@@ -70,8 +81,8 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "num_networks": arg_dict.get("num_networks", 1),
                      "network_switcher": arg_dict.get("network_switcher", "gt"),
                      "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
-                     "active_cameras": arg_dict["camera"], "color_dict":arg_dict.get("color_dict", {}),
-                     "max_episode_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
+                     "active_cameras": arg_dict["camera"], "color_dict": arg_dict.get("color_dict", {}),
+                     "max_episode_steps": arg_dict["max_episode_steps"], "visgym": arg_dict["visgym"],
                      "active_cameras": arg_dict["camera"], "color_dict": arg_dict.get("color_dict", {}),
                      "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"],
@@ -189,8 +200,8 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             # Generate expert trajectories (train expert)
             generate_expert_traj(model, model_name, n_timesteps=3000, n_episodes=100)
             # Load the expert dataset
-            dataset = ExpertDataset(expert_path=model_name + '.npz', traj_limitation=10, verbose=1)
-            kwargs = {"verbose": 1}
+            dataset = ExpertDataset(expert_path=model_name+'.npz', traj_limitation=10, verbose=1)
+            kwargs = {"verbose":1}
             if seed is not None:
                 kwargs["seed"] = seed
             model = GAIL_T('MlpPolicy', model_name, dataset, **kwargs)
@@ -236,11 +247,11 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     # Envinronment
-    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_FM_nico.json",
+    parser.add_argument("-cfg", "--config", default="./configs/train_FM_nico.json",
                         help="Can be passed instead of all arguments")
     parser.add_argument("-n", "--env_name", type=str, help="The name of environment")
     parser.add_argument("-ws", "--workspace", type=str, help="The name of workspace")
-    parser.add_argument("-p", "--engine", type=str, help="Name of the simulation engine you want to use")
+    parser.add_argument("-p", "--engine", type=str,  help="Name of the simulation engine you want to use")
     parser.add_argument("-sd", "--seed", type=int, help="Seed number")
     parser.add_argument("-d", "--render", type=str, help="Type of rendering: opengl, opencv")
     parser.add_argument("-c", "--camera", type=int, help="The number of camera used to render and record")
@@ -302,12 +313,9 @@ def get_parser():
     parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")
     parser.add_argument("-vp", "--vae_path", type=str, help="Path to a trained VAE in 2dvu reward type")
     parser.add_argument("-yp", "--yolact_path", type=str, help="Path to a trained Yolact in 3dvu reward type")
-    parser.add_argument("-yc", "--yolact_config", type=str,
-                        help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
-    parser.add_argument('-ptm', "--pretrained_model", type=str,
-                        help="Path to a model that you want to continue training")
-    parser.add_argument("-out", "--output", type=str, default="./trained_models/multitester.json", help="output file")
-    parser.add_argument("-thread", "--threaded", type=bool, default="True", help="run in threads")
+    parser.add_argument("-yc", "--yolact_config", type=str, help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
+    parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
+
     return parser
 
 
@@ -350,6 +358,8 @@ def task_objects_replacement(task_objects_new, task_objects_old, task_type):
     return ret
 
 
+def process_natural_language_command(cmd, env,
+                                     output_relative_path=os.path.join("envs", "examples", "natural_language.txt")):
 def process_natural_language_command(cmd, env,
                                      output_relative_path=os.path.join("envs", "examples", "natural_language.txt")):
     env.reset()
@@ -432,6 +442,8 @@ def main():
     os.makedirs(arg_dict["logdir"], exist_ok=True)
     model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join(
         (arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"], arg_dict["robot_action"], arg_dict["algo"])))
+    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join(
+        (arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"], arg_dict["robot_action"], arg_dict["algo"])))
     model_logdir = model_logdir_ori
     add = 2
     while True:
@@ -445,7 +457,7 @@ def main():
     env = configure_env(arg_dict, model_logdir, for_train=True)
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
     train(env, implemented_combos, model_logdir, arg_dict, arg_dict["pretrained_model"])
-    print(model_logdir)
+
     sys.stdout.flush()
 
 

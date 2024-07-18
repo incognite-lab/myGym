@@ -1,5 +1,5 @@
 from stable_baselines.results_plotter import load_results, ts2xy
-#from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines import results_plotter
 
@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import json
 import imageio
 
-#from pygifsicle import optimize
+# from pygifsicle import optimize
 from typing import Union, List, Dict, Any, Optional
 from tqdm.auto import tqdm
 import numpy as np
@@ -19,12 +19,13 @@ from numpy import matrix
 import warnings
 
 from stable_baselines.common.vec_env import VecEnv, sync_envs_normalization, DummyVecEnv
-#from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
-from stable_baselines.common.vec_env import SubprocVecEnv
-# from stable_baselines3.common.evaluation import evaluate_policy
-from stable_baselines.common.evaluation import evaluate_policy
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
+#from stable_baselines.common.vec_env import SubprocVecEnv
+from stable_baselines3.common.evaluation import evaluate_policy
+#from stable_baselines.common.evaluation import evaluate_policy
 
-#tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
+# tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 class CustomEvalCallback(EvalCallback):
     """
@@ -43,7 +44,8 @@ class CustomEvalCallback(EvalCallback):
     :param render: (bool) Whether to render or not the environment during evaluation
     :param verbose: (int)
     """
-    def __init__(self, eval_env: Union[gym.Env, VecEnv],
+
+    def __init__(self, eval_env: Union[gym.Env, SubprocVecEnv],
                  callback_on_new_best: Optional[BaseCallback] = None,
                  n_eval_episodes: int = 10,
                  algo_steps: int = 256,
@@ -53,11 +55,11 @@ class CustomEvalCallback(EvalCallback):
                  deterministic: bool = False,
                  render: bool = False,
                  verbose: int = 1,
-                 physics_engine = "pybullet",
-                 gui_on = True,
+                 physics_engine="pybullet",
+                 gui_on=True,
                  record=False,
                  camera_id=0,
-                 record_steps_limit=256): # pybullet or mujoco
+                 record_steps_limit=256):  # pybullet or mujoco
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.algo_steps = algo_steps
@@ -72,12 +74,12 @@ class CustomEvalCallback(EvalCallback):
         self.camera_id = camera_id
         self.record_steps_limit = record_steps_limit
         self.is_tb_set = False
-        #print("eval_env:", eval_env)
+        # print("eval_env:", eval_env)
         # Convert to VecEnv for consistency
         # if not isinstance(eval_env, VecEnv):
         #     eval_env = DummyVecEnv([lambda: eval_env])
 
-        #assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
+        # assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
 
         self.eval_env = eval_env
         self.best_model_save_path = best_model_save_path
@@ -90,17 +92,15 @@ class CustomEvalCallback(EvalCallback):
         self.evaluations_length = []
 
     def evaluate_policy(
-        self,
-        model: None,
-        #env: Union[gym.Env, VecEnv],
-        n_eval_episodes: int = 10,
-        deterministic: bool = False,
+            self,
+            model: None,
+            # env: Union[gym.Env, VecEnv],
+            n_eval_episodes: int = 10,
+            deterministic: bool = False,
     ):
 
         if isinstance(self.eval_env, VecEnv):
             assert self.eval_env.num_envs == 1, "You must pass only one environment when using this function"
-
-
 
         success_episodes_num = 0
         distance_error_sum = 0
@@ -113,7 +113,7 @@ class CustomEvalCallback(EvalCallback):
         subrewsuccess = []
         print("---Evaluation----")
         for e in range(n_eval_episodes):
-            #print("connection info pre-reset:", p.getConnectionInfo())
+            # print("connection info pre-reset:", p.getConnectionInfo())
             # Avoid double reset, as VecEnv are reset automatically
             if not isinstance(self.eval_env, VecEnv) or e == 0:
                 obs = self.eval_env.reset()
@@ -121,23 +121,22 @@ class CustomEvalCallback(EvalCallback):
             is_successful = 0
             distance_error = 0
             episode_reward = 0.0
-            steps=0
+            steps = 0
             last_network = 0
             last_steps = 0
 
+            if isinstance(self.eval_env, VecMonitor):
+                # During multiprocess training, evaluation environment needs to be accessed differently
+                evaluation_env = self.eval_env.get_attr("env")[0]
+            else:
+                evaluation_env = self.eval_env.env
 
-            #if isinstance(self.eval_env, VecMonitor):
-                #During multiprocess training, evaluation environment needs to be accessed differently
-                #evaluation_env = self.eval_env.get_attr("env")[0]
-            #else:
-            evaluation_env = self.eval_env.env
+            # print("evaluation env:", evaluation_env)
 
-            #print("evaluation env:", evaluation_env)
-
-            #srewardsteps = np.zeros(self.eval_env.env.reward.num_networks)
+            # srewardsteps = np.zeros(self.eval_env.env.reward.num_networks)
             srewardsteps = np.zeros(evaluation_env.reward.num_networks)
             srewardsuccess = np.zeros(evaluation_env.reward.num_networks)
-            #print("connection info:", p.getConnectionInfo())
+            # print("connection info:", p.getConnectionInfo())
             while not done:
                 steps_sum += 1
                 action, state = model.predict(obs, deterministic=deterministic)
@@ -148,45 +147,50 @@ class CustomEvalCallback(EvalCallback):
                     reward = reward[0]
                     done = done[0]
                 #
-                #evaluation_env.p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),5))}",
-                   # [.8, .5, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
+                # evaluation_env.p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),5))}",
+                # [.8, .5, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
                 if evaluation_env.p.getConnectionInfo()["isConnected"] != 0:
-                    evaluation_env.p.addUserDebugText(f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']),5))}",
+                    evaluation_env.p.addUserDebugText(
+                        f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']), 5))}",
                         [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
-                    evaluation_env.p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
+                    evaluation_env.p.addUserDebugText(
+                        f"Object:{matrix(np.around(np.array(info['o']['actual_state']), 5))}",
                         [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
                     evaluation_env.p.addUserDebugText(f"Network:{evaluation_env.reward.current_network}",
-                        [.8, .5, 0.25], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+                                                      [.8, .5, 0.25], textSize=1.0, lifeTime=0.5,
+                                                      textColorRGB=[0.0, 0.0, 1])
                     evaluation_env.p.addUserDebugText(f"Subtask:{evaluation_env.task.current_task}",
-                        [.8, .5, 0.35], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
+                                                      [.8, .5, 0.35], textSize=1.0, lifeTime=0.5,
+                                                      textColorRGB=[0.4, 0.2, 1])
                     evaluation_env.p.addUserDebugText(f"Episode:{e}",
-                        [.8, .5, 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
+                                                      [.8, .5, 0.45], textSize=1.0, lifeTime=0.5,
+                                                      textColorRGB=[0.4, 0.2, .3])
                     evaluation_env.p.addUserDebugText(f"Step:{steps}",
-                        [.8, .5, 0.55], textSize=1.0, lifeTime=0.5, textColorRGB=[0.2, 0.8, 1])
-                #print(f"Network:{self.eval_env.env.reward.current_network})
+                                                      [.8, .5, 0.55], textSize=1.0, lifeTime=0.5,
+                                                      textColorRGB=[0.2, 0.8, 1])
+                # print(f"Network:{self.eval_env.env.reward.current_network})
                 episode_reward += reward
                 # Info is list with dict inside
-                #info = info[0]
+                # info = info[0]
                 is_successful = not info['f']
                 if evaluation_env.reward.current_network != last_network:
-                    srewardsteps.put([last_network], steps-last_steps)
+                    srewardsteps.put([last_network], steps - last_steps)
                     srewardsuccess.put([last_network], 1)
                     last_network = self.eval_env.env.reward.current_network
                     last_steps = steps
                 distance_error = info['d']
 
-
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
-                        render_info = self.eval_env.render(mode="rgb_array", camera_id = self.camera_id)
+                        render_info = self.eval_env.render(mode="rgb_array", camera_id=self.camera_id)
                         image = render_info[self.camera_id]["image"]
                         images.append(image)
                         print(f"appending image: total size: {len(images)}]")
 
-                if self.physics_engine == "mujoco" and self.gui_on: # Rendering for mujoco engine
+                if self.physics_engine == "mujoco" and self.gui_on:  # Rendering for mujoco engine
                     self.eval_env.render()
-                steps +=1      
-            srewardsteps.put([last_network], steps-last_steps)
+                steps += 1
+            srewardsteps.put([last_network], steps - last_steps)
             if is_successful:
                 srewardsuccess.put([last_network], 1)
             subrewards.append(evaluation_env.reward.network_rewards)
@@ -198,48 +202,44 @@ class CustomEvalCallback(EvalCallback):
 
         if self.record:
             gif_path = os.path.join(self.log_path, "last_eval_episode_after_{}_steps.gif".format(self.n_calls))
-            imageio.mimsave(gif_path, [np.array(img) for i, img in enumerate(images) if i%2 == 0], fps=15)
-            #optimize(gif_path)
-            os.system('./utils/gifopt -O3 --lossy=5 -o {dest} {source}'.format(source=gif_path, dest=gif_path)) 
+            imageio.mimsave(gif_path, [np.array(img) for i, img in enumerate(images) if i % 2 == 0], fps=15)
+            # optimize(gif_path)
+            os.system('./utils/gifopt -O3 --lossy=5 -o {dest} {source}'.format(source=gif_path, dest=gif_path))
             print("Record saved to " + gif_path)
-
-        
 
         meansr = np.mean(subrewards, axis=0)
         meansrs = np.mean(subrewsteps, axis=0)
         srsu = np.array(subrewsuccess)
-        meansgoals=np.count_nonzero(srsu)/evaluation_env.reward.num_networks/n_eval_episodes*100
+        meansgoals = np.count_nonzero(srsu) / evaluation_env.reward.num_networks / n_eval_episodes * 100
 
         results = {
             "episode": "{}".format(self.n_calls),
             "n_eval_episodes": "{}".format(n_eval_episodes),
             "success_episodes_num": "{}".format(success_episodes_num),
-            "success_rate": "{}".format(success_episodes_num/n_eval_episodes*100),
+            "success_rate": "{}".format(success_episodes_num / n_eval_episodes * 100),
             "mean_distance_error": "{:.2f}".format(distance_error_sum / n_eval_episodes),
             "mean_steps_num": "{}".format(steps_sum // n_eval_episodes),
             "mean_reward": "{:.2f}".format(np.mean(episode_rewards)),
             "std_reward": "{:.2f}".format(np.std(episode_rewards)),
-            "number of tasks":"{}".format(evaluation_env.task.number_tasks),
-            "number of networks":"{}".format(evaluation_env.reward.num_networks),
-            "mean subgoals finished":"{}".format(str(meansgoals)),
-            "mean subgoal reward":"{}".format(str(meansr)),
-            "mean subgoal steps":"{}".format(str(meansrs)),
+            "number of tasks": "{}".format(evaluation_env.task.number_tasks),
+            "number of networks": "{}".format(evaluation_env.reward.num_networks),
+            "mean subgoals finished": "{}".format(str(meansgoals)),
+            "mean subgoal reward": "{}".format(str(meansr)),
+            "mean subgoal steps": "{}".format(str(meansrs)),
         }
-        
+
         for k, v in results.items():
-            print (k, ':', v)
+            print(k, ':', v)
 
-        
+        # print ("mean subtasks finished:{}".format(meansgoals))
 
-        #print ("mean subtasks finished:{}".format(meansgoals))
-
-        #if not self.is_tb_set:
+        # if not self.is_tb_set:
         #    with self.model.graph.as_default():
         #        tf.summary.scalar('value_target', tf.reduce_mean(self.model.value_target))
         #        self.model.summary = tf.summary.merge_all()
         #    self.is_tb_set = True
 
-        #from HERE
+        # from HERE
         '''summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/1.Episode_success', simple_value=(success_episodes_num/n_eval_episodes*100))])
         self.locals['writer'].add_summary(summary, self.num_timesteps)
         summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/3.Mean_distance_error', simple_value=(distance_error_sum / n_eval_episodes))])
@@ -250,7 +250,7 @@ class CustomEvalCallback(EvalCallback):
         self.locals['writer'].add_summary(summary, self.num_timesteps)
         summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/2.Mean_sgoals', simple_value=meansgoals)])
         self.locals['writer'].add_summary(summary, self.num_timesteps)
-        
+
         for i in range (self.eval_env.env.task.number_tasks):
             #print("Task: {}".format(i)) 
             for j, (k,l) in enumerate(zip(meansr,meansrs)):  
@@ -266,11 +266,10 @@ class CustomEvalCallback(EvalCallback):
                                                                               simple_value=m)])
                 self.locals['writer'].add_summary(summary, self.num_timesteps)
 '''
-        #to HERE
+        # to HERE
         self.eval_env.reset()
-        print ("Evaluation finished successfully")
+        print("Evaluation finished successfully")
         return results
-
 
     def _init_callback(self):
         # Does not work in some corner cases, where the wrapper is not the same
@@ -290,15 +289,15 @@ class CustomEvalCallback(EvalCallback):
             sync_envs_normalization(self.training_env, self.eval_env)
 
             results = self.evaluate_policy(self.model,
-                                      n_eval_episodes=self.n_eval_episodes,
-                                      deterministic=self.deterministic)
+                                           n_eval_episodes=self.n_eval_episodes,
+                                           deterministic=self.deterministic)
 
             if self.log_path is not None:
                 self.evaluations_results["evaluation_after_{}_steps".format(self.n_calls)] = results
                 filename = "evaluation_results.json"
                 with open(os.path.join(self.log_path, filename), 'w') as f:
                     json.dump(self.evaluations_results, f, indent=4)
-                print("Evaluation stored after {} calls.".format(self.n_calls))    
+                print("Evaluation stored after {} calls.".format(self.n_calls))
         return True
 
 
@@ -337,7 +336,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
         self.engine = engine
         self.save_model_every_steps = save_model_every_steps
         # MUJOCO PART FOR NOW
-        self.periodical_save_path = os.path.join(logdir,'steps_')
+        self.periodical_save_path = os.path.join(logdir, 'steps_')
         self.env = env  # Our access to running environment
         self.STATS_EVERY = stats_every
         self.save_success_graph_every_steps = save_success_graph_every_steps
@@ -360,8 +359,8 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
                 # Save the new best model (with best average reward)
                 if average_reward > self.best_average_reward:
                     self.best_average_reward = average_reward
-                    #if self.verbose > 0:
-                        #print("Saving new best model to {}".format(self.save_path))
+                    # if self.verbose > 0:
+                    # print("Saving new best model to {}".format(self.save_path))
                     self.model.save(self.save_path)
 
                 if self.engine == "mujoco":  # Mujoco has additional prints
@@ -384,7 +383,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
                     data_array_1=self.env.successfull_failed_episodes,
                     data_array_2=None,
                     save_dir=self.logdir,
-                    average_x_axis_span=self.success_graph_mean_past_episodes ,
+                    average_x_axis_span=self.success_graph_mean_past_episodes,
                     axis_x_name="episodes",
                     axis_y_names=["success_rate"])
         return True
@@ -439,7 +438,7 @@ class PlottingCallback(BaseCallback):
         x, y = ts2xy(load_results(self.logdir), 'timesteps')
         if self._plot is None:  # Make the plot
             plt.ion()
-            fig = plt.figure(figsize=(6,3))
+            fig = plt.figure(figsize=(6, 3))
             ax = fig.add_subplot(111)
             line, = ax.plot(x, y)
             self._plot = (line, ax, fig)
@@ -449,7 +448,7 @@ class PlottingCallback(BaseCallback):
             self._plot[0].set_data(x, y)
             self._plot[-2].relim()
             self._plot[-2].set_xlim([self.locals["total_timesteps"] * -0.02,
-                                    self.locals["total_timesteps"] * 1.02])
+                                     self.locals["total_timesteps"] * 1.02])
             self._plot[-2].autoscale_view(True, True, True)
             self._plot[-1].canvas.draw()
 
@@ -460,7 +459,7 @@ class PlottingCallback(BaseCallback):
 # y-axis is usually 'success_rate' and/or 'XXX' and represents mean value of our data on some index
 # in our array over some amount of past values ->  'average_x_axis_span'. We will calculate
 # average from the last 'average_x_axis_span' and plot it to y-axis
-def generate_and_save_mean_graph_from_1_or_2arrays(data_array_1=[], data_array_2= None,
+def generate_and_save_mean_graph_from_1_or_2arrays(data_array_1=[], data_array_2=None,
                                                    save_dir="", average_x_axis_span=20,
                                                    axis_x_name="episodes", axis_y_names=["success_rate"]):
     # Initialize storage array
@@ -476,10 +475,10 @@ def generate_and_save_mean_graph_from_1_or_2arrays(data_array_1=[], data_array_2
         # Add data to plotter
         if (x_axis_counter % average_x_axis_span) == 0:
             # Average data over last 'average_episodes_span'
-            mean_y_value_1 = np.mean(data_array_1[x_axis_counter : (x_axis_counter+average_x_axis_span)])
+            mean_y_value_1 = np.mean(data_array_1[x_axis_counter: (x_axis_counter + average_x_axis_span)])
 
             if data_array_2 is not None:
-                mean_y_value_2 = np.mean(data_array_2[x_axis_counter : (x_axis_counter+average_x_axis_span)])
+                mean_y_value_2 = np.mean(data_array_2[x_axis_counter: (x_axis_counter + average_x_axis_span)])
             # Append the data
             data_to_plot[axis_x_name].append(x_axis_counter)
             data_to_plot[axis_y_names[0]].append(mean_y_value_1)
@@ -515,6 +514,7 @@ def generate_and_save_mean_graph_from_1_or_2arrays(data_array_1=[], data_array_2
         plt.close()
     return
 
+
 class SaveOnTopRewardCallback(BaseCallback):
     """
     Callback for saving a model (the check is done every ``check_freq`` steps)
@@ -531,7 +531,7 @@ class SaveOnTopRewardCallback(BaseCallback):
         self.check_freq = check_freq
         self.logdir = logdir
         self.save_path = os.path.join(logdir, 'highest_reward')
-        self.top_rewards = [-np.inf]*models_num
+        self.top_rewards = [-np.inf] * models_num
 
     def _on_rollout_end(self) -> bool:
         if self.n_calls % self.check_freq == 0:
