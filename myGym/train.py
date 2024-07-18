@@ -360,8 +360,6 @@ def task_objects_replacement(task_objects_new, task_objects_old, task_type):
 
 def process_natural_language_command(cmd, env,
                                      output_relative_path=os.path.join("envs", "examples", "natural_language.txt")):
-def process_natural_language_command(cmd, env,
-                                     output_relative_path=os.path.join("envs", "examples", "natural_language.txt")):
     env.reset()
     nl = NaturalLanguage(env)
 
