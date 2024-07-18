@@ -1,5 +1,5 @@
 from stable_baselines.results_plotter import load_results, ts2xy
-from stable_baselines.common.callbacks import BaseCallback, EvalCallback
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines import results_plotter
 
 import os
@@ -18,7 +18,8 @@ from numpy import matrix
 import warnings
 
 from stable_baselines.common.vec_env import VecEnv, sync_envs_normalization, DummyVecEnv
-from stable_baselines.common.evaluation import evaluate_policy
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
+from stable_baselines3.common.evaluation import evaluate_policy
 
 #tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
@@ -68,7 +69,7 @@ class CustomEvalCallback(EvalCallback):
         self.camera_id = camera_id
         self.record_steps_limit = record_steps_limit
         self.is_tb_set = False
-        print("eval_env:", eval_env)
+        #print("eval_env:", eval_env)
         # Convert to VecEnv for consistency
         # if not isinstance(eval_env, VecEnv):
         #     eval_env = DummyVecEnv([lambda: eval_env])
@@ -96,6 +97,8 @@ class CustomEvalCallback(EvalCallback):
         if isinstance(self.eval_env, VecEnv):
             assert self.eval_env.num_envs == 1, "You must pass only one environment when using this function"
 
+
+
         success_episodes_num = 0
         distance_error_sum = 0
         steps_sum = 0
@@ -107,7 +110,7 @@ class CustomEvalCallback(EvalCallback):
         subrewsuccess = []
         print("---Evaluation----")
         for e in range(n_eval_episodes):
-
+            #print("connection info pre-reset:", p.getConnectionInfo())
             # Avoid double reset, as VecEnv are reset automatically
             if not isinstance(self.eval_env, VecEnv) or e == 0:
                 obs = self.eval_env.reset()
@@ -118,33 +121,51 @@ class CustomEvalCallback(EvalCallback):
             steps=0
             last_network = 0
             last_steps = 0
-            srewardsteps = np.zeros(self.eval_env.env.reward.num_networks)
-            srewardsuccess = np.zeros(self.eval_env.env.reward.num_networks)
 
+
+            if isinstance(self.eval_env, VecMonitor):
+                #During multiprocess training, evaluation environment needs to be accessed differently
+                evaluation_env = self.eval_env.get_attr("env")[0]
+            else:
+                evaluation_env = self.eval_env.env
+
+            #print("evaluation env:", evaluation_env)
+
+            #srewardsteps = np.zeros(self.eval_env.env.reward.num_networks)
+            srewardsteps = np.zeros(evaluation_env.reward.num_networks)
+            srewardsuccess = np.zeros(evaluation_env.reward.num_networks)
+            #print("connection info:", p.getConnectionInfo())
             while not done:
                 steps_sum += 1
                 action, state = model.predict(obs, deterministic=deterministic)
                 obs, reward, done, info = self.eval_env.step(action)
-                p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),5))}",
-                    [.8, .5, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
-                #p.addUserDebugText(f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']),5))}",
-                #    [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
-                p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
-                    [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-                p.addUserDebugText(f"Network:{self.eval_env.env.reward.current_network}",
-                    [.8, .5, 0.25], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-                p.addUserDebugText(f"Subtask:{self.eval_env.env.task.current_task}",
-                    [.8, .5, 0.35], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
-                p.addUserDebugText(f"Episode:{e}",
-                    [.8, .5, 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
-                p.addUserDebugText(f"Step:{steps}",
-                    [.8, .5, 0.55], textSize=1.0, lifeTime=0.5, textColorRGB=[0.2, 0.8, 1])
+                if len(np.shape(action)) == 2:
+                    action = action[0, :]
+                    info = info[0]
+                    reward = reward[0]
+                    done = done[0]
+                #
+                #evaluation_env.p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),5))}",
+                   # [.8, .5, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
+                if evaluation_env.p.getConnectionInfo()["isConnected"] != 0:
+                    evaluation_env.p.addUserDebugText(f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']),5))}",
+                        [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
+                    evaluation_env.p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
+                        [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+                    evaluation_env.p.addUserDebugText(f"Network:{evaluation_env.reward.current_network}",
+                        [.8, .5, 0.25], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+                    evaluation_env.p.addUserDebugText(f"Subtask:{evaluation_env.task.current_task}",
+                        [.8, .5, 0.35], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
+                    evaluation_env.p.addUserDebugText(f"Episode:{e}",
+                        [.8, .5, 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
+                    evaluation_env.p.addUserDebugText(f"Step:{steps}",
+                        [.8, .5, 0.55], textSize=1.0, lifeTime=0.5, textColorRGB=[0.2, 0.8, 1])
                 #print(f"Network:{self.eval_env.env.reward.current_network})
                 episode_reward += reward
                 # Info is list with dict inside
                 #info = info[0]
                 is_successful = not info['f']
-                if self.eval_env.env.reward.current_network != last_network:
+                if evaluation_env.reward.current_network != last_network:
                     srewardsteps.put([last_network], steps-last_steps)
                     srewardsuccess.put([last_network], 1)
                     last_network = self.eval_env.env.reward.current_network
@@ -165,7 +186,7 @@ class CustomEvalCallback(EvalCallback):
             srewardsteps.put([last_network], steps-last_steps)
             if is_successful:
                 srewardsuccess.put([last_network], 1)
-            subrewards.append(self.eval_env.env.reward.network_rewards)            
+            subrewards.append(evaluation_env.reward.network_rewards)
             subrewsteps.append(srewardsteps)
             subrewsuccess.append(srewardsuccess)
             episode_rewards.append(episode_reward)
@@ -184,7 +205,7 @@ class CustomEvalCallback(EvalCallback):
         meansr = np.mean(subrewards, axis=0)
         meansrs = np.mean(subrewsteps, axis=0)
         srsu = np.array(subrewsuccess)
-        meansgoals=np.count_nonzero(srsu)/self.eval_env.env.reward.num_networks/n_eval_episodes*100
+        meansgoals=np.count_nonzero(srsu)/evaluation_env.reward.num_networks/n_eval_episodes*100
 
         results = {
             "episode": "{}".format(self.n_calls),
@@ -195,8 +216,8 @@ class CustomEvalCallback(EvalCallback):
             "mean_steps_num": "{}".format(steps_sum // n_eval_episodes),
             "mean_reward": "{:.2f}".format(np.mean(episode_rewards)),
             "std_reward": "{:.2f}".format(np.std(episode_rewards)),
-            "number of tasks":"{}".format(self.eval_env.env.task.number_tasks),
-            "number of networks":"{}".format(self.eval_env.env.reward.num_networks),
+            "number of tasks":"{}".format(evaluation_env.task.number_tasks),
+            "number of networks":"{}".format(evaluation_env.reward.num_networks),
             "mean subgoals finished":"{}".format(str(meansgoals)),
             "mean subgoal reward":"{}".format(str(meansr)),
             "mean subgoal steps":"{}".format(str(meansrs)),
@@ -271,9 +292,6 @@ class CustomEvalCallback(EvalCallback):
 
             if self.log_path is not None:
                 self.evaluations_results["evaluation_after_{}_steps".format(self.n_calls)] = results
-                #print(self.n_calls)
-                #print(self.num_timesteps)
-                #print (self.evaluations_results)
                 filename = "evaluation_results.json"
                 with open(os.path.join(self.log_path, filename), 'w') as f:
                     json.dump(self.evaluations_results, f, indent=4)

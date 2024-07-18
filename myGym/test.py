@@ -312,10 +312,8 @@ def test_env(env, arg_dict):
 
             elif arg_dict["control"] == "keyboard":
                 keypress = p.getKeyboardEvents()
-                #print(action)    
                 action =  detect_key(keypress,arg_dict,action)
-                #if t %10 == 1:
-                    #print("Endeffector state:", info['o'])
+
             elif arg_dict["control"] == "random":
                 action = env.action_space.sample()
 
@@ -329,27 +327,7 @@ def test_env(env, arg_dict):
             if arg_dict["vinfo"] == True:
                 visualize_infotext(action, env, info)
 
-                
-                #visualize_goal(info)
-            #if debug_mode:
-            #print("Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation, env.env.observation))
-                #if t>=1:
-                    #action = matrix(np.around(np.array(action),5))
-                    #oaction = env.env.robot.get_joints_states()
-                    #oaction = matrix(np.around(np.array(oaction[0:action.shape[0]]),5))
-                    #diff = matrix(np.around(np.array(action-oaction),5))
-                    #print(env.env.robot.get_joints_states())
-                    #print(f"Step:{t}")
-                    #print (f"RAction:{action}")
-                    #print(f"OAction:{oaction}")
-                    #print(f"DAction:{diff}")
-                    #p.addUserDebugText(f"DAction:{diff}",
-                    #                    [1, 1, 0.1], textSize=1.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
-            #time.sleep(.4)
-                    #clear()
-                    
-            #if action_control == "slider":
-            #    action=[]
+
             if "step" in arg_dict["robot_action"]:
                 action[:3] = [0,0,0] 
             
@@ -475,8 +453,7 @@ def main():
     parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")      
     arg_dict = get_arguments(parser)
     model_logdir = os.path.dirname(arg_dict.get("model_path",""))
-    print("Algo:", arg_dict["algo"])
-    print("Algo:", arg_dict["algo"])
+
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")

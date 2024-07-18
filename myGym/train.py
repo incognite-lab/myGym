@@ -21,11 +21,13 @@ from stable_baselines.common import make_vec_env
 try:
     #from stable_baselines3.common.policies import MlpPolicy
     #from stable_baselines3.common import make_vec_env
-    from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+    from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor
     from stable_baselines3.common.monitor import Monitor
+
     #from stable_baselines3 import results_plotter
-    from stable_baselines3.her import GoalSelectionStrategy, HERGoalEnvWrapper
+    #from stable_baselines3.her import GoalSelectionStrategy, HERGoalEnvWrapper
     from stable_baselines3.common.env_util import make_vec_env
+    from stable_baselines3.common.utils import set_random_seed
 except Exception as e:
     print(e)
 # For now I am importing both with slightly modified names P-PyTorch T-TensorFlow
@@ -115,15 +117,15 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
     if for_train:
         if arg_dict["engine"] == "mujoco":
             env = VecMonitor(env, model_logdir) if arg_dict["multiprocessing"] else Monitor(env, model_logdir)
-        elif arg_dict["engine"] == "pybullet":
-            env = Monitor(env, model_logdir, info_keywords=tuple('d'))
+        elif arg_dict["engine"] == "pybullet" and not arg_dict["multiprocessing"]:
+            env = Monitor(env, filename = model_logdir, info_keywords=tuple('d'))
 
     if arg_dict["algo"] == "her":
         env = HERGoalEnvWrapper(env)
     return env
 
 
-def make_env(arg_dict: dict, rank: int, seed: int = 0) -> Callable:
+def make_env(arg_dict: dict, rank: int, seed: int = 0, model_logdir = None) -> Callable:
     """
         Utility function for multiprocessed env.
 
@@ -133,8 +135,11 @@ def make_env(arg_dict: dict, rank: int, seed: int = 0) -> Callable:
         :return: (Callable)
         """
     def _init() -> gym.Env:
-        env = configure_env(arg_dict)
-        env.reset(seed=seed + rank)
+        arg_dict["seed"] = seed + rank
+        env = configure_env(arg_dict, for_train = True, model_logdir=model_logdir)
+        #print("connection status right after configuration:", env.p.getConnectionInfo())
+        env.reset()
+        #print("connection status right after configuration and reset:", env.p.getConnectionInfo())
         return env
 
     set_random_seed(seed)
@@ -175,9 +180,6 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     with open(conf_pth, "w") as f:
         json.dump(arg_dict, f, indent=4)
 
-    print("WWWWWWWWWWWWWWWWWWWWWW")
-    print(env)
-    print("WWWWWWWWWWWWWWWWWWWWWW")
     model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
     model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
     if seed is not None:
@@ -380,7 +382,9 @@ def main():
 
 
     if arg_dict["multiprocessing"]:
-        env = SubprocVecEnv([make_env(arg_dict["env_name"], i) for i in range(NUM_CPU)])
+        NUM_CPU = int(arg_dict["multiprocessing"])
+        env = SubprocVecEnv([make_env(arg_dict, i, model_logdir = model_logdir) for i in range(NUM_CPU)])
+        env = VecMonitor(env, model_logdir)
     else:
         env = configure_env(arg_dict, model_logdir, for_train=1)
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)

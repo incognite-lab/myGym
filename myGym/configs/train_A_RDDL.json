@@ -48,7 +48,7 @@
     "multiprocessing"   :false,
     #Evaluation
     "eval_freq"     :100000,
-    "eval_episodes" :10,
+    "eval_episodes" :30,
     #Saving and logging
     "logdir"    :"trained_models/A",
     "record"    :0
