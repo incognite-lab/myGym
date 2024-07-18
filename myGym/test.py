@@ -28,6 +28,7 @@ AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
 s_print_lock = Lock()
+display_queue = Queue()
 
 
 def s_print(*a, **b):
@@ -122,48 +123,41 @@ def detect_key(keypress, arg_dict, action):
     if 97 in keypress.keys() and keypress[97] == 1:  # A
         action[2] += .03
         #print(action)
-    if 122 in keypress.keys() and keypress[122] == 1: # Z/Y
+    if 122 in keypress.keys() and keypress[122] == 1:  # Z/Y
         action[2] -= .03
         #print(action)
-    if 65297 in keypress.keys() and keypress[65297] == 1: # ARROW UP
+    if 65297 in keypress.keys() and keypress[65297] == 1:  # ARROW UP
         action[1] -= .03
         #print(action)
-    if 65298 in keypress.keys() and keypress[65298] == 1: # ARROW DOWN
+    if 65298 in keypress.keys() and keypress[65298] == 1:  # ARROW DOWN
         action[1] += .03
         #print(action)
-    if 65295 in keypress.keys() and keypress[65295] == 1: # ARROW LEFT
+    if 65295 in keypress.keys() and keypress[65295] == 1:  # ARROW LEFT
         action[0] += .03
         #print(action)
-    if 65296 in keypress.keys() and keypress[65296] == 1: # ARROW RIGHT
+    if 65296 in keypress.keys() and keypress[65296] == 1:  # ARROW RIGHT
         action[0] -= .03
         #print(action)
-    if 120 in keypress.keys() and keypress[120] == 1: # X
+    if 120 in keypress.keys() and keypress[120] == 1:  # X
         action[3] -= .03
         action[4] -= .03
         #print(action)
-    if 99 in keypress.keys() and keypress[99] == 1: # C
+    if 99 in keypress.keys() and keypress[99] == 1:  # C
         action[3] += .03
         action[4] += .03
         #print(action)
-    # if 100 in keypress.keys() and keypress[100] == 1:
-    #     cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
-    #     change_dynamics(cube[cubecount],lfriction,rfriction,ldamping,adamping)
-    #     cubecount +=1
+
     if "step" in arg_dict["robot_action"]:
         action[:3] = np.multiply(action[:3], 10)
     elif "joints" in arg_dict["robot_action"]:
         print("Robot action: Joints - KEYBOARD CONTROL UNDER DEVELOPMENT")
         quit()
-    #for i in range (env.action_space.shape[0]):
-    #    env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
-    #    env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
     return action
 
 
 def test_env(env, arg_dict):
     spawn_objects = False
     env.render("human")
-    #env.reset()
     #Prepare names for sliders
     joints = ['Joint1', 'Joint2', 'Joint3', 'Joint4', 'Joint5', 'Joint6', 'Joint7', 'Joint 8', 'Joint 9', 'Joint10',
               'Joint11', 'Joint12', 'Joint13', 'Joint14', 'Joint15', 'Joint16', 'Joint17', 'Joint 18', 'Joint 19']
@@ -257,7 +251,7 @@ def test_env(env, arg_dict):
                 else:
 
                     if "joints" in arg_dict["robot_action"]:
-                        action = info['o']["additional_obs"]["joints_angles"]  #n
+                        action = info['o']["additional_obs"]["joints_angles"]
                     elif "absolute" in arg_dict["robot_action"]:
                         action = info['o']["actual_state"]
                     else:
@@ -314,7 +308,6 @@ def test_env(env, arg_dict):
                 action = env.action_space.sample()
 
             deg = np.rad2deg(action)
-            #print (f"Action:{deg}")
             observation, reward, done, info = env.step(action)
 
             if arg_dict["vtrajectory"] == True:
@@ -323,7 +316,13 @@ def test_env(env, arg_dict):
                 visualize_infotext(action, env, info)
             print(
                 "Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation, env.env.observation))
-            sys.stdout.flush()
+
+            # s_print(
+            #     "(S PRINT) Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation,
+            #                                                                             env.env.observation))
+            # display_queue.put("(QUEUE) Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation,
+            #                                                                                         env.env.observation))
+            # sys.stdout.flush()
 
             if "step" in arg_dict["robot_action"]:
                 action[:3] = [0, 0, 0]
@@ -411,7 +410,7 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
 
     mean_distance_error = distance_error_sum / arg_dict["eval_episodes"]
     mean_steps_num = steps_sum // arg_dict["eval_episodes"]
-    s_print("PRINTING FROM THREAD??")
+
     print("#---------Evaluation-Summary---------#")
     print("{} of {} episodes ({} %) were successful".format(success_episodes_num, arg_dict["eval_episodes"],
                                                             success_episodes_num / arg_dict["eval_episodes"] * 100))
@@ -446,6 +445,14 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
 last_eval_results = {}
 
 
+def display_worker():
+    while True:
+        line = display_queue.get()
+        if line is None:  # simple termination logic, other sentinels can be used
+            break
+        print(line, flush=True)
+
+
 def multi_test(params, args, ):
     configfile = args.config
     logdirfile = args.logdir
@@ -453,8 +460,8 @@ def multi_test(params, args, ):
     command = 'python test.py --config {configfile} --logdir {logdirfile} '.format(configfile=configfile,
                                                                                    logdirfile=logdirfile) + " ".join(
         f"--{key} {value}" for key, value in params.items())
+
     subprocess.check_output(command.split())
-    s_print("IN MULTI_TEST")
     with open(args.output, 'w') as f:
         json.dump(last_eval_results, f, indent=4)
 
@@ -464,7 +471,11 @@ def multi_main(args, parameters):
 
     threaded = args.threaded
     threads = []
-
+    if threaded:
+        screen_printing_thread = threading.Thread(
+            target=display_worker,
+        )
+        screen_printing_thread.start()
     start_time = time.time()
     for i, params in enumerate(parameter_grid):
         if threaded:
@@ -475,9 +486,10 @@ def multi_main(args, parameters):
             threads.append(thread)
         else:
             multi_test(params.copy(), args)
-
     if threaded:
         i = 0
+        display_queue.put(None)  # end screen_printing_thread
+        screen_printing_thread.join()
         for thread in threads:
             thread.join()
             print("Thread ", i + 1, " finishing")
@@ -510,16 +522,16 @@ def main():
         print("THREADING")
         multi_main(args, parameters)
     model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
-    model_logdir = os.path.dirname(arg_dict.get("model_path",""))
-    print("Algo:", arg_dict["algo"])
-    print("Algo:", arg_dict["algo"])
+    s_print("Algo:", arg_dict["algo"])
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
     if arg_dict.get("model_path") is None:
         print(
-            "Path to the model using --model_path argument not specified. Testing random actions in selected environment.")
+            "Path to the model using --model_path argument not specified. Testing random actions in selected "
+            "environment."
+        )
         arg_dict["gui"] = 1
         env = configure_env(arg_dict, model_logdir, for_train=0)
         test_env(env, arg_dict)

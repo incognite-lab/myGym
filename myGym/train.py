@@ -10,6 +10,7 @@ import time
 import threading
 import subprocess
 from sklearn.model_selection import ParameterGrid
+from queue import Queue
 
 import gym
 import numpy as np
@@ -20,7 +21,7 @@ from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines.bench import Monitor
 from stable_baselines.her import HERGoalEnvWrapper
-# For now I am importing both with slightly modified names P-PyTorch T-TensorFlow
+# For now, I am importing both with slightly modified names P-PyTorch T-TensorFlow
 from stable_baselines import PPO1 as PPO1_T, PPO2 as PPO2_T, HER as HER_T, SAC as SAC_T, DDPG as DDPG_T
 from stable_baselines import TD3 as TD3_T, A2C as A2C_T, ACKTR as ACKTR_T, TRPO as TRPO_T, GAIL as GAIL_T
 
@@ -72,7 +73,6 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "active_cameras": arg_dict["camera"], "color_dict":arg_dict.get("color_dict", {}),
                      "max_episode_steps": arg_dict["max_episode_steps"], "visgym":arg_dict["visgym"],
                      "active_cameras": arg_dict["camera"], "color_dict": arg_dict.get("color_dict", {}),
-                     "max_steps": arg_dict["max_episode_steps"], "visgym": arg_dict["visgym"],
                      "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"],
                      "natural_language": bool(arg_dict["natural_language"]),
@@ -220,7 +220,6 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         callbacks_list.append(eval_callback)
 
     print("learn started")
-    sys.stdout.flush()
     model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
     print("learn ended")
     model.save(os.path.join(model_logdir, model_name))
@@ -317,7 +316,7 @@ def get_arguments(parser):
     with open(args.config, "r") as f:
         arg_dict = commentjson.load(f)
     for key, value in vars(args).items():
-        if value is not None and key is not "config":
+        if value is not None and key != "config":
             if key in ["robot_init"]:
                 arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
             elif key in ["task_objects"]:
@@ -412,7 +411,6 @@ def multi_main(args, parameters):
 def main():
     parser = get_parser()
     arg_dict = get_arguments(parser)
-    print("ARG DICT ", arg_dict)
     parameters = {}
     args = parser.parse_args()
     for arg in vars(args):
