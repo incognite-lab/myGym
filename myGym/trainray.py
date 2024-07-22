@@ -32,24 +32,6 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
     if model_logdir is None:
         model_logdir = arg_dict["logdir"]
     print(f"model_logdir: {model_logdir}")
-
-    #results_plotter.EPISODES_WINDOW = 100
-    #results_plotter.plot_results([model_logdir], arg_dict["steps"], results_plotter.X_TIMESTEPS, arg_dict["algo"] + " " + arg_dict["env_name"] + " reward")
-    #plt.gcf().set_size_inches(8, 6)
-    #plt.savefig(os.path.join(model_logdir, model_name) + '_reward_results.png')
-    #plot_extended_results(model_logdir, 'd', results_plotter.X_TIMESTEPS, arg_dict["algo"] + " " + arg_dict["env_name"] + " distance", "Episode Distances")
-    #plt.gcf().set_size_inches(8, 6)
-    #plt.savefig(os.path.join(model_logdir, model_name) + '_distance_results.png')
-    #plt.close()
-    #plt.close()
-    #if isinstance(env, HERGoalEnvWrapper):
-    #    results_plotter.plot_curves([(np.arange(len(env.env.episode_final_distance)),np.asarray(env.env.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
-    #else:
-    #    results_plotter.plot_curves([(np.arange(len(env.unwrapped.episode_final_distance)),np.asarray(env.unwrapped.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
-    #plt.gcf().set_size_inches(8, 6)
-    #plt.ylabel("Step Distances")
-    #plt.savefig(os.path.join(model_logdir, model_name) + "_final_distance_results.png")
-    #plt.close()
     print("Congratulations! Training with {} timesteps succeed!".format(arg_dict["steps"]))
     #if show:
     #    plt.show()
@@ -193,10 +175,6 @@ def delete_unnecessary_logs(res):
     return result
 
 
-
-
-
-
 def get_arguments(parser):
     args = parser.parse_args()
     with open(args.config, "r") as f:
@@ -212,17 +190,23 @@ def get_arguments(parser):
                 arg_dict[key] = args.checkpoint
     return arg_dict, args
 
+
 def train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name):
+
+    env_args = configure_env(arg_dict, for_train=1)
+    env_args.pop("algo")
+
     if algorithm is not None:
         #If learning from scratch, create a new algorithm object
+        eval_interval = arg_dict["eval_freq"] // (arg_dict["max_episode_steps"] * NUM_WORKERS)
         algo = (
                 algorithm()
                 .rollouts(num_rollout_workers=NUM_WORKERS, batch_mode="complete_episodes") # You can try to increase or decrease based on your systems specs
                 .resources(num_gpus=1, num_gpus_per_worker=1/NUM_WORKERS) # You can try to increase or decrease based on your systems specs
-                .environment(env='GymEnv-v0', env_config=arg_dict)
+                .environment(env='GymEnv-v0', env_config=env_args)
                 .framework('torch')
                 .training(train_batch_size=512)
-                .evaluation(evaluation_interval = arg_dict["eval_freq"], evaluation_duration = arg_dict["eval_episodes"])#arg_dict["eval_freq"], arg_dict["eval_episodes"]
+                .evaluation(evaluation_interval = eval_interval, evaluation_duration = arg_dict["eval_episodes"])#arg_dict["eval_freq"], arg_dict["eval_episodes"]
                 .callbacks(EvalCallbackRay)
                 .build()
             )
@@ -239,45 +223,27 @@ def train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name):
         # run manual training loop and print results after each iteration
         for _ in range(int(num_steps/algo_steps)):
             result = algo.train() # Runs one logical iteration of training.
-            #print("original results:", pretty_print(result))
             result = delete_unnecessary_logs(result)
-            #print("RESULT: \n", result)
             print("#---------Iteration-Info---------#")
             print(pretty_print(result))
             print("#---------End_Iter_Info----------#")
             # stop training of the target train steps or reward are reached
             if _ % 50 == 0:
-                # policy = algo.get_policy()
-                # policy.export_checkpoint(dir_name)
                 algo.save(dir_name)
                 print(f"Checkpoint saved in directory {dir_name}")
 
             if result["timesteps_total"] >= num_steps:
                 break
         algo.stop()
-        # policy = algo.get_policy()gis
-        # policy.export_checkpoint(dir_name)
         algo.save(dir_name)
     else:
-        print("Running train loop with Ray Tune.")
-        ray.tune.run(
-            "PPO",
-            config=arg_dict,
-            local_dir='/home/michal/code/temp',  # specify your directory here
-            # other arguments...
-        )
-
-        # automated run with Tune and grid search and TensorBoard
-        # tuner = tune.Tuner(
-        #     args.run,
-        #     param_space=config.to_dict(),
-        #     run_config=air.RunConfig(stop=stop),
+        raise NotImplementedError("Ray tune not yet implemented")
+        # ray.tune.run(
+        #     "PPO",
+        #     config=arg_dict,
+        #     local_dir='/home/michal/code/temp',  # specify your directory here
+        #     # other arguments...
         # )
-        # results = tuner.fit()
-
-        # if args.as_test:
-        #     print("Checking if learning goals were achieved")
-        #     check_learning_achieved(results, args.stop_reward)
 
 
 def main():
@@ -314,12 +280,12 @@ def main():
 
     num_steps = arg_dict["steps"]
     algo_steps = arg_dict["algo_steps"]
-    arg_dict = configure_env(arg_dict, for_train=1)
+
     register_env('GymEnv-v0', env_creator)
     #if not args.ray_tune:
     #    assert arg_dict["algo"] == "ppo", "Training without ray tune only works with PPO (rllib limitation)"
 
-    arg_dict.pop("algo")
+
     train(args, arg_dict, algorithm, num_steps, algo_steps, dir_name)
 
 
