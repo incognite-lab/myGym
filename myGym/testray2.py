@@ -392,16 +392,7 @@ def test_env(arg_dict):
             observation, reward, done, _, info = env.step(action)[:5]
 
             #print("info:", info)
-            if arg_dict["control"] == "oraculum":
-                gripper_pos = info['o']['additional_obs']['endeff_xyz']
-                action[:3] = gripper_pos
-                env.step(action)
-            elif "step" in arg_dict["robot_action"]:
-                action[:3] = [0,0,0]
-                gripper_pos = np.array(info['o']['additional_obs']['endeff_xyz'])
-                object_pos = np.array(info['o']['actual_state'])[:3]
-                dist = np.linalg.norm(object_pos - gripper_pos)
-                #print("object distance:", dist)
+
 
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
