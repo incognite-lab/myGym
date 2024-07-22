@@ -39,7 +39,7 @@
     "yolact_config" :null,
     #Train
     "train_framework"   :"pytorch",
-    "algo"              :"td3",
+    "algo"              :"ppo",
     "num_networks"      :1,
     "max_episode_steps" :512,
     "algo_steps"        :512,
