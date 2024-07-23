@@ -303,7 +303,7 @@ def test_env(env, arg_dict):
 
             elif arg_dict["control"] == "keyboard":
                 keypress = p.getKeyboardEvents()
-                action =  detect_key(keypress,arg_dict,action)
+                action = detect_key(keypress, arg_dict, action)
 
             elif arg_dict["control"] == "random":
                 action = env.action_space.sample()
