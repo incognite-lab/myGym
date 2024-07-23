@@ -672,9 +672,7 @@ class Runner(AbstractEnvRunner):
         last_success = 0
         last_owner = -1
         for _ in range(self.n_steps):
-
             owner = self.model.approved(self.obs)
-
             model = self.models[owner]
             actions, values, self.states, neglogpacs = model.step(self.obs, self.states, self.dones)
             successful_stages = owner

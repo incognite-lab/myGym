@@ -152,16 +152,16 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                                                          "n_models": arg_dict["num_networks"], "verbose": 1,
                                                          "tensorboard_log": model_logdir}]}}
 
-    if "PPO_P" in sys.modules:
-        implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env),
-                                                {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir}]
-        implemented_combos["sac"]["pytorch"] = [SAC_P, ('MlpPolicy', env),
-                                                {"verbose": 1, "tensorboard_log": model_logdir}]
-        implemented_combos["td3"]["pytorch"] = [TD3_P, ('MlpPolicy', env),
-                                                {"verbose": 1, "tensorboard_log": model_logdir}]
-        implemented_combos["a2c"]["pytorch"] = [A2C_P, ('MlpPolicy', env),
-                                                {"n_steps": arg_dict["algo_steps"], "verbose": 1,
-                                                 "tensorboard_log": model_logdir}]
+
+    implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env),
+                                            {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir}]
+    implemented_combos["sac"]["pytorch"] = [SAC_P, ('MlpPolicy', env),
+                                            {"verbose": 1, "tensorboard_log": model_logdir}]
+    implemented_combos["td3"]["pytorch"] = [TD3_P, ('MlpPolicy', env),
+                                            {"verbose": 1, "tensorboard_log": model_logdir}]
+    implemented_combos["a2c"]["pytorch"] = [A2C_P, ('MlpPolicy', env),
+                                            {"n_steps": arg_dict["algo_steps"], "verbose": 1,
+                                             "tensorboard_log": model_logdir}]
 
     return implemented_combos
 

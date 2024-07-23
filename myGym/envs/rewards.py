@@ -4661,7 +4661,6 @@ class ProtorewardsRDDL(Reward):
             self.last_grip_dist = gripdist
         reward = (self.last_approach_dist - dist) + ((gripdist - self.last_grip_dist) * 0.2)
         self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
-
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -4726,8 +4725,11 @@ class ProtorewardsRDDL(Reward):
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
         reward = (self.last_move_dist - dist) + ((self.last_grip_dist - gripdist) * 0.2)
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
         self.last_move_dist = dist
         self.network_rewards[self.current_network] += reward
+        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65, 0.6, 0.7], lifeTime=0.5,
+                                    textColorRGB=[0, 0, 125])
         self.reward_name = "move"
         return reward
 
