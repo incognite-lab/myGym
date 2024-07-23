@@ -9,6 +9,7 @@ import random
 from scipy.spatial.distance import cityblock
 from scipy.spatial.transform import Rotation
 from pyquaternion import Quaternion
+
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
 
@@ -23,6 +24,7 @@ class TaskModule():
         :param logdir: (string) Directory for logging
         :param env: (object) Environment, where the training takes place
     """
+
     def __init__(self, task_type='reach', observation={},
                  vae_path=None, yolact_path=None, yolact_config=None, distance_type='euclidean',
                  logdir=currentdir, env=None, number_tasks=None):
@@ -42,7 +44,8 @@ class TaskModule():
         self.current_norm_rotation = None
         self.stored_observation = []
         self.obs_template = observation
-        self.vision_module = VisionModule(observation=observation, env=env, vae_path=vae_path, yolact_path=yolact_path, yolact_config=yolact_config)
+        self.vision_module = VisionModule(observation=observation, env=env, vae_path=vae_path, yolact_path=yolact_path,
+                                          yolact_config=yolact_config)
         self.obsdim = self.check_obs_template()
         self.vision_src = self.vision_module.src
         self.writebool = False
@@ -99,20 +102,23 @@ class TaskModule():
             elif key == "joints_angles":
                 info["additional_obs"]["joints_angles"] = self.env.robot.get_joints_states()
             elif key == "endeff_xyz":
-                info["additional_obs"]["endeff_xyz"] = self.vision_module.get_obj_position(robot, self.image, self.depth)[:3]
+                info["additional_obs"]["endeff_xyz"] = self.vision_module.get_obj_position(robot, self.image,
+                                                                                           self.depth)[:3]
             elif key == "endeff_6D":
-                info["additional_obs"]["endeff_6D"] = list(self.vision_module.get_obj_position(robot, self.image, self.depth)) \
+                info["additional_obs"]["endeff_6D"] = list(
+                    self.vision_module.get_obj_position(robot, self.image, self.depth)) \
                                                       + list(self.vision_module.get_obj_orientation(robot))
             elif key == "touch":
                 if hasattr(self.env.env_objects["actual_state"], "magnetized_objects"):
                     obj_touch = self.env.env_objects["goal_state"]
                 else:
                     obj_touch = self.env.env_objects["actual_state"]
-                touch = self.env.robot.touch_sensors_active(obj_touch) or len(self.env.robot.magnetized_objects)>0
+                touch = self.env.robot.touch_sensors_active(obj_touch) or len(self.env.robot.magnetized_objects) > 0
                 info["additional_obs"]["touch"] = [1] if touch else [0]
             elif key == "distractor":
-                poses = [self.vision_module.get_obj_position(self.env.task_objects["distractor"][x],\
-                                    self.image, self.depth) for x in range(len(self.env.task_objects["distractor"]))]
+                poses = [self.vision_module.get_obj_position(self.env.task_objects["distractor"][x], \
+                                                             self.image, self.depth) for x in
+                         range(len(self.env.task_objects["distractor"]))]
                 info["additional_obs"]["distractor"] = [p for sublist in poses for p in sublist]
         return info
 
@@ -131,15 +137,14 @@ class TaskModule():
             self.visualize_vae(recons) if self.env.visualize == 1 else None
         else:
             for key in ["actual_state", "goal_state"]:
-                    if "endeff" in info_dict[key]:
-                           xyz = self.vision_module.get_obj_position(self.env.task_objects["robot"], self.image, self.depth)
-                           xyz = xyz[:3] if "xyz" in info_dict else xyz
-                    else:
-                           xyz = self.vision_module.get_obj_position(self.env.task_objects[key],self.image,self.depth)
-                    info_dict[key] = xyz
+                if "endeff" in info_dict[key]:
+                    xyz = self.vision_module.get_obj_position(self.env.task_objects["robot"], self.image, self.depth)
+                    xyz = xyz[:3] if "xyz" in info_dict else xyz
+                else:
+                    xyz = self.vision_module.get_obj_position(self.env.task_objects[key], self.image, self.depth)
+                info_dict[key] = xyz
         self._observation = self.get_additional_obs(info_dict, self.env.task_objects["robot"])
         return self._observation
-
 
     def get_world_state(self):
         """
@@ -161,7 +166,7 @@ class TaskModule():
         self.stored_observation.append(self._observation["goal_state"])
         if len(self.stored_observation) > 9:
             self.stored_observation.pop(0)
-            if self.vision_src == "yolact": # Yolact assigns 10 to not detected objects
+            if self.vision_src == "yolact":  # Yolact assigns 10 to not detected objects
                 if all(10 in obs for obs in self.stored_observation):
                     return True
         return False
@@ -177,7 +182,7 @@ class TaskModule():
             self.env.episode_info = "Episode maximum time {} s exceeded".format(self.env.episode_max_time)
             return True
         return False
-    
+
     def check_episode_steps(self):
         """
         Check if maximum episode steps was exceeded
@@ -224,7 +229,7 @@ class TaskModule():
         """
         self.current_norm_distance = self.calc_distance(observation["goal_state"], observation["actual_state"])
         return self.current_norm_distance < threshold
-    
+
     def check_distrot_threshold(self, observation, threshold=0.1):
         """
         Check if the distance between relevant task objects is under threshold for successful task completion
@@ -238,44 +243,44 @@ class TaskModule():
             return True
         return False
 
-    
     def get_dice_value(self, quaternion):
         def noramalize(q):
-            return q/np.linalg.norm(q)
-        
+            return q / np.linalg.norm(q)
+
         faces = np.array([
-            [0,0,1],
-            [0,1,0],
-            [1,0,0],
-            [0,0,-1],
-            [0,-1,0],
-            [-1,0,0],
+            [0, 0, 1],
+            [0, 1, 0],
+            [1, 0, 0],
+            [0, 0, -1],
+            [0, -1, 0],
+            [-1, 0, 0],
         ])
 
         rot_mtx = Rotation.from_quat(noramalize(quaternion)).as_matrix()
 
         rotated_faces = np.dot(rot_mtx, faces.T).T
-        top_face_index = np.argmax(rotated_faces[:,2])
-        
+        top_face_index = np.argmax(rotated_faces[:, 2])
+
         #face_nums = [2, 5, 1, 4, 6, 3] #states that first face has number 2 on it, second 5 and so on...
         #return face_nums[top_face_index]
-        return top_face_index+1
+        return top_face_index + 1
 
     def check_dice_moving(self, observation, threshold=0.1):
         def calc_still(o1, o2):
             result = 0
             for i in range(len(o1)):
-                result+= np.power(o1[i]-o2[i],2)
+                result += np.power(o1[i] - o2[i], 2)
             result = np.sqrt(result)
-            
+
             return result < 0.000005
+
         #print(observation["goal_state"])
-        if len(observation)<3:
-            print("Invalid",observation)
+        if len(observation) < 3:
+            print("Invalid", observation)
         x = np.array(observation["actual_state"][3:])
-        
+
         #print(observation)
-        
+
         if not self.check_distance_threshold(self._observation) and self.env.episode_steps > 25:
             if calc_still(observation["actual_state"], self.stored_observation):
                 if (self.stored_observation == observation["actual_state"]):
@@ -288,7 +293,7 @@ class TaskModule():
                     if self.get_dice_value(x) == 6:
                         return 2
                     return 1
-                
+
             else:
                 self.stored_observation = observation["actual_state"]
                 return 0
@@ -300,7 +305,8 @@ class TaskModule():
 
     def check_points_distance_threshold(self, threshold=0.1):
         o1 = self.env.task_objects["actual_state"]
-        if (self.task_type == 'pnp') and (self.env.robot_action != 'joints_gripper') and (len(self.env.robot.magnetized_objects) == 0):
+        if (self.task_type == 'pnp') and (self.env.robot_action != 'joints_gripper') and (
+                len(self.env.robot.magnetized_objects) == 0):
             o2 = self.env.robot
             closest_points = self.env.p.getClosestPoints(o2.get_uid(), o1.get_uid(), threshold,
                                                          o2.end_effector_index, -1)
@@ -327,20 +333,21 @@ class TaskModule():
         if self.env.reward.drop_episode and self.env.reward.drop_episode + 35 < self.env.episode_steps:
             self.end_episode_success()
             return True
-        else: 
+        else:
             return False
 
     def check_goal(self):
         """
         Check if goal of the task was completed successfully
         """
-        
+
         finished = None
-        if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip', 'FMOT', 'FROM', 'FROT', 'FMOM', 'FM','F','A','AG','AGM','AGMD','AGMDW']: #all tasks ending with R (FMR) have to have distrot checker
-            finished = self.check_distance_threshold(self._observation)  
-        if self.task_type in ['pnprot','pnpswipe','FMR', 'FMOR', 'FMLFR', 'compositional']:
-            finished = self.check_distrot_threshold(self._observation)  
-        if self.task_type in ["dropmag"]: #FMOT should be compositional
+        if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip', 'FMOT', 'FROM', 'FROT', 'FMOM', 'FM', 'F', 'A', 'AG',
+                              'AGM', 'AGMD', 'AGMDW']:  #all tasks ending with R (FMR) have to have distrot checker
+            finished = self.check_distance_threshold(self._observation)
+        if self.task_type in ['pnprot', 'pnpswipe', 'FMR', 'FMOR', 'FMLFR', 'compositional']:
+            finished = self.check_distrot_threshold(self._observation)
+        if self.task_type in ["dropmag"]:  #FMOT should be compositional
             self.check_distance_threshold(self._observation)
             finished = self.drop_magnetic()
         if self.task_type in ['push', 'throw']:
@@ -354,7 +361,7 @@ class TaskModule():
             finished = self.env.reward.get_angle() >= 1.71
         if self.task_type == "dice_throw":
             finished = self.check_dice_moving(self._observation)
-            
+
         if self.task_type == "turn":
             self.check_distance_threshold(self._observation)
             finished = self.check_turn_threshold()
@@ -368,7 +375,7 @@ class TaskModule():
         #        self.env.episode_over = False
         if finished:
             if self.task_type == "dice_throw":
-                
+
                 if finished == 1:
                     self.end_episode_fail("Finished with wrong dice result thrown")
                 return finished
@@ -387,7 +394,7 @@ class TaskModule():
 
     def end_episode_success(self):
         #print("Finished subtask {}".format(self.current_task))
-        if self.current_task == (self.number_tasks-1):
+        if self.current_task == (self.number_tasks - 1):
             self.env.episode_over = True
             self.env.robot.release_all_objects()
             self.current_task = 0
@@ -421,7 +428,7 @@ class TaskModule():
         elif self.distance_type == "manhattan":
             dist = cityblock(obj1, obj2)
         return dist
-    
+
     def calc_height_diff(self, obj1, obj2):
         """
         Calculate height difference between objects
@@ -435,7 +442,7 @@ class TaskModule():
         #TODO
         dist = abs(obj1[2] - obj2[2])
         return dist
-    
+
     def calc_rot_quat(self, obj1, obj2):
         """
         Calculate difference between two quaternions
@@ -448,7 +455,7 @@ class TaskModule():
         """
         #TODO
         #tran = np.linalg.norm(np.asarray(obj1[:3]) - np.asarray(obj2[:3]))
-        rot = Quaternion.distance(Quaternion(obj1[3:]), Quaternion(obj2[3:]))  
+        rot = Quaternion.distance(Quaternion(obj1[3:]), Quaternion(obj2[3:]))
         #print(obj1[3:])
         #print(obj2[3:])
         #print(rot)
@@ -478,11 +485,11 @@ class TaskModule():
             index1 -= last_nearest_index - (int(n / 2))
             index2 -= last_nearest_index - (int(n / 2))
         if (index2 > np.shape(trajectory)[1]):
-            index2 =np.shape(trajectory)[1]
+            index2 = np.shape(trajectory)[1]
         trajectory_points = np.transpose(
             trajectory[:, index1:index2])  # select n points around last nearest point of trajectory
         distances = []
-        for i in range(index2-index1):
+        for i in range(index2 - index1):
             distances.append(self.calc_distance(point, trajectory_points[i]))
         min_idx = int(np.argwhere(distances == np.min(distances)))
         min = np.min(distances)
@@ -493,7 +500,6 @@ class TaskModule():
         """General trajectory creator. Pass functions fx, fy, fz and parametric vector t to create any 3D trajectory"""
         trajectory = np.asarray([fx(t), fy(t), fz(t)])
         return trajectory
-
 
     def create_line(self, point1, point2, step=0.01):
         """Creates line from point1 to point2 -> vectors of length 1/step"""
@@ -511,8 +517,7 @@ class TaskModule():
 
         return self.create_trajectory(fx=linemaker_x, fy=linemaker_y, fz=linemaker_z, t=t)
 
-
-    def create_circular_trajectory(self, center, radius, rot_vector = [0.0, 0.0, 0.0], arc=np.pi, step=0.01, direction = 1):
+    def create_circular_trajectory(self, center, radius, rot_vector=[0.0, 0.0, 0.0], arc=np.pi, step=0.01, direction=1):
         """Creates a 2D circular trajectory in 3D space.
         params: center ([x,y,z]), radius (float): self-explanatory
                 rot_vector ([x,y,z]): Axis of rotation. Angle of rotation is norm of rot_vector
@@ -523,7 +528,7 @@ class TaskModule():
         theta = np.linalg.norm(v)
 
         # creation of non-rotated circle of given radius located at [0,0,0]
-        base_circle = np.array([np.cos(phi) * radius, np.sin(phi) * radius, [0] * len(phi)])*direction
+        base_circle = np.array([np.cos(phi) * radius, np.sin(phi) * radius, [0] * len(phi)]) * direction
         rotation = np.eye(3)
         print(theta)
         if theta != 0.0:
@@ -541,10 +546,8 @@ class TaskModule():
         final_circle = np.transpose(np.transpose(rotated) + move)
         return final_circle
 
-
     def create_circular_trajectory_v2(self, point1, point2, radius, direction):
         pass
-
 
     def generate_new_goal(self, object_area_borders, camera_id):
         """
@@ -562,17 +565,18 @@ class TaskModule():
             self.env.task_objects[0].set_orientation(random_rot)
             self.env.task_objects[1].set_position(random_pos)
             self.env.task_objects[1].set_orientation(random_rot)
-            render_info = self.env.render(mode="rgb_array", camera_id = self.env.active_cameras)
+            render_info = self.env.render(mode="rgb_array", camera_id=self.env.active_cameras)
             self.goal_image = render_info[self.env.active_cameras]["image"]
             random_pos = self.env.task_objects[0].get_random_object_position(object_area_borders)
             random_rot = self.env.task_objects[0].get_random_object_orientation()
             self.env.task_objects[0].set_position(random_pos)
             self.env.task_objects[0].set_orientation(random_rot)
         elif self.task_type == "reach":
-            bounded_action = [random.uniform(-3,-2.4) for x in range(2)]
-            action = [random.uniform(-2.9,2.9) for x in range(6)]
+            bounded_action = [random.uniform(-3, -2.4) for x in range(2)]
+            action = [random.uniform(-2.9, 2.9) for x in range(6)]
             self.env.robot.reset_joints(bounded_action + action)
-            self.goal_image  = self.env.render(mode="rgb_array", camera_id=self.env.active_cameras)[self.env.active_cameras]['image']
+            self.goal_image = \
+                self.env.render(mode="rgb_array", camera_id=self.env.active_cameras)[self.env.active_cameras]['image']
             self.env.robot.reset_up()
             #self.goal_image = self.vision_module.vae_generate_sample()
 
@@ -589,28 +593,32 @@ class TaskModule():
         if t["additional_obs"]:
             assert [x in ["joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"] for x in
                     t["additional_obs"]], "Failed to parse some of the additional_obs in config"
-        assert t["actual_state"] in ["endeff_xyz", "endeff_6D", "obj_xyz", "obj_6D", "vae", "yolact", "voxel", "dope"],\
+        assert t["actual_state"] in ["endeff_xyz", "endeff_6D", "obj_xyz", "obj_6D", "vae", "yolact", "voxel", "dope"], \
             "failed to parse actual_state in Observation config"
-        assert t["goal_state"] in ["obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"],\
+        assert t["goal_state"] in ["obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"], \
             "failed to parse goal_state in Observation config"
         if "endeff" not in t["actual_state"]:
             assert t["actual_state"] == t["goal_state"], \
                 "actual_state and goal_state in Observation must have the same format"
         else:
-            assert t["actual_state"].split("_")[-1] == t["goal_state"] .split("_")[-1], "Actual state and goal state must " \
-                                                                                        "have the same number of dimensions!"
+            assert t["actual_state"].split("_")[-1] == t["goal_state"].split("_")[
+                -1], "Actual state and goal state must " \
+                     "have the same number of dimensions!"
             if "endeff_xyz" in t["additional_obs"] or "endeff_6D" in t["additional_obs"]:
-                warnings.warn("Observation config: endeff_xyz already in actual_state, no need to have it in additional_obs. Removing it")
+                warnings.warn(
+                    "Observation config: endeff_xyz already in actual_state, no need to have it in additional_obs. Removing it")
                 [self.obs_template["additional_obs"].remove(x) for x in t["additional_obs"] if "endeff" in x]
         obsdim = 0
         for x in [t["actual_state"], t["goal_state"]]:
-            get_datalen = {"joints_xyz":len(self.get_linkstates_unpacked()),
-                           "joints_angles":len(self.env.robot.get_joints_states()),
-                           "endeff_xyz":len(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)[:3]),
-                           "endeff_6D":len(list(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)) \
-                                                      + list(self.vision_module.get_obj_orientation(self.env.robot))),
-                           "dope":7, "obj_6D":7, "distractor": 3, "touch":1, "yolact":3, "voxel":3, "obj_xyz":3,
-                           "vae":self.vision_module.obsdim}
+            get_datalen = {"joints_xyz": len(self.get_linkstates_unpacked()),
+                           "joints_angles": len(self.env.robot.get_joints_states()),
+                           "endeff_xyz": len(
+                               self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)[:3]),
+                           "endeff_6D": len(
+                               list(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)) \
+                               + list(self.vision_module.get_obj_orientation(self.env.robot))),
+                           "dope": 7, "obj_6D": 7, "distractor": 3, "touch": 1, "yolact": 3, "voxel": 3, "obj_xyz": 3,
+                           "vae": self.vision_module.obsdim}
             obsdim += get_datalen[x]
         for x in t["additional_obs"]:
             obsdim += get_datalen[x]

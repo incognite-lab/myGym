@@ -21,6 +21,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json, commentjson
 import gym
+from stable_baselines3.common.vec_env import VecMonitor
+
 from myGym import envs
 import myGym.utils.cfg_comparator as cfg
 
@@ -32,7 +34,6 @@ from stable_baselines.her import HERGoalEnvWrapper
 # For now, I am importing both with slightly modified names P-PyTorch T-TensorFlow
 from stable_baselines import PPO1 as PPO1_T, PPO2 as PPO2_T, HER as HER_T, SAC as SAC_T, DDPG as DDPG_T
 from stable_baselines import TD3 as TD3_T, A2C as A2C_T, ACKTR as ACKTR_T, TRPO as TRPO_T, GAIL as GAIL_T
-
 
 try:
     from stable_baselines3 import PPO as PPO_P, A2C as A2C_P, SAC as SAC_P, TD3 as TD3_P
@@ -67,7 +68,6 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
         model_logdir = arg_dict["logdir"]
     print(f"model_logdir: {model_logdir}")
     print("Congratulations! Training with {} timesteps succeed!".format(arg_dict["steps"]))
-
 
 
 def configure_env(arg_dict, model_logdir=None, for_train=True):
@@ -200,8 +200,8 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             # Generate expert trajectories (train expert)
             generate_expert_traj(model, model_name, n_timesteps=3000, n_episodes=100)
             # Load the expert dataset
-            dataset = ExpertDataset(expert_path=model_name+'.npz', traj_limitation=10, verbose=1)
-            kwargs = {"verbose":1}
+            dataset = ExpertDataset(expert_path=model_name + '.npz', traj_limitation=10, verbose=1)
+            kwargs = {"verbose": 1}
             if seed is not None:
                 kwargs["seed"] = seed
             model = GAIL_T('MlpPolicy', model_name, dataset, **kwargs)
@@ -247,11 +247,11 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     # Envinronment
-    parser.add_argument("-cfg", "--config", default="./configs/train_FM_nico.json",
+    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_FM_nico.json",
                         help="Can be passed instead of all arguments")
     parser.add_argument("-n", "--env_name", type=str, help="The name of environment")
     parser.add_argument("-ws", "--workspace", type=str, help="The name of workspace")
-    parser.add_argument("-p", "--engine", type=str,  help="Name of the simulation engine you want to use")
+    parser.add_argument("-p", "--engine", type=str, help="Name of the simulation engine you want to use")
     parser.add_argument("-sd", "--seed", type=int, help="Seed number")
     parser.add_argument("-d", "--render", type=str, help="Type of rendering: opengl, opencv")
     parser.add_argument("-c", "--camera", type=int, help="The number of camera used to render and record")
@@ -260,7 +260,8 @@ def get_parser():
     parser.add_argument("-vg", "--visgym", type=int, help="Whether visualize gym background: 1 or 0")
     parser.add_argument("-g", "--gui", type=int, help="Wether the GUI of the simulation should be used or not: 1 or 0")
     # Robot
-    parser.add_argument("-b", "--robot", default=["kuka", "panda"], nargs='*', help="Robot to train: kuka, panda, jaco ...")
+    parser.add_argument("-b", "--robot", default=["kuka", "panda"], nargs='*',
+                        help="Robot to train: kuka, panda, jaco ...")
     parser.add_argument("-bi", "--robot_init", nargs="*", type=float, help="Initial robot's end-effector position")
     parser.add_argument("-ba", "--robot_action", default=["joints"], nargs='*',
                         help="Robot's action control: step - end-effector relative position, absolute - end-effector "
@@ -313,8 +314,12 @@ def get_parser():
     parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")
     parser.add_argument("-vp", "--vae_path", type=str, help="Path to a trained VAE in 2dvu reward type")
     parser.add_argument("-yp", "--yolact_path", type=str, help="Path to a trained Yolact in 3dvu reward type")
-    parser.add_argument("-yc", "--yolact_config", type=str, help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
-    parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
+    parser.add_argument("-yc", "--yolact_config", type=str,
+                        help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
+    parser.add_argument('-ptm', "--pretrained_model", type=str,
+                        help="Path to a model that you want to continue training")
+    parser.add_argument("-thread", "--threaded", type=bool, default="True", help="run in threads")
+    parser.add_argument("-out", "--output", type=str, default="./trained_models/multitester.json", help="output file")
 
     return parser
 
@@ -397,7 +402,7 @@ def multi_main(args, parameters):
     start_time = time.time()
     for i, params in enumerate(parameter_grid):
         if threaded:
-            print("Thread ", i+1, " starting")
+            print("Thread ", i + 1, " starting")
             sys.stdout.flush()
             thread = threading.Thread(target=multi_train, args=(params, args))
             thread.start()
@@ -409,7 +414,7 @@ def multi_main(args, parameters):
         i = 0
         for thread in threads:
             thread.join()
-            print("Thread ", i+1, " finishing")
+            print("Thread ", i + 1, " finishing")
             sys.stdout.flush()
             i += 1
     end_time = time.time()
