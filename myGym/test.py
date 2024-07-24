@@ -430,19 +430,20 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
 last_eval_results = {}
 
 
-def multi_test(params, arg_dict, configfile):
+def multi_test(params, arg_dict, configfile, commands):
     logdirfile = arg_dict["logdir"]
     print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
+
     command = 'python test.py --config {configfile} --logdir {logdirfile} '.format(configfile=configfile,
                                                                                    logdirfile=logdirfile) + " ".join(
-        f"--{key} {value}" for key, value in params.items())
+        f"--{key} {value}" for key, value in params.items()) + " " + " ".join(f"--{key} {value}" for key, value in commands.items())
 
     subprocess.check_output(command.split())
-    with open(arg_dict.output, 'w') as f:
+    with open(arg_dict["output"], 'w') as f:
         json.dump(last_eval_results, f, indent=4)
 
 
-def multi_main(arg_dict, parameters, configfile):
+def multi_main(arg_dict, parameters, configfile, commands):
     parameter_grid = ParameterGrid(parameters)
 
     threaded = arg_dict["threaded"]
@@ -452,11 +453,11 @@ def multi_main(arg_dict, parameters, configfile):
     for i, params in enumerate(parameter_grid):
         if threaded:
             print("Thread ", i + 1, " starting")
-            thread = threading.Thread(target=multi_test, args=(params, arg_dict, configfile))
+            thread = threading.Thread(target=multi_test, args=(params, arg_dict, configfile, commands))
             thread.start()
             threads.append(thread)
         else:
-            multi_test(params.copy(), arg_dict, configfile)
+            multi_test(params.copy(), arg_dict, configfile, commands)
     if threaded:
         i = 0
         for thread in threads:
@@ -477,7 +478,7 @@ def main():
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
 
-    arg_dict = get_arguments(parser)
+    arg_dict, commands = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
 
@@ -487,17 +488,17 @@ def main():
                 parameters[key] = []
                 parameters[key] = arg
 
-    #debug info
-    # with open("arg_dict_test", "w") as f:
-    #     f.write("ARG DICT: ")
-    #     f.write(str(arg_dict))
-    #     f.write("\n")
-    #     f.write("PARAMETERS: ")
-    #     f.write(str(parameters))
+    # debug info
+    with open("arg_dict_test", "w") as f:
+        f.write("ARG DICT: ")
+        f.write(str(arg_dict))
+        f.write("\n")
+        f.write("PARAMETERS: ")
+        f.write(str(parameters))
 
     if len(parameters) != 0:
         print("THREADING")
-        multi_main(arg_dict, parameters, args.config)
+        multi_main(arg_dict, parameters, args.config, commands)
 
     model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
     # Check if we chose one of the existing engines

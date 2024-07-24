@@ -324,6 +324,7 @@ def get_parser():
 
 def get_arguments(parser):
     args = parser.parse_args()
+    commands = {}
     with open(args.config, "r") as f:
         arg_dict = commentjson.load(f)
     for key, value in arg_dict.items():
@@ -339,13 +340,16 @@ def get_arguments(parser):
             elif key in ["task_objects"]:
                 arg_dict[key] = task_objects_replacement(value, arg_dict[key], arg_dict["task_type"])
             if value != parser.get_default(key):
+                # commands.append(key)
+                commands[key] = value
+                print(commands)
                 if key in ["task_objects"]:
                     arg_dict[key] = task_objects_replacement(value, arg_dict[key], arg_dict["task_type"])
                 elif type(value) is list and len(value) <= 1:
                     arg_dict[key] = value[0]
                 else:
                     arg_dict[key] = value
-    return arg_dict
+    return arg_dict, commands
 
 
 def task_objects_replacement(task_objects_new, task_objects_old, task_type):
@@ -386,34 +390,36 @@ def process_natural_language_command(cmd, env,
 last_eval_results = {}
 
 
-def multi_train(params, args, configfile):
-    logdirfile = args.logdir
+def multi_train(params, arg_dict, configfile, commands):
+    logdirfile = arg_dict["logdir"]
+    print(arg_dict["gui"])
     print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
+    # WE WANT TO ALSO SEND PARAMS FROM COMMAND LINE
     command = 'python train.py --config {configfile} --logdir {logdirfile} '.format(configfile=configfile,
-                                                                                    logdirfile=logdirfile) + " ".join(
-        f"--{key} {value}" for key, value in params.items())
+                                                                                        logdirfile=logdirfile) + " ".join(
+            f"--{key} {value}" for key, value in params.items()) + " " + " ".join(f"--{key} {value}" for key, value in commands.items())
 
     subprocess.check_output(command.split())
 
-    with open(args.output, 'w') as f:
+    with open(arg_dict["output"], 'w') as f:
         json.dump(last_eval_results, f, indent=4)
 
 
-def multi_main(args, parameters, configfile):
+def multi_main(arg_dict, parameters, configfile, commands):
     parameter_grid = ParameterGrid(parameters)
 
-    threaded = args.threaded
+    threaded = arg_dict["threaded"]
     threads = []
 
     start_time = time.time()
     for i, params in enumerate(parameter_grid):
         if threaded:
             print("Thread ", i + 1, " starting")
-            thread = threading.Thread(target=multi_train, args=(params, args, configfile))
+            thread = threading.Thread(target=multi_train, args=(params.copy(), arg_dict, configfile, commands))
             thread.start()
             threads.append(thread)
         else:
-            multi_train(params.copy(), args, configfile)
+            multi_train(params.copy(), arg_dict, configfile, commands)
 
     if threaded:
         i = 0
@@ -427,27 +433,25 @@ def multi_main(args, parameters, configfile):
 
 def main():
     parser = get_parser()
-    arg_dict = get_arguments(parser)
+    arg_dict, commands = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
-
     for key, arg in arg_dict.items():
         if type(arg_dict[key]) == list:
             if len(arg_dict[key]) > 1 and key != "robot_init":
                 parameters[key] = []
                 parameters[key] = arg
-
     # debug info
-    # with open("arg_dict_train", "w") as f:
-    #     f.write("ARG DICT: ")
-    #     f.write(str(arg_dict))
-    #     f.write("\n")
-    #     f.write("PARAMETERS: ")
-    #     f.write(str(parameters))
+    with open("arg_dict_train", "w") as f:
+        f.write("ARG DICT: ")
+        f.write(str(arg_dict))
+        f.write("\n")
+        f.write("PARAMETERS: ")
+        f.write(str(parameters))
 
     if len(parameters) != 0:
         print("THREADING")
-        multi_main(args, parameters, args.config)
+        multi_main(arg_dict, parameters, args.config, commands)
 
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
@@ -458,8 +462,7 @@ def main():
     os.makedirs(arg_dict["logdir"], exist_ok=True)
     model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join(
         (arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"], arg_dict["robot_action"], arg_dict["algo"])))
-    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join(
-        (arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"], arg_dict["robot_action"], arg_dict["algo"])))
+
     model_logdir = model_logdir_ori
     add = 2
     while True:
