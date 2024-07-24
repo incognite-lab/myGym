@@ -27,15 +27,6 @@ clear = lambda: os.system('clear')
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
-s_print_lock = Lock()
-display_queue = Queue()
-
-
-def s_print(*a, **b):
-    """Thread safe print function"""
-    with s_print_lock:
-        print(*a, **b)
-
 
 def visualize_sampling_area(arg_dict):
     rx = (arg_dict["task_objects"][0]["goal"]["sampling_area"][0] -
@@ -249,7 +240,6 @@ def test_env(env, arg_dict):
                 if t == 0:
                     action = env.action_space.sample()
                 else:
-
                     if "joints" in arg_dict["robot_action"]:
                         action = info['o']["additional_obs"]["joints_angles"]
                     elif "absolute" in arg_dict["robot_action"]:
@@ -318,12 +308,6 @@ def test_env(env, arg_dict):
             print(
                 "Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation, env.env.observation))
 
-            # s_print(
-            #     "(S PRINT) Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation,
-            #                                                                             env.env.observation))
-            # display_queue.put("(QUEUE) Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation,
-            #                                                                                         env.env.observation))
-            # sys.stdout.flush()
 
             if "step" in arg_dict["robot_action"]:
                 action[:3] = [0, 0, 0]
@@ -446,55 +430,38 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
 last_eval_results = {}
 
 
-def display_worker():
-    while True:
-        line = display_queue.get()
-        if line is None:  # simple termination logic, other sentinels can be used
-            break
-        print(line, flush=True)
-
-
-def multi_test(params, args, ):
-    configfile = args.config
-    logdirfile = args.logdir
+def multi_test(params, arg_dict, configfile):
+    logdirfile = arg_dict["logdir"]
     print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
     command = 'python test.py --config {configfile} --logdir {logdirfile} '.format(configfile=configfile,
                                                                                    logdirfile=logdirfile) + " ".join(
         f"--{key} {value}" for key, value in params.items())
 
     subprocess.check_output(command.split())
-    with open(args.output, 'w') as f:
+    with open(arg_dict.output, 'w') as f:
         json.dump(last_eval_results, f, indent=4)
 
 
-def multi_main(args, parameters):
+def multi_main(arg_dict, parameters, configfile):
     parameter_grid = ParameterGrid(parameters)
 
-    threaded = args.threaded
+    threaded = arg_dict["threaded"]
     threads = []
-    if threaded:
-        screen_printing_thread = threading.Thread(
-            target=display_worker,
-        )
-        screen_printing_thread.start()
+
     start_time = time.time()
     for i, params in enumerate(parameter_grid):
         if threaded:
             print("Thread ", i + 1, " starting")
-            sys.stdout.flush()
-            thread = threading.Thread(target=multi_test, args=(params, args,))
+            thread = threading.Thread(target=multi_test, args=(params, arg_dict, configfile))
             thread.start()
             threads.append(thread)
         else:
-            multi_test(params.copy(), args)
+            multi_test(params.copy(), arg_dict, configfile)
     if threaded:
         i = 0
-        display_queue.put(None)  # end screen_printing_thread
-        screen_printing_thread.join()
         for thread in threads:
             thread.join()
             print("Thread ", i + 1, " finishing")
-            sys.stdout.flush()
             i += 1
 
     end_time = time.time()
@@ -513,17 +480,26 @@ def main():
     arg_dict = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
-    for arg in vars(args):
-        if type(getattr(args, arg)) == list:
-            if len(getattr(args, arg)) > 1:
-                # add arg as key to parameters dict and gettatr(args, arg) as value
-                parameters[arg] = getattr(args, arg)
+
+    for key, arg in arg_dict.items():
+        if type(arg_dict[key]) == list:
+            if len(arg_dict[key]) > 1 and key != "robot_init":
+                parameters[key] = []
+                parameters[key] = arg
+
+    #debug info
+    # with open("arg_dict_test", "w") as f:
+    #     f.write("ARG DICT: ")
+    #     f.write(str(arg_dict))
+    #     f.write("\n")
+    #     f.write("PARAMETERS: ")
+    #     f.write(str(parameters))
 
     if len(parameters) != 0:
         print("THREADING")
-        multi_main(args, parameters)
+        multi_main(arg_dict, parameters, args.config)
+
     model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
-    s_print("Algo:", arg_dict["algo"])
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")

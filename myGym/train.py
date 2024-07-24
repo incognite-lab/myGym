@@ -10,7 +10,6 @@ import time
 import threading
 import subprocess
 from sklearn.model_selection import ParameterGrid
-from queue import Queue
 
 import gym
 import numpy as np
@@ -178,7 +177,6 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     print("WWWWWWWWWWWWWWWWWWWWWW")
     print(env)
     print("WWWWWWWWWWWWWWWWWWWWWW")
-    sys.stdout.flush()
     model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
     model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
     if seed is not None:
@@ -328,16 +326,25 @@ def get_arguments(parser):
     args = parser.parse_args()
     with open(args.config, "r") as f:
         arg_dict = commentjson.load(f)
-    for key, value in vars(args).items():
+    for key, value in arg_dict.items():
         if value is not None and key != "config":
             if key in ["robot_init"]:
                 arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
+            elif type(value) is list and len(value) <= 1 and key != "task_objects":
+                arg_dict[key] = value[0]
+    for key, value in vars(args).items():
+        if value is not None and key != "config":
+            if key not in arg_dict or arg_dict[key] is None:
+                arg_dict[key] = value
             elif key in ["task_objects"]:
                 arg_dict[key] = task_objects_replacement(value, arg_dict[key], arg_dict["task_type"])
-            elif type(value) is list and len(value) <= 1:
-                arg_dict[key] = value[0]
-            else:
-                arg_dict[key] = value
+            if value != parser.get_default(key):
+                if key in ["task_objects"]:
+                    arg_dict[key] = task_objects_replacement(value, arg_dict[key], arg_dict["task_type"])
+                elif type(value) is list and len(value) <= 1:
+                    arg_dict[key] = value[0]
+                else:
+                    arg_dict[key] = value
     return arg_dict
 
 
@@ -379,8 +386,7 @@ def process_natural_language_command(cmd, env,
 last_eval_results = {}
 
 
-def multi_train(params, args):
-    configfile = args.config
+def multi_train(params, args, configfile):
     logdirfile = args.logdir
     print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
     command = 'python train.py --config {configfile} --logdir {logdirfile} '.format(configfile=configfile,
@@ -393,7 +399,7 @@ def multi_train(params, args):
         json.dump(last_eval_results, f, indent=4)
 
 
-def multi_main(args, parameters):
+def multi_main(args, parameters, configfile):
     parameter_grid = ParameterGrid(parameters)
 
     threaded = args.threaded
@@ -403,19 +409,17 @@ def multi_main(args, parameters):
     for i, params in enumerate(parameter_grid):
         if threaded:
             print("Thread ", i + 1, " starting")
-            sys.stdout.flush()
-            thread = threading.Thread(target=multi_train, args=(params, args))
+            thread = threading.Thread(target=multi_train, args=(params, args, configfile))
             thread.start()
             threads.append(thread)
         else:
-            multi_train(params.copy(), args)
+            multi_train(params.copy(), args, configfile)
 
     if threaded:
         i = 0
         for thread in threads:
             thread.join()
             print("Thread ", i + 1, " finishing")
-            sys.stdout.flush()
             i += 1
     end_time = time.time()
     print(end_time - start_time)
@@ -426,15 +430,24 @@ def main():
     arg_dict = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
-    for arg in vars(args):
-        if type(getattr(args, arg)) == list:
-            if len(getattr(args, arg)) > 1:
-                # add arg as key to parameters dict and gettatr(args, arg) as value
-                parameters[arg] = getattr(args, arg)
+
+    for key, arg in arg_dict.items():
+        if type(arg_dict[key]) == list:
+            if len(arg_dict[key]) > 1 and key != "robot_init":
+                parameters[key] = []
+                parameters[key] = arg
+
+    # debug info
+    # with open("arg_dict_train", "w") as f:
+    #     f.write("ARG DICT: ")
+    #     f.write(str(arg_dict))
+    #     f.write("\n")
+    #     f.write("PARAMETERS: ")
+    #     f.write(str(parameters))
 
     if len(parameters) != 0:
         print("THREADING")
-        multi_main(args, parameters)
+        multi_main(args, parameters, args.config)
 
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
@@ -460,8 +473,6 @@ def main():
     env = configure_env(arg_dict, model_logdir, for_train=True)
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
     train(env, implemented_combos, model_logdir, arg_dict, arg_dict["pretrained_model"])
-
-    sys.stdout.flush()
 
 
 if __name__ == "__main__":
