@@ -1,29 +1,18 @@
 import argparse
-import commentjson
 import copy
 import json
 import os
-import re
 import random
-import sys
-import time
-import threading
 import subprocess
-from sklearn.model_selection import ParameterGrid
+import threading
+import time
 
+import commentjson
 import gym
 import numpy as np
 import pkg_resources
-import os, sys, time, yaml
-import argparse
-import numpy as np
-import matplotlib.pyplot as plt
-import json, commentjson
-import gym
+from sklearn.model_selection import ParameterGrid
 from stable_baselines3.common.vec_env import VecMonitor
-
-from myGym import envs
-import myGym.utils.cfg_comparator as cfg
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from stable_baselines.common.policies import MlpPolicy
@@ -53,8 +42,7 @@ from stable_baselines.ddpg.policies import MlpPolicy as MlpPolicyDDPG
 from stable_baselines.td3.policies import MlpPolicy as MlpPolicyTD3
 
 # Import helper classes and functions for monitoring
-from myGym.utils.callbacks import ProgressBarManager, SaveOnBestTrainingRewardCallback, PlottingCallback, \
-    CustomEvalCallback
+from myGym.utils.callbacks import SaveOnBestTrainingRewardCallback, CustomEvalCallback
 from myGym.envs.natural_language import NaturalLanguage
 
 # This is global variable for the type of engine we are working with
@@ -150,7 +138,6 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                                                         {"n_steps": arg_dict["algo_steps"],
                                                          "n_models": arg_dict["num_networks"], "verbose": 1,
                                                          "tensorboard_log": model_logdir}]}}
-
 
     implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env),
                                             {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir}]
@@ -305,7 +292,7 @@ def get_parser():
                         help="1: make a gif of model perfomance, 2: make a video of model performance, 0: don't record")
     # Mujoco
     parser.add_argument("-i", "--multiprocessing", type=int,
-                        help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
+                        help="True: multiprocessing on (specify also the number of vectorized environments), False: multiprocessing off")
     parser.add_argument("-v", "--vectorized_envs", type=int,
                         help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
     # Paths
@@ -340,9 +327,7 @@ def get_arguments(parser):
             elif key in ["task_objects"]:
                 arg_dict[key] = task_objects_replacement(value, arg_dict[key], arg_dict["task_type"])
             if value != parser.get_default(key):
-                # commands.append(key)
                 commands[key] = value
-                print(commands)
                 if key in ["task_objects"]:
                     arg_dict[key] = task_objects_replacement(value, arg_dict[key], arg_dict["task_type"])
                 elif type(value) is list and len(value) <= 1:
@@ -396,8 +381,9 @@ def multi_train(params, arg_dict, configfile, commands):
     print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
     # WE WANT TO ALSO SEND PARAMS FROM COMMAND LINE
     command = 'python train.py --config {configfile} --logdir {logdirfile} '.format(configfile=configfile,
-                                                                                        logdirfile=logdirfile) + " ".join(
-            f"--{key} {value}" for key, value in params.items()) + " " + " ".join(f"--{key} {value}" for key, value in commands.items())
+                                                                                    logdirfile=logdirfile) + " ".join(
+        f"--{key} {value}" for key, value in params.items()) + " " + " ".join(
+        f"--{key} {value}" for key, value in commands.items())
 
     subprocess.check_output(command.split())
 
@@ -441,13 +427,19 @@ def main():
             if len(arg_dict[key]) > 1 and key != "robot_init":
                 parameters[key] = []
                 parameters[key] = arg
-    # debug info
-    with open("arg_dict_train", "w") as f:
-        f.write("ARG DICT: ")
-        f.write(str(arg_dict))
-        f.write("\n")
-        f.write("PARAMETERS: ")
-        f.write(str(parameters))
+                if key in commands:
+                    commands.pop(key)
+
+    # # debug info
+    # with open("arg_dict_train", "w") as f:
+    #     f.write("ARG DICT: ")
+    #     f.write(str(arg_dict))
+    #     f.write("\n")
+    #     f.write("PARAMETERS: ")
+    #     f.write(str(parameters))
+    #     f.write("\n")
+    #     f.write("COMMANDS: ")
+    #     f.write(str(commands))
 
     if len(parameters) != 0:
         print("THREADING")

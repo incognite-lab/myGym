@@ -1,26 +1,19 @@
+import imageio
 import json
-import queue
+import os
 import subprocess
 import sys
 import threading
-from threading import Lock
-from queue import Queue
-from ast import arg
-import gym
-from sklearn.model_selection import ParameterGrid
-
-from myGym import envs
-import cv2
-from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env
-import os, imageio
-import numpy as np
 import time
-from numpy import matrix
+
+import cv2
+import numpy as np
 import pybullet as p
 import pybullet_data
-import pkg_resources
-import random
-import getkey
+from numpy import matrix
+from sklearn.model_selection import ParameterGrid
+
+from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env
 
 clear = lambda: os.system('clear')
 
@@ -308,7 +301,6 @@ def test_env(env, arg_dict):
             print(
                 "Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation, env.env.observation))
 
-
             if "step" in arg_dict["robot_action"]:
                 action[:3] = [0, 0, 0]
 
@@ -374,7 +366,6 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
         obs = env.reset()
         is_successful = 0
         distance_error = 0
-        step_sum = 0
         while not done:
             steps_sum += 1
             action, _state = model.predict(obs, deterministic=deterministic)
@@ -436,7 +427,8 @@ def multi_test(params, arg_dict, configfile, commands):
 
     command = 'python test.py --config {configfile} --logdir {logdirfile} '.format(configfile=configfile,
                                                                                    logdirfile=logdirfile) + " ".join(
-        f"--{key} {value}" for key, value in params.items()) + " " + " ".join(f"--{key} {value}" for key, value in commands.items())
+        f"--{key} {value}" for key, value in params.items()) + " " + " ".join(
+        f"--{key} {value}" for key, value in commands.items())
 
     subprocess.check_output(command.split())
     with open(arg_dict["output"], 'w') as f:
@@ -487,14 +479,19 @@ def main():
             if len(arg_dict[key]) > 1 and key != "robot_init":
                 parameters[key] = []
                 parameters[key] = arg
+                if key in commands:
+                    commands.pop(key)
 
-    # debug info
-    with open("arg_dict_test", "w") as f:
-        f.write("ARG DICT: ")
-        f.write(str(arg_dict))
-        f.write("\n")
-        f.write("PARAMETERS: ")
-        f.write(str(parameters))
+    # # debug info
+    # with open("arg_dict_test", "w") as f:
+    #     f.write("ARG DICT: ")
+    #     f.write(str(arg_dict))
+    #     f.write("\n")
+    #     f.write("PARAMETERS: ")
+    #     f.write(str(parameters))
+    #     f.write("\n")
+    #     f.write("COMMANDS: ")
+    #     f.write(str(commands))
 
     if len(parameters) != 0:
         print("THREADING")
