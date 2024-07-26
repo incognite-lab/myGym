@@ -202,6 +202,8 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         #eval_env = configure_env(arg_dict, model_logdir, for_train=False)
         eval_env = env
         NUM_CPU = int(arg_dict["multiprocessing"])
+        if NUM_CPU == 0:
+            NUM_CPU = 1
         eval_callback = CustomEvalCallback(eval_env, log_path=model_logdir,
                                            eval_freq=arg_dict["eval_freq"],
                                            algo_steps=arg_dict["algo_steps"],
