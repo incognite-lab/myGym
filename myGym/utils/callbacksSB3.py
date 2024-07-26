@@ -59,7 +59,8 @@ class CustomEvalCallback(EvalCallback):
                  gui_on=True,
                  record=False,
                  camera_id=0,
-                 record_steps_limit=256):  # pybullet or mujoco
+                 record_steps_limit=256,
+                 num_cpu = 1):  # pybullet or mujoco
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.algo_steps = algo_steps
@@ -90,6 +91,7 @@ class CustomEvalCallback(EvalCallback):
         self.evaluations_results = {}
         self.evaluations_timesteps = []
         self.evaluations_length = []
+        self.num_cpu = num_cpu
 
     def evaluate_policy(
             self,
@@ -284,7 +286,8 @@ class CustomEvalCallback(EvalCallback):
             os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
 
     def _on_step(self) -> bool:
-        if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
+        actual_calls = self.n_calls*self.num_cpu
+        if self.eval_freq > 0 and actual_calls % self.eval_freq == 0:
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
 
@@ -293,11 +296,11 @@ class CustomEvalCallback(EvalCallback):
                                            deterministic=self.deterministic)
 
             if self.log_path is not None:
-                self.evaluations_results["evaluation_after_{}_steps".format(self.n_calls)] = results
+                self.evaluations_results["evaluation_after_{}_steps".format(actual_calls)] = results
                 filename = "evaluation_results.json"
                 with open(os.path.join(self.log_path, filename), 'w') as f:
                     json.dump(self.evaluations_results, f, indent=4)
-                print("Evaluation stored after {} calls.".format(self.n_calls))
+                print("Evaluation stored after {} calls.".format(actual_calls))
         return True
 
 

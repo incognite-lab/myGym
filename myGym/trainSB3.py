@@ -201,12 +201,13 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     if arg_dict["eval_freq"]:
         #eval_env = configure_env(arg_dict, model_logdir, for_train=False)
         eval_env = env
+        NUM_CPU = int(arg_dict["multiprocessing"])
         eval_callback = CustomEvalCallback(eval_env, log_path=model_logdir,
                                            eval_freq=arg_dict["eval_freq"],
                                            algo_steps=arg_dict["algo_steps"],
                                            n_eval_episodes=arg_dict["eval_episodes"],
                                            record=arg_dict["record"],
-                                           camera_id=arg_dict["camera"])
+                                           camera_id=arg_dict["camera"], num_cpu = NUM_CPU)
         callbacks_list.append(eval_callback)
     #callbacks_list.append(PlottingCallback(model_logdir))
     #with ProgressBarManager(total_timesteps=arg_dict["steps"]) as progress_callback:
