@@ -471,8 +471,6 @@ def main():
     parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
 
     arg_dict, commands = get_arguments(parser)
-    print('arg_dict:', arg_dict)
-    sys.exit()
     parameters = {}
     args = parser.parse_args()
 
