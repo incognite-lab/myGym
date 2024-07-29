@@ -32,6 +32,7 @@ except:
 # Import helper classes and functions for monitoring
 from myGym.utils.callbacksSB3 import ProgressBarManager, SaveOnBestTrainingRewardCallback,  PlottingCallback, CustomEvalCallback
 from myGym.envs.natural_language import NaturalLanguage
+from myGym.stable_baselines_mygym.multi_ppo_SB3 import MultiPPOSB3
 
 # This is global variable for the type of engine we are working with
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
@@ -44,27 +45,8 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
     if model_logdir is None:
         model_logdir = arg_dict["logdir"]
     print(f"model_logdir: {model_logdir}")
-
-    #results_plotter.EPISODES_WINDOW = 100
-    #results_plotter.plot_results([model_logdir], arg_dict["steps"], results_plotter.X_TIMESTEPS, arg_dict["algo"] + " " + arg_dict["env_name"] + " reward")
-    #plt.gcf().set_size_inches(8, 6)
-    #plt.savefig(os.path.join(model_logdir, model_name) + '_reward_results.png')
-    #plot_extended_results(model_logdir, 'd', results_plotter.X_TIMESTEPS, arg_dict["algo"] + " " + arg_dict["env_name"] + " distance", "Episode Distances")
-    #plt.gcf().set_size_inches(8, 6)
-    #plt.savefig(os.path.join(model_logdir, model_name) + '_distance_results.png')
-    #plt.close()
-    #plt.close()
-    #if isinstance(env, HERGoalEnvWrapper):
-    #    results_plotter.plot_curves([(np.arange(len(env.env.episode_final_distance)),np.asarray(env.env.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
-    #else:
-    #    results_plotter.plot_curves([(np.arange(len(env.unwrapped.episode_final_distance)),np.asarray(env.unwrapped.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
-    #plt.gcf().set_size_inches(8, 6)
-    #plt.ylabel("Step Distances")
-    #plt.savefig(os.path.join(model_logdir, model_name) + "_final_distance_results.png")
-    #plt.close()
     print("Congratulations! Training with {} timesteps succeed!".format(arg_dict["steps"]))
-    #if show:
-    #    plt.show()
+
 
 def configure_env(arg_dict, model_logdir=None, for_train=True):
     env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
@@ -124,7 +106,7 @@ def make_env(arg_dict: dict, rank: int, seed: int = 0, model_logdir = None) -> C
 
 
 def configure_implemented_combos(env, model_logdir, arg_dict):
-    implemented_combos = {"ppo": {}, "sac": {}, "td3": {}, "a2c": {}}
+    implemented_combos = {"ppo": {}, "sac": {}, "td3": {}, "a2c": {}, "multippo": {}}
     # implemented_combos = {"ppo2": {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]},
     #                       "ppo": {"tensorflow": [PPO1_T, (MlpPolicy, env),  {"verbose": 1, "tensorboard_log": model_logdir}],},
     #                       "her": {"tensorflow": [HER_T, (MlpPolicyDDPG, env, DDPG_T), {"goal_selection_strategy": 'final', "verbose": 1,"tensorboard_log": model_logdir, "n_sampled_goal": 1}]},
@@ -146,6 +128,8 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
     implemented_combos["sac"]["pytorch"] = [SAC_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
     implemented_combos["td3"]["pytorch"] = [TD3_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
     implemented_combos["a2c"]["pytorch"] = [A2C_P, ('MlpPolicy', env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]
+    implemented_combos["multippo"]["pytorch"] = [MultiPPOSB3, ("MlpPolicy", env),
+                                {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir, "device": "cpu", "n_models": arg_dict["num_networks"]}]
     return implemented_combos
 
 
@@ -194,9 +178,12 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         model_logdir = pretrained_model.split('/')
         model_logdir = model_logdir[:-1]
         model_logdir = "/".join(model_logdir)
-        auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env, engine=arg_dict["engine"], multiprocessing=arg_dict["multiprocessing"])
+        auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env, engine=arg_dict["engine"],
+            multiprocessing=arg_dict["multiprocessing"], save_model_every_steps=arg_dict["eval_freq"])
+
     else:
-        auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env, engine=arg_dict["engine"], multiprocessing=arg_dict["multiprocessing"])
+        auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env, engine=arg_dict["engine"],
+            multiprocessing=arg_dict["multiprocessing"], save_model_every_steps=arg_dict["eval_freq"])
     callbacks_list.append(auto_save_callback)
     if arg_dict["eval_freq"]:
         #eval_env = configure_env(arg_dict, model_logdir, for_train=False)

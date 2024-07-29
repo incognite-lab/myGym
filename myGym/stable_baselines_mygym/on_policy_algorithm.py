@@ -6,12 +6,13 @@ import numpy as np
 import torch as th
 
 from stable_baselines3.common.base_class import BaseAlgorithm
-from stable_baselines3.common.buffers import DictRolloutBuffer, RolloutBuffer
+from myGym.stable_baselines_mygym.buffersSB3 import DictRolloutBuffer, RolloutBuffer
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.policies import ActorCriticPolicy, BasePolicy
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
 from stable_baselines3.common.utils import obs_as_tensor, safe_mean
 from stable_baselines3.common.vec_env import VecEnv
+
 
 """
 This is a modified version of default stable_baselines3 OnPolicyAlgorithm class used for
@@ -119,15 +120,11 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             gamma=self.gamma,
             gae_lambda=self.gae_lambda,
             n_envs=self.n_envs,
+            num_models = self.models_num
         )
-        self.policy = self.policy_class(  # pytype:disable=not-instantiable
-            self.observation_space,
-            self.action_space,
-            self.lr_schedule,
-            use_sde=self.use_sde,
-            **self.policy_kwargs  # pytype:disable=not-instantiable
-        )
-        self.policy = self.policy.to(self.device)
+
+
+
 
     def collect_rollouts(
         self,
@@ -151,7 +148,8 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         """
         assert self._last_obs is not None, "No previous observation was provided"
         # Switch to eval mode (this affects batch norm / dropout)
-        self.policy.set_training_mode(False)
+        for model in self.models:
+            model.policy.set_training_mode(False)
 
         n_steps = 0
         rollout_buffer.reset()
@@ -164,12 +162,16 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         while n_steps < n_rollout_steps:
             if self.use_sde and self.sde_sample_freq > 0 and n_steps % self.sde_sample_freq == 0:
                 # Sample a new noise matrix
-                self.policy.reset_noise(env.num_envs)
+                for model in self.models:
+                    model.policy.reset_noise(env.num_envs)
+            #Choosing model based on observation
+            owner = self.approved(self._last_obs)
+            model = self.models[owner]
 
             with th.no_grad():
                 # Convert to pytorch tensor or to TensorDict
                 obs_tensor = obs_as_tensor(self._last_obs, self.device)
-                actions, values, log_probs = self.policy.forward(obs_tensor)
+                actions, values, log_probs = model.policy.forward(obs_tensor)
             actions = actions.cpu().numpy()
 
             # Rescale and perform action
@@ -193,14 +195,16 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             if isinstance(self.action_space, gym.spaces.Discrete):
                 # Reshape in case of discrete action
                 actions = actions.reshape(-1, 1)
-            rollout_buffer.add(self._last_obs, actions, rewards, self._last_episode_starts, values, log_probs)
+            rollout_buffer.add(self._last_obs, actions, rewards, self._last_episode_starts, values, log_probs, owner)
             self._last_obs = new_obs
             self._last_episode_starts = dones
 
         with th.no_grad():
             # Compute value for the last timestep
+            owner = self.approved(self._last_obs)
+            model = self.models[owner]
             obs_tensor = obs_as_tensor(new_obs, self.device)
-            _, values, _ = self.policy.forward(obs_tensor)
+            _, values, _ = model.policy.forward(obs_tensor)
 
         rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
 
