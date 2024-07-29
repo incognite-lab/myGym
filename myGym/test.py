@@ -1,12 +1,11 @@
-import imageio
-import json
+import multiprocessing
 import os
 import subprocess
 import sys
-import threading
 import time
 
 import cv2
+import imageio
 import numpy as np
 import pybullet as p
 import pybullet_data
@@ -17,8 +16,8 @@ from myGym.train import get_parser, get_arguments, configure_implemented_combos,
 
 clear = lambda: os.system('clear')
 
-AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
-AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
+AVAILABLE_SIMULATION_ENGINES = ["pybullet"]
+AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow"]
 
 
 def visualize_sampling_area(arg_dict):
@@ -106,30 +105,22 @@ def visualize_infotext(action, env, info):
 def detect_key(keypress, arg_dict, action):
     if 97 in keypress.keys() and keypress[97] == 1:  # A
         action[2] += .03
-        #print(action)
     if 122 in keypress.keys() and keypress[122] == 1:  # Z/Y
         action[2] -= .03
-        #print(action)
     if 65297 in keypress.keys() and keypress[65297] == 1:  # ARROW UP
         action[1] -= .03
-        #print(action)
     if 65298 in keypress.keys() and keypress[65298] == 1:  # ARROW DOWN
         action[1] += .03
-        #print(action)
     if 65295 in keypress.keys() and keypress[65295] == 1:  # ARROW LEFT
         action[0] += .03
-        #print(action)
     if 65296 in keypress.keys() and keypress[65296] == 1:  # ARROW RIGHT
         action[0] -= .03
-        #print(action)
     if 120 in keypress.keys() and keypress[120] == 1:  # X
         action[3] -= .03
         action[4] -= .03
-        #print(action)
     if 99 in keypress.keys() and keypress[99] == 1:  # C
         action[3] += .03
         action[4] += .03
-        #print(action)
 
     if "step" in arg_dict["robot_action"]:
         action[:3] = np.multiply(action[:3], 10)
@@ -142,7 +133,7 @@ def detect_key(keypress, arg_dict, action):
 def test_env(env, arg_dict):
     spawn_objects = False
     env.render("human")
-    #Prepare names for sliders
+    # Prepare names for sliders
     joints = ['Joint1', 'Joint2', 'Joint3', 'Joint4', 'Joint5', 'Joint6', 'Joint7', 'Joint 8', 'Joint 9', 'Joint10',
               'Joint11', 'Joint12', 'Joint13', 'Joint14', 'Joint15', 'Joint16', 'Joint17', 'Joint 18', 'Joint 19']
     jointparams = ['Jnt1', 'Jnt2', 'Jnt3', 'Jnt4', 'Jnt5', 'Jnt6', 'Jnt7', 'Jnt 8', 'Jnt 9', 'Jnt10', 'Jnt11', 'Jnt12',
@@ -199,10 +190,10 @@ def test_env(env, arg_dict):
                 for i in range(env.action_space.shape[0]):
                     joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
 
-    lfriction = p.addUserDebugParameter("Lateral Friction", 0, 100, 0)
-    rfriction = p.addUserDebugParameter("Spinning Friction", 0, 100, 0)
-    ldamping = p.addUserDebugParameter("Linear Damping", 0, 100, 0)
-    adamping = p.addUserDebugParameter("Angular Damping", 0, 100, 0)
+    p.addUserDebugParameter("Lateral Friction", 0, 100, 0)
+    p.addUserDebugParameter("Spinning Friction", 0, 100, 0)
+    p.addUserDebugParameter("Linear Damping", 0, 100, 0)
+    p.addUserDebugParameter("Angular Damping", 0, 100, 0)
 
     if arg_dict["vsampling"]:
         visualize_sampling_area(arg_dict)
@@ -372,7 +363,7 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
             obs, reward, done, info = env.step(action)
             is_successful = not info['f']
             distance_error = info['d']
-            if arg_dict["vinfo"] == True:
+            if arg_dict["vinfo"]:
                 visualize_infotext(action, env, info)
 
             if (arg_dict["record"] > 0) and (len(images) < 8000):
@@ -418,21 +409,24 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
         print("Record saved to " + video_path)
 
 
-last_eval_results = {}
-
-
 def multi_test(params, arg_dict, configfile, commands):
     logdirfile = arg_dict["logdir"]
     print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
+    command = (
+            f"python test.py --config {configfile} --logdir {logdirfile} "
+            + " ".join(f"--{key} {value}" for key, value in params.items()) + " "
+            + " ".join(f"--{key} {' '.join(map(str, value)) if isinstance(value, list) else value}" for key, value in commands.items())
+    )
+    print(command)
+    # use this if you want all the prints in terminal + file
+    with open("test.log", "wb") as f:
+        process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+        for c in iter(lambda: process.stdout.read(1), b''):
+            sys.stdout.buffer.write(c)
+            f.write(c)
 
-    command = 'python test.py --config {configfile} --logdir {logdirfile} '.format(configfile=configfile,
-                                                                                   logdirfile=logdirfile) + " ".join(
-        f"--{key} {value}" for key, value in params.items()) + " " + " ".join(
-        f"--{key} {value}" for key, value in commands.items())
-
-    subprocess.check_output(command.split())
-    with open(arg_dict["output"], 'w') as f:
-        json.dump(last_eval_results, f, indent=4)
+    # use this if you don't want prints from threads
+    # subprocess.check_output(command.split())
 
 
 def multi_main(arg_dict, parameters, configfile, commands):
@@ -445,7 +439,7 @@ def multi_main(arg_dict, parameters, configfile, commands):
     for i, params in enumerate(parameter_grid):
         if threaded:
             print("Thread ", i + 1, " starting")
-            thread = threading.Thread(target=multi_test, args=(params, arg_dict, configfile, commands))
+            thread = multiprocessing.Process(target=multi_test, args=(params, arg_dict, configfile, commands))
             thread.start()
             threads.append(thread)
         else:
@@ -477,10 +471,10 @@ def main():
     for key, arg in arg_dict.items():
         if type(arg_dict[key]) == list:
             if len(arg_dict[key]) > 1 and key != "robot_init":
-                parameters[key] = []
-                parameters[key] = arg
-                if key in commands:
-                    commands.pop(key)
+                if key != "task_objects":
+                    parameters[key] = arg
+                    if key in commands:
+                        commands.pop(key)
 
     # # debug info
     # with open("arg_dict_test", "w") as f:
@@ -493,15 +487,16 @@ def main():
     #     f.write("COMMANDS: ")
     #     f.write(str(commands))
 
-    if len(parameters) != 0:
-        print("THREADING")
-        multi_main(arg_dict, parameters, args.config, commands)
-
     model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
+
+    if len(parameters) != 0:
+        print("THREADING")
+        multi_main(arg_dict, parameters, args.config, commands)
+
     if arg_dict.get("model_path") is None:
         print(
             "Path to the model using --model_path argument not specified. Testing random actions in selected "

@@ -1,10 +1,11 @@
 import argparse
 import copy
 import json
+import multiprocessing
 import os
 import random
 import subprocess
-import threading
+import sys
 import time
 
 import commentjson
@@ -12,29 +13,21 @@ import gym
 import numpy as np
 import pkg_resources
 from sklearn.model_selection import ParameterGrid
-from stable_baselines3.common.vec_env import VecMonitor
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines.bench import Monitor
 from stable_baselines.her import HERGoalEnvWrapper
-# For now, I am importing both with slightly modified names P-PyTorch T-TensorFlow
+# Importing with slightly modified names: T-TensorFlow
 from stable_baselines import PPO1 as PPO1_T, PPO2 as PPO2_T, HER as HER_T, SAC as SAC_T, DDPG as DDPG_T
 from stable_baselines import TD3 as TD3_T, A2C as A2C_T, ACKTR as ACKTR_T, TRPO as TRPO_T, GAIL as GAIL_T
-
-try:
-    from stable_baselines3 import PPO as PPO_P, A2C as A2C_P, SAC as SAC_P, TD3 as TD3_P
-except:
-    print("Torch isn't probably installed correctly")
 
 from myGym.stable_baselines_mygym.algo import MyAlgo
 from myGym.stable_baselines_mygym.reference import REFER
 from myGym.stable_baselines_mygym.multi_ppo2 import MultiPPO2
 from myGym.stable_baselines_mygym.multi_acktr import MultiACKTR
 from myGym.stable_baselines_mygym.policies import MyMlpPolicy
-from myGym.stable_baselines_mygym.TorchPPO import TorchPPO
-from myGym.stable_baselines_mygym.TorchPPOpolicies import TorchMlpPolicy
 
 from stable_baselines.gail import ExpertDataset, generate_expert_traj
 from stable_baselines.sac.policies import MlpPolicy as MlpPolicySAC
@@ -46,9 +39,8 @@ from myGym.utils.callbacks import SaveOnBestTrainingRewardCallback, CustomEvalCa
 from myGym.envs.natural_language import NaturalLanguage
 
 # This is global variable for the type of engine we are working with
-AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
-AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
-
+AVAILABLE_SIMULATION_ENGINES = ["pybullet"]
+AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow"]
 
 def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
     if model_logdir is None:
@@ -68,29 +60,23 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "num_networks": arg_dict.get("num_networks", 1),
                      "network_switcher": arg_dict.get("network_switcher", "gt"),
                      "distance_type": arg_dict["distance_type"], "used_objects": arg_dict["used_objects"],
-                     "active_cameras": arg_dict["camera"], "color_dict": arg_dict.get("color_dict", {}),
                      "max_episode_steps": arg_dict["max_episode_steps"], "visgym": arg_dict["visgym"],
                      "active_cameras": arg_dict["camera"], "color_dict": arg_dict.get("color_dict", {}),
                      "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"],
                      "natural_language": bool(arg_dict["natural_language"]),
-                     "training": bool(for_train)
+                     "training": bool(for_train),
+                     "gui_on": arg_dict["gui"]
                      }
-    if for_train:
-        env_arguments["gui_on"] = arg_dict["gui"]
-    else:
-        env_arguments["gui_on"] = arg_dict["gui"]
 
     if arg_dict["algo"] == "her":
         env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
     else:
         env = gym.make(arg_dict["env_name"], **env_arguments)
-    if for_train:
-        if arg_dict["engine"] == "mujoco":
-            env = VecMonitor(env, model_logdir) if arg_dict["multiprocessing"] else Monitor(env, model_logdir)
-        elif arg_dict["engine"] == "pybullet":
-            env = Monitor(env, model_logdir, info_keywords=tuple('d'))
 
+    if for_train:
+        if arg_dict["engine"] == "pybullet":
+            env = Monitor(env, model_logdir, info_keywords=tuple('d'))
     if arg_dict["algo"] == "her":
         env = HERGoalEnvWrapper(env)
     return env
@@ -121,9 +107,6 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                           "a2c": {"tensorflow": [A2C_T, (MlpPolicy, env),
                                                  {"n_steps": arg_dict["algo_steps"], "verbose": 1,
                                                   "tensorboard_log": model_logdir}], },
-                          "torchppo": {"tensorflow": [TorchPPO, (TorchMlpPolicy, env),
-                                                      {"n_steps": arg_dict["algo_steps"], "verbose": 1,
-                                                       "tensorboard_log": model_logdir}]},
                           "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env),
                                                     {"n_steps": arg_dict["algo_steps"], "verbose": 1,
                                                      "tensorboard_log": model_logdir}]},
@@ -138,16 +121,6 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                                                         {"n_steps": arg_dict["algo_steps"],
                                                          "n_models": arg_dict["num_networks"], "verbose": 1,
                                                          "tensorboard_log": model_logdir}]}}
-
-    implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env),
-                                            {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir}]
-    implemented_combos["sac"]["pytorch"] = [SAC_P, ('MlpPolicy', env),
-                                            {"verbose": 1, "tensorboard_log": model_logdir}]
-    implemented_combos["td3"]["pytorch"] = [TD3_P, ('MlpPolicy', env),
-                                            {"verbose": 1, "tensorboard_log": model_logdir}]
-    implemented_combos["a2c"]["pytorch"] = [A2C_P, ('MlpPolicy', env),
-                                            {"n_steps": arg_dict["algo_steps"], "verbose": 1,
-                                             "tensorboard_log": model_logdir}]
 
     return implemented_combos
 
@@ -222,7 +195,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     print("Training time: {:.2f} s".format(time.time() - start_time))
     print("Training steps: {:} s".format(model.num_timesteps))
 
-    # info_keywords in monitor class above is neccessary for pybullet to save_results
+    # info_keywords in monitor class above is necessary for pybullet to save_results
     # when using the info_keywords for mujoco we get an error
     if arg_dict["engine"] == "pybullet":
         save_results(arg_dict, model_name, env, model_logdir)
@@ -231,80 +204,67 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    # Envinronment
-    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_FM_nico.json",
-                        help="Can be passed instead of all arguments")
-    parser.add_argument("-n", "--env_name", type=str, help="The name of environment")
-    parser.add_argument("-ws", "--workspace", type=str, help="The name of workspace")
-    parser.add_argument("-p", "--engine", type=str, help="Name of the simulation engine you want to use")
-    parser.add_argument("-sd", "--seed", type=int, help="Seed number")
-    parser.add_argument("-d", "--render", type=str, help="Type of rendering: opengl, opencv")
-    parser.add_argument("-c", "--camera", type=int, help="The number of camera used to render and record")
-    parser.add_argument("-vi", "--visualize", type=int,
-                        help="Whether visualize camera render and vision in/out or not: 1 or 0")
-    parser.add_argument("-vg", "--visgym", type=int, help="Whether visualize gym background: 1 or 0")
-    parser.add_argument("-g", "--gui", type=int, help="Wether the GUI of the simulation should be used or not: 1 or 0")
+
+    # Environment
+    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_FM_nico.json", help="Config file path")
+    parser.add_argument("-n", "--env_name", type=str, help="Environment name")
+    parser.add_argument("-ws", "--workspace", type=str, help="Workspace name")
+    parser.add_argument("-p", "--engine", type=str, help="Simulation engine name")
+    parser.add_argument("-sd", "--seed", type=int, default=1, help="Seed number")
+    parser.add_argument("-d", "--render", type=str, help="Rendering type: opengl, opencv")
+    parser.add_argument("-c", "--camera", type=int, help="Number of cameras for rendering and recording")
+    parser.add_argument("-vi", "--visualize", type=int, help="Visualize camera render and vision: 1 or 0")
+    parser.add_argument("-vg", "--visgym", type=int, help="Visualize gym background: 1 or 0")
+    parser.add_argument("-g", "--gui", type=int, help="Use GUI: 1 or 0")
+
     # Robot
-    parser.add_argument("-b", "--robot", default=["kuka", "panda"], nargs='*',
-                        help="Robot to train: kuka, panda, jaco ...")
+    parser.add_argument("-b", "--robot", default=["kuka", "panda"], nargs='*', help="Robot to train")
     parser.add_argument("-bi", "--robot_init", nargs="*", type=float, help="Initial robot's end-effector position")
-    parser.add_argument("-ba", "--robot_action", default=["joints"], nargs='*',
-                        help="Robot's action control: step - end-effector relative position, absolute - end-effector "
-                             "absolute position, joints - joints' coordinates")
-    parser.add_argument("-mv", "--max_velocity", default=[3], nargs='*', help="arm speed")
-    parser.add_argument("-mf", "--max_force", default=[100], nargs='*', help="arm force")
-    parser.add_argument("-ar", "--action_repeat", default=[1], nargs='*',
-                        help="Substeps of simulation without action from env")
+    parser.add_argument("-ba", "--robot_action", default=["joints"], nargs='*', help="Robot's action control")
+    parser.add_argument("-mv", "--max_velocity", default=[3], nargs='*', help="Arm speed")
+    parser.add_argument("-mf", "--max_force", default=[100], nargs='*', help="Arm force")
+    parser.add_argument("-ar", "--action_repeat", default=[1], nargs='*', help="Simulation substeps without action")
+
     # Task
-    parser.add_argument("-tt", "--task_type", default=["reach"], nargs='*',
-                        help="Type of task to learn: reach, push, throw, pick_and_place")
-    parser.add_argument("-to", "--task_objects", nargs="*", type=str,
-                        help="Object (for reach) or a pair of objects (for other tasks) to manipulate with")
-    parser.add_argument("-u", "--used_objects", nargs="*", type=str,
-                        help="List of extra objects to randomly appear in the scene")
+    parser.add_argument("-tt", "--task_type", default=["reach"], nargs='*', help="Task type to learn")
+    parser.add_argument("-to", "--task_objects", nargs="*", type=str, help="Objects to manipulate")
+    parser.add_argument("-u", "--used_objects", nargs="*", type=str, help="Extra objects to appear in the scene")
+
     # Distractors
-    parser.add_argument("-di", "--distractors", type=str, help="Object (for reach) to evade")
-    parser.add_argument("-dm", "--distractor_moveable", type=int, help="can distractor move (0/1)")
-    parser.add_argument("-ds", "--distractor_constant_speed", type=int, help="is speed of distractor constant (0/1)")
-    parser.add_argument("-dd", "--distractor_movement_dimensions", type=int,
-                        help="in how many directions can the distractor move (1/2/3)")
-    parser.add_argument("-de", "--distractor_movement_endpoints", nargs="*", type=float,
-                        help="2 coordinates (starting point and ending point)")
-    parser.add_argument("-no", "--observed_links_num", type=int, help="number of robot links in observation space")
+    parser.add_argument("-di", "--distractors", type=str, help="Object to evade")
+    parser.add_argument("-dm", "--distractor_moveable", type=int, help="Can distractor move: 0 or 1")
+    parser.add_argument("-ds", "--distractor_constant_speed", type=int, help="Is speed of distractor constant: 0 or 1")
+    parser.add_argument("-dd", "--distractor_movement_dimensions", type=int, help="Movement directions: 1, 2, or 3")
+    parser.add_argument("-de", "--distractor_movement_endpoints", nargs="*", type=float, help="Movement endpoints")
+    parser.add_argument("-no", "--observed_links_num", type=int, help="Number of robot links in observation space")
+
     # Reward
-    parser.add_argument("-re", "--reward", type=str, help="Defines how to compute the reward")
-    parser.add_argument("-dt", "--distance_type", type=str, help="Type of distance metrics: euclidean, manhattan")
+    parser.add_argument("-re", "--reward", type=str, help="Reward computation method")
+    parser.add_argument("-dt", "--distance_type", type=str, help="Distance metrics type: euclidean, manhattan")
+
     # Train
-    parser.add_argument("-w", "--train_framework", default=["tensorflow"], nargs='*',
-                        help="Name of the training framework you want to use: {tensorflow, pytorch}")
-    parser.add_argument("-a", "--algo", default=["ppo2"], nargs='*', help="what algos to test")
-    parser.add_argument("-s", "--steps", type=int, help="The number of steps to train")
-    parser.add_argument("-ms", "--max_episode_steps", type=int, help="The maximum number of steps per episode")
-    parser.add_argument("-ma", "--algo_steps", type=int, help="The number of steps per for algo training (PPO2,A2C)")
+    parser.add_argument("-w", "--train_framework", default=["tensorflow"], nargs='*', help="Training framework")
+    parser.add_argument("-a", "--algo", default=["ppo2"], nargs='*', help="Algorithms to test")
+    parser.add_argument("-s", "--steps", type=int, help="Number of training steps")
+    parser.add_argument("-ms", "--max_episode_steps", type=int, help="Maximum steps per episode")
+    parser.add_argument("-ma", "--algo_steps", type=int, help="Steps per algorithm training")
+
     # Evaluation
-    parser.add_argument("-ef", "--eval_freq", type=int, help="Evaluate the agent every eval_freq steps")
-    parser.add_argument("-e", "--eval_episodes", type=int,
-                        help="Number of episodes to evaluate performance of the robot")
+    parser.add_argument("-ef", "--eval_freq", type=int, help="Evaluation frequency in steps")
+    parser.add_argument("-e", "--eval_episodes", type=int, help="Number of evaluation episodes")
+
     # Saving and Logging
-    parser.add_argument("-l", "--logdir", type=str, default="./trained_models/reach",
-                        help="Where to save results of training and trained models")
-    parser.add_argument("-r", "--record", type=int,
-                        help="1: make a gif of model perfomance, 2: make a video of model performance, 0: don't record")
-    # Mujoco
-    parser.add_argument("-i", "--multiprocessing", type=int,
-                        help="True: multiprocessing on (specify also the number of vectorized environments), False: multiprocessing off")
-    parser.add_argument("-v", "--vectorized_envs", type=int,
-                        help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
+    parser.add_argument("-l", "--logdir", type=str, default="./trained_models/reach", help="Directory to save results")
+    parser.add_argument("-r", "--record", type=int, help="Record performance: 1 for gif, 2 for video, 0 for none")
+
     # Paths
-    parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")
-    parser.add_argument("-vp", "--vae_path", type=str, help="Path to a trained VAE in 2dvu reward type")
-    parser.add_argument("-yp", "--yolact_path", type=str, help="Path to a trained Yolact in 3dvu reward type")
-    parser.add_argument("-yc", "--yolact_config", type=str,
-                        help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
-    parser.add_argument('-ptm', "--pretrained_model", type=str,
-                        help="Path to a model that you want to continue training")
-    parser.add_argument("-thread", "--threaded", type=bool, default="True", help="run in threads")
-    parser.add_argument("-out", "--output", type=str, default="./trained_models/multitester.json", help="output file")
+    parser.add_argument("-m", "--model_path", type=str, help="Path to the trained model")
+    parser.add_argument("-vp", "--vae_path", type=str, help="Path to a trained VAE")
+    parser.add_argument("-yp", "--yolact_path", type=str, help="Path to a trained Yolact")
+    parser.add_argument("-yc", "--yolact_config", type=str, help="Path to Yolact config or name in data/Config script")
+    parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model for continued training")
+    parser.add_argument("-thread", "--threaded", type=bool, default=True, help="Run in threads")
+    parser.add_argument("-out", "--output", type=str, default="./trained_models/multitester.json", help="Output file")
 
     return parser
 
@@ -324,12 +284,12 @@ def get_arguments(parser):
         if value is not None and key != "config":
             if key not in arg_dict or arg_dict[key] is None:
                 arg_dict[key] = value
-            elif key in ["task_objects"]:
-                arg_dict[key] = task_objects_replacement(value, arg_dict[key], arg_dict["task_type"])
             if value != parser.get_default(key):
                 commands[key] = value
                 if key in ["task_objects"]:
                     arg_dict[key] = task_objects_replacement(value, arg_dict[key], arg_dict["task_type"])
+                    if len(value) == 1:
+                        commands[key] = value[0]
                 elif type(value) is list and len(value) <= 1:
                     arg_dict[key] = value[0]
                 else:
@@ -349,13 +309,13 @@ def task_objects_replacement(task_objects_new, task_objects_old, task_type):
     if len(task_objects_new) > len(task_objects_old):
         msg = "More objects given than there are subtasks."
         raise Exception(msg)
-    dest = ""  # init or goal
     if task_type == "reach":
         dest = "goal"
     else:
         dest = "init"
     for i in range(len(task_objects_new)):
         ret[i][dest]["obj_name"] = task_objects_new[i]
+
     return ret
 
 
@@ -372,23 +332,21 @@ def process_natural_language_command(cmd, env,
         raise Exception(msg)
 
 
-last_eval_results = {}
-
-
 def multi_train(params, arg_dict, configfile, commands):
     logdirfile = arg_dict["logdir"]
-    print(arg_dict["gui"])
     print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
     # WE WANT TO ALSO SEND PARAMS FROM COMMAND LINE
-    command = 'python train.py --config {configfile} --logdir {logdirfile} '.format(configfile=configfile,
-                                                                                    logdirfile=logdirfile) + " ".join(
-        f"--{key} {value}" for key, value in params.items()) + " " + " ".join(
-        f"--{key} {value}" for key, value in commands.items())
-
-    subprocess.check_output(command.split())
-
-    with open(arg_dict["output"], 'w') as f:
-        json.dump(last_eval_results, f, indent=4)
+    command = (
+            f"python train.py --config {configfile} --logdir {logdirfile} "
+            + " ".join(f"--{key} {value}" for key, value in params.items()) + " "
+            + " ".join(f"--{key} {' '.join(map(str, value)) if isinstance(value, list) else value}" for key, value in commands.items())
+    )
+    print(command)
+    with open("train.log", "wb") as f:
+        process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+        for c in iter(lambda: process.stdout.read(1), b''):
+            sys.stdout.buffer.write(c)
+            f.write(c)
 
 
 def multi_main(arg_dict, parameters, configfile, commands):
@@ -401,7 +359,7 @@ def multi_main(arg_dict, parameters, configfile, commands):
     for i, params in enumerate(parameter_grid):
         if threaded:
             print("Thread ", i + 1, " starting")
-            thread = threading.Thread(target=multi_train, args=(params.copy(), arg_dict, configfile, commands))
+            thread = multiprocessing.Process(target=multi_train, args=(params.copy(), arg_dict, configfile, commands))
             thread.start()
             threads.append(thread)
         else:
@@ -422,13 +380,14 @@ def main():
     arg_dict, commands = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
+
     for key, arg in arg_dict.items():
         if type(arg_dict[key]) == list:
             if len(arg_dict[key]) > 1 and key != "robot_init":
-                parameters[key] = []
-                parameters[key] = arg
-                if key in commands:
-                    commands.pop(key)
+                if key != "task_objects":
+                    parameters[key] = arg
+                    if key in commands:
+                        commands.pop(key)
 
     # # debug info
     # with open("arg_dict_train", "w") as f:
@@ -441,14 +400,15 @@ def main():
     #     f.write("COMMANDS: ")
     #     f.write(str(commands))
 
-    if len(parameters) != 0:
-        print("THREADING")
-        multi_main(arg_dict, parameters, args.config, commands)
-
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
+
+    if len(parameters) != 0:
+        print("THREADING")
+        multi_main(arg_dict, parameters, args.config, commands)
+
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
