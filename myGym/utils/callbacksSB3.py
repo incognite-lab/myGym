@@ -344,14 +344,15 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
         self.STATS_EVERY = stats_every
         self.save_success_graph_every_steps = save_success_graph_every_steps
         self.success_graph_mean_past_episodes = success_graph_mean_past_episodes
-        self.multiprocessing = multiprocessing
+        self.num_cpu = multiprocessing if multiprocessing > 0 else 1
 
     def _on_step(self) -> bool:
+        actual_calls = self.n_calls * self.num_cpu
         # DOESNT WORK WITH MULTIPROCESSING
-        if self.n_calls % self.save_model_every_steps == 0:
+        if actual_calls % self.save_model_every_steps == 0:
             print("Saving model to {}".format(self.periodical_save_path))
-            self.model.save(self.periodical_save_path + f"{self.n_calls}")
-        if self.n_calls % self.check_freq == 0:
+            self.model.save(self.periodical_save_path + f"{actual_calls}")
+        if actual_calls % self.check_freq == 0:
             # Retrieve training reward
             x, y = ts2xy(load_results(self.logdir), 'timesteps')
 
