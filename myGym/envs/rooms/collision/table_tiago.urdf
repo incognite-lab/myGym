@@ -2,6 +2,14 @@
 <?xml version="1.0" ?>
 <robot name="table">
   <link name="table">
+    <contact>
+      <lateral_friction value="0.1"/>
+    </contact>
+    <inertial>
+      <origin rpy="0.0001 0 0" xyz="0.0001 0 0"/>
+       <mass value="10.000"/>
+       <inertia ixx="1" ixy="10" ixz="0" iyy="10" iyz="0" izz="10"/>
+    </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0.55 .71"/>
       <geometry>
