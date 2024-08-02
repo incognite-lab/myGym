@@ -78,10 +78,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "natural_language": bool(arg_dict["natural_language"]),
                      "training": bool(for_train)
                      }
-    if for_train:
-        env_arguments["gui_on"] = arg_dict["gui"]
-    else:
-        env_arguments["gui_on"] = arg_dict["gui"]
+    env_arguments["gui_on"] = arg_dict["gui"]
 
     if arg_dict["algo"] == "her":
         env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
@@ -164,9 +161,9 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
                                            camera_id=arg_dict["camera"])
         callbacks_list.append(eval_callback)
     # plotting_callback = PlottingCallback(model_logdir)
-    with ProgressBarManager(total_timesteps=arg_dict["steps"]) as progress_callback:
-        callbacks_list.append(progress_callback)
-        model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
+    # with ProgressBarManager(total_timesteps=arg_dict["steps"]) as progress_callback:
+    #     callbacks_list.append(progress_callback)
+    model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
     model.save(os.path.join(model_logdir, model_name))
     print("Training time: {:.2f} s".format(time.time() - start_time))
 

@@ -198,7 +198,7 @@ class BaseEnv(gym.Env):
         self.episode_reward = 0.0
         self.episode_steps = 0
 
-    def reset(self, hard=False):
+    def reset(self, hard=False,options=None):
         """
         Reset the state of the environment
         """

@@ -290,7 +290,7 @@ class GymEnv(CameraEnv):
         """
         return [(sub + 1) * (h - l) / 2 + l for sub, l, h in zip(action, self.action_low, self.action_high)]
 
-    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False):
+    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False, options=None, seed=None):
         """
         Environment reset called at the beginning of an episode. Reset state of objects, robot, task and reward.
 
@@ -304,7 +304,7 @@ class GymEnv(CameraEnv):
         """
         if not only_subtask:
             self.task.rddl_robot.reset(random_robot=random_robot)
-            super().reset(hard=hard)
+            super().reset(hard=hard, options=options)
         # @TODO I removed support of nl_mode, which is dependent on the old structure. We need to add nl_support again in later phases
         self.task.reset_task()
         #self.reward.reset()
@@ -317,7 +317,8 @@ class GymEnv(CameraEnv):
             self.nl_text_id = self.p.addUserDebugText(self.nl.get_previously_generated_subtask_description(), [2, 0, 1], textSize=1)
             if only_subtask and self.nl_text_id is not None:
                 self.p.removeUserDebugItem(self.nl_text_id)
-        return np.asarray(self._observation.copy(), dtype="float32")
+        info = {'d': 0.9, 'f': 0, 'o': self._observation} 
+        return (np.asarray(self._observation.copy(), dtype="float32"), info)
 
     def flatten_obs(self, obs):
         """ Returns the input obs dict as flattened list """
@@ -383,11 +384,12 @@ class GymEnv(CameraEnv):
             done = self.episode_over #@TODO replace with actual is_done value from RDDL
             info = {'d': 0.9, 'f': int(self.episode_failed),
                     'o': self._observation} # @TODOreplace 'd' with actual distance values obtained from rddl or make own implementation
-        if done: self.successful_finish(info)
+        if done is True: self.successful_finish(info)
         if self.task.subtask_over:
             self.reset(only_subtask=True)
-        # return self._observation, reward, done, info
-        return np.asarray(self._observation.copy(), dtype="float32"), reward, done, info
+        # return self._observation, reward, done, truncated, info
+        truncated = False #not sure when to use this
+        return np.asarray(self._observation.copy(), dtype="float32"), reward, done, truncated,info
 
 
     def get_linkstates_unpacked(self):
