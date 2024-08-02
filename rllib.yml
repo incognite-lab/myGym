@@ -16,7 +16,6 @@ dependencies:
     - commentjson==0.9.0
     - ray==2.7.2
     - gymnasium==1.1.0
-    - gymnasium==1.1.0
     - gymnasium-notices==0.0.1
     - h5py==3.10.0
     - imageio==2.33.1

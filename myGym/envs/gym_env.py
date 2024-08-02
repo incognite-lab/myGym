@@ -323,7 +323,7 @@ class GymEnv(CameraEnv):
         """
         return [(sub + 1) * (h - l) / 2 + l for sub, l, h in zip(action, self.action_low, self.action_high)]
 
-    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False, seed = None, options = None):
+    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False, options=None, seed=None):
         """
         Environment reset called at the beginning of an episode. Reset state of objects, robot, task and reward.
 
@@ -429,6 +429,8 @@ class GymEnv(CameraEnv):
             else:
                 self.task_objects["distractor"] = distrs
         self.env_objects = {**self.task_objects, **self.env_objects}
+            super().reset(hard=hard, options=options)
+        # @TODO I removed support of nl_mode, which is dependent on the old structure. We need to add nl_support again in later phases
         self.task.reset_task()
         self.unwrapped.reward.reset()
         self.p.stepSimulation()
@@ -441,6 +443,7 @@ class GymEnv(CameraEnv):
             self.nl_text_id = self.p.addUserDebugText(self.nl.get_previously_generated_subtask_description(), [2, 0, 1], textSize=1)
             if only_subtask and self.nl_text_id is not None:
                 self.p.removeUserDebugItem(self.nl_text_id)
+
         return self.flatten_obs(self._observation.copy()), info
 
     def shift_next_subtask(self):
@@ -458,6 +461,8 @@ class GymEnv(CameraEnv):
         self.highlight_active_object(self.env_objects["goal_state"], "goal")
         for o in self.env_objects["distractor"][-2:]:
             self.highlight_active_object(o, "done")
+        # info = {'d': 0.9, 'f': 0, 'o': self._observation}
+        # return (np.asarray(self._observation.copy(), dtype="float32"), info)
 
     def flatten_obs(self, obs):
         """ Returns the input obs dict as flattened list """
@@ -523,15 +528,15 @@ class GymEnv(CameraEnv):
             else:
                 reward = self.unwrapped.reward.compute(observation=self._observation)
             self.episode_reward += reward
-            terminated = self.episode_terminated
-            truncated = self.episode_truncated
-            info = {'d': 1, 'f': int(self.episode_failed),
-                    'o': self._observation}
-        if terminated or truncated:
-            self.successful_finish(info) #Maybe only change to 'if terminated'? Probably not
+            done = self.episode_over #@TODO replace with actual is_done value from RDDL
+            info = {'d': 0.9, 'f': int(self.episode_failed),
+                    'o': self._observation} # @TODOreplace 'd' with actual distance values obtained from rddl or make own implementation
+        if done is True: self.successful_finish(info)
         if self.task.subtask_over:
             self.reset(only_subtask=True)
-        return self.flatten_obs(self._observation.copy()), reward, terminated, truncated, info
+        # return self._observation, reward, done, truncated, info
+        truncated = False #not sure when to use this
+        return np.asarray(self._observation.copy(), dtype="float32"), reward, done, truncated,info
 
     def compute_reward(self, achieved_goal, desired_goal, info):
         # @TODO: Reward computation for HER, argument for .compute()
