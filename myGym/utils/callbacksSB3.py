@@ -2,6 +2,7 @@
 from stable_baselines3.common.results_plotter import load_results, ts2xy
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 #from stable_baselines.common.callbacks import BaseCallback, EvalCallback
+import pprint
 
 import os
 import matplotlib.pyplot as plt
@@ -124,16 +125,17 @@ class CustomEvalCallback(EvalCallback):
             steps = 0
             last_network = 0
             last_steps = 0
-
             if isinstance(self.eval_env, VecMonitor):
                 # During multiprocess training, evaluation environment needs to be accessed differently
                 evaluation_env = self.eval_env.get_attr("env")[0]
+                #evaluation_env = self.eval_env
+                #pprint.pp(evaluation_env.get_attr("env"))
             else:
                 evaluation_env = self.eval_env.env
 
             # print("evaluation env:", evaluation_env)
 
-            # srewardsteps = np.zeros(self.eval_env.env.reward.num_networks)
+            srewardsteps = np.zeros(evaluation_env.reward.num_networks)
             srewardsteps = np.zeros(evaluation_env.reward.num_networks)
             srewardsuccess = np.zeros(evaluation_env.reward.num_networks)
             # print("connection info:", p.getConnectionInfo())

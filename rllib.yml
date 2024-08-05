@@ -24,7 +24,7 @@ dependencies:
     - google-cloud==0.34.0
     - google-auth==2.32.0
     - matplotlib==3.8.2
-    - numpy==1.26.4
+    - numpy==1.23.5
     - opencv-python==4.9.0.80
     - open3d==0.18.0
     - pandas==2.2.0
