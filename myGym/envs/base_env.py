@@ -32,15 +32,15 @@ class BaseEnv(gym.Env):
     def __init__(self,
                  gui_on=True,
                  objects_dir_path=pkg_resources.resource_filename("myGym", "envs/"),
-                 max_episode_steps=1024,
+                 max_ep_steps=1024,
                  show_bounding_boxes_gui=False,
                  changing_light_gui=False,
                  shadows_on_gui=True
                  ):
         self.gui_on = gui_on
-        self.max_episode_steps = max_episode_steps
+        self.max_episode_steps = max_ep_steps
         self.spec = envs.spec('Gym-v0')
-        self.spec.max_episode_steps = max_episode_steps
+        self.spec.max_episode_steps = max_ep_steps
         self.show_bounding_boxes_gui = show_bounding_boxes_gui
         self.changing_light_gui = changing_light_gui
         self.shadows_on_gui = shadows_on_gui
@@ -235,7 +235,6 @@ class BaseEnv(gym.Env):
             episode_status = "FAILURE"
         else:
             episode_status = "SUCCESS"
-
         #print("#---------Episode-Summary---------#")
         print(str(self.episode_steps) + " , " + str(episode_status) + " , " + str(self.episode_info))
         #print("Episode's number of steps: " + str(self.episode_steps))
