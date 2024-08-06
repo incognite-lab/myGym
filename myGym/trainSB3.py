@@ -30,7 +30,7 @@ except:
 # Import helper classes and functions for monitoring
 from myGym.utils.callbacksSB3 import ProgressBarManager, SaveOnBestTrainingRewardCallback,  PlottingCallback, CustomEvalCallback
 from myGym.envs.natural_language import NaturalLanguage
-#from myGym.stable_baselines_mygym.multi_ppo_SB3 import MultiPPOSB3
+from myGym.stable_baselines_mygym.multi_ppo_SB3 import MultiPPOSB3
 
 # This is global variable for the type of engine we are working with
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
@@ -128,8 +128,8 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
     implemented_combos["sac"]["pytorch"] = [SAC_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
     implemented_combos["td3"]["pytorch"] = [TD3_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
     implemented_combos["a2c"]["pytorch"] = [A2C_P, ('MlpPolicy', env), {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir}]
-    #implemented_combos["multippo"]["pytorch"] = [MultiPPOSB3, ("MlpPolicy", env),
-                                #{"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir, "device": "cpu", "n_models": arg_dict["num_networks"]}]
+    implemented_combos["multippo"]["pytorch"] = [MultiPPOSB3, ("MlpPolicy", env),
+                                {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir, "device": "cpu", "n_models": arg_dict["num_networks"]}]
     return implemented_combos
 
 
@@ -186,7 +186,6 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             multiprocessing=arg_dict["multiprocessing"], save_model_every_steps=arg_dict["eval_freq"])
     callbacks_list.append(auto_save_callback)
     if arg_dict["eval_freq"]:
-        #eval_env = configure_env(arg_dict, model_logdir, for_train=False)
         eval_env = env
         NUM_CPU = int(arg_dict["multiprocessing"])
         if NUM_CPU == 0:

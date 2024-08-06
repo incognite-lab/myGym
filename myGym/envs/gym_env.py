@@ -236,10 +236,11 @@ class GymEnv(CameraEnv):
         """
         Set observation space type, dimensions and range
         """
-        if self.framework == "ray":
+        if self.framework == "ray" or self.framework == "SB3":
             from gymnasium import spaces
         else:
             from gym import spaces
+
         self._init_task_and_reward()
         if self.obs_space == "dict":
             goaldim = int(self.task.obsdim / 2) if self.task.obsdim % 2 == 0 else int(self.task.obsdim / 3)
@@ -257,7 +258,7 @@ class GymEnv(CameraEnv):
         """
         Set action space dimensions and range
         """
-        if self.framework == "ray":
+        if self.framework == "ray" or self.framework == "SB3":
             from gymnasium import spaces
         else:
             from gym import spaces
