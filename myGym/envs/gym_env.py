@@ -247,10 +247,12 @@ class GymEnv(CameraEnv):
         """
         Set observation space type, dimensions and range
         """
-        if self.framework == "ray":
+        if self.framework == "ray" or self.framework == "SB3":
             from gymnasium import spaces
         else:
             from gymnasium import spaces
+
+        # self._init_task_and_reward()
         if self.obs_space == "dict":
             goaldim = int(self.obsdim / 2) if self.obsdim % 2 == 0 else int(self.obsdim / 3)
             self.observation_space = spaces.Dict(
@@ -268,7 +270,7 @@ class GymEnv(CameraEnv):
         Set action space dimensions and range
         """
         self._init_task_and_reward() # we first need rddl to make a robot
-        if self.framework == "ray":
+        if self.framework == "ray" or self.framework == "SB3":
             from gymnasium import spaces
         else:
             from gymnasium import spaces
@@ -458,7 +460,7 @@ class GymEnv(CameraEnv):
         # print(f"Substeps:{i}")
         self.episode_steps += 1
         #print(f"Episode step: {self.episode_steps}")
-        
+
     def choose_goal_object_by_human_with_keys(self, objects: List[EnvObject]) -> EnvObject:
         self.text_id = self.p.addUserDebugText("Point the human's finger via arrow keys at the goal object and press enter", [1, 0, 0.5], textSize=1)
         move_factor = 10  # times 1 cm
