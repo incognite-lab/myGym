@@ -9,7 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json, commentjson
 import gym
-from myGym import envs
+from gymnasium.wrappers import EnvCompatibility
+from myGym.envs.gym_env import GymEnv
 import myGym.utils.cfg_comparator as cfg
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -61,8 +62,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"],
                      "natural_language": bool(arg_dict["natural_language"]),
-                     "training": bool(for_train), "max_episode_steps": arg_dict["max_episode_steps"],
-                     "max_ep_steps": arg_dict["max_episode_steps"],
+                     "training": bool(for_train), "max_ep_steps": arg_dict["max_episode_steps"],
                      }
     if for_train:
         env_arguments["gui_on"] = arg_dict["gui"]
@@ -72,7 +72,9 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
     if arg_dict["algo"] == "her":
         env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
     else:
-        env = gym.make(arg_dict["env_name"], **env_arguments)
+        #env = gym.make(arg_dict["env_name"], **env_arguments)
+        env = env_creator(env_arguments)
+        env.spec.max_episode_steps = 512
     if for_train:
         if arg_dict["engine"] == "mujoco":
             env = VecMonitor(env, model_logdir) if arg_dict["multiprocessing"] else Monitor(env, model_logdir)
@@ -103,6 +105,11 @@ def make_env(arg_dict: dict, rank: int, seed: int = 0, model_logdir = None) -> C
 
     set_random_seed(seed)
     return _init
+
+def env_creator(env_config):
+    env = EnvCompatibility(GymEnv(**env_config))
+    env.spec.max_episode_steps = 512
+    return env
 
 
 def configure_implemented_combos(env, model_logdir, arg_dict):

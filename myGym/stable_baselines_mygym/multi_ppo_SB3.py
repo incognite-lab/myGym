@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, ClassVar, Dict, Optional, Type, TypeVar, Union
+from typing import Any, ClassVar, Dict, Optional, Type, TypeVar, Union, Iterable
 
 import numpy as np
 import torch as th
@@ -7,7 +7,10 @@ from gymnasium import spaces
 from torch.nn import functional as F
 import os
 #import sys
+import pathlib
+import io
 
+from stable_baselines3.common.save_util import save_to_zip_file, recursive_getattr
 from stable_baselines3.common.buffers import RolloutBuffer
 #from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
 from myGym.stable_baselines_mygym.on_policy_algorithm import OnPolicyAlgorithm
@@ -176,7 +179,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         self.clip_range_vf = clip_range_vf
         self.normalize_advantage = normalize_advantage
         self.target_kl = target_kl
-
+        self.models = []
         if _init_setup_model:
             self._setup_model()
 
@@ -187,7 +190,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         if self.clip_range_vf is not None:
             if isinstance(self.clip_range_vf, (float, int)):
                 assert self.clip_range_vf > 0, "`clip_range_vf` must be positive, " "pass `None` to deactivate vf clipping"
-
             self.clip_range_vf = get_schedule_fn(self.clip_range_vf)
         for i in range(self.models_num):
             self.models.append(SubModel(self, i))
@@ -196,6 +198,61 @@ class MultiPPOSB3(OnPolicyAlgorithm):
     def set_env(self, env) -> None:
         super().set_env(env)
         self.n_batch = self.n_envs * self.n_steps
+
+
+    def save(
+        self,
+        path: Union[str, pathlib.Path, io.BufferedIOBase],
+        exclude: Optional[Iterable[str]] = None,
+        include: Optional[Iterable[str]] = None,
+    ) -> None:
+        """
+        Save all the attributes of the object and the model parameters in a zip-file.
+
+        :param path: path to the file where the rl agent should be saved
+        :param exclude: name of parameters that should be excluded in addition to the default ones
+        :param include: name of parameters that might be excluded but should be included anyway
+        """
+        # Copy parameter list so we don't mutate the original dict
+        data = self.__dict__.copy()
+
+        # Exclude is union of specified parameters (if any) and standard exclusions
+        if exclude is None:
+            exclude = []
+        exclude = set(exclude).union(self._excluded_save_params())
+
+        # Do not exclude params if they are specifically included
+        if include is not None:
+            exclude = exclude.difference(include)
+
+        state_dicts_names, torch_variable_names = self._get_torch_save_params()
+        all_pytorch_variables = state_dicts_names + torch_variable_names
+        for torch_var in all_pytorch_variables:
+            # We need to get only the name of the top most module as we'll remove that
+            var_name = torch_var.split(".")[0]
+            # Any params that are in the save vars must not be saved by data
+            exclude.add(var_name)
+
+        # Remove parameter entries of parameters which are to be excluded
+        for param_name in exclude:
+            data.pop(param_name, None)
+
+        # Build dict of torch variables
+        pytorch_variables = None
+        if torch_variable_names is not None:
+            pytorch_variables = {}
+            for name in torch_variable_names:
+                attr = recursive_getattr(self, name)
+                pytorch_variables[name] = attr
+        #print("data:", data)
+        # Build dict of state_dicts
+        data.pop("models")
+        for model in self.models:
+            params_to_save = model.get_parameters()
+            #print("params:", params_to_save)
+            path = os.path.join(model.path, 'best_model')
+            #print("path:", path)
+            save_to_zip_file(path, data=data, params=params_to_save, pytorch_variables=pytorch_variables)
 
 
     def approved(self, observation):
