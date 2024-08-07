@@ -434,7 +434,7 @@ class RolloutBuffer(BaseBuffer):
                     next_non_terminal = 1.0 - dones.astype(np.float32)
                     next_values = last_values
                 else:
-                    next_non_terminal = 1.0 - self.episode_starts[step + 1]
+                    next_non_terminal = 1.0 - self.episode_start_arrs[i][step + 1]
                     next_values = self.value_arrs[i][step + 1]
                 delta = self.reward_arrs[i][step] + self.gamma * next_values * next_non_terminal - self.value_arrs[i][step]
                 last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam

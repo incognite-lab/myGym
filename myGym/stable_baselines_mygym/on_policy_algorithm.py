@@ -156,7 +156,8 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         """
         assert self._last_obs is not None, "No previous observation was provided"
         # Switch to eval mode (this affects batch norm / dropout)
-        self.policy.set_training_mode(False)
+
+
 
         n_steps = 0
         rollout_buffer.reset()
@@ -164,6 +165,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         if self.use_sde:
             for i in range(self.num_models):
                 self.models[i].policy.reset_noise(env.num_envs)
+                self.models[i].policy.set_training_mode(False)
 
         callback.on_rollout_start()
 
