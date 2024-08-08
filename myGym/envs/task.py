@@ -27,7 +27,6 @@ class TaskModule():
                  vae_path=None, yolact_path=None, yolact_config=None, distance_type='euclidean',
                  logdir=currentdir, env=None, number_tasks=None):
         self.task_type = task_type
-        print("task_type", self.task_type)
         self.distance_type = distance_type
         self.number_tasks = number_tasks
         self.current_task = 0

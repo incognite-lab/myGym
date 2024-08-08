@@ -415,18 +415,12 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     images = []  # Empty list for gif images
     success_episodes_num = 0
     distance_error_sum = 0
-    vel = arg_dict["max_velocity"]
-    force = arg_dict["max_force"]
     steps_sum = 0
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
-    # p.setRealTimeSimulation(1)
-    # p.setTimeStep(0.01)
-    print("ENV TYPE:", env)
 
     for e in range(arg_dict["eval_episodes"]):
         done = False
         obs, info = env.reset()
-        print("observation:, ", obs)
         is_successful = 0
         distance_error = 0
         step_sum = 0
