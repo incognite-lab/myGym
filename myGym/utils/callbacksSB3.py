@@ -117,7 +117,7 @@ class CustomEvalCallback(EvalCallback):
             # print("connection info pre-reset:", p.getConnectionInfo())
             # Avoid double reset, as VecEnv are reset automatically
             if not isinstance(self.eval_env, VecEnv) or e == 0:
-                obs = self.eval_env.reset()
+                obs, info = self.eval_env.reset()
             done, state = False, None
             is_successful = 0
             distance_error = 0
@@ -131,18 +131,18 @@ class CustomEvalCallback(EvalCallback):
                 #evaluation_env = self.eval_env
                 #pprint.pp(evaluation_env.get_attr("env"))
             else:
-                evaluation_env = self.eval_env.env
+                evaluation_env = self.eval_env.env.env
+
 
             # print("evaluation env:", evaluation_env)
 
-            srewardsteps = np.zeros(evaluation_env.reward.num_networks)
             srewardsteps = np.zeros(evaluation_env.reward.num_networks)
             srewardsuccess = np.zeros(evaluation_env.reward.num_networks)
             # print("connection info:", p.getConnectionInfo())
             while not done:
                 steps_sum += 1
                 action, state = model.predict(obs, deterministic=deterministic)
-                obs, reward, done, info = self.eval_env.step(action)
+                obs, reward, done, _ , info = self.eval_env.step(action)
                 if len(np.shape(action)) == 2:
                     action = action[0, :]
                     info = info[0]

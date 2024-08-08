@@ -408,11 +408,11 @@ class EvalCallbackRay(DefaultCallbacks):
 
 #                 if self.physics_engine == "mujoco" and self.gui_on: # Rendering for mujoco engine
 #                     self.eval_env.render()
-#                 steps +=1      
+#                 steps +=1
 #             srewardsteps.put([last_network], steps-last_steps)
 #             if is_successful:
 #                 srewardsuccess.put([last_network], 1)
-#             subrewards.append(self.eval_env.env.reward.network_rewards)            
+#             subrewards.append(self.eval_env.env.reward.network_rewards)
 #             subrewsteps.append(srewardsteps)
 #             subrewsuccess.append(srewardsuccess)
 #             episode_rewards.append(episode_reward)
@@ -423,10 +423,10 @@ class EvalCallbackRay(DefaultCallbacks):
 #             gif_path = os.path.join(self.log_path, "last_eval_episode_after_{}_steps.gif".format(self.n_calls))
 #             imageio.mimsave(gif_path, [np.array(img) for i, img in enumerate(images) if i%2 == 0], fps=15)
 #             #optimize(gif_path)
-#             os.system('./utils/gifopt -O3 --lossy=5 -o {dest} {source}'.format(source=gif_path, dest=gif_path)) 
+#             os.system('./utils/gifopt -O3 --lossy=5 -o {dest} {source}'.format(source=gif_path, dest=gif_path))
 #             print("Record saved to " + gif_path)
 
-        
+
 
 #         meansr = np.mean(subrewards, axis=0)
 #         meansrs = np.mean(subrewsteps, axis=0)
@@ -448,11 +448,11 @@ class EvalCallbackRay(DefaultCallbacks):
 #             "mean subgoal reward":"{}".format(str(meansr)),
 #             "mean subgoal steps":"{}".format(str(meansrs)),
 #         }
-        
+
 #         for k, v in results.items():
 #             print (k, ':', v)
 
-        
+
 
 #         #print ("mean subtasks finished:{}".format(meansgoals))
 
@@ -471,12 +471,12 @@ class EvalCallbackRay(DefaultCallbacks):
 #         self.locals['writer'].add_summary(summary, self.num_timesteps)
 #         summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/2.Mean_sgoals', simple_value=meansgoals)])
 #         self.locals['writer'].add_summary(summary, self.num_timesteps)
-        
+
 #         for i in range (self.eval_env.env.task.number_tasks):
-#             #print("Task: {}".format(i)) 
-#             for j, (k,l) in enumerate(zip(meansr,meansrs)):  
+#             #print("Task: {}".format(i))
+#             for j, (k,l) in enumerate(zip(meansr,meansrs)):
 #                 m = np.count_nonzero(srsu[:,j])/n_eval_episodes*100
-#                 #print("Reward {}: {} , steps: {} , Success: {}".format(j, k, l, m )) 
+#                 #print("Reward {}: {} , steps: {} , Success: {}".format(j, k, l, m ))
 #                 summary = tf.Summary(value=[tf.Summary.Value(tag='Task{}/Subgoal{}/Reward'.format(i,j),
 #                                                                               simple_value=k)])
 #                 self.locals['writer'].add_summary(summary, self.num_timesteps)
@@ -521,7 +521,7 @@ class EvalCallbackRay(DefaultCallbacks):
 #                 filename = "evaluation_results.json"
 #                 with open(os.path.join(self.log_path, filename), 'w') as f:
 #                     json.dump(self.evaluations_results, f, indent=4)
-#                 print("Evaluation stored after {} calls.".format(self.n_calls))    
+#                 print("Evaluation stored after {} calls.".format(self.n_calls))
 #         return True
 
 
