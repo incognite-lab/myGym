@@ -15,7 +15,16 @@ class TaskModule():
         :param allowed_predicates: (list of strings) names of allowed predicates
         :param pybullet_client: (object) pybullet instance
     """
-    def __init__(self, env=None, num_task_range=[], allowed_protoactions=[], allowed_objects=[], allowed_predicates=[], pybullet_client=None):
+    def __init__(self, env=None, num_task_range=[], allowed_protoactions=[], allowed_objects=[], allowed_predicates=[], pybullet_client=None,
+                 task_type='reach', observation={},
+                 vae_path=None, yolact_path=None, yolact_config=None, distance_type='euclidean',
+                 logdir=currentdir, env=None, number_tasks=None):
+        self.task_type = task_type
+        self.distance_type = distance_type
+        self.number_tasks = number_tasks
+        self.current_task = 0
+        self.subtask_over = False
+        self.logdir = logdir
         self.env = env
         self.p = pybullet_client
         self.number_tasks_range = num_task_range
