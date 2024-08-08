@@ -85,6 +85,10 @@ class Robot(EnvObject):
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
         self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
 
+        #else:
+        #self.init_joint_poses = np.zeros((len(self.motor_names)))
+        #self.reset()
+
     def _load_robot(self):
         """
         Load SDF or URDF model of specified robot and place it in the environment to specified position and orientation
@@ -598,10 +602,15 @@ class Robot(EnvObject):
             self.apply_action_joints(action)
         if "gripper" in self.robot_action:
             self._move_gripper(action[-(self.gjoints_num):])
-            if self.use_magnet:
+            if self.task_type in ["compositional", "fmot", "AG", "AGM", "AGMD", "AGMDW"]:
+                if self.use_magnet and env_objects["actual_state"] != self:
+                    self.gripper_active = True
+                    self.magnetize_object(env_objects["actual_state"])
+
                 if len(self.magnetized_objects):
-                    for key,val in self.magnetized_objects.items():
-                        self.p.changeConstraint(val, self.get_position(),self.get_orientation(), maxForce=self.max_force)
+                    for key, val in self.magnetized_objects.items():
+                        self.p.changeConstraint(val, self.get_position(), maxForce=100000)
+                    # self.p.resetBasePositionAndOrientation(val,self.end_effector_pos,self.end_effector_ori)
         else:
             if self.gjoints_num:
                 self._move_gripper(self.gjoints_limits[1])
