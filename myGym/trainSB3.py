@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import json, commentjson
 import gym
 from gymnasium.wrappers import EnvCompatibility
-from myGym.envs.gym_env import GymEnv
+from myGym.envs.gym_envSB3debug import GymEnv
 import myGym.utils.cfg_comparator as cfg
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 

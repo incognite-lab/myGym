@@ -1,4 +1,5 @@
 import warnings
+import sys
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 
@@ -390,17 +391,29 @@ class RolloutBuffer(BaseBuffer):
         self.reset()
 
     def reset(self) -> None:
-        self.observation_arrs = [np.zeros((self.buffer_size, self.n_envs, *self.obs_shape), dtype=np.float32)] * self.num_models
-        self.action_arrs = [np.zeros((self.buffer_size, self.n_envs, self.action_dim), dtype=np.float32)] * self.num_models
-        self.reward_arrs = [np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)] * self.num_models
-        self.return_arrs = [np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)] * self.num_models
-        self.episode_start_arrs = [np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)] * self.num_models
-        self.value_arrs = [np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)] * self.num_models
-        self.log_prob_arrs = [np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)] * self.num_models
-        self.advantage_arrs = [np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)] * self.num_models
+        self.observation_arrs = []
+        self.action_arrs = []
+        self.reward_arrs = []
+        self.return_arrs = []
+        self.episode_start_arrs = []
+        self.value_arrs = []
+        self.log_prob_arrs = []
+        self.advantage_arrs = []
+
+        for i in range(self.num_models):
+            self.observation_arrs.append(np.zeros((self.buffer_size, self.n_envs, *self.obs_shape), dtype=np.float32))
+            self.action_arrs.append(np.zeros((self.buffer_size, self.n_envs, self.action_dim), dtype=np.float32))
+            self.reward_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
+            self.episode_start_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
+            self.return_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
+            self.value_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
+            self.log_prob_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
+            self.advantage_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
         self.generator_ready = False
         super().reset()
         self.positions = [0]*self.num_models
+
+
 
     def compute_returns_and_advantage(self, last_values: th.Tensor, dones: np.ndarray) -> None:
         """
@@ -426,7 +439,11 @@ class RolloutBuffer(BaseBuffer):
 
         last_gae_lam = 0
 
-        owner_sizes = [len(arr) for arr in self.observation_arrs]
+        owner_sizes = self.get_owner_sizes()
+        # with np.printoptions(threshold=np.inf):
+        #     print("values 0:", self.value_arrs[0])
+        #     print("values 1:", self.value_arrs[1])
+        #     print("values 2:", self.value_arrs[2])
         for i in range(len(owner_sizes)):
             owner_size = owner_sizes[i]
             for step in reversed(range(owner_size)):
@@ -438,10 +455,11 @@ class RolloutBuffer(BaseBuffer):
                     next_values = self.value_arrs[i][step + 1]
                 delta = self.reward_arrs[i][step] + self.gamma * next_values * next_non_terminal - self.value_arrs[i][step]
                 last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
+                #print("advantage of model, ", i,  " on step", step, "set to:", last_gae_lam)
                 self.advantage_arrs[i][step] = last_gae_lam
             # TD(lambda) estimator, see Github PR #375 or "Telescoping in TD(lambda)"
             # in David Silver Lecture 4: https://www.youtube.com/watch?v=PnHCvfgC_ZA
-            self.return_arrs[i][step] = self.advantage_arrs[i] + self.value_arrs[i]
+            self.return_arrs[i] = self.advantage_arrs[i] + self.value_arrs[i]
 
     def add(
         self,
@@ -471,47 +489,73 @@ class RolloutBuffer(BaseBuffer):
         # as numpy cannot broadcast (n_discrete,) to (n_discrete, 1)
         if isinstance(self.observation_space, spaces.Discrete):
             obs = obs.reshape((self.n_envs, *self.obs_shape))
-
         # Reshape to handle multi-dim and discrete action spaces, see GH #970 #1392
         action = action.reshape((self.n_envs, self.action_dim))
 
         pos = self.positions[owner]
+       # print("adding data to owner:", owner, "at position:", pos)
         self.observation_arrs[owner][pos] = np.array(obs).copy()
         self.action_arrs[owner][pos] = np.array(action).copy()
         self.reward_arrs[owner][pos] = np.array(reward).copy()
         self.episode_start_arrs[owner][pos] = np.array(episode_start).copy()
         self.value_arrs[owner][pos] = value.clone().cpu().numpy().flatten()
         self.log_prob_arrs[owner][pos] = log_prob.clone().cpu().numpy()
+        # if sum(self.positions) %100 == 1:
+        #      print("reward_arr 0: ",self.reward_arrs[0])
+        #      print("reward_arr 1: ", self.reward_arrs[1])
+        #      print("reward_arr 2: ", self.reward_arrs[2])
         self.positions[owner] += 1
+
+
         if sum(self.positions) == self.buffer_size:
             self.full = True
 
+
+    def remove_zeros(self):
+        """
+        Removes zeros from observation_arrs, action_arrs, etc, to set proper length..
+        """
+
+        for i in range(self.num_models):
+
+            obs = self.observation_arrs[i].copy()
+            act = self.action_arrs[i].copy()
+            vals = self.value_arrs[i].copy()
+            log_p = self.log_prob_arrs[i].copy()
+            adv = self.advantage_arrs[i].copy()
+            ret = self.return_arrs[i].copy()
+            self.observation_arrs[i] = obs[~np.all(obs == 0., axis =2)]
+            self.action_arrs[i] = act[~np.all(act == 0., axis =2)]
+            self.value_arrs[i] = vals[~np.all(vals == 0., axis =1)].flatten()
+            self.log_prob_arrs[i] = log_p[~np.all(log_p == 0., axis =1)].flatten()
+            self.advantage_arrs[i] = adv[~np.all(adv == 0., axis =1)].flatten()
+            self.return_arrs[i] = ret[~np.all(ret == 0., axis =1)].flatten()
+            # self.observation_arrs[i],
+            # self.return_arrs[i],
+            # print("obs:shape:", self.observation_arrs[i].shape)
+            # print("rets:", "shape:", self.return_arrs[i].shape)
+
+    def get_owner_sizes(self):
+        owner_sizes = []
+        for i in range(self.num_models):
+            obs = self.observation_arrs[i].copy()
+            owner_sizes.append(obs[~np.all(obs == 0., axis =2)].shape[0])
+        return owner_sizes
+
     def get(self, batch_size: Optional[int] = None) -> Generator[RolloutBufferSamples, None, None]:
         assert self.full, ""
-        indices = np.random.permutation(self.buffer_size * self.n_envs)
         # Prepare the data
         if not self.generator_ready:
-            _tensor_names = [
-                "observation_arrs",
-                "action_arrs",
-                "value_arrs",
-                "log_prob_arrs",
-                "advantage_arrs",
-                "return_arrs",
-            ]
-
-            for tensor in _tensor_names:
-                for owner in range(self.num_models):
-                    self.__dict__[tensor][owner] = self.swap_and_flatten(self.__dict__[tensor][owner])
+            self.remove_zeros()
             self.generator_ready = True
+        owner_sizes = [len(arr) for arr in self.observation_arrs]
 
         # Return everything, don't create minibatches
         if batch_size is None:
             batch_size = self.buffer_size * self.n_envs
 
-        start_idx = 0
-        owner_sizes = [len(arr) for arr in self.observation_arrs]
         for i in range(len(owner_sizes)):
+            start_idx = 0
             owner_size = owner_sizes[i]
             indices = np.random.permutation(owner_size)
             while start_idx < owner_size:

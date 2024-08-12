@@ -178,6 +178,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             owner = self.approved(self._last_obs)
             model = self.models[owner]
 
+
             with th.no_grad():
                 # Convert to pytorch tensor or to TensorDict
                 obs_tensor = obs_as_tensor(self._last_obs, self.device)

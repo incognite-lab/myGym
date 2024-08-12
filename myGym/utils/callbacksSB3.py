@@ -178,19 +178,19 @@ class CustomEvalCallback(EvalCallback):
                 if evaluation_env.reward.current_network != last_network:
                     srewardsteps.put([last_network], steps - last_steps)
                     srewardsuccess.put([last_network], 1)
-                    last_network = self.eval_env.env.reward.current_network
+                    last_network = evaluation_env.reward.current_network
                     last_steps = steps
                 distance_error = info['d']
 
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
-                        render_info = self.eval_env.render(mode="rgb_array", camera_id=self.camera_id)
+                        render_info = evaluation_env.render(mode="rgb_array", camera_id=self.camera_id)
                         image = render_info[self.camera_id]["image"]
                         images.append(image)
                         print(f"appending image: total size: {len(images)}]")
 
                 if self.physics_engine == "mujoco" and self.gui_on:  # Rendering for mujoco engine
-                    self.eval_env.render()
+                    evaluation_env.render()
                 steps += 1
             srewardsteps.put([last_network], steps - last_steps)
             if is_successful:
