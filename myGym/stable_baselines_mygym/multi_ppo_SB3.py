@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, ClassVar, Dict, Optional, Type, TypeVar, Union, Iterable
+from typing import Any, ClassVar, Dict, Optional, Type, TypeVar, Union, Iterable, Tuple
 
 import numpy as np
 import torch as th
@@ -263,14 +263,42 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             submodel_id = self.env.reward.network_switch_control(self.env.observation["task_objects"])
         return submodel_id
 
+
+    def predict(
+            self,
+            observation: Union[np.ndarray, Dict[str, np.ndarray]],
+            state: Optional[Tuple[np.ndarray, ...]] = None,
+            episode_start: Optional[np.ndarray] = None,
+            deterministic: bool = False,
+    ) -> Tuple[np.ndarray, Optional[Tuple[np.ndarray, ...]]]:
+        """
+        Get the policy action from an observation (and optional hidden state).
+        Includes sugar-coating to handle different observations (e.g. normalizing images).
+
+        :param observation: the input observation
+        :param state: The last hidden states (can be None, used in recurrent policies)
+        :param episode_start: The last masks (can be None, used in recurrent policies)
+            this correspond to beginning of episodes,
+            where the hidden states of the RNN must be reset.
+        :param deterministic: Whether or not to return deterministic actions.
+        :return: the model's action and the next hidden state
+            (used in recurrent policies)
+        """
+        owner = self.approved(observation)
+        model = self.models[owner]
+        return model.policy.predict(observation, state, episode_start, deterministic)
+
+
     def train(self) -> None:
         """
         Update policy using the currently gathered rollout buffer.
         """
         # Switch to train mode (this affects batch norm / dropout)
-        self.policy.set_training_mode(True)
-        # Update optimizer learning rate
-        self._update_learning_rate(self.policy.optimizer)
+        for model in self.models:
+            policy = model.policy
+            policy.set_training_mode(True)
+            # Update optimizer learning rate
+            self._update_learning_rate(policy.optimizer)
         # Compute current clip range
         clip_range = self.clip_range(self._current_progress_remaining)  # type: ignore[operator]
         # Optional: clip range for the value function
@@ -286,13 +314,16 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         for epoch in range(self.n_epochs):
             approx_kl_divs = []
             # Do a complete pass on the rollout buffer
-            for rollout_data in self.rollout_buffer.get(self.batch_size):
+            for rollout_data, owner in self.rollout_buffer.get(self.batch_size):
                 actions = rollout_data.actions
+                # Choose appropriate submodel
+                model = self.models[owner]
+
                 if isinstance(self.action_space, spaces.Discrete):
                     # Convert discrete action from float to long
                     actions = rollout_data.actions.long().flatten()
 
-                values, log_prob, entropy = self.policy.evaluate_actions(rollout_data.observations, actions)
+                values, log_prob, entropy = model.policy.evaluate_actions(rollout_data.observations, actions)
                 values = values.flatten()
                 # Normalize advantage
                 advantages = rollout_data.advantages
@@ -353,17 +384,27 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     break
 
                 # Optimization step
-                self.policy.optimizer.zero_grad()
+                model.policy.optimizer.zero_grad()
                 loss.backward()
+                #print("training model", owner, "collected samples:", len(actions))
                 # Clip grad norm
-                th.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
-                self.policy.optimizer.step()
+                th.nn.utils.clip_grad_norm_(model.policy.parameters(), self.max_grad_norm)
+                model.policy.optimizer.step()
 
             self._n_updates += 1
             if not continue_training:
                 break
-
-        explained_var = explained_variance(self.rollout_buffer.values.flatten(), self.rollout_buffer.returns.flatten())
+        #print("flattened arrs:", np.array(self.rollout_buffer.value_arrs).flatten(), np.array(self.rollout_buffer.return_arrs).flatten())
+        explained_vars = []
+        for i in range(self.models_num):
+            val_arr = self.rollout_buffer.value_arrs[i]
+            ret_arr = self.rollout_buffer.return_arrs[i]
+        for i in range(self.models_num):
+            val_arr = self.rollout_buffer.value_arrs[i]
+            ret_arr = self.rollout_buffer.return_arrs[i]
+            #print("return_arr:", ret_arr)
+            explained_vars.append(explained_variance(np.array(val_arr).flatten(), np.array(ret_arr).flatten()))
+        #explained_var = explained_variance(np.array(self.rollout_buffer.value_arrs).flatten(), np.array(self.rollout_buffer.return_arrs).flatten())
 
         # Logs
         self.logger.record("train/entropy_loss", np.mean(entropy_losses))
@@ -372,10 +413,11 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         self.logger.record("train/approx_kl", np.mean(approx_kl_divs))
         self.logger.record("train/clip_fraction", np.mean(clip_fractions))
         self.logger.record("train/loss", loss.item())
-        self.logger.record("train/explained_variance", explained_var)
-        if hasattr(self.policy, "log_std"):
-            self.logger.record("train/std", th.exp(self.policy.log_std).mean().item())
-
+        self.logger.record("train/explained_variances", explained_vars)
+        for i in range(self.models_num):
+            model = self.models[i]
+            if hasattr(model.policy, "log_std"):
+                self.logger.record("train/std" + str(i), th.exp(model.policy.log_std).mean().item())
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         self.logger.record("train/clip_range", clip_range)
         if self.clip_range_vf is not None:
