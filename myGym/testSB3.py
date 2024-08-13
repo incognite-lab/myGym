@@ -256,7 +256,6 @@ def test_env(env, arg_dict):
         #    visualize_goal(info)
 
         for t in range(arg_dict["max_episode_steps"]):
-
             if arg_dict["control"] == "slider":
                 action = []
                 for i in range(env.action_space.shape[0]):
@@ -397,8 +396,10 @@ def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_lo
     try:
         if "multi" in arg_dict["algo"]:
             model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"],
-                                                                                              env=model_args[1].env)
+            #model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"],
+            #                                                                                  env=model_args[1].env)
+            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"])
+            model.env = model_args[1].env
         else:
             model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"])
     except:
