@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import json, commentjson
 import gym
 from gymnasium.wrappers import EnvCompatibility
-from myGym.envs.gym_envSB3debug import GymEnv
+from myGym.envs.gym_env import GymEnv
 import myGym.utils.cfg_comparator as cfg
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -71,6 +71,8 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
 
     if arg_dict["algo"] == "her":
         env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
+    # elif arg_dict["multiprocessing"]:
+    #     env = GymEnv(**env_arguments)
     else:
         #env = gym.make(arg_dict["env_name"], **env_arguments)
         env = env_creator(env_arguments)
@@ -95,12 +97,13 @@ def make_env(arg_dict: dict, rank: int, seed: int = 0, model_logdir = None) -> C
         :param rank: (int) index of the subprocess
         :return: (Callable)
         """
-    def _init() -> gym.Env:
+    def _init():
         arg_dict["seed"] = seed + rank
         env = configure_env(arg_dict, for_train = True, model_logdir=model_logdir)
         #print("connection status right after configuration:", env.p.getConnectionInfo())
         env.reset()
         #print("connection status right after configuration and reset:", env.p.getConnectionInfo())
+        print("unwrapped env:", env)
         return env
 
     set_random_seed(seed)
@@ -356,9 +359,12 @@ def main():
     if arg_dict["multiprocessing"]:
         NUM_CPU = int(arg_dict["multiprocessing"])
         env = SubprocVecEnv([make_env(arg_dict, i, model_logdir = model_logdir) for i in range(NUM_CPU)])
+        print("subproc:", env)
         env = VecMonitor(env, model_logdir)
+        print("env:", env)
     else:
         env = configure_env(arg_dict, model_logdir, for_train=1)
+        print("env:", env)
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
     train(env, implemented_combos, model_logdir, arg_dict, arg_dict["pretrained_model"])
     print(model_logdir)

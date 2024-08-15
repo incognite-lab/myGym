@@ -117,7 +117,10 @@ class CustomEvalCallback(EvalCallback):
             # print("connection info pre-reset:", p.getConnectionInfo())
             # Avoid double reset, as VecEnv are reset automatically
             if not isinstance(self.eval_env, VecEnv) or e == 0:
-                obs, info = self.eval_env.reset()
+                if isinstance(self.eval_env, VecMonitor):
+                    obs = self.eval_env.reset()
+                else:
+                    obs, info = self.eval_env.reset()
             done, state = False, None
             is_successful = 0
             distance_error = 0
@@ -142,7 +145,10 @@ class CustomEvalCallback(EvalCallback):
             while not done:
                 steps_sum += 1
                 action, state = model.predict(obs, deterministic=deterministic)
-                obs, reward, done, _ , info = self.eval_env.step(action)
+                if isinstance(self.eval_env, VecMonitor):
+                    obs, reward, done, info = self.eval_env.step(action)
+                else:
+                    obs, reward, done, _ , info = self.eval_env.step(action)
                 if len(np.shape(action)) == 2:
                     action = action[0, :]
                     info = info[0]
@@ -272,6 +278,7 @@ class CustomEvalCallback(EvalCallback):
         self.eval_env.reset()
         print("Evaluation finished successfully")
         return results
+
 
     def _init_callback(self):
         # Does not work in some corner cases, where the wrapper is not the same
