@@ -6,7 +6,7 @@ import torch as th
 from gymnasium import spaces
 from torch.nn import functional as F
 import os
-#import sys
+import sys
 import pathlib
 import io
 
@@ -14,7 +14,7 @@ from stable_baselines3.common.save_util import save_to_zip_file, recursive_getat
 from stable_baselines3.common.buffers import RolloutBuffer
 #from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
 from myGym.stable_baselines_mygym.on_policy_algorithm import OnPolicyAlgorithm
-
+from stable_baselines3.common.vec_env import VecMonitor
 from stable_baselines3.common.policies import ActorCriticCnnPolicy, ActorCriticPolicy, BasePolicy, MultiInputActorCriticPolicy
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
 from stable_baselines3.common.utils import explained_variance, get_schedule_fn
@@ -260,8 +260,11 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
     def approved(self, observation):
         # based on obs, decide which model should be used
+        #print("rewards:", self.env.get_attr("p"))
         if hasattr(self.env, 'envs'):
             submodel_id = self.env.envs[0].env.env.reward.network_switch_control(self.env.envs[0].env.env.observation["task_objects"])
+        elif isinstance(self.env, VecMonitor):
+            submodel_id = self.env.get_attr("env")[0].reward.network_switch_control(self.env.get_attr("env")[0].observation["task_objects"])
         else:
             submodel_id = self.env.reward.network_switch_control(self.env.observation["task_objects"])
         return submodel_id
@@ -402,11 +405,15 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         for i in range(self.models_num):
             val_arr = self.rollout_buffer.value_arrs[i]
             ret_arr = self.rollout_buffer.return_arrs[i]
+        owner_sizes = self.rollout_buffer.get_owner_sizes()
         for i in range(self.models_num):
             val_arr = self.rollout_buffer.value_arrs[i]
             ret_arr = self.rollout_buffer.return_arrs[i]
             #print("return_arr:", ret_arr)
-            explained_vars.append(explained_variance(np.array(val_arr).flatten(), np.array(ret_arr).flatten()))
+            if owner_sizes[i] != 0:
+                explained_vars.append(explained_variance(np.array(val_arr).flatten(), np.array(ret_arr).flatten()))
+            else:
+                explained_vars.append(np.nan)
         #explained_var = explained_variance(np.array(self.rollout_buffer.value_arrs).flatten(), np.array(self.rollout_buffer.return_arrs).flatten())
 
         # Logs

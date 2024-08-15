@@ -493,17 +493,12 @@ class RolloutBuffer(BaseBuffer):
         action = action.reshape((self.n_envs, self.action_dim))
 
         pos = self.positions[owner]
-       # print("adding data to owner:", owner, "at position:", pos)
         self.observation_arrs[owner][pos] = np.array(obs).copy()
         self.action_arrs[owner][pos] = np.array(action).copy()
         self.reward_arrs[owner][pos] = np.array(reward).copy()
         self.episode_start_arrs[owner][pos] = np.array(episode_start).copy()
         self.value_arrs[owner][pos] = value.clone().cpu().numpy().flatten()
         self.log_prob_arrs[owner][pos] = log_prob.clone().cpu().numpy()
-        # if sum(self.positions) %100 == 1:
-        #      print("reward_arr 0: ",self.reward_arrs[0])
-        #      print("reward_arr 1: ", self.reward_arrs[1])
-        #      print("reward_arr 2: ", self.reward_arrs[2])
         self.positions[owner] += 1
 
 
@@ -530,17 +525,26 @@ class RolloutBuffer(BaseBuffer):
             self.log_prob_arrs[i] = log_p[~np.all(log_p == 0., axis =1)].flatten()
             self.advantage_arrs[i] = adv[~np.all(adv == 0., axis =1)].flatten()
             self.return_arrs[i] = ret[~np.all(ret == 0., axis =1)].flatten()
-            # self.observation_arrs[i],
-            # self.return_arrs[i],
-            # print("obs:shape:", self.observation_arrs[i].shape)
-            # print("rets:", "shape:", self.return_arrs[i].shape)
+
 
     def get_owner_sizes(self):
         owner_sizes = []
-        for i in range(self.num_models):
-            obs = self.observation_arrs[i].copy()
-            owner_sizes.append(obs[~np.all(obs == 0., axis =2)].shape[0])
+        try:
+            for i in range(self.num_models):
+                obs = self.observation_arrs[i].copy()
+                rets = self.return_arrs[i].copy()
+                if rets[~np.all(rets == 0., axis =1)].shape[0] != 0:
+                    owner_sizes.append(min(obs[~np.all(obs == 0., axis =2)].shape[0],
+                                       rets[~np.all(rets == 0., axis =1)].shape[0]))
+                else:
+                    owner_sizes.append(obs[~np.all(obs == 0., axis =2)].shape[0])
+        except Exception as e:
+            obs_sizes = [len(arr) for arr in self.observation_arrs]
+            ret_sizes = [len(arr) for arr in self.return_arrs]
+            for i in range(len(obs_sizes)):
+                owner_sizes.append(min(obs_sizes[i], ret_sizes[i]))
         return owner_sizes
+
 
     def get(self, batch_size: Optional[int] = None) -> Generator[RolloutBufferSamples, None, None]:
         assert self.full, ""
@@ -548,21 +552,43 @@ class RolloutBuffer(BaseBuffer):
         if not self.generator_ready:
             self.remove_zeros()
             self.generator_ready = True
-        owner_sizes = [len(arr) for arr in self.observation_arrs]
+        owner_sizes = self.get_owner_sizes()
 
         # Return everything, don't create minibatches
         if batch_size is None:
             batch_size = self.buffer_size * self.n_envs
-
         for i in range(len(owner_sizes)):
             start_idx = 0
             owner_size = owner_sizes[i]
             indices = np.random.permutation(owner_size)
+            iter = 0
             while start_idx < owner_size:
+                if iter > 2000:
+                    break
                 #End index mustn't be larger than owner_size
                 end_idx = min(owner_size, start_idx + batch_size)
-                yield self._get_samples(indices[start_idx : end_idx], i)
-                start_idx += batch_size
+                try:
+                    yield self._get_samples(indices[start_idx : end_idx], i)
+                    start_idx += batch_size
+                except Exception as e:
+                    print("exception occured at line 570 in buffersSB3.py:", e)
+                    print("owner_size (obs_size):", owner_size)
+                    adv_size = self.advantage_arrs[i].shape[0]
+                    action_size = self.action_arrs[i].shape[0]
+                    value_size = self.value_arrs[i].shape[0]
+                    log_prob_size = self.log_prob_arrs[i].shape[0]
+                    return_size = self.return_arrs[i].shape[0]
+                    print("adv_size:", adv_size)
+                    print("action_size:", action_size)
+                    print("value_size:", value_size)
+                    print("log_prob_size:", log_prob_size)
+                    print("return size:", return_size)
+                    minimum = min(adv_size, action_size, value_size, log_prob_size, return_size)
+                    indices = np.random.permutation(minimum)
+                    owner_size = minimum
+                iter += 1
+
+
 
     def _get_samples(
         self,
