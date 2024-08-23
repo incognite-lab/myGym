@@ -15,7 +15,7 @@ import myGym.utils.cfg_comparator as cfg
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 try:
-    from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor
+    from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor
     from stable_baselines3.common.monitor import Monitor
     from stable_baselines3.common.env_util import make_vec_env
     from stable_baselines3.common.utils import set_random_seed
@@ -32,6 +32,7 @@ except:
 from myGym.utils.callbacksSB3 import ProgressBarManager, SaveOnBestTrainingRewardCallback,  PlottingCallback, CustomEvalCallback
 from myGym.envs.natural_language import NaturalLanguage
 from myGym.stable_baselines_mygym.multi_ppo_SB3 import MultiPPOSB3
+from myGym.stable_baselines_mygym.Subproc_vec_envSB3 import SubprocVecEnv
 
 # This is global variable for the type of engine we are working with
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]

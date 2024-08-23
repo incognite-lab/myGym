@@ -78,7 +78,8 @@ class Robot:
         #TODO Clean code (test and gym_env) to initialize just from coordinates
         #if self.robot_action != "joints":
         self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
-
+        self.opengr_threshold = 0.07
+        self.closegr_threshold = 0.001
         #else:
         #self.init_joint_poses = np.zeros((len(self.motor_names)))
         #self.reset()
@@ -597,10 +598,13 @@ class Robot:
         if "gripper" in self.robot_action:
             self._move_gripper(action[-(self.gjoints_num):])
             if self.task_type in ["compositional", "fmot", "AG", "AGM", "AGMD", "AGMDW"]:
-                if self.use_magnet and env_objects["actual_state"] != self:
-                    self.gripper_active = True
-                    self.magnetize_object(env_objects["actual_state"])
-
+                if env_objects["actual_state"] != self: #if self.use_magnet and ...
+                    gripper_states = self.get_gjoints_states()
+                    if sum(gripper_states) < self.closegr_threshold:
+                        self.gripper_active = True
+                        self.magnetize_object(env_objects["actual_state"])
+                    elif sum(gripper_states) > self.opengr_threshold:
+                        self.release_all_objects()
                 if len(self.magnetized_objects):
                     for key, val in self.magnetized_objects.items():
                         self.p.changeConstraint(val, self.get_position(), maxForce=100000)

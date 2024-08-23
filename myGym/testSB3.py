@@ -293,12 +293,13 @@ def test_env(env, arg_dict):
                                 except:
                                     action[:3] = info['o']["goal_state"][:3]
                             if "gripper" in arg_dict["robot_action"]:
-                                action[3] = 1
-                                action[4] = 1
+                                action[-2] = 1
+                                action[-1] = 1
                         elif env.env.reward.reward_name == "grasp":
+                            #print("grasping")
                             if "gripper" in arg_dict["robot_action"]:
-                                action[3] = 0
-                                action[4] = 0
+                                action[3] = -1
+                                action[4] = -1
                         elif env.env.reward.reward_name == "move":
                             action[:3] = info['o']["goal_state"][:3]
                             if "gripper" in arg_dict["robot_action"]:
