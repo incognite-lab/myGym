@@ -264,7 +264,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         if hasattr(self.env, 'envs'):
             submodel_id = self.env.envs[0].env.env.reward.network_switch_control(self.env.envs[0].env.env.observation["task_objects"])
         elif isinstance(self.env, VecMonitor):
-            submodel_id = self.env.get_attr("env")[0].reward.network_switch_control(self.env.get_attr("env")[0].observation["task_objects"])
+            obs = self.env.get_attr("env")[0].observation["task_objects"]
+            submodel_id = self.env.network_control(obs)
         else:
             submodel_id = self.env.reward.network_switch_control(self.env.observation["task_objects"])
         return submodel_id
@@ -291,6 +292,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             (used in recurrent policies)
         """
         owner = self.approved(observation)
+        if isinstance(owner, list):
+            owner = owner[0]
         model = self.models[owner]
         return model.policy.predict(observation, state, episode_start, deterministic)
 
@@ -402,16 +405,26 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 break
         #print("flattened arrs:", np.array(self.rollout_buffer.value_arrs).flatten(), np.array(self.rollout_buffer.return_arrs).flatten())
         explained_vars = []
-        for i in range(self.models_num):
-            val_arr = self.rollout_buffer.value_arrs[i]
-            ret_arr = self.rollout_buffer.return_arrs[i]
         owner_sizes = self.rollout_buffer.get_owner_sizes()
         for i in range(self.models_num):
             val_arr = self.rollout_buffer.value_arrs[i]
             ret_arr = self.rollout_buffer.return_arrs[i]
             #print("return_arr:", ret_arr)
+            if val_arr.shape != ret_arr.shape:
+                print("Value and return arr shapes are not equal:")
+                print("val_arr shape:", val_arr.shape)
+                print("ret_arr shape:", ret_arr.shape)
             if owner_sizes[i] != 0:
-                explained_vars.append(explained_variance(np.array(val_arr).flatten(), np.array(ret_arr).flatten()))
+                flat_val = np.array(val_arr).flatten()
+                flat_ret = np.array(ret_arr).flatten()
+                if flat_val.shape != flat_ret.shape:
+                    print("flattened value and return arr shapes are not equal")
+                try:
+                    explained_vars.append(explained_variance(flat_val, np.array(ret_arr).flatten()))
+                except Exception as e:
+                    print("Exception", e)
+                    print("happened at line line 423 in multi_ppo_SB3.py")
+                    explained_vars.append(np.nan)
             else:
                 explained_vars.append(np.nan)
         #explained_var = explained_variance(np.array(self.rollout_buffer.value_arrs).flatten(), np.array(self.rollout_buffer.return_arrs).flatten())

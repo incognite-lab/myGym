@@ -176,6 +176,8 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     model.policy.reset_noise(env.num_envs)
             # Choosing model based on observation
             owner = self.approved(self._last_obs)
+            if isinstance(owner, list):
+                owner = owner[0]
             model = self.models[owner]
 
 
@@ -241,6 +243,8 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         with th.no_grad():
             # Compute value for the last timestep
             owner = self.approved(self._last_obs)
+            if isinstance(owner, list):
+                owner = owner[0]
             model = self.models[owner]
             values = model.policy.predict_values(obs_as_tensor(new_obs, self.device))  # type: ignore[arg-type]
 

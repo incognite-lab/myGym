@@ -517,3 +517,7 @@ class GymEnv(CameraEnv):
 
     def set_current_subtask_goal(self, goal) -> None:
         self.task_objects["actual_state"] = goal
+
+
+    def network_control(self, observation):
+        return self.reward.network_switch_control(observation)

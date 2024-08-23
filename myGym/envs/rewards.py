@@ -100,13 +100,14 @@ class Protorewards(Reward):
         self.offsetright = [-0.2, 0.0, -0.1]
         self.offsetcenter = [0.0, 0.0, -0.1]
         self.grip_threshold = 0.1
-        self.approached_threshold = 0.05
+        self.approached_threshold = 0.1
         self.withdraw_threshold = 0.3
         self.opengr_threshold = 0.07
         self.closegr_threshold = 0.001
         self.near_threshold = 0.1
         self.lift_threshold = 0.1
         self_above_threshold = 0.1
+        self.above_offset = [0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0]
         self.reward_name = None
 
     def compute(self, observation=None):
@@ -127,6 +128,7 @@ class Protorewards(Reward):
 
         if self.prev_object_position is None:
             self.prev_object_position = object_position
+        goal_position += np.array(self.above_offset)
         return goal_position, object_position, gripper_position, gripper_states
 
     #### PROTOREWARDS DEFINITIONS  ####
