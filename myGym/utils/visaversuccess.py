@@ -1,253 +1,372 @@
+import argparse
 import json
-import pandas as pd
+import os
+import random
+import re
 import matplotlib.pyplot as plt
 import numpy as np
-import argparse
-import os
+import pandas as pd
 import yaml
-import difflib
-from difflib import SequenceMatcher
-import re
+import colorsys
+
+# Color mapping for algorithms
+color_map = {
+    "ppo": "red",
+    "ppo2": "green",
+    "multippo": "aquamarine",
+    "acktr": "yellow",
+    "multiacktr": "magenta",
+    "sac": "salmon",
+    "ddpg": "blue",
+    "a2c": "grey",
+    "acer": "brown",
+    "trpo": "gold",
+    "multippo2": "limegreen"
+}
+
+# Action dictionary
+dict_acts = {"A": "approach", "W": "withdraw", "G": "grasp", "D": "drop", "M": "move", "R": "rotate",
+             "T": "transform", "F": "follow"}
+
+# Color mapping for actions
+color_map_acts = {
+    "approach": ["#b9e4ff"],  # muted blue
+    "withdraw": ["#ffdab2"],  # muted orange
+    "grasp": ["#d2ffcb"],  # muted green
+    "drop": ["#ffcdcb"],  # muted red
+    "move": ["#f0d8f8"],  # muted purple
+    "rotate": ["#fcfdb3"],  # muted yellow
+    "transform": ["#ffb2f2"],  # muted pink
+    "follow": ["#e3e3e3"]  # muted gray
+}
+
+
+def hex_to_rgb(hex_color):
+    """Convert a hex color string to an RGB tuple."""
+    hex_color = hex_color.lstrip('#')
+    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+    return r / 255.0, g / 255.0, b / 255.0
+
+def rgb_to_hex(r, g, b):
+    """Convert an RGB tuple to a hex color string."""
+    r, g, b = int(r * 255), int(g * 255), int(b * 255)
+    return '#{:02x}{:02x}{:02x}'.format(r, g, b)
+
+def brighten_color(hex_color, brightness_increase=0.0, saturation_increase=0.15):
+    """Brighten and increase the intensity of a color."""
+    r, g, b = hex_to_rgb(hex_color)
+    h, s, v = colorsys.rgb_to_hsv(r, g, b)
+
+    # Increase brightness (Value) and saturation
+    v = min(v + brightness_increase, 1.0)  # Ensure value is not more than 1
+    s = min(s + saturation_increase, 1.0)  # Ensure saturation is not more than 1
+
+    r, g, b = colorsys.hsv_to_rgb(h, s, v)
+    return rgb_to_hex(r, g, b)
+
 
 def atoi(text):
+    """Convert text to integer if it's a digit, otherwise return the text."""
     return int(text) if text.isdigit() else text
 
-def natural_keys(text):
-    '''
-    alist.sort(key=natural_keys) sorts in human order
-    http://nedbatchelder.com/blog/200712/human_sorting.html
-    (See Toothy's implementation in the comments)
-    '''
-    return [ atoi(c) for c in re.split(r'(\d+)', text) ]
 
-def cfgString2Dict(cfg_raw):
-    """
-    x
-    """
+def natural_keys(text):
+    """Split text into natural sort keys."""
+    return [atoi(c) for c in re.split(r'(\d+)', text)]
+
+def cfg_string2dict(cfg_raw):
+    """Convert a configuration string to a dictionary."""
     return {key: value for key, _, value, _ in re.findall(
         r"(\w+\s?)(=\s?)([^=]+)( (?=\w+\s?=)|$)", cfg_raw)}
 
-def dict2cfgString(dictionary, separator="\n", assigner="="):
-    """
-    Converts a dictionary into a string
-​
-    Parameters
-    ----------
-    dictionary : dict
-        The dictionary to be transformed.
-    separator : str, optional
-        The character to be used to separate individual
-        entries. The default is "\n".
-    assigner: str, optional
-        The character to represent the assignment from the key
-        to the value. The default is "=".
-​
-    Returns
-    -------
-    str
-    """
-    return "{}".format(separator).join([f"{k}{assigner}{v}" for k, v in dictionary.items()])
 
-def multiDictDiff_byline(dict_list):
-    """
-    Compares multiple dictionaries in a list, expects the same order of keys
-​
-    Parameters
-    ----------
-    dict_list : list of dict
-​
-    Raises
-    ------
-    Exception
-        Throws an exception if the order of keys is not the same in all dictionaries
-​
-    Returns
-    -------
-    different_items : dict
-        A dictionary where the keys are the keys from original dictionaries
-        that were not the same in all provided dictionaries.
-        The values are lists of values for the individual dictionaries.
-        Order of the values in the lists is the same as the order of dictionaries
-        in the input list.
-    same_items : dict
-        A dictionary with keys and values that were the same for all
-        provided dictionaries. Single value per key (i.e. not a list
-                                                     as in previous output).
-​
-    """
-    different_items = {}
-    same_items = {}
-    for record in zip(*[c.items() for c in dict_list]):
+def dict2cfg_string(dictionary, separator="\n", assigner="="):
+    """Convert a dictionary into a configuration string."""
+    return separator.join([f"{k}{assigner}{v}" for k, v in dictionary.items()])
+
+
+def multi_dict_diff_by_line(dict_list):
+    """Compare multiple dictionaries line-by-line."""
+    different_items, same_items = {}, {}
+    for record in zip(*[d.items() for d in dict_list]):
         vals = [v for k, v in record]
         keys = [k for k, v in record]
-        if not all([k==keys[0] for k in keys]):
+        if not all(k == keys[0] for k in keys):
             raise Exception("Oops, error! Not all keys were the same. Lines in the configs must be mixed up.")
-        if all([v==vals[0] for v in vals]):
+        if all(v == vals[0] for v in vals):
             same_items[keys[0]] = vals[0]
         else:
             different_items[keys[0]] = vals
-
     return different_items, same_items
 
-def multiDictDiff_scary(dict_list):
-    """
-    Compares a list of dictionaries. Expects all dictionaries to have the same keys.
-​
-    Parameters
-    ----------
-    dict_list : list of dict
-​
-    Returns
-    -------
-    dict
-        A dictionary where for each key the value is either the original
-        value from the provided dicts, iff it was the same in all dicts.
-        Or, the value for the specific key is a list of values for
-        individual dictionaries, iff it was not the same in all of them.
-    all_same : list
-        A list that shows for each entry whether it was the same or not.
-​
-    """
-    all_vals = [[d[k] for d in dict_list] for k in dict_list[0].keys()]
-    all_same = [all([v==line[0] for v in line]) for line in all_vals]
-    return {record[0][0]: (record[0][1] if all_same[i] else [v for k, v in record]) for i, record in enumerate(zip(*[c.items() for c in dict_list]))}, all_same
 
-def multiDictDiff_bykey(dict_list):
-    """
-    Compares a list of dictionaries. Expects all dictionaries to have the same keys.
-​
-    Parameters
-    ----------
-    dict_list : list of dict
-​
-    Returns
-    -------
-    different_items : dict
-        A dictionary where the keys are the keys from original dictionaries
-        that were not the same in all provided dictionaries.
-        The values are lists of values for the individual dictionaries.
-        Order of the values in the lists is the same as the order of dictionaries
-        in the input list.
-    same_items : dict
-        A dictionary with keys and values that were the same for all
-        provided dictionaries. Single value per key (i.e. not a list
-                                                     as in previous output).
-    """
-    diff_dict, all_same = multiDictDiff_scary(dict_list)
-    return {k: v for i, (k, v) in enumerate(diff_dict.items()) if not all_same[i]}, {k: v for i, (k, v) in enumerate(diff_dict.items()) if all_same[i]}
+def multi_dict_diff_scary(dict_list):
+    """Compare a list of dictionaries and return differences and similarities."""
+    all_vals = [[d[k] for d in dict_list] for k in dict_list[0].keys()]
+    all_same = [all(v == line[0] for v in line) for line in all_vals]
+    diff_dict = {record[0][0]: (record[0][1] if all_same[i] else [v for k, v in record])
+                 for i, record in enumerate(zip(*[d.items() for d in dict_list]))}
+    return diff_dict, all_same
+
+
+def multi_dict_diff_by_key(dict_list):
+    """Compare dictionaries by keys and return differences and similarities."""
+    diff_dict, all_same = multi_dict_diff_scary(dict_list)
+    return {k: v for i, (k, v) in enumerate(diff_dict.items()) if not all_same[i]}, \
+           {k: v for i, (k, v) in enumerate(diff_dict.items()) if all_same[i]}
 
 
 def get_arguments():
+    """Parse and return command-line arguments."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pth", default='./trained_models/pnp4nd')
-    parser.add_argument("--task", default='pnrmulti')
-    parser.add_argument("--robot", default=["kuka"], nargs='*')
-    parser.add_argument("--common", default='pnprot_table_kuka_joints')
-    parser.add_argument("--algo", default=["multiacktr","multippo2","ppo2","ppo","acktr","sac","ddpg","a2c","acer","trpo"], nargs='*')
-    parser.add_argument("--xlabel", type=int, default=1)
-    args = parser.parse_args()
+    parser.add_argument("--pth", default='/home/student/mygym/myGym/weight_visualizer/AGMDW_stable')
+    parser.add_argument("--robot", default=["kuka", "panda"], nargs='*')
+    parser.add_argument("--algo", default=["multiacktr", "multippo2", "ppo2", "ppo", "acktr", "sac", "ddpg",
+                                           "a2c", "acer", "trpo", "multippo"], nargs='*')
+    return parser.parse_args()
 
-    return args
+
+def legend_without_duplicate_labels(ax):
+    """Create a legend without duplicate labels."""
+    handles, labels = ax.get_legend_handles_labels()
+    unique = [(h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]]
+    ax.legend(*zip(*unique), fontsize="20", loc="center right")
+
+
+def ax_set(ax, title, y_axis):
+    """Set title and labels for the given axis."""
+    ax.set_title(title, fontsize=23)
+    ax.set_xlabel('Training steps', fontsize=18)
+    ax.set_ylabel(y_axis, fontsize=18)
+    legend_without_duplicate_labels(ax)
+
+
+def ax_plot(ax, steps, data, color, label):
+    """Plot data on the given axis."""
+    ax.plot(steps, data, color=color, linestyle='solid', linewidth=3, marker='o', markerfacecolor=color,
+            markersize=4, label=label)
 
 
 def main():
+    global color_map_acts
     args = get_arguments()
-    #subdirs = [x[0] for x in os.walk(str(args.pth[0]))][1:]
     root, dirs, files = next(os.walk(str(args.pth)))
     dirs.sort(key=natural_keys)
     plt.rcParams.update({'font.size': 12})
-    plt.figure(figsize=(8,3))
-    #fig, axs = plt.subplots(4, sharex=True, sharey=False, gridspec_kw={'hspace': 0})
-    colors = ['red','green','blue','yellow','magenta','cyan','black','grey','brown','gold','limegreen','silver','aquamarine','olive','hotpink','salmon']
-    configs=[]
-    success = []
+    colors = ['red', 'green', 'blue', 'yellow', 'magenta', 'cyan', 'black', 'grey', 'brown', 'gold', 'limegreen',
+              'silver', 'aquamarine', 'olive', 'hotpink', 'salmon']
+    # Initialize data storage
+    configs = []
+    success, mean_steps, mean_reward = [], [], []
+    std_reward, mean_distance_error = [], []
+    mean_subgoals_finished, mean_subgoals_steps = [], []
+
+    ticks_num = 0
     min_steps = 100
+    steps = []
+    x = []
+
+    # Process data from directories
     for idx, file in enumerate(dirs):
-        evaluation_exists = False
         try:
-            with open(os.path.join(args.pth,file, "evaluation_results.json")) as f:
+            # Load evaluation results
+            with open(os.path.join(args.pth, file, "evaluation_results.json")) as f:
                 data = json.load(f)
             df = pd.DataFrame(data)
             x = df.to_numpy()
-            
-            try:
-                x = np.delete(x, [10,11,12], axis=0)
-            except:
-                print("No multistep reward data")
-            
-            x = x.astype(float)
-            with open(os.path.join(args.pth,file, "train.json"), "r") as f:
-                # load individual configs
-                cfg_raw = yaml.full_load(f)
-                
-            
-            success.append(x[3])
-            configs.append(cfg_raw)
-            if len(x[0])< min_steps:
-                min_steps = len(x[0])
 
+            # Process multi-step reward data
+            try:
+                x = np.delete(x, [11], axis=0)
+                temp = []
+                for item in x[11]:
+                    str_list = [float(i) for i in item.strip('[]').split()]
+                    temp.append([str_list])
+                mean_subgoals_steps.append(temp)
+                x = np.delete(x, [11], axis=0)
+            except FileNotFoundError:
+                print("No multistep reward data")
+
+            x = x.astype(float)
+
+            # Load individual configs
+            with open(os.path.join(args.pth, file, "train.json"), "r") as f:
+                cfg_raw = yaml.full_load(f)
+                task = cfg_raw['task_type']
+                alg = cfg_raw['algo']
+
+            # Get trained actions
+            acts = []
+            for key, val in dict_acts.items():
+                if key in task:
+                    acts.append(val)
+            print(acts)
+
+            success.append(x[3])
+            mean_distance_error.append(x[4])
+            mean_steps.append(x[5])
+            mean_reward.append(x[6])
+            std_reward.append(x[7])
+            mean_subgoals_finished.append(x[10])
+            ticks_num = 100 / int(x[9][0])
+
+            configs.append(cfg_raw)
+            min_steps = min(min_steps, len(x[0]))
             steps = x[0][:min_steps]
-            print("{} datapoints in folder {}".format(len(x[3]),file))
-            
-        except:
-            print("0 dataponits in folder:{} ".format(file))
-        
-    # get differences between configs
-    diff, same = multiDictDiff_bykey(configs)
-    leg = []
+            print(f"{len(x[3])} datapoints in folder: {file}")
+        except FileNotFoundError:
+            print(f"0 datapoints in folder: {file}")
+    for i in range(len(steps)):
+        for act in color_map_acts.keys():
+            color_map_acts[act].append(brighten_color(color_map_acts[act][-1]))
+    for i in range(len(mean_subgoals_steps)):
+        mean_subgoals_steps[i] = [item for sublist in mean_subgoals_steps[i] for item in sublist]
+    for i in range(len(mean_subgoals_steps)):
+        for j in range(len(mean_subgoals_steps[i])):
+            mean_sum = sum(mean_subgoals_steps[i][j])
+            for k in range(len(mean_subgoals_steps[i][j])):
+                mean_subgoals_steps[i][j][k] = (mean_subgoals_steps[i][j][k] / mean_sum) * 100
+
+    for i in range(len(mean_subgoals_steps)):
+        mean_subgoals_steps[i] = [[mean_subgoals_steps[i][k][j] for k in range(len(mean_subgoals_steps[i]))]
+                                  for j in range(len(mean_subgoals_steps[i][0]))]
+
+
+    # Get differences between configs
+    diff, same = multi_dict_diff_by_key(configs)
+    # Plotting
+    fig1 = plt.figure(1, figsize=(35, 30))
+    ax1, ax2, ax3, ax4, ax5 = [fig1.add_subplot(3, 2, i) for i in range(1, 6)]
+
+    fig2 = plt.figure(2, figsize=(35, 30))
+
+    ticks = list(range(0, 101, int(ticks_num)))
+    counter = 0
+
     for d in range(len(success)):
-        success[d] = np.delete(success[d],np.s_[min_steps:])
-    if 'algo' in diff.keys() and len(args.algo)>1:
+        success[d] = np.delete(success[d], np.s_[min_steps:])
+    if 'algo' in diff.keys() and len(args.algo) > 1:
         index = [[] for _ in range(len(args.algo))]
         for i, algo in enumerate(args.algo):
             for j, diffalgo in enumerate(diff['algo']):
                 if algo == diffalgo:
                     index[i].append(j)
-            if len(index[i])>0:
-                meanvalue = np.mean(np.take(success,index[i],0),0)
-                variance =  np.std(np.take(success,index[i],0),0)
-                plt.plot(steps,meanvalue, color=colors[i], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[i], markersize=4) 
-                plt.fill_between(steps, np.mean(np.take(success,index[i],0),0)-np.std(np.take(success,index[i],0),0),np.mean(np.take(success,index[i],0),0)+np.std(np.take(success,index[i],0),0), color=colors[i], alpha=0.2) 
-                #plt.show()
-                leg.append(algo)
-                print(algo)
-                print(meanvalue[-1])
-                print(variance[-1]) 
-           
-    elif 'robot' in diff.keys() and len(args.robot)>1:
+
+            if index[i]:
+                meanvalue = np.mean(np.take(success, index[i], 0), 0)
+                ax_plot(ax1, steps, meanvalue, color_map[algo], algo)
+                ax1.fill_between(steps,
+                                 np.mean(np.take(success, index[i], 0), 0) - np.std(np.take(success, index[i], 0), 0),
+                                 np.mean(np.take(success, index[i], 0), 0) + np.std(np.take(success, index[i], 0), 0),
+                                 color=color_map[algo], alpha=0.2)
+                ax_plot(ax2, steps, mean_reward[counter], color_map[algo], algo)
+                ax2.plot(steps, std_reward[counter], alpha=0.8, color=color_map[algo],
+                         linestyle='dotted', linewidth=3, marker='o', markerfacecolor=color_map[algo], markersize=4,
+                         label=f"{algo} std")
+                ax_plot(ax3, steps, mean_steps[counter], color_map[algo], algo)
+                ax_plot(ax4, steps, mean_distance_error[counter], color_map[algo], algo)
+                ax5.set_ylim([0, 100])
+                ax_plot(ax5, steps, mean_subgoals_finished[counter], color_map[algo], algo)
+                ax5.set_yticks(ticks)
+
+                ax = fig2.add_subplot(3, 2, counter + 1)
+                ax.set_ylim(0, 100)
+                label_counter = 1
+                bottom = [0] * len(steps)
+
+                for l, _ in enumerate(mean_subgoals_steps[counter]):
+                    if len(mean_subgoals_steps[counter][l]) != len(steps):
+                        print(f"Data length mismatch: {len(mean_subgoals_steps[counter][l])} vs {len(steps)}")
+                        continue
+                    p = ax.bar(x=steps, height=mean_subgoals_steps[counter][l], color=color_map_acts.get(acts[label_counter-1], "black"),
+                               label=f"{acts[label_counter-1]}", bottom=bottom, width=-500000, align='edge',
+                               edgecolor='white')
+                    bottom = [sum(x) for x in zip(bottom, mean_subgoals_steps[counter][l])]
+
+                    ax.bar_label(
+                        p,
+                        labels=[f"{v:.1f}" for v in mean_subgoals_steps[counter][l]],
+                        label_type='center',
+                        color='white',
+                        fontsize=13,
+                        fmt='%g'
+                    )
+                    label_counter += 1
+                counter += 1
+
+                ax_set(ax, f'Mean subgoals steps over training steps, {algo}', 'Mean subgoals steps, %')
+
+
+    elif 'robot' in diff.keys() and len(args.robot) > 1:
         index = [[] for _ in range(len(args.robot))]
         for i, robot in enumerate(args.robot):
             for j, diffrobot in enumerate(diff['robot']):
                 if robot == diffrobot:
                     index[i].append(j)
-            if len(index[i])>0:
-                plt.plot(x[0],np.mean(np.take(success,index[i],0),0), color=colors[i], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[i], markersize=6) 
-                plt.fill_between(x[0], np.mean(np.take(success,index[i],0),0)-np.std(np.take(success,index[i],0),0),np.mean(np.take(success,index[i],0),0)+np.std(np.take(success,index[i],0),0), color=colors[i], alpha=0.2) 
-                plt.show()
-                leg.append(robot)
+            if index[i]:
+                plt.plot(x[0], np.mean(np.take(success, index[i], 0), 0), color=colors[i], linestyle='solid',
+                         linewidth=3, marker='o', markerfacecolor=colors[i], markersize=6)
+                plt.fill_between(x[0],
+                                 np.mean(np.take(success, index[i], 0), 0) - np.std(np.take(success, index[i], 0), 0),
+                                 np.mean(np.take(success, index[i], 0), 0) + np.std(np.take(success, index[i], 0), 0),
+                                 color=colors[i], alpha=0.2)
+                plt.title("Robots")
     else:
-        print("No data to visualize")        
-        meanvalue = np.mean(success,0)
-        variance =  np.std(success,0)
-        plt.plot(steps,meanvalue, color=colors[0], linestyle='solid', linewidth = 3, marker='o', markerfacecolor=colors[0], markersize=4) 
-        plt.fill_between(steps, meanvalue-variance,meanvalue+variance, color=colors[0], alpha=0.2) 
-        plt.show()
-    
-    #s = list(diff.values())
-    #leg = []
-    #for ix, x in enumerate(s[0]):
-    #    leg.append(x)
+        print("No data to compare")
+        meanvalue = np.mean(success, 0)
+        variance = np.std(success, 0)
+        ax_plot(ax1, steps, meanvalue, color_map[alg], alg)
+        ax1.fill_between(steps, meanvalue - variance, meanvalue + variance, color=color_map[alg], alpha=0.2)
+        ax_plot(ax2, steps, [item for row in mean_reward for item in row], color_map[alg], alg)
+        ax2.plot(steps, [item for row in std_reward for item in row], alpha=0.8, color=color_map[alg],
+                 linestyle='dotted', linewidth=3, marker='o', markerfacecolor=color_map[alg], markersize=4,
+                 label=f"{alg} std")
+        ax_plot(ax3, steps, [item for row in mean_steps for item in row], color_map[alg], alg)
+        ax_plot(ax4, steps, [item for row in mean_distance_error for item in row], color_map[alg], alg)
+        ax5.set_ylim([0, 100])
+        ax_plot(ax5, steps, [item for row in mean_subgoals_finished for item in row], color_map[alg], alg)
+        ax5.set_yticks(ticks)
 
-    # plt.label_outer()
-    plt.ylabel('Successful episodes {}(%)'.format(args.task))
-    
-    if args.xlabel:
-    	plt.xlabel('Training steps')
-    	plt.legend(leg,loc=2)
-    #plt.ylim(-3, 103)
-    plt.tight_layout()
-    plt.savefig(root+"-averaged.png")
-    print(root)
-    #plt.show()
+        ax = fig2.add_subplot(3, 2, counter + 1)
+        ax.set_ylim(0, 100)
+        label_counter = 1
+        bottom = [0] * len(steps)
+
+        for l, _ in enumerate(mean_subgoals_steps[counter]):
+            if len(mean_subgoals_steps[counter][l]) != len(steps):
+                print(f"Data length mismatch: {len(mean_subgoals_steps[counter][l])} vs {len(steps)}")
+                continue
+            p = ax.bar(x=steps, height=mean_subgoals_steps[counter][l],
+                       color=color_map_acts.get(acts[label_counter - 1], "black"),
+                       label=f"{acts[label_counter - 1]}", bottom=bottom, width=-500000, align='edge',
+                       edgecolor='white')
+            bottom = [sum(x) for x in zip(bottom, mean_subgoals_steps[counter][l])]
+
+            ax.bar_label(
+                p,
+                labels=[f"{v:.1f}" for v in mean_subgoals_steps[counter][l]],
+                label_type='center',
+                color='white',
+                fontsize=13,
+                fmt='%g'
+            )
+            label_counter += 1
+        counter += 1
+
+        ax_set(ax, f'Mean subgoals steps over training steps, {alg}', 'Mean subgoals steps, %')
+
+    # Set titles for axes
+    ax_set(ax1, 'Success rate over training steps', 'Successful episodes {}(%)'.format(task))
+    ax_set(ax2, 'Mean/std rewards over training steps', 'Mean/std rewards')
+    ax_set(ax3, 'Mean steps over training steps', 'Mean steps')
+    ax_set(ax4, 'Mean distance error over training steps', 'Mean distance error')
+    ax_set(ax5, 'Mean subgoals finished over training steps', 'Mean subgoals finished')
+
+    # Save figures
+    fig1.savefig(f"{root}-averaged.png")
+    fig2.savefig(f"{root}-subgoals.png")
+    plt.show()
+
+
 if __name__ == "__main__":
     main()
