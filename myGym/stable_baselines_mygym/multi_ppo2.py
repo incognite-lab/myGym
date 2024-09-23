@@ -1,23 +1,24 @@
-from pickle import NONE
-import time
 import os
+import time
+from collections import deque
+import commentjson
+
 import gym
 import numpy as np
-from numpy.lib.function_base import append
-from myGym.utils.callbacks import SaveOnTopRewardCallback
 import tensorflow as tf
-#tf.get_logger().setLevel('ERROR')
-
-from collections import OrderedDict, deque
-
 from stable_baselines import logger
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
-from stable_baselines.common.runners import AbstractEnvRunner
+from stable_baselines.common.misc_util import set_global_seeds
 from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCriticPolicy
+from stable_baselines.common.runners import AbstractEnvRunner
 from stable_baselines.common.schedules import get_schedule_fn
 from stable_baselines.common.tf_util import total_episode_reward_logger
-from stable_baselines.common.math_util import safe_mean
-from stable_baselines.common.misc_util import set_global_seeds
+
+from myGym.utils.callbacks import SaveOnTopRewardCallback
+
+dict_acts = {"A": "approach", "W": "withdraw", "G": "grasp", "D": "drop", "M": "move", "R": "rotate",
+             "T": "transform", "F": "follow"}
+
 
 class MultiPPO2(ActorCriticRLModel):
     """
@@ -28,73 +29,75 @@ class MultiPPO2(ActorCriticRLModel):
     :param env: (Gym environment or str) The environment to learn from (if registered in Gym, can be str)
     :param gamma: (float) Discount factor
     :param n_steps: (int) The number of steps to run for each environment per update
-        (i.e. batch size is n_steps * n_env where n_env is number of environment copies running in parallel)
+                    (i.e. batch size is n_steps * n_env where n_env is number of environment copies running in parallel)
     :param ent_coef: (float) Entropy coefficient for the loss calculation
     :param learning_rate: (float or callable) The learning rate, it can be a function
     :param vf_coef: (float) Value function coefficient for the loss calculation
     :param max_grad_norm: (float) The maximum value for the gradient clipping
     :param lam: (float) Factor for trade-off of bias vs variance for Generalized Advantage Estimator
     :param nminibatches: (int) Number of training minibatches per update. For recurrent policies,
-        the number of environments run in parallel should be a multiple of nminibatches.
-    :param noptepochs: (int) Number of epoch when optimizing the surrogate
+                        the number of environments run in parallel should be a multiple of nminibatches.
+    :param noptepochs: (int) Number of epochs when optimizing the surrogate
     :param cliprange: (float or callable) Clipping parameter, it can be a function
     :param cliprange_vf: (float or callable) Clipping parameter for the value function, it can be a function.
-        This is a parameter specific to the OpenAI implementation. If None is passed (default),
-        then `cliprange` (that is used for the policy) will be used.
-        IMPORTANT: this clipping depends on the reward scaling.
-        To deactivate value function clipping (and recover the original PPO implementation),
-        you have to pass a negative value (e.g. -1).
+                        This is a parameter specific to the OpenAI implementation. If None is passed (default),
+                        then `cliprange` (that is used for the policy) will be used.
+                        IMPORTANT: this clipping depends on the reward scaling.
+                        To deactivate value function clipping (and recover the original PPO implementation),
+                        you have to pass a negative value (e.g. -1).
     :param verbose: (int) the verbosity level: 0 none, 1 training information, 2 tensorflow debug
     :param tensorboard_log: (str) the log location for tensorboard (if None, no logging)
-    :param _init_setup_model: (bool) Whether or not to build the network at the creation of the instance
+    :param _init_setup_model: (bool) Whether to build the network at the creation of the instance
     :param policy_kwargs: (dict) additional arguments to be passed to the policy on creation
     :param full_tensorboard_log: (bool) enable additional logging when using tensorboard
-        WARNING: this logging can take a lot of space quickly
+                                WARNING: this logging can take a lot of space quickly
     :param seed: (int) Seed for the pseudo-random generators (python, numpy, tensorflow).
-        If None (default), use random seed. Note that if you want completely deterministic
-        results, you must set `n_cpu_tf_sess` to 1.
+                If None (default), use random seed. Note that if you want completely deterministic
+                results, you must set `n_cpu_tf_sess` to 1.
     :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
-        If None, the number of cpu of the current machine will be used.
+                        If None, the number of cpus of the current machine will be used.
     """
-    def __init__(self, policy, env, gamma=0.99, n_steps=128,n_models=None, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
+
+    def __init__(self, policy, env, gamma=0.99, n_steps=128, n_models=None, ent_coef=0.01, learning_rate=2.5e-4,
+                 vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
                  full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
 
-        self.learning_rate          = learning_rate
-        self.cliprange              = cliprange
-        self.cliprange_vf           = cliprange_vf
-        self.n_steps                = n_steps
-        self.ent_coef               = ent_coef
-        self.vf_coef                = vf_coef
-        self.max_grad_norm          = max_grad_norm
-        self.gamma                  = gamma
-        self.lam                    = lam
-        self.nminibatches           = nminibatches
-        self.noptepochs             = noptepochs
-        self.tensorboard_log        = tensorboard_log
-        self.full_tensorboard_log   = full_tensorboard_log
-        self.models_num             = n_models
+        self.learning_rate = learning_rate
+        self.cliprange = cliprange
+        self.cliprange_vf = cliprange_vf
+        self.n_steps = n_steps
+        self.ent_coef = ent_coef
+        self.vf_coef = vf_coef
+        self.max_grad_norm = max_grad_norm
+        self.gamma = gamma
+        self.lam = lam
+        self.nminibatches = nminibatches
+        self.noptepochs = noptepochs
+        self.tensorboard_log = tensorboard_log
+        self.full_tensorboard_log = full_tensorboard_log
+        self.models_num = n_models
 
-        self.action_ph          = None
-        self.advs_ph            = None
-        self.rewards_ph         = None
-        self.old_neglog_pac_ph  = None
-        self.old_vpred_ph       = None
-        self.learning_rate_ph   = None
-        self.clip_range_ph      = None
-        self.entropy            = None
-        self.vf_loss            = None
-        self.pg_loss            = None
-        self.approxkl           = None
-        self.clipfrac           = None
-        self._train             = None
-        self.loss_names         = None
-        self.train_model        = None
-        self.act_model          = None
-        self.value              = None
-        self.n_batch            = None
-        self.summary            = None
+        self.action_ph = None
+        self.advs_ph = None
+        self.rewards_ph = None
+        self.old_neglog_pac_ph = None
+        self.old_vpred_ph = None
+        self.learning_rate_ph = None
+        self.clip_range_ph = None
+        self.entropy = None
+        self.vf_loss = None
+        self.pg_loss = None
+        self.approxkl = None
+        self.clipfrac = None
+        self._train = None
+        self.loss_names = None
+        self.train_model = None
+        self.act_model = None
+        self.value = None
+        self.n_batch = None
+        self.summary = None
 
         super().__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
                          _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
@@ -104,7 +107,8 @@ class MultiPPO2(ActorCriticRLModel):
             self.setup_model()
 
     def _make_runner(self):
-        return Runner(env=self.env, model=self, models=self.models, n_steps=self.n_steps, gamma=self.gamma, lam=self.lam)
+        return Runner(env=self.env, model=self, models=self.models, n_steps=self.n_steps, gamma=self.gamma,
+                      lam=self.lam)
 
     def _get_pretrain_placeholders(self):
         policy = self.act_model
@@ -126,7 +130,7 @@ class MultiPPO2(ActorCriticRLModel):
         :param cliprange: (float) Clipping factor
         :param obs: (np.ndarray) The current observation of the environment
         :param returns: (np.ndarray) the rewards
-        :param masks: (np.ndarray) The last masks for done episodes (used in recurent policies)
+        :param masks: (np.ndarray) The last masks for done episodes (used in recurrent policies)
         :param actions: (np.ndarray) the actions
         :param values: (np.ndarray) the values
         :param neglogpacs: (np.ndarray) Negative Log-likelihood probability of Actions
@@ -161,54 +165,61 @@ class MultiPPO2(ActorCriticRLModel):
             if self.full_tensorboard_log and (1 + update) % 10 == 0:
                 run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 run_metadata = tf.RunMetadata()
-                summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = model.sess.run([self.summary, self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train], td_map, options=run_options, run_metadata=run_metadata)
+                summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = model.sess.run(
+                    [self.summary, self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train],
+                    td_map, options=run_options, run_metadata=run_metadata)
                 writer.add_run_metadata(run_metadata, 'step%d' % (update * update_fac))
             else:
-                summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = model.sess.run([model.summary, model.pg_loss, model.vf_loss, model.entropy, model.approxkl, model.clipfrac, model._train],td_map)
+                summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = model.sess.run(
+                    [model.summary, model.pg_loss, model.vf_loss, model.entropy, model.approxkl, model.clipfrac,
+                     model._train], td_map)
             writer.add_summary(summary, (update * update_fac))
         else:
-            policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = model.sess.run([self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train], td_map)
+            policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _ = model.sess.run(
+                [self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train], td_map)
 
         return policy_loss, value_loss, policy_entropy, approxkl, clipfrac
 
     def learn(self, total_timesteps, callback=None, log_interval=1, tb_log_name="Dual",
               reset_num_timesteps=True):
         # Transform to callable if needed
-        self.learning_rate  = get_schedule_fn(self.learning_rate)
-        self.cliprange      = get_schedule_fn(self.cliprange)
-        cliprange_vf        = get_schedule_fn(self.cliprange_vf)
+        self.learning_rate = get_schedule_fn(self.learning_rate)
+        self.cliprange = get_schedule_fn(self.cliprange)
+        cliprange_vf = get_schedule_fn(self.cliprange_vf)
 
-        new_tb_log   = self._init_num_timesteps(reset_num_timesteps)
-        top_callback = SaveOnTopRewardCallback(check_freq=self.n_steps, logdir=self.tensorboard_log, models_num=self.models_num)
+        new_tb_log = self._init_num_timesteps(reset_num_timesteps)
+        top_callback = SaveOnTopRewardCallback(check_freq=self.n_steps, logdir=self.tensorboard_log,
+                                               models_num=self.models_num)
         callback.append(top_callback)
-        callback     = self._init_callback(callback)
+        callback = self._init_callback(callback)
 
-        with SetVerbosity(self.verbose), TensorboardWriter(self.models[0].graph, self.tensorboard_log, tb_log_name, new_tb_log) as writer:
+        with SetVerbosity(self.verbose), TensorboardWriter(self.models[0].graph, self.tensorboard_log, tb_log_name,
+                                                           new_tb_log) as writer:
 
             for model in self.models:
                 model._setup_learn(self)
 
             t_first_start = time.time()
-            n_updates     = total_timesteps // (self.n_envs * self.n_steps)
+            n_updates = total_timesteps // (self.n_envs * self.n_steps)
             update = 0
             done = False
 
             callback.on_training_start(locals(), globals())
 
-
             while not done:
-                assert (self.n_envs * self.n_steps) % self.nminibatches == 0, ("The number of minibatches (`nminibatches`) is not a factor of the total number of samples collected per rollout (`n_batch`), some samples won't be used.")
+                assert (self.n_envs * self.n_steps) % self.nminibatches == 0, (
+                    "The number of minibatches (`nminibatches`) is not a factor of the total number of samples collected per rollout (`n_batch`), some samples won't be used.")
 
-                batch_size       = (self.n_envs * self.n_steps) // self.nminibatches
-                t_start          = time.time()
-                frac             = 1.0 - (update - 1.0) / n_updates
-                lr_now           = self.learning_rate(frac)
-                cliprange_now    = self.cliprange(frac)
+                batch_size = (self.n_envs * self.n_steps) // self.nminibatches
+                t_start = time.time()
+                frac = 1.0 - (update - 1.0) / n_updates
+                lr_now = self.learning_rate(frac)
+                cliprange_now = self.cliprange(frac)
                 cliprange_vf_now = cliprange_vf(frac)
 
                 callback.on_rollout_start()
 
-                rollouts = self.runner.run(callback) #execute episode
+                rollouts = self.runner.run(callback)  # execute episode
 
                 callback.on_rollout_end()
 
@@ -216,77 +227,81 @@ class MultiPPO2(ActorCriticRLModel):
                 if not self.runner.continue_training:
                     break
 
-
                 # Unpack
                 i = 0
                 steps_used = rollouts[-1]
                 for rollout in rollouts[0]:
                     obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward, success_stages = rollout
                     model = self.models[i]
-                    # calc = len(true_reward)
-                    # model.n_batch = calc
 
                     if steps_used[i] == 0:
-                    #if model.n_batch == 0:
                         b = 0
                     else:
-                        self.ep_info_buf.extend(ep_infos)   
+                        self.ep_info_buf.extend(ep_infos)
                         mb_loss_vals = []
-                        if states is None:  # nonrecurrent version
+                        if states is None:  # non recurrent version
                             update_fac = max(model.n_batch // self.nminibatches // self.noptepochs, 1)
-                            inds = np.arange(len(obs))#np.arange(model.n_batch)
+                            inds = np.arange(len(obs))
                             for epoch_num in range(self.noptepochs):
                                 np.random.shuffle(inds)
                                 for start in range(0, model.n_batch, batch_size):
-                                    timestep = self.num_timesteps // update_fac + ((epoch_num * model.n_batch + start) // batch_size)
-                                    end      = start + batch_size
-                                    mbinds   = inds[start:end]
+                                    timestep = self.num_timesteps // update_fac + (
+                                            (epoch_num * model.n_batch + start) // batch_size)
+                                    end = start + batch_size
+                                    mbinds = inds[start:end]
                                     if len(obs) > 1:
-                                        slices   = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                                        mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, model=self.models[i], writer=writer, update=timestep, cliprange_vf=cliprange_vf_now))
+                                        slices = (arr[mbinds] for arr in
+                                                  (obs, returns, masks, actions, values, neglogpacs))
+                                        mb_loss_vals.append(
+                                            self._train_step(lr_now, cliprange_now, *slices, model=self.models[i],
+                                                             writer=writer, update=timestep,
+                                                             cliprange_vf=cliprange_vf_now))
                                     else:
-                                        mb_loss_vals.append((0,0,0,0,0))
-                            
+                                        mb_loss_vals.append((0, 0, 0, 0, 0))
+
                         else:
                             exit("does not support recurrent version")
 
                         loss_vals = np.mean(mb_loss_vals, axis=0)
-                        t_now     = time.time()
-                        fps       = int(model.n_batch / (t_now - t_start))
+                        t_now = time.time()
+                        fps = int(model.n_batch / (t_now - t_start))
 
                         if writer is not None:
                             n_steps = model.n_batch
                             try:
-                                #print("true reward:{}".format(true_reward.shape))
-                                total_episode_reward_logger(self.episode_reward, true_reward.reshape((self.n_envs, n_steps)), masks.reshape((self.n_envs, n_steps)), writer, self.num_timesteps)
+                                total_episode_reward_logger(self.episode_reward,
+                                                            true_reward.reshape((self.n_envs, n_steps)),
+                                                            masks.reshape((self.n_envs, n_steps)), writer,
+                                                            self.num_timesteps)
 
                             except:
-                               print("Failed to log episode reward of shape {}".format(true_reward.shape))
+                                print("Failed to log episode reward of shape {}".format(true_reward.shape))
                             summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/Successful stages',
                                                                          simple_value=success_stages)])
                             writer.add_summary(summary, self.num_timesteps)
-                            #@TODO plot in one graph:
+                            # @TODO plot in one graph:
                             for j, val in enumerate(steps_used):
-                                summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/Used steps net {}'.format(j),
-                                                                              simple_value=val)])
+                                summary = tf.Summary(
+                                    value=[tf.Summary.Value(tag='episode_reward/Used steps net {}'.format(j),
+                                                            simple_value=val)])
                                 writer.add_summary(summary, self.num_timesteps)
 
                         if self.verbose >= 1 and (update % log_interval == 0 or update == 1):
                             explained_var = explained_variance(values, returns)
                             logger.logkv("Steps", steps_used)
                             logger.dumpkvs()
-                    
-                    i+=1
-                print("Steps: " + str(self.num_timesteps) + "/" + str(total_timesteps) + " - (" + str(round(self.num_timesteps/total_timesteps*100)) + "%)")
-                print("Episodes: " + str(update+1) + "/" + str(n_updates) + " - (" + str(round((update+1)/n_updates*100)) + "%)")
+                    i += 1
+                print("Steps: " + str(self.num_timesteps) + "/" + str(total_timesteps) + " - (" + str(
+                    round(self.num_timesteps / total_timesteps * 100)) + "%)")
+                print("Episodes: " + str(update + 1) + "/" + str(n_updates) + " - (" + str(
+                    round((update + 1) / n_updates * 100)) + "%)")
                 if self.num_timesteps >= total_timesteps:
                     done = True
-                update +=1
+                update += 1
             callback.on_training_end()
             return self
 
-# dual
-
+    # dual
     def save(self, parent_path, cloudpickle=False):
         data = {
             "gamma": self.gamma,
@@ -310,24 +325,34 @@ class MultiPPO2(ActorCriticRLModel):
             "_vectorize_action": self._vectorize_action,
             "policy_kwargs": self.policy_kwargs
         }
-        
+        task = []
         parent_path = parent_path.split("/")
-        start       = parent_path[:-1]
-        end         = parent_path[-1]
-        start       = "/".join(start)
+        start = parent_path[:-1]
+        end = parent_path[-1]
+        start = "/".join(start)
+        for key, val in dict_acts.items():
+            if key in start:
+                task.append(val)
 
         for i in range(self.models_num):
-            submodel_path = start + "/submodel_" + str(i) + "/" + end
+            if task[i]:
+                submodel_path = start + "/" + str(i) + "_" + task[i] + "/" + end
+            else:
+                submodel_path = start + "/submodel_" + str(i) + "/" + end
             params_to_save = self.models[i].get_parameters()
             self._save_to_file(submodel_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
 
-    def submodel_path(self, i):
+
+    def submodel_path(self, i, task):
+        if task[i]:
+            return self.tensorboard_log + "/" + str(i) + "_" + task[i]
         return self.tensorboard_log + "/submodel_" + str(i)
+
 
     @classmethod
     def load(cls, load_path, env=None, custom_objects=None, **kwargs):
         """
-        Load the model from file
+        Load the model from a file
 
         :param load_path: (str or file-like) the saved parameter location
         :param env: (Gym Environment) the new environment to run the loaded model on
@@ -337,24 +362,28 @@ class MultiPPO2(ActorCriticRLModel):
             key, it will not be deserialized and the corresponding item
             will be used instead. Similar to custom_objects in
             `keras.models.load_model`. Useful when you have an object in
-            file that can not be deserialized.
+            a file that cannot be deserialized.
         :param kwargs: extra arguments to change the model when loading
         """
+        task = []
         load_path = load_path.split("/")
         load_path = load_path[:-1]
         path = "/".join(load_path)
-
-
-        import commentjson
+        for key, val in dict_acts.items():
+            if key in path:
+                task.append(val)
 
         with open(path + "/train.json", "r") as f:
             json = commentjson.load(f)
 
         models = json["num_networks"]
-        load = [] # data, params
+        load = []  # data, params
         for i in range(models):
             # load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
-            load_path = path + "/submodel_" + str(i) + "/best_model.zip"
+            if task[i]:
+                load_path = path + "/" + str(i) + "_" + task[i] + "/best_model.zip"
+            else:
+                load_path = path + "/submodel_" + str(i) + "/best_model.zip"
             load.append(cls._load_from_file(load_path, custom_objects=custom_objects))
 
         data = load[0][0]
@@ -369,7 +398,6 @@ class MultiPPO2(ActorCriticRLModel):
         model.__dict__.update(kwargs)
         if env:
             model.env = env
-        # model.set_env(env)
         model.tensorboard_log = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
         model.models_num = models
         model.setup_model()
@@ -408,17 +436,27 @@ class MultiPPO2(ActorCriticRLModel):
     def approved(self, observation):
         # based on obs, decide which model should be used
         if hasattr(self.env, 'envs'):
-            submodel_id = self.env.envs[0].env.env.reward.network_switch_control(self.env.envs[0].env.env.observation["task_objects"])
+            submodel_id = self.env.envs[0].env.env.reward.network_switch_control(
+                self.env.envs[0].env.env.observation["task_objects"])
         else:
             submodel_id = self.env.reward.network_switch_control(self.env.observation["task_objects"])
         return submodel_id
 
+
 class SubModel(MultiPPO2):
     def __init__(self, parent, i):
-        self.episode_reward  = 0
+        self.episode_reward = 0
         self.model_num = i
         self._param_load_ops = None
-        self.path = parent.tensorboard_log + "/submodel_" + str(i)
+        task = []
+        for key, val in dict_acts.items():
+            if key in parent.tensorboard_log:
+                task.append(val)
+        if task:
+            self.path = parent.tensorboard_log + "/" + str(i) + "_" + task[i]
+        else:
+            self.path = parent.tensorboard_log + "/submodel_" + str(i)
+
         try:
             os.makedirs(self.path)
         except:
@@ -428,38 +466,41 @@ class SubModel(MultiPPO2):
         self.observation_space = parent.observation_space
 
         with SetVerbosity(parent.verbose):
-
             assert issubclass(parent.policy, ActorCriticPolicy), "Error: the input policy for the PPO2 model must be " \
-                                                               "an instance of common.policies.ActorCriticPolicy."
+                                                                 "an instance of common.policies.ActorCriticPolicy."
 
             self.n_batch = parent.n_envs * parent.n_steps
-
             self.graph = tf.Graph()
+
             with self.graph.as_default():
                 self.set_random_seed(parent.seed)
                 self.sess = tf_util.make_session(num_cpu=parent.n_cpu_tf_sess, graph=self.graph)
 
-                n_batch_step  = None
+                n_batch_step = None
                 n_batch_train = None
-                
+
                 if issubclass(parent.policy, RecurrentActorCriticPolicy):
                     assert parent.n_envs % parent.nminibatches == 0, "For recurrent policies, the number of environments run in parallel should be a multiple of nminibatches."
-                    n_batch_step  = parent.n_envs
+                    n_batch_step = parent.n_envs
                     n_batch_train = parent.n_batch // parent.nminibatches
 
-                act_model = parent.policy(self.sess, self.observation_space, parent.action_space, parent.n_envs, 1, n_batch_step, reuse=False, **parent.policy_kwargs)
+                act_model = parent.policy(self.sess, self.observation_space, parent.action_space, parent.n_envs, 1,
+                                          n_batch_step, reuse=False, **parent.policy_kwargs)
 
-                with tf.variable_scope("train_model", reuse=True, custom_getter=tf_util.outer_scope_getter("train_model")):
-                    train_model = parent.policy(self.sess, self.observation_space, parent.action_space, parent.n_envs // parent.nminibatches, parent.n_steps, n_batch_train, reuse=True, **parent.policy_kwargs)
+                with tf.variable_scope("train_model", reuse=True,
+                                       custom_getter=tf_util.outer_scope_getter("train_model")):
+                    train_model = parent.policy(self.sess, self.observation_space, parent.action_space,
+                                                parent.n_envs // parent.nminibatches, parent.n_steps, n_batch_train,
+                                                reuse=True, **parent.policy_kwargs)
 
                 with tf.variable_scope("loss_network_{}".format(self.model_num), reuse=False):
-                    self.action_ph          = train_model.pdtype.sample_placeholder([None], name="action_ph")
-                    self.advs_ph            = tf.placeholder(tf.float32, [None], name="advs_ph")
-                    self.rewards_ph         = tf.placeholder(tf.float32, [None], name="rewards_ph")
-                    self.old_neglog_pac_ph  = tf.placeholder(tf.float32, [None], name="old_neglog_pac_ph")
-                    self.old_vpred_ph       = tf.placeholder(tf.float32, [None], name="old_vpred_ph")
-                    self.learning_rate_ph   = tf.placeholder(tf.float32, [],     name="learning_rate_ph")
-                    self.clip_range_ph      = tf.placeholder(tf.float32, [],     name="clip_range_ph")
+                    self.action_ph = train_model.pdtype.sample_placeholder([None], name="action_ph")
+                    self.advs_ph = tf.placeholder(tf.float32, [None], name="advs_ph")
+                    self.rewards_ph = tf.placeholder(tf.float32, [None], name="rewards_ph")
+                    self.old_neglog_pac_ph = tf.placeholder(tf.float32, [None], name="old_neglog_pac_ph")
+                    self.old_vpred_ph = tf.placeholder(tf.float32, [None], name="old_vpred_ph")
+                    self.learning_rate_ph = tf.placeholder(tf.float32, [], name="learning_rate_ph")
+                    self.clip_range_ph = tf.placeholder(tf.float32, [], name="clip_range_ph")
 
                     neglogpac = train_model.proba_distribution.neglogp(self.action_ph)
                     self.entropy = tf.reduce_mean(train_model.proba_distribution.entropy())
@@ -486,29 +527,33 @@ class SubModel(MultiPPO2):
                     else:
                         # Clip the different between old and new value
                         # NOTE: this depends on the reward scaling
-                        vpred_clipped = self.old_vpred_ph + tf.clip_by_value(train_model.value_flat - self.old_vpred_ph, - self.clip_range_vf_ph, self.clip_range_vf_ph)
+                        vpred_clipped = self.old_vpred_ph + tf.clip_by_value(train_model.value_flat - self.old_vpred_ph,
+                                                                             - self.clip_range_vf_ph,
+                                                                             self.clip_range_vf_ph)
 
-                    vf_losses1    = tf.square(vpred - self.rewards_ph)
-                    vf_losses2    = tf.square(vpred_clipped - self.rewards_ph)
-                    self.vf_loss  = .5 * tf.reduce_mean(tf.maximum(vf_losses1, vf_losses2))
+                    vf_losses1 = tf.square(vpred - self.rewards_ph)
+                    vf_losses2 = tf.square(vpred_clipped - self.rewards_ph)
+                    self.vf_loss = .5 * tf.reduce_mean(tf.maximum(vf_losses1, vf_losses2))
 
-                    ratio         = tf.exp(self.old_neglog_pac_ph - neglogpac)
-                    pg_losses     = -self.advs_ph * ratio
-                    pg_losses2    = -self.advs_ph * tf.clip_by_value(ratio, 1.0 - self.clip_range_ph, 1.0 + self.clip_range_ph)
-                    self.pg_loss  = tf.reduce_mean(tf.maximum(pg_losses, pg_losses2))
+                    ratio = tf.exp(self.old_neglog_pac_ph - neglogpac)
+                    pg_losses = -self.advs_ph * ratio
+                    pg_losses2 = -self.advs_ph * tf.clip_by_value(ratio, 1.0 - self.clip_range_ph,
+                                                                  1.0 + self.clip_range_ph)
+                    self.pg_loss = tf.reduce_mean(tf.maximum(pg_losses, pg_losses2))
                     self.approxkl = .5 * tf.reduce_mean(tf.square(neglogpac - self.old_neglog_pac_ph))
-                    self.clipfrac = tf.reduce_mean(tf.cast(tf.greater(tf.abs(ratio - 1.0), self.clip_range_ph), tf.float32))
-                    loss          = self.pg_loss - self.entropy * parent.ent_coef + self.vf_loss * parent.vf_coef
+                    self.clipfrac = tf.reduce_mean(
+                        tf.cast(tf.greater(tf.abs(ratio - 1.0), self.clip_range_ph), tf.float32))
+                    loss = self.pg_loss - self.entropy * parent.ent_coef + self.vf_loss * parent.vf_coef
 
-                    tf.summary.scalar('entropy_loss'                , self.entropy)
-                    tf.summary.scalar('policy_gradient_loss'        , self.pg_loss)
-                    tf.summary.scalar('value_function_loss'         , self.vf_loss)
+                    tf.summary.scalar('entropy_loss', self.entropy)
+                    tf.summary.scalar('policy_gradient_loss', self.pg_loss)
+                    tf.summary.scalar('value_function_loss', self.vf_loss)
                     tf.summary.scalar('approximate_kullback-leibler', self.approxkl)
-                    tf.summary.scalar('clip_factor'                 , self.clipfrac)
+                    tf.summary.scalar('clip_factor', self.clipfrac)
                     if hasattr(self.env, 'envs'):
-                        tf.summary.scalar('network_reward'          , self.env.envs[0].env.reward.network_rewards[self.model_num])
+                        tf.summary.scalar('network_reward', self.env.envs[0].env.reward.network_rewards[self.model_num])
                     else:
-                        tf.summary.scalar('network_reward'          , self.env.reward.network_rewards[self.model_num])
+                        tf.summary.scalar('network_reward', self.env.reward.network_rewards[self.model_num])
                     tf.summary.scalar('loss', loss)
 
                     with tf.variable_scope('model'):
@@ -522,42 +567,42 @@ class SubModel(MultiPPO2):
                         grads, _grad_norm = tf.clip_by_global_norm(grads, parent.max_grad_norm)
                     grads = list(zip(grads, self.params))
 
-                trainer         = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph, epsilon=1e-5)
-                self._train     = trainer.apply_gradients(grads)
+                trainer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph, epsilon=1e-5)
+                self._train = trainer.apply_gradients(grads)
 
                 self.loss_names = ['policy_loss', 'value_loss', 'policy_entropy', 'approxkl', 'clipfrac']
 
                 with tf.variable_scope("input_info", reuse=False):
-                    tf.summary.scalar('discounted_rewards'  , tf.reduce_mean(self.rewards_ph))
-                    tf.summary.scalar('learning_rate'       , tf.reduce_mean(self.learning_rate_ph))
-                    tf.summary.scalar('advantage'           , tf.reduce_mean(self.advs_ph))
-                    tf.summary.scalar('clip_range'          , tf.reduce_mean(self.clip_range_ph))
+                    tf.summary.scalar('discounted_rewards', tf.reduce_mean(self.rewards_ph))
+                    tf.summary.scalar('learning_rate', tf.reduce_mean(self.learning_rate_ph))
+                    tf.summary.scalar('advantage', tf.reduce_mean(self.advs_ph))
+                    tf.summary.scalar('clip_range', tf.reduce_mean(self.clip_range_ph))
 
                     if self.clip_range_vf_ph is not None:
-                        tf.summary.scalar('clip_range_vf'   , tf.reduce_mean(self.clip_range_vf_ph))
+                        tf.summary.scalar('clip_range_vf', tf.reduce_mean(self.clip_range_vf_ph))
 
-                    tf.summary.scalar('old_neglog_action_probability'   , tf.reduce_mean(self.old_neglog_pac_ph))
-                    tf.summary.scalar('old_value_pred'                  , tf.reduce_mean(self.old_vpred_ph))
+                    tf.summary.scalar('old_neglog_action_probability', tf.reduce_mean(self.old_neglog_pac_ph))
+                    tf.summary.scalar('old_value_pred', tf.reduce_mean(self.old_vpred_ph))
 
                     if parent.full_tensorboard_log:
-                        tf.summary.histogram('discounted_rewards'           , self.rewards_ph)
-                        tf.summary.histogram('learning_rate'                , self.learning_rate_ph)
-                        tf.summary.histogram('advantage'                    , self.advs_ph)
-                        tf.summary.histogram('clip_range'                   , self.clip_range_ph)
+                        tf.summary.histogram('discounted_rewards', self.rewards_ph)
+                        tf.summary.histogram('learning_rate', self.learning_rate_ph)
+                        tf.summary.histogram('advantage', self.advs_ph)
+                        tf.summary.histogram('clip_range', self.clip_range_ph)
                         tf.summary.histogram('old_neglog_action_probability', self.old_neglog_pac_ph)
-                        tf.summary.histogram('old_value_pred'               , self.old_vpred_ph)
+                        tf.summary.histogram('old_value_pred', self.old_vpred_ph)
 
                         if tf_util.is_image(self.observation_space):
-                            tf.summary.image('observation'      , train_model.obs_ph)
+                            tf.summary.image('observation', train_model.obs_ph)
                         else:
-                            tf.summary.histogram('observation'  , train_model.obs_ph)
+                            tf.summary.histogram('observation', train_model.obs_ph)
 
-                self.train_model    = train_model
-                self.act_model      = act_model
-                self.step           = act_model.step
-                self.proba_step     = act_model.proba_step
-                self.value          = act_model.value
-                self.initial_state  = act_model.initial_state
+                self.train_model = train_model
+                self.act_model = act_model
+                self.step = act_model.step
+                self.proba_step = act_model.proba_step
+                self.value = act_model.value
+                self.initial_state = act_model.initial_state
 
                 tf.global_variables_initializer().run(session=self.sess)  # pylint: disable=E1101
 
@@ -565,12 +610,13 @@ class SubModel(MultiPPO2):
 
                 self.parent = parent
 
-    def _setup_learn(self, parent): 
+    def _setup_learn(self, parent):
         """
         Check the environment.
         """
         if parent.env is None:
-            raise ValueError("Error: cannot train the model without a valid environment, please set an environment with set_env(self, env) method.")
+            raise ValueError(
+                "Error: cannot train the model without a valid environment, please set an environment with set_env(self, env) method.")
         if parent.episode_reward is None:
             parent.episode_reward = np.zeros((parent.n_envs,))
         if parent.ep_info_buf is None:
@@ -616,13 +662,20 @@ class SubModel(MultiPPO2):
             "_vectorize_action": self.parent._vectorize_action,
             "policy_kwargs": self.parent.policy_kwargs
         }
-        
-        parent_path = parent_path.split("/")
-        start       = parent_path[:-1]
-        end         = parent_path[-1]
-        start       = "/".join(start)
 
-        submodel_path = start + "/submodel_" + str(i) + "/" + end
+        task = []
+        parent_path = parent_path.split("/")
+        start = parent_path[:-1]
+        end = parent_path[-1]
+        start = "/".join(start)
+
+        for key, val in dict_acts.items():
+            if key in start:
+                task.append(val)
+        if task[i]:
+            submodel_path = start + "/" + str(i) + "_" + task[i] + "/" + end
+        else:
+            submodel_path = start + "/submodel_" + str(i) + "/" + end
         params_to_save = self.get_parameters()
         self._save_to_file(submodel_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
 
@@ -636,12 +689,12 @@ class Runner(AbstractEnvRunner):
         :param model: (Model) The model to learn
         :param n_steps: (int) The number of steps to run for each environment
         :param gamma: (float) Discount factor
-        :param lam: (float) Factor for trade-off of bias vs variance for Generalized Advantage Estimator
+        :param lam: (float) Factor for trade-off of bias vs. variance for Generalized Advantage Estimator
         """
         super().__init__(env=env, model=model, n_steps=n_steps)
         self.models = models
-        self.lam    = lam
-        self.gamma  = gamma
+        self.lam = lam
+        self.gamma = gamma
 
     def _run(self):
         """
@@ -666,7 +719,7 @@ class Runner(AbstractEnvRunner):
             minibatches.append(minibatch)
 
         mb_states = self.states
-        ep_infos = []        
+        ep_infos = []
         for model in self.models:
             model.n_batch = 0
         last_success = 0
@@ -678,22 +731,18 @@ class Runner(AbstractEnvRunner):
             successful_stages = owner
             if self.states:
                 successful_stages += 1
-                print ("Episode successfully finished at step {}".format(_))
-            if owner > last_owner: 
-                #print("Changed to Net {} at step {}".format(owner,_))
+                print("Episode successfully finished at step {}".format(_))
+            if owner > last_owner:
                 last_owner = owner
-            #print(_)
-            #if last_success != successful_stages:
-            #    print("Changed to Net {} at step {}".format(successful_stages,_))
-            #    last_success = successful_stages
+
             minibatch = minibatches[owner]
             mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = minibatch
 
-            mb_obs.append       (self.obs.copy())
-            mb_actions.append   (actions)
-            mb_values.append    (values)
+            mb_obs.append(self.obs.copy())
+            mb_actions.append(actions)
+            mb_values.append(values)
             mb_neglogpacs.append(neglogpacs)
-            mb_dones.append     (self.dones)
+            mb_dones.append(self.dones)
 
             clipped_actions = actions
             # Clip the actions to avoid out of bound error
@@ -701,7 +750,6 @@ class Runner(AbstractEnvRunner):
                 clipped_actions = np.clip(actions, self.env.action_space.low, self.env.action_space.high)
 
             self.obs[:], rewards, self.dones, infos = self.env.step(clipped_actions)
-            # self.model.num_timesteps += self.n_envs
             self.model.num_timesteps += self.n_envs
 
             if self.callback is not None:
@@ -719,50 +767,51 @@ class Runner(AbstractEnvRunner):
             mb_rewards.append(rewards)
             model.n_batch += 1
             if self.dones:
-                #print('Finished batch training')
                 break
         # batch of steps to batch of rollouts
-        last_values          = model.value(self.obs, self.states, self.dones) # last observation, last state, last done
+        last_values = model.value(self.obs, self.states, self.dones)  # last observation, last state, last done
         finished_minibatches = []
-        # discount/bootstrap off value fn
-        #print("Minibatches: {}".format(len(minibatches)))
         for i, minibatch in enumerate(minibatches):
-            #print("Step:{}".format(i))
             mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = minibatch
-            
-            mb_obs        = np.asarray(mb_obs,        dtype=self.obs.dtype)
-            mb_rewards    = np.asarray(mb_rewards,    dtype=np.float32)
-            mb_actions    = np.asarray(mb_actions)
-            mb_values     = np.asarray(mb_values,     dtype=np.float32)
-            mb_neglogpacs = np.asarray(mb_neglogpacs, dtype=np.float32)
-            mb_dones      = np.asarray(mb_dones,      dtype=np.bool)
 
-            mb_advs      = np.zeros_like(mb_rewards) # 0s long as rewards
-            true_reward  = np.copy(mb_rewards)   # true rewards list
+            mb_obs = np.asarray(mb_obs, dtype=self.obs.dtype)
+            mb_rewards = np.asarray(mb_rewards, dtype=np.float32)
+            mb_actions = np.asarray(mb_actions)
+            mb_values = np.asarray(mb_values, dtype=np.float32)
+            mb_neglogpacs = np.asarray(mb_neglogpacs, dtype=np.float32)
+            mb_dones = np.asarray(mb_dones, dtype=np.bool)
+
+            mb_advs = np.zeros_like(mb_rewards)  # 0s long as rewards
+            true_reward = np.copy(mb_rewards)  # true rewards list
             last_gae_lam = 0
-            count = len(mb_rewards) # number of steps in this minibatch
+            count = len(mb_rewards)  # number of steps in this minibatch
             self.models[i].episode_reward = sum(true_reward)
             for step in reversed(range(count)):
                 if step == count - 1:
-                    nextnonterminal = 1.0 - self.dones
+                    next_nonterminal = 1.0 - self.dones
                     nextvalues = last_values
                 else:
-                    nextnonterminal = 1.0 - mb_dones[step + 1]
+                    next_nonterminal = 1.0 - mb_dones[step + 1]
                     nextvalues = mb_values[step + 1]
-                delta = mb_rewards[step] + self.gamma * nextvalues * nextnonterminal - mb_values[step]
-                mb_advs[step] = last_gae_lam = delta + self.gamma * self.lam * nextnonterminal * last_gae_lam
+                delta = mb_rewards[step] + self.gamma * nextvalues * next_nonterminal - mb_values[step]
+                mb_advs[step] = last_gae_lam = delta + self.gamma * self.lam * next_nonterminal * last_gae_lam
             mb_returns = mb_advs + mb_values
             try:
-                mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward = map(swap_and_flatten, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward))
+                mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward = map(swap_and_flatten,
+                                                                                                      (mb_obs,
+                                                                                                       mb_returns,
+                                                                                                       mb_dones,
+                                                                                                       mb_actions,
+                                                                                                       mb_values,
+                                                                                                       mb_neglogpacs,
+                                                                                                       true_reward))
             except:
-              #print("model {} had no data".format(i))
-              pass  
+                pass
             finished_minibatch = mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
             finished_minibatches.append(finished_minibatch)
         steps_taken = [finished_minibatches[x][0].shape[0] for x in range(len(finished_minibatches))]
         return finished_minibatches, steps_taken
 
-        #return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, successful_stages
 
 def swap_and_flatten(arr):
     """

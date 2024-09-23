@@ -1,25 +1,29 @@
+import os
 import time
 import warnings
+from collections import deque
 
+import commentjson
+import gym
+import numpy as np
 import tensorflow as tf
 from gym.spaces import Box, Discrete
-
 from stable_baselines import logger
 from stable_baselines.a2c.a2c import A2CRunner
-from myGym.stable_baselines_mygym.multi_ppo2 import Runner as PPO2Runner
-from myGym.utils.callbacks import SaveOnTopRewardCallback
-from stable_baselines.common.tf_util import mse, total_episode_reward_logger
 from stable_baselines.acktr import kfac
-from stable_baselines.common.schedules import Scheduler
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
-from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCriticPolicy
 from stable_baselines.common.math_util import safe_mean
 from stable_baselines.common.misc_util import set_global_seeds
-import commentjson
-import numpy as np
-import gym
-import os
-from collections import deque
+from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCriticPolicy
+from stable_baselines.common.schedules import Scheduler
+from stable_baselines.common.tf_util import mse, total_episode_reward_logger
+
+from myGym.stable_baselines_mygym.multi_ppo2 import Runner as PPO2Runner
+from myGym.utils.callbacks import SaveOnTopRewardCallback
+
+dict_acts = {"A": "/approach", "W": "/withdraw", "G": "/grasp", "D": "/drop", "M": "/move", "R": "/rotate",
+             "T": "/transform", "F": "/follow"}
+
 
 class MultiACKTR(ActorCriticRLModel):
     """
@@ -56,10 +60,11 @@ class MultiACKTR(ActorCriticRLModel):
         If None (default), use random seed. Note that if you want completely deterministic
         results, you must set `n_cpu_tf_sess` to 1.
     :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
-        If None, the number of cpu of the current machine will be used.
+        If None, the number of cpus of the current machine will be used.
     """
 
-    def __init__(self, policy, env, gamma=0.99, nprocs=None, n_steps=20, n_models=None, ent_coef=0.01, vf_coef=0.25, vf_fisher_coef=1.0,
+    def __init__(self, policy, env, gamma=0.99, nprocs=None, n_steps=20, n_models=None, ent_coef=0.01, vf_coef=0.25,
+                 vf_fisher_coef=1.0,
                  learning_rate=0.25, max_grad_norm=0.5, kfac_clip=0.001, lr_schedule='linear', verbose=0,
                  tensorboard_log=None, _init_setup_model=True, async_eigen_decomp=False, kfac_update=1,
                  gae_lambda=0.95, policy_kwargs=None, full_tensorboard_log=False, seed=None, n_cpu_tf_sess=1):
@@ -112,8 +117,8 @@ class MultiACKTR(ActorCriticRLModel):
         self.continuous_actions = False
 
         super(MultiACKTR, self).__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
-                                    _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
-                                    seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
+                                         _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
+                                         seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
 
         if _init_setup_model:
             self.setup_model()
@@ -121,7 +126,8 @@ class MultiACKTR(ActorCriticRLModel):
     def _make_runner(self):
         if self.gae_lambda is not None:
             return PPO2Runner(
-                env=self.env, model=self, models=self.models, n_steps=self.n_steps, gamma=self.gamma, lam=self.gae_lambda)
+                env=self.env, model=self, models=self.models, n_steps=self.n_steps, gamma=self.gamma,
+                lam=self.gae_lambda)
         else:
             # TODO: modify A2CRunner
             return A2CRunner(
@@ -137,103 +143,6 @@ class MultiACKTR(ActorCriticRLModel):
         self.models = []
         for i in range(self.models_num):
             self.models.append(SubModel(self, i))
-        
-        # with SetVerbosity(self.verbose):
-
-        #     assert issubclass(self.policy, ActorCriticPolicy), "Error: the input policy for the ACKTR model must be " \
-        #                                                        "an instance of common.policies.ActorCriticPolicy."
-
-        #     # Enable continuous actions tricks (normalized advantage)
-        #     self.continuous_actions = isinstance(self.action_space, Box)
-
-        #     self.graph = tf.Graph()
-        #     with self.graph.as_default():
-        #         self.set_random_seed(self.seed)
-        #         self.sess = tf_util.make_session(num_cpu=self.n_cpu_tf_sess, graph=self.graph)
-
-        #         n_batch_step = None
-        #         n_batch_train = None
-        #         if issubclass(self.policy, RecurrentActorCriticPolicy):
-        #             n_batch_step = self.n_envs
-        #             n_batch_train = self.n_envs * self.n_steps
-
-        #         step_model = self.policy(self.sess, self.observation_space, self.action_space, self.n_envs,
-        #                                  1, n_batch_step, reuse=False, **self.policy_kwargs)
-
-        #         self.params = params = tf_util.get_trainable_vars("model")
-
-        #         with tf.variable_scope("train_model", reuse=True,
-        #                                custom_getter=tf_util.outer_scope_getter("train_model")):
-        #             train_model = self.policy(self.sess, self.observation_space, self.action_space,
-        #                                       self.n_envs, self.n_steps, n_batch_train,
-        #                                       reuse=True, **self.policy_kwargs)
-
-        #         with tf.variable_scope("loss", reuse=False, custom_getter=tf_util.outer_scope_getter("loss")):
-        #             self.advs_ph = advs_ph = tf.placeholder(tf.float32, [None])
-        #             self.rewards_ph = rewards_ph = tf.placeholder(tf.float32, [None])
-        #             self.learning_rate_ph = learning_rate_ph = tf.placeholder(tf.float32, [])
-        #             self.actions_ph = train_model.pdtype.sample_placeholder([None])
-
-        #             neg_log_prob = train_model.proba_distribution.neglogp(self.actions_ph)
-
-        #             # training loss
-        #             pg_loss = tf.reduce_mean(advs_ph * neg_log_prob)
-        #             self.entropy = entropy = tf.reduce_mean(train_model.proba_distribution.entropy())
-        #             self.pg_loss = pg_loss = pg_loss - self.ent_coef * entropy
-        #             self.vf_loss = vf_loss = mse(tf.squeeze(train_model.value_fn), rewards_ph)
-        #             train_loss = pg_loss + self.vf_coef * vf_loss
-
-        #             # Fisher loss construction
-        #             self.pg_fisher = pg_fisher_loss = -tf.reduce_mean(neg_log_prob)
-        #             sample_net = train_model.value_fn + tf.random_normal(tf.shape(train_model.value_fn))
-        #             self.vf_fisher = vf_fisher_loss = - self.vf_fisher_coef * tf.reduce_mean(
-        #                 tf.pow(train_model.value_fn - tf.stop_gradient(sample_net), 2))
-        #             self.joint_fisher = pg_fisher_loss + vf_fisher_loss
-
-        #             tf.summary.scalar('entropy_loss', self.entropy)
-        #             tf.summary.scalar('policy_gradient_loss', pg_loss)
-        #             tf.summary.scalar('policy_gradient_fisher_loss', pg_fisher_loss)
-        #             tf.summary.scalar('value_function_loss', self.vf_loss)
-        #             tf.summary.scalar('value_function_fisher_loss', vf_fisher_loss)
-        #             tf.summary.scalar('loss', train_loss)
-
-        #             self.grads_check = tf.gradients(train_loss, params)
-
-        #         with tf.variable_scope("input_info", reuse=False):
-        #             tf.summary.scalar('discounted_rewards', tf.reduce_mean(self.rewards_ph))
-        #             tf.summary.scalar('learning_rate', tf.reduce_mean(self.learning_rate_ph))
-        #             tf.summary.scalar('advantage', tf.reduce_mean(self.advs_ph))
-
-        #             if self.full_tensorboard_log:
-        #                 tf.summary.histogram('discounted_rewards', self.rewards_ph)
-        #                 tf.summary.histogram('learning_rate', self.learning_rate_ph)
-        #                 tf.summary.histogram('advantage', self.advs_ph)
-        #                 if tf_util.is_image(self.observation_space):
-        #                     tf.summary.image('observation', train_model.obs_ph)
-        #                 else:
-        #                     tf.summary.histogram('observation', train_model.obs_ph)
-
-        #         with tf.variable_scope("kfac", reuse=False, custom_getter=tf_util.outer_scope_getter("kfac")):
-        #             with tf.device('/gpu:0'):
-        #                 self.optim = optim = kfac.KfacOptimizer(learning_rate=learning_rate_ph, clip_kl=self.kfac_clip,
-        #                                                         momentum=0.9, kfac_update=self.kfac_update,
-        #                                                         epsilon=0.01, stats_decay=0.99,
-        #                                                         async_eigen_decomp=self.async_eigen_decomp,
-        #                                                         cold_iter=10,
-        #                                                         max_grad_norm=self.max_grad_norm, verbose=self.verbose)
-
-        #                 optim.compute_and_apply_stats(self.joint_fisher, var_list=params)
-
-        #         self.train_model = train_model
-        #         self.step_model = step_model
-        #         self.step = step_model.step
-        #         self.proba_step = step_model.proba_step
-        #         self.value = step_model.value
-        #         self.initial_state = step_model.initial_state
-        #         tf.global_variables_initializer().run(session=self.sess)
-
-        #         self.summary = tf.summary.merge_all()
-
 
     def _train_step(self, obs, states, rewards, masks, actions, values, update, model, writer):
         """
@@ -242,7 +151,7 @@ class MultiACKTR(ActorCriticRLModel):
         :param obs: ([float]) The input observations
         :param states: ([float]) The states (used for recurrent policies)
         :param rewards: ([float]) The rewards from the environment
-        :param masks: ([bool]) Whether or not the episode is over (used for recurrent policies)
+        :param masks: ([bool]) Whether the episode is over (used for recurrent policies)
         :param actions: ([float]) The actions taken
         :param values: ([float]) The logits values
         :param update: (int) the current step iteration
@@ -299,11 +208,13 @@ class MultiACKTR(ActorCriticRLModel):
               reset_num_timesteps=True):
 
         new_tb_log = self._init_num_timesteps(reset_num_timesteps)
-        top_callback = SaveOnTopRewardCallback(check_freq=self.n_steps, logdir=self.tensorboard_log, models_num=self.models_num)
+        top_callback = SaveOnTopRewardCallback(check_freq=self.n_steps, logdir=self.tensorboard_log,
+                                               models_num=self.models_num)
         callback.append(top_callback)
-        callback     = self._init_callback(callback)
+        callback = self._init_callback(callback)
 
-        with SetVerbosity(self.verbose), TensorboardWriter(self.models[0].graph, self.tensorboard_log, tb_log_name, new_tb_log) \
+        with SetVerbosity(self.verbose), TensorboardWriter(self.models[0].graph, self.tensorboard_log, tb_log_name,
+                                                           new_tb_log) \
                 as writer:
             for model in self.models:
                 model._setup_learn(self)
@@ -314,24 +225,25 @@ class MultiACKTR(ActorCriticRLModel):
 
             # TODO: make this multi
             # FIFO queue of the q_runner thread is closed at the end of the learn function.
-            # As a result, it needs to be redefinied at every call
+            # As a result, it needs to be redefined at every call
             for model in self.models:
                 with model.graph.as_default():
                     with tf.variable_scope("kfac_apply", reuse=self.trained,
-                                        custom_getter=tf_util.outer_scope_getter("kfac_apply")):
-                        # Some of the variables are not in a scope when they are create
+                                           custom_getter=tf_util.outer_scope_getter("kfac_apply")):
+                        # Some variables are not in a scope when they are created,
                         # so we make a note of any previously uninitialized variables
                         tf_vars = tf.global_variables()
                         is_uninitialized = model.sess.run([tf.is_variable_initialized(var) for var in tf_vars])
                         old_uninitialized_vars = [v for (v, f) in zip(tf_vars, is_uninitialized) if not f]
 
-                        model.train_op, model.q_runner = model.optim.apply_gradients(list(zip(model.grads_check, model.params)))
+                        model.train_op, model.q_runner = model.optim.apply_gradients(
+                            list(zip(model.grads_check, model.params)))
 
                         # then we check for new uninitialized variables and initialize them
                         tf_vars = tf.global_variables()
                         is_uninitialized = model.sess.run([tf.is_variable_initialized(var) for var in tf_vars])
                         new_uninitialized_vars = [v for (v, f) in zip(tf_vars, is_uninitialized)
-                                                if not f and v not in old_uninitialized_vars]
+                                                  if not f and v not in old_uninitialized_vars]
 
                         if len(new_uninitialized_vars) != 0:
                             model.sess.run(tf.variables_initializer(new_uninitialized_vars))
@@ -360,7 +272,7 @@ class MultiACKTR(ActorCriticRLModel):
                 if isinstance(self.runner, PPO2Runner):
                     # We are using GAE
                     rollouts = self.runner.run(callback)
-                    #obs, returns, masks, actions, values, _, states, ep_infos, true_reward = rollout
+                    # obs, returns, masks, actions, values, _, states, ep_infos, true_reward = rollout
                 else:
                     rollout = self.runner.run(callback)
                     obs, states, returns, masks, actions, values, ep_infos, true_reward = rollout
@@ -379,18 +291,17 @@ class MultiACKTR(ActorCriticRLModel):
                 for rollout in rollouts[0]:
                     obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward, success_stages = rollout
                     model = self.models[i]
-                    # calc = len(true_reward)
-                    # model.n_batch = calc
 
                     if steps_used[i] == 0:
-                    #if model.n_batch == 0:
                         b = 0
                     else:
 
                         self.ep_info_buf.extend(ep_infos)
-                        policy_loss, value_loss, policy_entropy = self._train_step(obs, states, returns, masks, actions, values,
-                                                                                self.num_timesteps // (self.n_batch + 1),
-                                                                                self.models[i], writer)
+                        policy_loss, value_loss, policy_entropy = self._train_step(obs, states, returns, masks, actions,
+                                                                                   values,
+                                                                                   self.num_timesteps // (
+                                                                                           self.n_batch + 1),
+                                                                                   self.models[i], writer)
                         n_seconds = time.time() - t_start
                         fps = int((update * self.n_batch) / n_seconds)
 
@@ -398,19 +309,20 @@ class MultiACKTR(ActorCriticRLModel):
                             n_steps = model.n_batch
                             try:
                                 total_episode_reward_logger(self.episode_reward,
-                                                        true_reward.reshape((self.n_envs, n_steps)),
-                                                        masks.reshape((self.n_envs, n_steps)),
-                                                        writer, self.num_timesteps)
+                                                            true_reward.reshape((self.n_envs, n_steps)),
+                                                            masks.reshape((self.n_envs, n_steps)),
+                                                            writer, self.num_timesteps)
 
                             except:
-                               print("Failed to log episode reward of shape {}".format(true_reward.shape))
+                                print("Failed to log episode reward of shape {}".format(true_reward.shape))
                             summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/Successful stages',
                                                                          simple_value=success_stages)])
                             writer.add_summary(summary, self.num_timesteps)
-                            #@TODO plot in one graph:
+                            # @TODO plot in one graph:
                             for j, val in enumerate(steps_used):
-                                summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/Used steps net {}'.format(j),
-                                                                              simple_value=val)])
+                                summary = tf.Summary(
+                                    value=[tf.Summary.Value(tag='episode_reward/Used steps net {}'.format(j),
+                                                            simple_value=val)])
                                 writer.add_summary(summary, self.num_timesteps)
 
                         if self.verbose >= 1 and (update % log_interval == 0 or update == 1):
@@ -424,16 +336,19 @@ class MultiACKTR(ActorCriticRLModel):
                             logger.record_tabular("value_loss", float(value_loss))
                             logger.record_tabular("explained_variance", float(explained_var))
                             if len(self.ep_info_buf) > 0 and len(self.ep_info_buf[0]) > 0:
-                                logger.logkv('ep_reward_mean', safe_mean([ep_info['r'] for ep_info in self.ep_info_buf]))
+                                logger.logkv('ep_reward_mean',
+                                             safe_mean([ep_info['r'] for ep_info in self.ep_info_buf]))
                                 logger.logkv('ep_len_mean', safe_mean([ep_info['l'] for ep_info in self.ep_info_buf]))
                             logger.dump_tabular()
-                    
+
                     i += 1
-                print("Steps: " + str(self.num_timesteps) + "/" + str(total_timesteps) + " - (" + str(round(self.num_timesteps/total_timesteps*100)) + "%)")    
-                print("Episodes: " + str(update+1) + "/" + str(n_updates) + " - (" + str(round((update+1)/n_updates*100)) + "%)")
+                print("Steps: " + str(self.num_timesteps) + "/" + str(total_timesteps) + " - (" + str(
+                    round(self.num_timesteps / total_timesteps * 100)) + "%)")
+                print("Episodes: " + str(update + 1) + "/" + str(n_updates) + " - (" + str(
+                    round((update + 1) / n_updates * 100)) + "%)")
                 if self.num_timesteps >= total_timesteps:
                     done = True
-                update +=1
+                update += 1
             coord.request_stop()
             coord.join(enqueue_threads)
 
@@ -463,24 +378,35 @@ class MultiACKTR(ActorCriticRLModel):
             "_vectorize_action": self._vectorize_action,
             "policy_kwargs": self.policy_kwargs
         }
-
+        task = []
         parent_path = parent_path.split("/")
-        start       = parent_path[:-1]
-        end         = parent_path[-1]
-        start       = "/".join(start)
+        start = parent_path[:-1]
+        end = parent_path[-1]
+        start = "/".join(start)
+
+        for key, val in dict_acts.items():
+            if key in start:
+                task.append(val)
 
         for i in range(self.models_num):
-            submodel_path = start + "/submodel_" + str(i) + "/" + end
+            if task[i]:
+                submodel_path = start + "/" + str(i) + "_" + task[i] + "/" + end
+            else:
+                submodel_path = start + "/submodel_" + str(i) + "/" + end
             params_to_save = self.models[i].get_parameters()
             self._save_to_file(submodel_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
 
-    def submodel_path(self, i):
+
+    def submodel_path(self, i, task):
+        if task[i]:
+            return self.tensorboard_log + "/" + str(i) + "_" + task[i]
         return self.tensorboard_log + "/submodel_" + str(i)
+
 
     @classmethod
     def load(cls, load_path, env=None, custom_objects=None, **kwargs):
         """
-        Load the model from file
+        Load the model from a file
 
         :param load_path: (str or file-like) the saved parameter location
         :param env: (Gym Environment) the new environment to run the loaded model on
@@ -490,22 +416,28 @@ class MultiACKTR(ActorCriticRLModel):
             key, it will not be deserialized and the corresponding item
             will be used instead. Similar to custom_objects in
             `keras.models.load_model`. Useful when you have an object in
-            file that can not be deserialized.
+            a file that cannot be deserialized.
         :param kwargs: extra arguments to change the model when loading
         """
+        task = []
         load_path = load_path.split("/")
         load_path = load_path[:-1]
         path = "/".join(load_path)
-
+        for key, val in dict_acts.items():
+            if key in path:
+                task.append(val)
 
         with open(path + "/train.json", "r") as f:
             json = commentjson.load(f)
 
         models = json["num_networks"]
-        load = [] # data, params
+        load = []  # data, params
         for i in range(models):
             # load_path = "/home/jonas/myGym/myGym/trained_models/dual/poke_table_kuka_joints_gt_dual_13"
-            load_path = path + "/submodel_" + str(i) + "/best_model.zip"
+            if task[i]:
+                load_path = path + "/" + str(i) + "_" + task[i] + "/best_model.zip"
+            else:
+                load_path = path + "/submodel_" + str(i) + "/best_model.zip"
             load.append(cls._load_from_file(load_path, custom_objects=custom_objects))
 
         data = load[0][0]
@@ -559,7 +491,8 @@ class MultiACKTR(ActorCriticRLModel):
     def approved(self, observation):
         # based on obs, decide which model should be used
         if hasattr(self.env, 'envs'):
-            submodel_id = self.env.envs[0].env.env.reward.network_switch_control(self.env.envs[0].env.env.observation["task_objects"])
+            submodel_id = self.env.envs[0].env.env.reward.network_switch_control(
+                self.env.envs[0].env.env.observation["task_objects"])
         else:
             submodel_id = self.env.reward.network_switch_control(self.env.observation["task_objects"])
         return submodel_id
@@ -567,10 +500,18 @@ class MultiACKTR(ActorCriticRLModel):
 
 class SubModel(MultiACKTR):
     def __init__(self, parent, i):
-        self.episode_reward  = 0
+        self.episode_reward = 0
         self.model_num = i
         self._param_load_ops = None
-        self.path = parent.tensorboard_log + "/submodel_" + str(i)
+        task = []
+        for key, val in dict_acts.items():
+            if key in parent.tensorboard_log:
+                task.append(val)
+        if task:
+            self.path = parent.tensorboard_log + "/" + str(i) + "_" + task[i]
+        else:
+            self.path = parent.tensorboard_log + "/submodel_" + str(i)
+
         try:
             os.makedirs(self.path)
         except:
@@ -582,7 +523,7 @@ class SubModel(MultiACKTR):
         with SetVerbosity(parent.verbose):
 
             assert issubclass(parent.policy, ActorCriticPolicy), "Error: the input policy for the ACKTR model must be " \
-                                                               "an instance of common.policies.ActorCriticPolicy."
+                                                                 "an instance of common.policies.ActorCriticPolicy."
 
             # Enable continuous actions tricks (normalized advantage)
             self.continuous_actions = isinstance(parent.action_space, Box)
@@ -599,17 +540,18 @@ class SubModel(MultiACKTR):
                     n_batch_train = parent.n_envs * parent.n_steps
 
                 step_model = parent.policy(self.sess, self.observation_space, parent.action_space, parent.n_envs,
-                                         1, n_batch_step, reuse=False, **parent.policy_kwargs)
+                                           1, n_batch_step, reuse=False, **parent.policy_kwargs)
 
                 self.params = params = tf_util.get_trainable_vars("model")
 
                 with tf.variable_scope("train_model", reuse=True,
                                        custom_getter=tf_util.outer_scope_getter("train_model")):
                     train_model = parent.policy(self.sess, self.observation_space, parent.action_space,
-                                              parent.n_envs, parent.n_steps, n_batch_train,
-                                              reuse=True, **parent.policy_kwargs)
+                                                parent.n_envs, parent.n_steps, n_batch_train,
+                                                reuse=True, **parent.policy_kwargs)
 
-                with tf.variable_scope("loss_network_{}".format(self.model_num), reuse=False, custom_getter=tf_util.outer_scope_getter("loss")):
+                with tf.variable_scope("loss_network_{}".format(self.model_num), reuse=False,
+                                       custom_getter=tf_util.outer_scope_getter("loss")):
                     self.advs_ph = advs_ph = tf.placeholder(tf.float32, [None])
                     self.rewards_ph = rewards_ph = tf.placeholder(tf.float32, [None])
                     self.learning_rate_ph = learning_rate_ph = tf.placeholder(tf.float32, [])
@@ -656,12 +598,14 @@ class SubModel(MultiACKTR):
 
                 with tf.variable_scope("kfac", reuse=False, custom_getter=tf_util.outer_scope_getter("kfac")):
                     with tf.device('/gpu:0'):
-                        self.optim = optim = kfac.KfacOptimizer(learning_rate=learning_rate_ph, clip_kl=parent.kfac_clip,
+                        self.optim = optim = kfac.KfacOptimizer(learning_rate=learning_rate_ph,
+                                                                clip_kl=parent.kfac_clip,
                                                                 momentum=0.9, kfac_update=parent.kfac_update,
                                                                 epsilon=0.01, stats_decay=0.99,
                                                                 async_eigen_decomp=parent.async_eigen_decomp,
                                                                 cold_iter=10,
-                                                                max_grad_norm=parent.max_grad_norm, verbose=parent.verbose)
+                                                                max_grad_norm=parent.max_grad_norm,
+                                                                verbose=parent.verbose)
 
                         optim.compute_and_apply_stats(self.joint_fisher, var_list=params)
 
@@ -693,17 +637,17 @@ class SubModel(MultiACKTR):
             # useful when selecting random actions
             self.env.action_space.seed(seed)
 
-    def _setup_learn(self, parent): 
+    def _setup_learn(self, parent):
         """
         Check the environment.
         """
         if parent.env is None:
-            raise ValueError("Error: cannot train the model without a valid environment, please set an environment with set_env(self, env) method.")
+            raise ValueError(
+                "Error: cannot train the model without a valid environment, please set an environment with set_env(self, env) method.")
         if parent.episode_reward is None:
             parent.episode_reward = np.zeros((parent.n_envs,))
         if parent.ep_info_buf is None:
             parent.ep_info_buf = deque(maxlen=100)
-
 
     def save(self, parent_path, i, cloudpickle=False):
         # save only one model
@@ -729,12 +673,20 @@ class SubModel(MultiACKTR):
             "_vectorize_action": self.parent._vectorize_action,
             "policy_kwargs": self.parent.policy_kwargs
         }
-        
-        parent_path = parent_path.split("/")
-        start       = parent_path[:-1]
-        end         = parent_path[-1]
-        start       = "/".join(start)
 
-        submodel_path = start + "/submodel_" + str(i) + "/" + end
+        task = []
+        parent_path = parent_path.split("/")
+        start = parent_path[:-1]
+        end = parent_path[-1]
+        start = "/".join(start)
+
+        for key, val in dict_acts.items():
+            if key in start:
+                task.append(val)
+
+        if task[i]:
+            submodel_path = start + "/" + str(i) + "_" + task[i] + "/" + end
+        else:
+            submodel_path = start + "/submodel_" + str(i) + "/" + end
         params_to_save = self.get_parameters()
         self._save_to_file(submodel_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
