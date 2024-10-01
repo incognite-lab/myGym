@@ -69,7 +69,8 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
         env_arguments["gui_on"] = arg_dict["gui"]
     else:
         env_arguments["gui_on"] = arg_dict["gui"]
-
+    if "network_switcher" in arg_dict.keys():
+        env_arguments["network_switcher"] = arg_dict["network_switcher"]
     if arg_dict["algo"] == "her":
         env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
     # elif arg_dict["multiprocessing"]:
