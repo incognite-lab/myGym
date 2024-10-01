@@ -598,7 +598,7 @@ class Robot:
         if "gripper" in self.robot_action:
             self._move_gripper(action[-(self.gjoints_num):])
             if self.task_type in ["compositional", "fmot", "AG", "AGM", "AGMD", "AGMDW"]:
-                if env_objects["actual_state"] != self: #if self.use_magnet and ...
+                if env_objects["actual_state"] != self and self.use_magnet: #if self.use_magnet and ...
                     gripper_states = self.get_gjoints_states()
                     if sum(gripper_states) < self.closegr_threshold:
                         self.gripper_active = True
@@ -641,7 +641,7 @@ class Robot:
         #    for joint_index in range(self.gripper_index, self.end_effector_index + 1):
         #        self.p.resetJointState(self.robot_uid, joint_index, self.p.getJointInfo(self.robot_uid, joint_index)[9])
 
-    def magnetize_object(self, object, distance_threshold=.1):
+    def magnetize_object(self, object, distance_threshold=.08):
         if len(self.magnetized_objects) == 0 :
             
             if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
