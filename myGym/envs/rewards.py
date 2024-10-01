@@ -6,6 +6,11 @@ import math
 from math import sqrt, fabs, exp, pi, asin
 from myGym.utils.vector import Vector
 import random
+import time
+
+
+GREEN = [0, 125, 0]
+RED = [125, 0, 0]
 
 class Reward:
     """
@@ -24,21 +29,36 @@ class Reward:
         #self.check_num_networks()
         self.network_rewards = [0] * self.num_networks
 
+
     def network_switch_control(self, observation):
         if self.env.num_networks <= 1:
             print("Cannot switch networks in a single-network scenario")
         else:
-           if self.env.network_switcher == "gt":
+            if self.env.network_switcher == "gt":
+                print("network switcher = gt")
                 self.current_network = self.decide(observation)
-           else:
-               raise NotImplementedError("Currently only implemented ground truth ('gt') network switcher")
+            elif self.env.network_switcher == "keyboard":
+                print("network_switcher = keyboard")
+                #TODO: implement network setting based on keyboard event
+                keypress = self.env.p.getKeyboardEvents()
+                if 106 in keypress.keys() and keypress[106] == 1:
+                    if self.current_network < self.num_networks - 1:
+                        self.current_network += 1
+                elif 107 in keypress.keys() and keypress[107] == 1:
+                    if self.current_network > 0:
+                        self.current_network -= 1
+            else:
+                raise NotImplementedError("Currently only implemented ground truth ('gt') network switcher")
         return self.current_network
+
 
     def compute(self, observation=None):
         raise NotImplementedError
 
+
     def reset(self):
         raise NotImplementedError
+
 
     def visualize_reward_over_steps(self):
         """
@@ -109,6 +129,7 @@ class Protorewards(Reward):
         self_above_threshold = 0.1
         self.above_offset = [0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0]
         self.reward_name = None
+        self.iter = 1
 
     def compute(self, observation=None):
         # inherit and define your sequence of protoactions here
@@ -117,6 +138,39 @@ class Protorewards(Reward):
     def decide(self, observation=None):
         # inherit and define subgoals checking and network switching here
         pass
+
+    def show_every_n_iters(self, text, value, n):
+        """
+        Every n iterations (steps) show given text and value.
+        """
+        if self.iter % n == 0:
+            print(text, value)
+        self.iter += 1
+
+    def disp_reward(self, reward, owner):
+        "Display reward in green if it's positive or in red if it's negative"
+        if reward > 0:
+            color = GREEN
+        else:
+            color = RED
+        if self.network_rewards[owner] > 0:
+            color_sum = GREEN
+        else:
+            color_sum = RED
+        self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8, 0.55], lifeTime=0.5, textColorRGB=color)
+        self.env.p.addUserDebugText(f"Reward sum for network{owner}, :{self.network_rewards[owner]}", [0.65, 0.6, 0.7], lifeTime=0.5,
+                                    textColorRGB= color_sum)
+
+    def change_network_based_on_key(self):
+        keypress = self.env.p.getKeyboardEvents()
+        if 107 in keypress.keys() and keypress[107] == 1: #K
+            if self.current_network < self.num_networks - 1:
+                self.current_network += 1
+                time.sleep(0.1)
+        elif 106 in keypress.keys() and keypress[106] == 1: #J
+            if self.current_network > 0:
+                self.current_network -= 1
+                time.sleep(0.1)
 
     def get_positions(self, observation):
         goal_position = observation["goal_state"]
@@ -143,12 +197,12 @@ class Protorewards(Reward):
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
         reward = (self.last_approach_dist - dist) + ((gripdist - self.last_grip_dist) * 0.2)
-        self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
+        #self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
-        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65, 0.6, 0.7], lifeTime=0.5,
-                                    textColorRGB=[0, 0, 125])
+        #self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65, 0.6, 0.7], lifeTime=0.5,
+        #                            textColorRGB=[0, 0, 125])
         self.reward_name = "approach"
         return reward
 
@@ -175,7 +229,7 @@ class Protorewards(Reward):
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) + ((self.last_grip_dist - gripdist) * 0.2)
+        reward = (self.last_approach_dist - dist)*0.2 + ((self.last_grip_dist - gripdist) * 10)
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -190,7 +244,7 @@ class Protorewards(Reward):
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) + ((gripdist - self.last_grip_dist) * 0.2)
+        reward = (self.last_approach_dist - dist)*0.2 + ((gripdist - self.last_grip_dist) * 10)
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -213,8 +267,8 @@ class Protorewards(Reward):
         # self.env.p.addUserDebugText(f"Distance rew:{distance_rew}", [0.63, 0.8, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
         # self.env.p.addUserDebugText(f"gripper rew:{gripper_rew}", [0.63, 0.8, 0.42], lifeTime=0.5,
         #                             textColorRGB=[0, 0, 125])
-        self.env.p.addUserDebugText(f"reward:{reward}", [0.63, 0.8, 0.32], lifeTime=0.5,
-                                    textColorRGB=[0, 0, 125])
+        #self.env.p.addUserDebugText(f"reward:{reward}", [0.63, 0.8, 0.32], lifeTime=0.5,
+                            #        textColorRGB=[0, 0, 125])
         # self.env.p.addUserDebugText(f"reward_old:{rew_old}", [0.63, 0.8, 0.65], lifeTime=0.5,
         #                             textColorRGB=[125, 0, 125])
         # self.env.p.addUserDebugText(f"gripdist:{gripdist}", [0.63, 0.8, 0.75], lifeTime=0.5,
@@ -222,8 +276,6 @@ class Protorewards(Reward):
         self.last_move_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
-        self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65, 0.6, 0.7], lifeTime=0.5,
-                                    textColorRGB=[0, 0, 125])
         self.reward_name = "move"
         return reward
 
@@ -341,6 +393,7 @@ class A(Protorewards):
         target = [[object_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute][owner](*target)
         self.last_owner = owner
+        self.disp_reward(reward, owner)
         self.rewards_history.append(reward)
         self.rewards_num = 1
         return reward
@@ -363,6 +416,7 @@ class AaG(Protorewards):
         target = [[object_position, goal_position, gripper_states], [object_position, goal_position, gripper_states]][
             owner]
         reward = [self.approach_compute, self.grasp_compute][owner](*target)
+        self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 2
@@ -370,13 +424,16 @@ class AaG(Protorewards):
 
     def decide(self, observation = None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        if self.gripper_approached_object(object_position, goal_position):
-            if self.gripper_opened(gripper_states):
-                self.current_network = 1
+        if self.env.network_switcher == "keyboard":
+            self.change_network_based_on_key()
+        else:
+            if self.gripper_approached_object(object_position, goal_position):
+                if self.gripper_opened(gripper_states):
+                    self.current_network = 1
                 # self.task.check_goal()
-            if self.current_network == 1:
-                if self.gripper_closed(gripper_states):
-                    self.task.check_goal()
+        if self.current_network == 1:
+            if self.gripper_closed(gripper_states):
+                self.task.check_goal()
         self.task.check_episode_steps()
         return self.current_network
 
@@ -389,6 +446,7 @@ class AaGaM(Protorewards):
         target = [[gripper_position, object_position, gripper_states], [gripper_position, object_position, gripper_states],
          [object_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute][owner](*target)
+        self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 3
@@ -396,14 +454,17 @@ class AaGaM(Protorewards):
 
     def decide(self, observation = None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        if self.current_network == 0:
-            if self.gripper_approached_object(gripper_position, object_position):
-                if self.gripper_opened(gripper_states):
-                    self.current_network = 1
-        if self.current_network == 1:
-            if self.gripper_approached_object(gripper_position, object_position):
-                if self.gripper_closed(gripper_states):
-                    self.current_network = 2
+        if self.env.network_switcher == "keyboard":
+            self.change_network_based_on_key()
+        else:
+            if self.current_network == 0:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_opened(gripper_states):
+                        self.current_network = 1
+            if self.current_network == 1:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        self.current_network = 2
         if self.current_network == 2:
             if self.object_near_goal(object_position, goal_position):
                 self.task.check_goal()
@@ -421,6 +482,7 @@ class AaGaMaD(Protorewards):
                   [object_position, goal_position, gripper_states],
                   [gripper_position, object_position, gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute][owner](*target)
+        self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 4
@@ -428,18 +490,20 @@ class AaGaMaD(Protorewards):
 
     def decide(self, observation = None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        if self.current_network == 0:
-            if self.gripper_approached_object(gripper_position, object_position):
-                if self.gripper_opened(gripper_states):
-                    self.current_network = 1
-                    # self.task.check_goal()
-        if self.current_network == 1:
-            if self.gripper_approached_object(gripper_position, object_position):
-                if self.gripper_closed(gripper_states):
-                    self.current_network = 2
-        if self.current_network == 2:
-            if self.object_near_goal(object_position, goal_position):
-                self.current_network = 3
+        if self.env.network_switcher == "keyboard":
+            self.change_network_based_on_key()
+        else:
+            if self.current_network == 0:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_opened(gripper_states):
+                        self.current_network = 1
+            if self.current_network == 1:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        self.current_network = 2
+            if self.current_network == 2:
+                if self.object_near_goal(object_position, goal_position):
+                    self.current_network = 3
         if self.current_network == 3:
             if self.gripper_approached_object(gripper_position, object_position):
                 if self.gripper_opened(gripper_states):
@@ -452,15 +516,16 @@ class AaGaMaDaW(Protorewards):
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+        #self.show_every_n_iters("gripper states:", gripper_states, 15)
         owner = self.decide(observation)
         target = [[gripper_position, object_position, gripper_states],
                   [gripper_position, object_position, gripper_states],
                   [object_position, goal_position, gripper_states],
                   [gripper_position, object_position, gripper_states],
                   [gripper_position, object_position, gripper_states]][owner]
-        reward = \
-        [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute, self.withdraw_compute][owner](
+        reward = [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute, self.withdraw_compute][owner](
             *target)
+        self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5
@@ -468,22 +533,25 @@ class AaGaMaDaW(Protorewards):
 
     def decide(self, observation = None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        if self.current_network == 0:
-            if self.gripper_approached_object(gripper_position, object_position):
-                if self.gripper_opened(gripper_states):
-                    self.current_network = 1
-                    # self.task.check_goal()
-        if self.current_network == 1:
-            if self.gripper_approached_object(gripper_position, object_position):
-                if self.gripper_closed(gripper_states):
-                    self.current_network = 2
-        if self.current_network == 2:
-            if self.object_near_goal(object_position, goal_position):
-                self.current_network = 3
-        if self.current_network == 3:
-            if self.gripper_approached_object(gripper_position, object_position):
-                if self.gripper_opened(gripper_states):
-                    self.current_network = 4
+        if self.env.network_switcher == "keyboard":
+            self.change_network_based_on_key()
+        else:
+            if self.current_network == 0:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_opened(gripper_states):
+                        self.current_network = 1
+                        # self.task.check_goal()
+            if self.current_network == 1:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        self.current_network = 2
+            if self.current_network == 2:
+                if self.object_near_goal(object_position, goal_position):
+                    self.current_network = 3
+            if self.current_network == 3:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_opened(gripper_states):
+                        self.current_network = 4
         if self.current_network == 4:
             if self.gripper_withdraw_object(gripper_position, object_position):
                 if self.gripper_opened(gripper_states):
