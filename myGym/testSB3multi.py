@@ -84,15 +84,6 @@ def change_dynamics(cubex, lfriction, rfriction, ldamping, adamping):
     p.changeDynamics(cubex, -1, angularDamping=p.readUserDebugParameter(adamping))
 
 
-# visualrobot = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=1, rgbaColor=[0,1,0,.2])
-# collisionrobot = -1
-# sampling = p.createMultiBody(
-#    baseVisualShapeIndex=visualrobot,
-#    baseCollisionShapeIndex=collisionrobot,
-#    baseMass=0,
-#    basePosition=[0,0,0.3],
-# )
-
 def visualize_infotext(action, env, info):
     p.addUserDebugText(f"Episode:{env.env.episode_number}",
                        [.65, 1., 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])

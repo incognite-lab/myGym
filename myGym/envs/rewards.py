@@ -120,7 +120,7 @@ class Protorewards(Reward):
         self.offsetright = [-0.2, 0.0, -0.1]
         self.offsetcenter = [0.0, 0.0, -0.1]
         self.grip_threshold = 0.1
-        self.approached_threshold = 0.1
+        self.approached_threshold = 0.08
         self.withdraw_threshold = 0.3
         self.opengr_threshold = 0.07
         self.closegr_threshold = 0.001
@@ -237,7 +237,7 @@ class Protorewards(Reward):
         return reward
 
     def drop_compute(self, gripper, object, gripper_states):
-        # self.env.robot.set_magnetization(False)
+        self.env.robot.set_magnetization(True)
         dist = self.task.calc_distance(gripper[:3], object[:3])
         gripdist = sum(gripper_states)
         if self.last_approach_dist is None:
@@ -347,7 +347,6 @@ class Protorewards(Reward):
         self.network_rewards[self.current_network] += reward
         self.reward_name = "transform"
         return reward
-
     # PREDICATES
 
     def gripper_approached_object(self, gripper, object):
@@ -361,6 +360,7 @@ class Protorewards(Reward):
         return False
 
     def gripper_opened(self, gripper_states):
+        #self.show_every_n_iters("sum gripper states:", sum(gripper_states), 15)
         if sum(gripper_states) >= self.opengr_threshold:
             self.env.robot.release_object(self.env.env_objects["actual_state"])
             self.env.robot.set_magnetization(False)
