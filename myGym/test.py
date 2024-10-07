@@ -289,8 +289,8 @@ def test_env(env, arg_dict):
                 visualize_trajectories(info, action)
             if arg_dict["vinfo"] == True:
                 visualize_infotext(action, env, info)
-            print(
-                "Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation, env.env.observation))
+            #print(
+            #    "Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation, env.env.observation))
 
             if "step" in arg_dict["robot_action"]:
                 action[:3] = [0, 0, 0]
