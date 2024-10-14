@@ -1,9 +1,9 @@
 import argparse
-import colorsys
 import json
 import os
 import re
 from math import ceil as ceiling
+from typing import Any, Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,7 +11,7 @@ import pandas as pd
 import yaml
 
 # Color mapping for algorithms
-color_map = {
+color_map: Dict[str, str] = {
     "ppo": "red",
     "ppo2": "green",
     "multippo": "aquamarine",
@@ -26,77 +26,55 @@ color_map = {
 }
 
 # Action dictionary
-dict_acts = {"A": "approach", "W": "withdraw", "G": "grasp", "D": "drop", "M": "move", "R": "rotate",
-             "T": "transform", "F": "follow"}
+dict_acts: Dict[str, str] = {
+    "A": "approach", "G": "grasp", "M": "move", "D": "drop",
+    "W": "withdraw", "R": "rotate", "T": "transform",
+    "F": "follow", "r": "reach"
+}
 
 # Color mapping for actions
-color_map_acts = {
-    "approach": ["#b9e4ff"],  # muted blue
-    "withdraw": ["#ffdab2"],  # muted orange
-    "grasp": ["#d2ffcb"],  # muted green
-    "drop": ["#ffcdcb"],  # muted red
-    "move": ["#f0d8f8"],  # muted purple
-    "rotate": ["#fcfdb3"],  # muted yellow
-    "transform": ["#ffb2f2"],  # muted pink
-    "follow": ["#e3e3e3"]  # muted gray
+color_map_acts: Dict[str, str] = {
+    "approach": "#339dff",  # muted blue
+    "withdraw": "#faa22e",  # muted orange
+    "grasp": "#10e600",  # muted green
+    "drop": "#f1160e",  # muted red
+    "move": "#a838ff",  # muted purple
+    "rotate": "#745339",  # muted brown
+    "transform": "#f787d3",  # muted pink
+    "follow": "#99acb8",  # muted gray
+    "reach": "#fff35c"  # muted yellow
 }
 
 
-def hex_to_rgb(hex_color):
-    """Convert a hex color string to an RGB tuple."""
-    hex_color = hex_color.lstrip('#')
-    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
-    return r / 255.0, g / 255.0, b / 255.0
-
-
-def rgb_to_hex(r, g, b):
-    """Convert an RGB tuple to a hex color string."""
-    r, g, b = int(r * 255), int(g * 255), int(b * 255)
-    return '#{:02x}{:02x}{:02x}'.format(r, g, b)
-
-
-def brighten_color(hex_color, brightness_increase=0.0, saturation_increase=0.15):
-    """Brighten and increase the intensity of a color."""
-    r, g, b = hex_to_rgb(hex_color)
-    h, s, v = colorsys.rgb_to_hsv(r, g, b)
-
-    # Increase brightness (Value) and saturation
-    v = min(v + brightness_increase, 1.0)  # Ensure value is not more than 1
-    s = min(s + saturation_increase, 1.0)  # Ensure saturation is not more than 1
-
-    r, g, b = colorsys.hsv_to_rgb(h, s, v)
-    return rgb_to_hex(r, g, b)
-
-
-def atoi(text):
+def atoi(text: str) -> Any:
     """Convert text to integer if it's a digit, otherwise return the text."""
     return int(text) if text.isdigit() else text
 
 
-def natural_keys(text):
+def natural_keys(text: str) -> List[Any]:
     """Split text into natural sort keys."""
     return [atoi(c) for c in re.split(r'(\d+)', text)]
 
 
-def cfg_string2dict(cfg_raw):
+def cfg_string2dict(cfg_raw: str) -> Dict[str, str]:
     """Convert a configuration string to a dictionary."""
     return {key: value for key, _, value, _ in re.findall(
         r"(\w+\s?)(=\s?)([^=]+)( (?=\w+\s?=)|$)", cfg_raw)}
 
 
-def dict2cfg_string(dictionary, separator="\n", assigner="="):
+def dict2cfg_string(dictionary: Dict[str, str], separator: str = "\n", assigner: str = "=") -> str:
     """Convert a dictionary into a configuration string."""
     return separator.join([f"{k}{assigner}{v}" for k, v in dictionary.items()])
 
 
-def multi_dict_diff_by_line(dict_list):
+def multi_dict_diff_by_line(dict_list: List[Dict[str, Any]]) -> Tuple[Dict[str, List[Any]], Dict[str, Any]]:
     """Compare multiple dictionaries line-by-line."""
     different_items, same_items = {}, {}
     for record in zip(*[d.items() for d in dict_list]):
-        vals = [v for k, v in record]
-        keys = [k for k, v in record]
+        vals = [v for _, v in record]
+        keys = [k for k, _ in record]
         if not all(k == keys[0] for k in keys):
-            raise Exception("Oops, error! Not all keys were the same. Lines in the configs must be mixed up.")
+            raise ValueError("Inconsistent keys in the configurations.")
         if all(v == vals[0] for v in vals):
             same_items[keys[0]] = vals[0]
         else:
@@ -104,41 +82,40 @@ def multi_dict_diff_by_line(dict_list):
     return different_items, same_items
 
 
-def multi_dict_diff_scary(dict_list):
+def multi_dict_diff_scary(dict_list: List[Dict[str, Any]]) -> Tuple[Dict[str, Any], List[bool]]:
     """Compare a list of dictionaries and return differences and similarities."""
     all_vals = [[d[k] for d in dict_list] for k in dict_list[0].keys()]
     all_same = [all(v == line[0] for v in line) for line in all_vals]
-    diff_dict = {record[0][0]: (record[0][1] if all_same[i] else [v for k, v in record])
+    diff_dict = {record[0][0]: (record[0][1] if all_same[i] else [v for _, v in record])
                  for i, record in enumerate(zip(*[d.items() for d in dict_list]))}
     return diff_dict, all_same
 
 
-def multi_dict_diff_by_key(dict_list):
+def multi_dict_diff_by_key(dict_list: List[Dict[str, Any]]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Compare dictionaries by keys and return differences and similarities."""
     diff_dict, all_same = multi_dict_diff_scary(dict_list)
     return {k: v for i, (k, v) in enumerate(diff_dict.items()) if not all_same[i]}, \
         {k: v for i, (k, v) in enumerate(diff_dict.items()) if all_same[i]}
 
 
-def get_arguments():
+def get_arguments() -> argparse.Namespace:
     """Parse and return command-line arguments."""
     parser = argparse.ArgumentParser()
-    # '/home/student/mygym/myGym/weight_vis2/SB3_100mil/AGMDW_SB3'
-    parser.add_argument("--pth", default='/home/student/mygym/myGym/weight_visualizer/AGMDW_stable')
-    parser.add_argument("--robot", default=["kuka", "panda"], nargs='*')
+    parser.add_argument("--pth", default='/home/student/mygym/myGym/weight_visualizer/AGMDW_stable', type=str)
+    parser.add_argument("--robot", default=["kuka", "panda"], nargs='*', type=str)
     parser.add_argument("--algo", default=["multiacktr", "multippo2", "ppo2", "ppo", "acktr", "sac", "ddpg",
-                                           "a2c", "acer", "trpo", "multippo"], nargs='*')
+                                           "a2c", "acer", "trpo", "multippo"], nargs='*', type=str)
     return parser.parse_args()
 
 
-def legend_without_duplicate_labels(ax):
+def legend_without_duplicate_labels(ax: plt.Axes) -> None:
     """Create a legend without duplicate labels."""
     handles, labels = ax.get_legend_handles_labels()
     unique = [(h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]]
     ax.legend(*zip(*unique), fontsize="20", loc="center right")
 
 
-def ax_set(ax, title, y_axis):
+def ax_set(ax: plt.Axes, title: str, y_axis: str) -> None:
     """Set title and labels for the given axis."""
     ax.set_title(title, fontsize=23)
     ax.set_xlabel('Training steps', fontsize=18)
@@ -146,28 +123,32 @@ def ax_set(ax, title, y_axis):
     legend_without_duplicate_labels(ax)
 
 
-def ax_plot(ax, steps, data, color, label):
+def ax_plot(ax: plt.Axes, steps: np.ndarray, data: np.ndarray, color: str, label: str) -> None:
     """Plot data on the given axis."""
     ax.plot(steps, data, color=color, linestyle='solid', linewidth=3, marker='o', markerfacecolor=color,
             markersize=4, label=label)
 
 
-def ax_fill(ax, steps, meanvalue, data, index, color):
-    """Plot data on the given axis."""
+def ax_fill(ax: plt.Axes, steps: np.ndarray, meanvalue: np.ndarray, data: List[np.ndarray],
+            index: List[int], color: str) -> None:
+    """Fill the area between the lines on the given axis."""
     ax.fill_between(steps, meanvalue - np.std(np.take(data, index, 0), 0),
                     meanvalue + np.std(np.take(data, index, 0), 0), color=color, alpha=0.2)
 
 
-def main():
+def main() -> None:
     global color_map_acts
     args = get_arguments()
-    root, dirs, files = next(os.walk(str(args.pth)))
+    root, dirs, _ = next(os.walk(str(args.pth)))
     dirs.sort(key=natural_keys)
+
     plt.rcParams.update({'font.size': 12})
-    colors = ['red', 'green', 'blue', 'yellow', 'magenta', 'cyan', 'black', 'grey', 'brown', 'gold', 'limegreen',
-              'silver', 'aquamarine', 'olive', 'hotpink', 'salmon']
+    colors: List[str] = ['red', 'green', 'blue', 'yellow', 'magenta', 'cyan', 'black', 'grey', 'brown', 'gold',
+                         'limegreen',
+                         'silver', 'aquamarine', 'olive', 'hotpink', 'salmon']
+
     # Initialize data storage
-    configs = []
+    configs: List[Dict[str, Any]] = []
     success, mean_steps, mean_reward = [], [], []
     std_reward, mean_distance_error = [], []
     mean_subgoals_finished, mean_subgoals_steps = [], []
@@ -208,9 +189,9 @@ def main():
 
             # Get trained actions
             acts = []
-            for key, val in dict_acts.items():
-                if key in task:
-                    acts.append(val)
+            for l in task:
+                if l in dict_acts.keys():
+                    acts.append(dict_acts[l])
 
             success.append(x[3])
             mean_distance_error.append(x[4])
@@ -226,9 +207,7 @@ def main():
             print(f"{len(x[3])} datapoints in folder: {file}")
         except FileNotFoundError:
             print(f"0 datapoints in folder: {file}")
-    for i in range(len(steps)):
-        for act in color_map_acts.keys():
-            color_map_acts[act].append(brighten_color(color_map_acts[act][-1]))
+
     for i in range(len(mean_subgoals_steps)):
         mean_subgoals_steps[i] = [item for sublist in mean_subgoals_steps[i] for item in sublist]
     for i in range(len(mean_subgoals_steps)):
@@ -302,7 +281,7 @@ def main():
 
                 ax = fig2.add_subplot(ceiling(plot_num / 2), ceiling(plot_num / 2), counter + 1)
                 ax.set_ylim(0, 100)
-                label_counter = 1
+                label_counter = 0
                 bottom = [0] * len(steps)
                 meanvalue_subgoals_steps = np.mean(np.take(mean_subgoals_steps, index[i], 0), 0)
                 for l, _ in enumerate(mean_subgoals_steps[counter]):
@@ -310,8 +289,8 @@ def main():
                         print(f"Data length mismatch: {len(mean_subgoals_steps[counter][l])} vs {len(steps)}")
                         continue
                     p = ax.bar(x=steps, height=meanvalue_subgoals_steps[l],
-                               color=color_map_acts.get(acts[label_counter - 1], "black"),
-                               label=f"{acts[label_counter - 1]}", bottom=bottom, width=-width, align='edge',
+                               color=color_map_acts.get(acts[label_counter], "black"),
+                               label=f"{acts[label_counter]}", bottom=bottom, width=-width, align='edge',
                                edgecolor='black')
                     bottom = [sum(x) for x in zip(bottom, meanvalue_subgoals_steps[l])]
 
@@ -356,7 +335,7 @@ def main():
 
         ax = fig2.add_subplot(ceiling(plot_num / 2), ceiling(plot_num / 2), counter + 1)
         ax.set_ylim(0, 100)
-        label_counter = 1
+        label_counter = 0
         bottom = [0] * len(steps)
 
         for l, _ in enumerate(mean_subgoals_steps[counter]):
@@ -364,8 +343,8 @@ def main():
                 print(f"Data length mismatch: {len(mean_subgoals_steps[counter][l])} vs {len(steps)}")
                 continue
             p = ax.bar(x=steps, height=mean_subgoals_steps[counter][l],
-                       color=color_map_acts.get(acts[label_counter - 1], "black"),
-                       label=f"{acts[label_counter - 1]}", bottom=bottom, width=-width, align='edge',
+                       color=color_map_acts.get(acts[label_counter], "black"),
+                       label=f"{acts[label_counter]}", bottom=bottom, width=-width, align='edge',
                        edgecolor='black')
             bottom = [sum(x) for x in zip(bottom, mean_subgoals_steps[counter][l])]
 
