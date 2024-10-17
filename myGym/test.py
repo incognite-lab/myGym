@@ -142,6 +142,8 @@ def test_env(env: object, arg_dict: dict) -> None:
     jointparams = [f"Jnt{i}" for i in range(1, 20)]
 
     images = []
+    action = None
+    info = None
 
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
@@ -205,9 +207,7 @@ def test_env(env: object, arg_dict: dict) -> None:
         for i in range(env.action_space.shape[0]):
             jointparams[i] = p.readUserDebugParameter(joints[i])
             action.append(jointparams[i])
-    if not action and not info:
-        action = None
-        info = None
+
     eval_episodes = arg_dict.get("eval_episodes", 50)
     for e in range(eval_episodes):
         env.reset()
