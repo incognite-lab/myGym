@@ -99,31 +99,39 @@ def visualize_infotext(action: list, env: object, info: dict) -> None:
         p.addUserDebugText(text, pos, textSize=1.0, lifeTime=0.5, textColorRGB=color)
 
 
+# Function to detect key presses and update action accordingly
 def detect_key(keypress: dict, arg_dict: dict, action: list) -> list:
-    if 97 in keypress.keys() and keypress[97] == 1:  # A
-        action[2] += .03
-    if 122 in keypress.keys() and keypress[122] == 1:  # Z/Y
-        action[2] -= .03
-    if 65297 in keypress.keys() and keypress[65297] == 1:  # ARROW UP
-        action[1] -= .03
-    if 65298 in keypress.keys() and keypress[65298] == 1:  # ARROW DOWN
-        action[1] += .03
-    if 65295 in keypress.keys() and keypress[65295] == 1:  # ARROW LEFT
-        action[0] += .03
-    if 65296 in keypress.keys() and keypress[65296] == 1:  # ARROW RIGHT
-        action[0] -= .03
-    if 120 in keypress.keys() and keypress[120] == 1:  # X
-        action[3] -= .03
-        action[4] -= .03
-    if 99 in keypress.keys() and keypress[99] == 1:  # C
-        action[3] += .03
-        action[4] += .03
+    key_action_mapping = {
+        97: (2, 0.03),  # A
+        122: (2, -0.03),  # Z/Y
+        65297: (1, -0.03),  # ARROW UP
+        65298: (1, 0.03),  # ARROW DOWN
+        65295: (0, 0.03),  # ARROW LEFT
+        65296: (0, -0.03),  # ARROW RIGHT
+        120: [(3, -0.03), (4, -0.03)],  # X
+        99: [(3, 0.03), (4, 0.03)],  # C
+        113: [(0, 0)]  # Q
+    }
+
+    for key, value in key_action_mapping.items():
+        if key in keypress.keys() and keypress[key] == 1:
+            if key == 113:
+                print("'Q' pressed, quitting")
+                quit()
+            elif (key == 99 or key == 120) and "gripper" not in arg_dict["robot_action"]:
+                print("Gripper is not present, cannot perform actions 'C' or 'X'")
+            elif isinstance(value, tuple):
+                action[value[0]] += value[1]
+            elif isinstance(value, list):
+                for v in value:
+                    action[v[0]] += v[1]
 
     if "step" in arg_dict["robot_action"]:
         action[:3] = np.multiply(action[:3], 10)
     elif "joints" in arg_dict["robot_action"]:
-        print("Robot action: Joints - KEYBOARD CONTROL UNDER DEVELOPMENT")
+        print("Cannot use joints with keyboard control, quitting")
         quit()
+
     return action
 
 
@@ -197,10 +205,11 @@ def test_env(env: object, arg_dict: dict) -> None:
         for i in range(env.action_space.shape[0]):
             jointparams[i] = p.readUserDebugParameter(joints[i])
             action.append(jointparams[i])
-
-    action = None
-    info = None
-    for e in range(50):
+    if not action and not info:
+        action = None
+        info = None
+    eval_episodes = arg_dict.get("eval_episodes", 50)
+    for e in range(eval_episodes):
         env.reset()
         for t in range(arg_dict["max_episode_steps"]):
             if arg_dict["control"] == "slider":
@@ -234,7 +243,7 @@ def test_env(env: object, arg_dict: dict) -> None:
                 visualize_trajectories(info, action)
             if arg_dict["vinfo"]:
                 visualize_infotext(action, env, info)
-            #print(
+            # print(
             #     "Reward: {}  \n Observation: {} \n EnvObservation: {}".format(reward, observation, env.env.observation))
 
             if "step" in arg_dict["robot_action"]:
@@ -444,7 +453,7 @@ def multi_main(arg_dict: Dict[str, Any], parameters: Dict[str, Any], configfile:
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
-    parser.add_argument("-ct", "--control", default="slider",
+    parser.add_argument("-ct", "--control", default="keyboard",
                         help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
