@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 from math import ceil as ceiling
 from typing import Any, Dict, List, Tuple
 
@@ -9,7 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yaml
-import shutil
 
 # Color mapping for algorithms
 color_map: Dict[str, str] = {
@@ -53,6 +53,7 @@ def cut_before_last_slash(logdir: str) -> str:
     """Cut all strings prior to and including the last '/' in the given string."""
     parts = logdir.rsplit('/', 1)
     return parts[1] if len(parts) > 1 else logdir
+
 
 def atoi(text: str) -> Any:
     """Convert text to integer if it's a digit, otherwise return the text."""
@@ -152,8 +153,7 @@ def main() -> None:
 
     plt.rcParams.update({'font.size': 12})
     colors: List[str] = ['red', 'green', 'blue', 'yellow', 'magenta', 'cyan', 'black', 'grey', 'brown', 'gold',
-                         'limegreen',
-                         'silver', 'aquamarine', 'olive', 'hotpink', 'salmon']
+                         'limegreen', 'silver', 'aquamarine', 'olive', 'hotpink', 'salmon']
 
     # Initialize data storage
     configs: List[Dict[str, Any]] = []
@@ -196,6 +196,7 @@ def main() -> None:
                 alg = cfg_raw['algo']
                 robot = cfg_raw['robot']
                 logdir = cfg_raw['logdir']
+                max_steps = cfg_raw['max_episode_steps']
 
             # Get trained actions
             acts = []
@@ -217,17 +218,15 @@ def main() -> None:
             print(f"{len(x[3])} datapoints in folder: {file}")
         except FileNotFoundError:
             print(f"0 datapoints in folder: {file}")
-            shutil.rmtree(os.path.join(args.pth,file))
-            print (f"Removed {file}")
-
+            shutil.rmtree(os.path.join(args.pth, file))
+            print(f"Removed {file}")
 
     for i in range(len(mean_subgoals_steps)):
         mean_subgoals_steps[i] = [item for sublist in mean_subgoals_steps[i] for item in sublist]
     for i in range(len(mean_subgoals_steps)):
         for j in range(len(mean_subgoals_steps[i])):
-            mean_sum = sum(mean_subgoals_steps[i][j])
             for k in range(len(mean_subgoals_steps[i][j])):
-                mean_subgoals_steps[i][j][k] = (mean_subgoals_steps[i][j][k] / mean_sum) * 100
+                mean_subgoals_steps[i][j][k] = (mean_subgoals_steps[i][j][k] / max_steps) * 100
 
     for i in range(len(mean_subgoals_steps)):
         mean_subgoals_steps[i] = [[mean_subgoals_steps[i][k][j] for k in range(len(mean_subgoals_steps[i]))]
@@ -316,6 +315,25 @@ def main() -> None:
                         fmt='%g'
                     )
                     label_counter += 1
+                    unused = []
+                    if l == len(mean_subgoals_steps[counter]) - 1:
+                        for k in bottom:
+                            if k < 100:
+                                unused.append(100-k)
+                            else:
+                                unused.append(0.0)
+                        d = ax.bar(x=steps, height=unused,
+                               color="white",
+                               label="unused steps", bottom=bottom, width=-width, align='edge',
+                               edgecolor='black')
+                        ax.bar_label(
+                            d,
+                            labels=[f"{v:.1f}" for v in unused],
+                            label_type='center',
+                            color='black',
+                            fontsize=13,
+                            fmt='%g'
+                        )
                 counter += 1
 
                 ax_set(ax, f'Mean subgoals steps over training steps, {algo}', 'Mean subgoals steps, %')
