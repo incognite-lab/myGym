@@ -262,9 +262,9 @@ def combine_plots(layer_targets, title, root_dir):
     ax4.legend(fontsize="20")
 
     # Uncomment this to change the view angle
-    # ax1.view_init(-140, 60)
+    ax1.view_init(90, 90)
     # ax2.view_init(-140, 60)
-    # ax3.view_init(-140, 60)
+    ax3.view_init(-140, 60)
     # ax4.view_init(-140, 60)
 
     path_org = root_dir + '/weights/weight_visualiser_COMBO'
