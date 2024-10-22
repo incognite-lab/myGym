@@ -285,6 +285,9 @@ def main() -> None:
                 ax_plot(ax4, steps, meanvalue_error, color_map[algo], algo)
                 ax_fill(ax4, steps, meanvalue_error, mean_distance_error, index[i], color_map[algo])
 
+                y_min, y_max = np.array(mean_distance_error).min(), np.array(mean_distance_error).max()
+                ax4.set_ylim(y_min - 0.001, y_max + 0.001)
+
                 meanvalue_subgoals = np.mean(np.take(mean_subgoals_finished, index[i], 0), 0)
                 ax5.set_ylim([0, 100])
                 ax_plot(ax5, steps, meanvalue_subgoals, color_map[algo], algo)
@@ -336,7 +339,7 @@ def main() -> None:
                         )
                 counter += 1
 
-                ax_set(ax, f'Mean subgoals steps over training steps, {algo}', 'Mean subgoals steps, %')
+                ax_set(ax, f'Subgoal steps over episode for algo:, {alg}, task: {task}', 'Meansteps, %')
     elif 'robot' in diff.keys() and len(args.robot) > 1:
         index = [[] for _ in range(len(args.robot))]
         for i, robot in enumerate(args.robot):
@@ -390,14 +393,14 @@ def main() -> None:
             label_counter += 1
         counter += 1
 
-        ax_set(ax, f'Mean subgoals steps over training steps, {alg}', 'Mean subgoals steps, %')
+        ax_set(ax, f'Subgoal steps over episode for algo:, {alg}, task: {task}', 'Meansteps, %')
 
     # Set titles for axes
-    ax_set(ax1, 'Success rate over training steps', 'Successful episodes {}(%)'.format(task))
-    ax_set(ax2, 'Mean/std rewards over training steps', 'Mean/std rewards')
-    ax_set(ax3, 'Mean steps over training steps', 'Mean steps')
-    ax_set(ax4, 'Mean distance error over training steps', 'Mean distance error')
-    ax_set(ax5, 'Mean subgoals finished over training steps', 'Mean subgoals finished')
+    ax_set(ax1, 'Success rate', 'Successful episodes(%)')
+    ax_set(ax2, 'Mean/std rewards', 'Mean/std rewards')
+    ax_set(ax3, 'Mean steps', 'Steps')
+    ax_set(ax4, 'Mean distance error', 'Error')
+    ax_set(ax5, 'Finished subgoals in %', 'Subgoals')
 
     # Save figures
     logdir = cut_before_last_slash(logdir)

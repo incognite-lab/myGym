@@ -26,18 +26,26 @@ from sklearn.manifold import TSNE
     It automatically adds a number to the file name if it already exists
 '''
 
-dict_acts = {"A": "approach", "W": "withdraw", "G": "grasp", "D": "drop", "M": "move", "R": "rotate",
-             "T": "transform", "F": "follow"}
+# Action dictionary
+dict_acts = {
+    "A": "approach", "G": "grasp", "M": "move", "D": "drop",
+    "W": "withdraw", "R": "rotate", "T": "transform",
+    "F": "find", "r": "reach", "L": "leave", "Fo": "follow"
+}
 
+# Color mapping for actions
 color_map = {
-    "approach": "#1f77b4",  # muted blue
-    "withdraw": "#ff7f0e",  # muted orange
-    "grasp": "#2ca02c",  # muted green
-    "drop": "#d62728",  # muted red
-    "move": "#9467bd",  # muted purple
-    "rotate": "#8c564b",  # muted brown
-    "transform": "#e377c2",  # muted pink
-    "follow": "#7f7f7f"  # muted gray
+    "approach": "#339dff",  # muted blue
+    "withdraw": "#faa22e",  # muted orange
+    "grasp": "#10e600",  # muted green
+    "drop": "#f1160e",  # muted red
+    "move": "#a838ff",  # muted purple
+    "rotate": "#745339",  # muted brown
+    "transform": "#f787d3",  # muted pink
+    "follow": "#99acb8",  # muted gray
+    "reach": "#fff35c",  # muted yellow
+    "find": "#339dff",  # muted blue
+    "leave": "#faa22e"  # muted orange
 }
 
 weight_layers = [
@@ -50,6 +58,10 @@ weight_layers = [
     "model/q/w:0"
 ]
 
+def cut_before_last_slash(logdir: str) -> str:
+    """Cut all strings prior to and including the last '/' in the given string."""
+    parts = logdir.rsplit('/', 1)
+    return parts[1] if len(parts) > 1 else logdir
 
 def find_indices(strings, target):
     indices = [index for index, string in enumerate(strings) if string == target]
@@ -169,11 +181,11 @@ def combine_plots(layer_targets, title, root_dir):
     # First subplot
     title1 = title.split(',', 1)
     title1 = title1[0] + " " + " TSNE 2D," + title1[1]
-    ax1 = fig.add_subplot(2, 2, 1, projection='3d')
+    ax1 = fig.add_subplot(2, 2, 1)
     ax1.set_title(title1)
     ax1.set_xlabel('Dimension 1')
     ax1.set_ylabel('Dimension 2')
-    ax1.set_zlabel('Dimension 3')
+    #ax1.set_zlabel('Dimension 3')
 
     # Second subplot
     title2 = title.split(',', 1)
@@ -187,11 +199,11 @@ def combine_plots(layer_targets, title, root_dir):
     # Third subplot
     title3 = title.split(',', 1)
     title3 = title3[0] + " " + " PCA 2D," + title3[1]
-    ax3 = fig.add_subplot(2, 2, 3, projection='3d')
+    ax3 = fig.add_subplot(2, 2, 3)
     ax3.set_title(title3)
     ax3.set_xlabel('Dimension 1')
     ax3.set_ylabel('Dimension 2')
-    ax3.set_zlabel('Dimension 3')
+    #ax3.set_zlabel('Dimension 3')
 
     # Forth subplot
     title4 = title.split(',', 1)
@@ -262,21 +274,17 @@ def combine_plots(layer_targets, title, root_dir):
     ax4.legend(fontsize="20")
 
     # Uncomment this to change the view angle
-    ax1.view_init(90, 90)
+    #ax1.view_init(90, 90)
     # ax2.view_init(-140, 60)
-    ax3.view_init(-140, 60)
+    #ax3.view_init(90, 90)
     # ax4.view_init(-140, 60)
 
-    path_org = root_dir + '/weights/weight_visualiser_COMBO'
-    path = path_org + '.png'
-    add = 2
-    while True:
-        if os.path.exists(path):
-            path = path_org + str(add) + '.png'
-            add += 1
-        else:
-            plt.savefig(path, bbox_inches=None)
-            break
+    #path_org = root_dir + '/weights/weight_visualiser_COMBO'
+    savedir = cut_before_last_slash(root_dir)
+    
+    path = './trained_models/' + savedir + '_weights.png'
+    
+    plt.savefig(path, bbox_inches=None)
     plt.show()
 
 
