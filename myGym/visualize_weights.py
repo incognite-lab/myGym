@@ -19,11 +19,6 @@ from sklearn.manifold import TSNE
     Program combines all the weight layers and visualizes them in 2D and 3D using t-SNE and PCA
     - Change the list of weight_layers to visualize different layers accordingly to your needs
     - Change the perplexity value to get different results
-    Program expects data to be visualized to be stored in 'submodel' directories, 
-        otherwise all data will be represented by black color
-    Example: ./weight_visualizer/AGMDW_stable/AGMDW_table_tiago_tiago_dual_joints_gripper_multiacktr/submodel_0
-    The results are saved in the root directory in the new folder 'weights' as 'weight_visualiser_COMBO.png'
-    It automatically adds a number to the file name if it already exists
 '''
 
 # Action dictionary
@@ -58,10 +53,12 @@ weight_layers = [
     "model/q/w:0"
 ]
 
+
 def cut_before_last_slash(logdir: str) -> str:
     """Cut all strings prior to and including the last '/' in the given string."""
     parts = logdir.rsplit('/', 1)
     return parts[1] if len(parts) > 1 else logdir
+
 
 def find_indices(strings, target):
     indices = [index for index, string in enumerate(strings) if string == target]
@@ -110,10 +107,10 @@ def visualize_weights(root_dir, weight_layer, layer_targets, alg, perplexity):
                         for key, value in parameters.items():
                             # Save the 'parameters' as a txt file
                             if weight_layer in key:
-                                # add value to weight list
+                                # add value to a weight list
                                 weights.append(value.reshape(-1))
                                 algoindex = find_matching_index(algos, dirpath)
-                                if 'submodel' in dirpath:
+                                if 'submodel' in dirpath or any(key in dirpath for key in color_map.keys()):
                                     acts.append(os.path.split(dirpath)[-1])
                                 if 'multi' in dirpath:
                                     algotargets.append(str('m' + algos[algoindex] + dirpath[-1]))
@@ -162,8 +159,9 @@ def visualize_weights(root_dir, weight_layer, layer_targets, alg, perplexity):
     pca = PCA(n_components=3, random_state=42)
     pca_results_3d = pca.fit_transform(weights)
 
-    title = "Task: {}, Alg: {}, Nets: {}, Samples: {}, Dimensions: {}, Perplexity: {}".format(task_name, alg, nets, data.shape[0],
-                                                                                     data.shape[1], perplexity)
+    title = "Task: {}, Alg: {}, Nets: {}, Samples: {}, Dimensions: {}, Perplexity: {}".format(task_name, alg, nets,
+                                                                                              data.shape[0],
+                                                                                              data.shape[1], perplexity)
 
     if len(unique_acts) > 0:
         layer_targets[weight_layer] = (acts, tsne_results, tsne_results_3d,
@@ -185,7 +183,6 @@ def combine_plots(layer_targets, title, root_dir):
     ax1.set_title(title1)
     ax1.set_xlabel('Dimension 1')
     ax1.set_ylabel('Dimension 2')
-    #ax1.set_zlabel('Dimension 3')
 
     # Second subplot
     title2 = title.split(',', 1)
@@ -203,7 +200,6 @@ def combine_plots(layer_targets, title, root_dir):
     ax3.set_title(title3)
     ax3.set_xlabel('Dimension 1')
     ax3.set_ylabel('Dimension 2')
-    #ax3.set_zlabel('Dimension 3')
 
     # Forth subplot
     title4 = title.split(',', 1)
@@ -224,11 +220,14 @@ def combine_plots(layer_targets, title, root_dir):
         for act in unique_acts:
             indices = find_indices(acts, act)
             color = color_map.get(act, "black")
+            s = [3 * n for n in range(len(tsne_results[indices, 0]))]
+            # opacity = [0.2 + (0.8 / (len(tsne_results[indices, 0]) - 1)) * n for n in
+            #            range(len(tsne_results[indices, 0]))]
             if first_tsne_2d:
-                ax1.plot(tsne_results[indices, 0], tsne_results[indices, 1], '.',
-                         label=str(act), color=color)
+                ax1.scatter(tsne_results[indices, 0], tsne_results[indices, 1], s=s,
+                            label=str(act), color=color)
             else:
-                ax1.plot(tsne_results[indices, 0], tsne_results[indices, 1], '.', color=color)
+                ax1.scatter(tsne_results[indices, 0], tsne_results[indices, 1], s=s, color=color)
         first_tsne_2d = False
 
     for layer, params in layer_targets.items():
@@ -236,12 +235,13 @@ def combine_plots(layer_targets, title, root_dir):
         for act in unique_acts:
             indices = find_indices(acts, act)
             color = color_map.get(act, "black")
+            s = [3 * n for n in range(len(tsne_results_3d[indices, 0]))]
             if first_tsne_3d:
-                ax2.plot(tsne_results_3d[indices, 0], tsne_results_3d[indices, 1], tsne_results_3d[indices, 2], '.',
-                         label=str(act), color=color)
+                ax2.scatter(tsne_results_3d[indices, 0], tsne_results_3d[indices, 1], tsne_results_3d[indices, 2], s=s,
+                            label=str(act), color=color)
             else:
-                ax2.plot(tsne_results_3d[indices, 0], tsne_results_3d[indices, 1], tsne_results_3d[indices, 2], '.',
-                         color=color)
+                ax2.scatter(tsne_results_3d[indices, 0], tsne_results_3d[indices, 1], tsne_results_3d[indices, 2], s=s,
+                            color=color)
         first_tsne_3d = False
 
     for layer, params in layer_targets.items():
@@ -249,11 +249,12 @@ def combine_plots(layer_targets, title, root_dir):
         for act in unique_acts:
             indices = find_indices(acts, act)
             color = color_map.get(act, "black")
+            s = [3 * n for n in range(len(pca_results[indices, 0]))]
             if first_pca_2d:
-                ax3.plot(pca_results[indices, 0], pca_results[indices, 1], '.',
-                         label=str(act), color=color)
+                ax3.scatter(pca_results[indices, 0], pca_results[indices, 1], s=s,
+                            label=str(act), color=color)
             else:
-                ax3.plot(pca_results[indices, 0], pca_results[indices, 1], '.', color=color)
+                ax3.scatter(pca_results[indices, 0], pca_results[indices, 1], s=s, color=color)
         first_pca_2d = False
 
     for layer, params in layer_targets.items():
@@ -261,11 +262,13 @@ def combine_plots(layer_targets, title, root_dir):
         for act in unique_acts:
             indices = find_indices(acts, act)
             color = color_map.get(act, "black")
+            s = [3 * n for n in range(len(pca_results_3d[indices, 0]))]
             if first_pca_3d:
-                ax4.plot(pca_results_3d[indices, 0], pca_results_3d[indices, 1], pca_results_3d[indices, 2], '.',
-                         label=str(act), color=color)
+                ax4.scatter(pca_results_3d[indices, 0], pca_results_3d[indices, 1], pca_results_3d[indices, 2], s=s,
+                            label=str(act), color=color)
             else:
-                ax4.plot(pca_results_3d[indices, 0], pca_results_3d[indices, 1], pca_results_3d[indices, 2], '.', color=color)
+                ax4.scatter(pca_results_3d[indices, 0], pca_results_3d[indices, 1], pca_results_3d[indices, 2], s=s,
+                            color=color)
         first_pca_3d = False
 
     ax1.legend(fontsize="20")
@@ -274,16 +277,15 @@ def combine_plots(layer_targets, title, root_dir):
     ax4.legend(fontsize="20")
 
     # Uncomment this to change the view angle
-    #ax1.view_init(90, 90)
+    # ax1.view_init(90, 90)
     # ax2.view_init(-140, 60)
-    #ax3.view_init(90, 90)
+    # ax3.view_init(90, 90)
     # ax4.view_init(-140, 60)
 
-    #path_org = root_dir + '/weights/weight_visualiser_COMBO'
     savedir = cut_before_last_slash(root_dir)
-    
+
     path = './trained_models/' + savedir + '_weights.png'
-    
+
     plt.savefig(path, bbox_inches=None)
     plt.show()
 
