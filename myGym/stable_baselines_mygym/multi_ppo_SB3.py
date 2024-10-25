@@ -252,24 +252,21 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         data.pop("models")
         for model in self.models:
             params_to_save = model.get_parameters()
-            #print("params:", params_to_save)
             path = os.path.join(model.path, 'best_model')
-            #print("path:", path)
             save_to_zip_file(path, data=data, params=params_to_save, pytorch_variables=pytorch_variables)
 
 
     def approved(self, observation):
         # based on obs, decide which model should be used
-        print("calling approved")
         if hasattr(self.env, 'envs'):
-            print("option 1")
+            #print("option 1")
             submodel_id = self.env.envs[0].env.env.reward.network_switch_control(self.env.envs[0].env.env.observation["task_objects"])
         elif isinstance(self.env, VecMonitor):
-            print("option 2")
+            #print("option 2")
             obs = self.env.get_attr("env")[0].observation["task_objects"]
             submodel_id = self.env.network_control(obs)
         else:
-            print("option 3")
+            #print("option 3")
             submodel_id = self.env.reward.network_switch_control(self.env.observation["task_objects"])
         return submodel_id
 
@@ -408,7 +405,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 break
         #print("flattened arrs:", np.array(self.rollout_buffer.value_arrs).flatten(), np.array(self.rollout_buffer.return_arrs).flatten())
         explained_vars = []
-        owner_sizes = self.rollout_buffer.get_owner_sizes()
+        owner_sizes = self.rollout_buffer.owner_sizes
         for i in range(self.models_num):
             val_arr = self.rollout_buffer.value_arrs[i]
             ret_arr = self.rollout_buffer.return_arrs[i]
