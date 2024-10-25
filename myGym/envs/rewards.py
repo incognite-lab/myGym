@@ -35,16 +35,13 @@ class Reward:
             print("Cannot switch networks in a single-network scenario")
         else:
             if self.env.network_switcher == "gt":
-                print("network switcher = gt")
                 self.current_network = self.decide(observation)
             elif self.env.network_switcher == "keyboard":
-                print("network_switcher = keyboard")
-                #TODO: implement network setting based on keyboard event
                 keypress = self.env.p.getKeyboardEvents()
-                if 106 in keypress.keys() and keypress[106] == 1:
+                if 107 in keypress.keys() and keypress[107] == 1: # K
                     if self.current_network < self.num_networks - 1:
                         self.current_network += 1
-                elif 107 in keypress.keys() and keypress[107] == 1:
+                elif 106 in keypress.keys() and keypress[106] == 1: #J
                     if self.current_network > 0:
                         self.current_network -= 1
             else:
@@ -453,18 +450,35 @@ class AaGaM(Protorewards):
         return reward
 
     def decide(self, observation = None):
+        #TODO: revert this debug change
+        # goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+        # if self.env.network_switcher == "keyboard":
+        #     self.change_network_based_on_key()
+        # else:
+        #     if self.current_network == 0:
+        #         if self.gripper_approached_object(gripper_position, object_position):
+        #             if self.gripper_opened(gripper_states):
+        #                 self.current_network = 1
+        #     if self.current_network == 1:
+        #         if self.gripper_approached_object(gripper_position, object_position):
+        #             if self.gripper_closed(gripper_states):
+        #                 self.current_network = 2
+        # if self.current_network == 2:
+        #     if self.object_near_goal(object_position, goal_position):
+        #         self.task.check_goal()
+        # self.task.check_episode_steps()
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        if self.env.network_switcher == "keyboard":
-            self.change_network_based_on_key()
-        else:
-            if self.current_network == 0:
-                if self.gripper_approached_object(gripper_position, object_position):
-                    if self.gripper_opened(gripper_states):
-                        self.current_network = 1
-            if self.current_network == 1:
-                if self.gripper_approached_object(gripper_position, object_position):
-                    if self.gripper_closed(gripper_states):
-                        self.current_network = 2
+        if self.env.episode_steps == 0:
+            #print("starting from zero steps")
+            pass
+        if self.current_network == 0:
+            if self.env.episode_steps == 100:
+                #print("changing network to 1")
+                self.current_network = 1
+        if self.current_network == 1:
+            if self.env.episode_steps == 300:
+                #print("changing network to 2")
+                self.current_network = 2
         if self.current_network == 2:
             if self.object_near_goal(object_position, goal_position):
                 self.task.check_goal()

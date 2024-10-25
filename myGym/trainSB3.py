@@ -102,10 +102,7 @@ def make_env(arg_dict: dict, rank: int, seed: int = 0, model_logdir = None) -> C
     def _init():
         arg_dict["seed"] = seed + rank
         env = configure_env(arg_dict, for_train = True, model_logdir=model_logdir)
-        #print("connection status right after configuration:", env.p.getConnectionInfo())
         env.reset()
-        #print("connection status right after configuration and reset:", env.p.getConnectionInfo())
-        print("unwrapped env:", env)
         return env
 
     set_random_seed(seed)

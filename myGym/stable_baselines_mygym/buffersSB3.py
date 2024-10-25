@@ -16,6 +16,7 @@ from stable_baselines3.common.type_aliases import (
 )
 from stable_baselines3.common.utils import get_device
 from stable_baselines3.common.vec_env import VecNormalize
+import time
 
 try:
     # Check memory used by replay buffer when possible
@@ -399,6 +400,7 @@ class RolloutBuffer(BaseBuffer):
         self.value_arrs = []
         self.log_prob_arrs = []
         self.advantage_arrs = []
+        self.owner_sizes = []
 
         for i in range(self.num_models):
             self.observation_arrs.append(np.zeros((self.buffer_size, self.n_envs, *self.obs_shape), dtype=np.float32))
@@ -409,6 +411,7 @@ class RolloutBuffer(BaseBuffer):
             self.value_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
             self.log_prob_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
             self.advantage_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
+            self.owner_sizes.append(0)
         self.generator_ready = False
         super().reset()
         self.positions = [0]*self.num_models
@@ -439,14 +442,11 @@ class RolloutBuffer(BaseBuffer):
 
         last_gae_lam = 0
 
-        owner_sizes = self.get_owner_sizes()
-        # with np.printoptions(threshold=np.inf):
-        #     print("values 0:", self.value_arrs[0])
-        #     print("values 1:", self.value_arrs[1])
-        #     print("values 2:", self.value_arrs[2])
-        for i in range(len(owner_sizes)):
-            owner_size = owner_sizes[i]
+        for i in range(len(self.owner_sizes)):
+            owner_size = self.owner_sizes[i]
             for step in reversed(range(owner_size)):
+                #print("i = :", i)
+                #print("step = :", step)
                 if step == owner_size - 1:
                     next_non_terminal = 1.0 - dones.astype(np.float32)
                     next_values = last_values
@@ -485,23 +485,20 @@ class RolloutBuffer(BaseBuffer):
             # Reshape 0-d tensor to avoid error
             log_prob = log_prob.reshape(-1, 1)
 
-        # Reshape needed when using multiple envs with discrete observations
-        # as numpy cannot broadcast (n_discrete,) to (n_discrete, 1)
         if isinstance(self.observation_space, spaces.Discrete):
             obs = obs.reshape((self.n_envs, *self.obs_shape))
         # Reshape to handle multi-dim and discrete action spaces, see GH #970 #1392
         action = action.reshape((self.n_envs, self.action_dim))
 
         pos = self.positions[owner]
-        self.observation_arrs[owner][pos] = np.array(obs).copy()
-        self.action_arrs[owner][pos] = np.array(action).copy()
-        self.reward_arrs[owner][pos] = np.array(reward).copy()
-        self.episode_start_arrs[owner][pos] = np.array(episode_start).copy()
+        self.observation_arrs[owner][pos] = np.array(obs)
+        self.action_arrs[owner][pos] = np.array(action)
+        self.reward_arrs[owner][pos] = np.array(reward)
+        self.episode_start_arrs[owner][pos] = np.array(episode_start)
         self.value_arrs[owner][pos] = value.clone().cpu().numpy().flatten()
         self.log_prob_arrs[owner][pos] = log_prob.clone().cpu().numpy()
         self.positions[owner] += 1
-
-
+        self.owner_sizes[owner] += 1
         if sum(self.positions) == self.buffer_size:
             self.full = True
 
@@ -513,37 +510,28 @@ class RolloutBuffer(BaseBuffer):
 
         for i in range(self.num_models):
 
-            obs = self.observation_arrs[i].copy()
-            act = self.action_arrs[i].copy()
-            vals = self.value_arrs[i].copy()
-            log_p = self.log_prob_arrs[i].copy()
-            adv = self.advantage_arrs[i].copy()
-            ret = self.return_arrs[i].copy()
-            self.observation_arrs[i] = obs[~np.all(obs == 0., axis =2)]
-            self.action_arrs[i] = act[~np.all(act == 0., axis =2)]
-            self.value_arrs[i] = vals[~np.all(vals == 0., axis =1)].flatten()
-            self.log_prob_arrs[i] = log_p[~np.all(log_p == 0., axis =1)].flatten()
-            self.advantage_arrs[i] = adv[~np.all(adv == 0., axis =1)].flatten()
-            self.return_arrs[i] = ret[~np.all(ret == 0., axis =1)].flatten()
+            obs = self.observation_arrs[i]
+            act = self.action_arrs[i]
+            vals = self.value_arrs[i]
+            log_p = self.log_prob_arrs[i]
+            adv = self.advantage_arrs[i]
+            ret = self.return_arrs[i]
+            rew = self.reward_arrs[i]
+            # self.observation_arrs[i] = obs[~np.all(obs == 0., axis =(2,1))]
+            # self.action_arrs[i] = act[~np.all(act == 0., axis =(2,1))]
+            # self.value_arrs[i] = vals[~np.all(vals == 0., axis =1)]
+            # self.log_prob_arrs[i] = log_p[~np.all(log_p == 0., axis =1)]
+            # self.advantage_arrs[i] = adv[~np.all(adv == 0., axis =1)]
+            # self.return_arrs[i] = ret[~np.all(ret == 0., axis =1)]
 
-
-    def get_owner_sizes(self):
-        owner_sizes = []
-        try:
-            for i in range(self.num_models):
-                obs = self.observation_arrs[i].copy()
-                rets = self.return_arrs[i].copy()
-                if rets[~np.all(rets == 0., axis =1)].shape[0] != 0:
-                    owner_sizes.append(min(obs[~np.all(obs == 0., axis =2)].shape[0],
-                                       rets[~np.all(rets == 0., axis =1)].shape[0]))
-                else:
-                    owner_sizes.append(obs[~np.all(obs == 0., axis =2)].shape[0])
-        except Exception as e:
-            obs_sizes = [len(arr) for arr in self.observation_arrs]
-            ret_sizes = [len(arr) for arr in self.return_arrs]
-            for i in range(len(obs_sizes)):
-                owner_sizes.append(min(obs_sizes[i], ret_sizes[i]))
-        return owner_sizes
+            self.observation_arrs[i] = obs[~np.all(obs== 0., axis=(2, 1))]
+            self.action_arrs[i] = act[~np.all(act == 0., axis=(2, 1))]
+            self.reward_arrs[i] = rew[~np.all(rew == 0, axis = 1)]
+            self.value_arrs[i] = vals[~np.all(vals == 0., axis=1)]
+            self.log_prob_arrs[i] = log_p[~np.all(log_p == 0., axis=1)]
+            self.advantage_arrs[i] = adv[~np.all(adv == 0., axis=1)]
+            self.return_arrs[i] = ret[~np.all(ret == 0., axis=1)]
+        #sys.exit()
 
 
     def get(self, batch_size: Optional[int] = None) -> Generator[RolloutBufferSamples, None, None]:
@@ -551,18 +539,32 @@ class RolloutBuffer(BaseBuffer):
         # Prepare the data
         if not self.generator_ready:
             self.remove_zeros()
+            for i in range(len(self.owner_sizes)):
+                _tensor_names = [
+                    "observation_arrs",
+                    "action_arrs",
+                    "value_arrs",
+                    "log_prob_arrs",
+                    "advantage_arrs",
+                    "return_arrs",
+                ]
+                for tensor in _tensor_names:
+                    self.__dict__[tensor][i] = self.swap_and_flatten(self.__dict__[tensor][i])
             self.generator_ready = True
-        owner_sizes = self.get_owner_sizes()
+
+        #owner_sizes = self.get_owner_sizes()
 
         # Return everything, don't create minibatches
         if batch_size is None:
             batch_size = self.buffer_size * self.n_envs
-        for i in range(len(owner_sizes)):
+        for i in range(len(self.owner_sizes)):
             start_idx = 0
-            owner_size = owner_sizes[i]
+            owner_size = self.owner_sizes[i]
             indices = np.random.permutation(owner_size)
             iter = 0
+
             while start_idx < owner_size:
+                #TODO: inspect what this iter is doing here and remove it if possible
                 if iter > 2000:
                     break
                 #End index mustn't be larger than owner_size
