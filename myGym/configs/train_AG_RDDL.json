@@ -38,17 +38,17 @@
     "yolact_path"   :null,
     "yolact_config" :null,
     #Train
-    "train_framework"   :"tensorflow",
+    "train_framework"   :"pytorch",
     "algo"              :"ppo",
     "num_networks"      :2,
     "max_episode_steps" :512,
     "algo_steps"        :512,
-    "steps"             :400000,
+    "steps"             :20000000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
-    "eval_freq"     :30000,
-    "eval_episodes" :2,
+    "eval_freq"     :500000,
+    "eval_episodes" :30,
     #Saving and logging
     "logdir"    :"trained_models/AG",
     "record"    :0
