@@ -1,0 +1,57 @@
+
+<?xml version="1.0" ?>
+<robot name="table">
+  <link name="table">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0.55 1.075"/>
+      <geometry>
+				<box size="1.5 1 0.05"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="0.8 0 0 1"/>
+      </material>
+    </visual>
+	<visual>
+      <origin rpy="0.000 0 0" xyz="-0.65 0.15 0.525"/>
+      <geometry>
+	    <box size="0.1 0.1 1.05"/>
+      </geometry>
+	  <material name="framemat0"/>	 
+    </visual>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="-0.65 0.95 0.525"/>
+      <geometry>
+        <box size="0.1 0.1 1.05"/>
+      </geometry>
+	  <material name="framemat0"/>
+	  </visual>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="0.65 0.15 0.525"/>
+      <geometry>
+        <box size="0.1 0.1 1.05"/>
+      </geometry>
+	  <material name="framemat0"/>
+	  </visual>
+    <visual>
+      <origin rpy="0.000 0 0" xyz="0.65 0.95 0.525"/>
+      <geometry>
+        <box size="0.1 0.1 1.05"/>
+      </geometry>
+    <material name="framemat0"/>
+    </visual>
+    <visual>
+      <origin rpy="1.57 0 0" xyz="10.4, 6.6 -0.2"/>
+      <geometry>
+        <mesh filename="./obj/stand.obj" scale="0.1 0.1 0.0"/>
+      </geometry>
+    <material name="framemat0"/>
+    </visual>
+    <visual>
+      <origin rpy="1.57 0 0" xyz="10.4, 6.6 -0.2"/>
+      <geometry>
+        <mesh filename="./obj/screenboard_cut.obj"/>
+      </geometry>
+    <material name="framemat0"/>
+    </visual>
+  </link>
+</robot>
