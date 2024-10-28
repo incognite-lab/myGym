@@ -19,8 +19,8 @@
     #Task
     "task_type"             :"AGMD",
     "natural_language"      :0,
-    "task_objects"          :[{"init":{"obj_name":"apple","fixed":0,"rand_rot":0, "sampling_area":[0.3,0.5,0.4,0.6,-0.15,-0.15]},
-                            "goal":{"obj_name":"tuna_can","fixed":1,"rand_rot":0, "sampling_area":[-0.1,0.1,0.4,0.6,-0.15,-0.15]}}],
+    "task_objects"          :[{"init":{"obj_name":"apple","fixed":0,"rand_rot":0, "sampling_area":[0.1,0.7,0.2,0.8,-0.15,-0.15]},
+                            "goal":{"obj_name":"tuna_can","fixed":1,"rand_rot":0, "sampling_area":[-0.5,0.0,0.2,0.8,-0.15,-0.15]}}],
     "color_dict"            : {"apple":["green"], "target":["gray"]},
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
     // Observation
@@ -43,7 +43,7 @@
     "num_networks"      :4,
     "max_episode_steps" :512,
     "algo_steps"        :512,
-    "steps"             :20000000,
+    "steps"             :10000000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
