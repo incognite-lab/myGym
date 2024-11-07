@@ -110,7 +110,9 @@ def multi_dict_diff_by_key(dict_list: List[Dict[str, Any]]) -> Tuple[Dict[str, A
 def get_arguments() -> argparse.Namespace:
     """Parse and return command-line arguments."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pth", default='/home/student/mygym/myGym/weight_visualizer/AGMDW_stable', type=str)
+    parser.add_argument("--pth",
+                        default='/home/student/mygym/myGym/trained_models/AGM_table_tiago_tiago_dual_joints_gripper_ppo_',
+                        type=str)
     parser.add_argument("--robot", default=["kuka", "panda"], nargs='*', type=str)
     parser.add_argument("--algo", default=["multiacktr", "multippo2", "ppo2", "ppo", "acktr", "sac", "ddpg",
                                            "a2c", "acer", "trpo", "multippo"], nargs='*', type=str)
@@ -322,13 +324,13 @@ def main() -> None:
                     if l == len(mean_subgoals_steps[counter]) - 1:
                         for k in bottom:
                             if k < 100:
-                                unused.append(100-k)
+                                unused.append(100 - k)
                             else:
                                 unused.append(0.0)
                         d = ax.bar(x=steps, height=unused,
-                               color="white",
-                               label="unused steps", bottom=bottom, width=-width, align='edge',
-                               edgecolor='black')
+                                   color="white",
+                                   label="unused steps", bottom=bottom, width=-width, align='edge',
+                                   edgecolor='black')
                         ax.bar_label(
                             d,
                             labels=[f"{v:.1f}" for v in unused],
@@ -338,8 +340,8 @@ def main() -> None:
                             fmt='%g'
                         )
                 counter += 1
-
                 ax_set(ax, f'Subgoal steps over episode for algo:, {algo}, task: {task}', 'Meansteps, %')
+
     elif 'robot' in diff.keys() and len(args.robot) > 1:
         index = [[] for _ in range(len(args.robot))]
         for i, robot in enumerate(args.robot):
@@ -354,18 +356,37 @@ def main() -> None:
                                  np.mean(np.take(success, index[i], 0), 0) + np.std(np.take(success, index[i], 0), 0),
                                  color=colors[i], alpha=0.2)
                 plt.title("Robots")
+
     else:
         print("No data to compare")
-        ax_plot(ax1, steps, [item for row in success for item in row], color_map[alg], alg)
-        ax_plot(ax2, steps, [item for row in mean_reward for item in row], color_map[alg], alg)
-        ax2.plot(steps, [item for row in std_reward for item in row], alpha=0.8, color=color_map[alg],
-                 linestyle='dotted', linewidth=3, marker='o', markerfacecolor=color_map[alg], markersize=4,
-                 label=f"{alg} std")
-        ax_plot(ax3, steps, [item for row in mean_steps for item in row], color_map[alg], alg)
-        ax_plot(ax4, steps, [item for row in mean_distance_error for item in row], color_map[alg], alg)
-        ax5.set_ylim([0, 100])
-        ax_plot(ax5, steps, [item for row in mean_subgoals_finished for item in row], color_map[alg], alg)
-        ax5.set_yticks(ticks)
+        if len(success) != 0:
+            meanvalue = np.mean(success, 0)
+            meanvalue_rew = np.mean(mean_reward, 0)
+            meanvalue_std = np.mean(std_reward, 0)
+            meanvalue_steps = np.mean(mean_steps, 0)
+            meanvalue_error = np.mean(mean_distance_error, 0)
+            meanvalue_subgoals = np.mean(mean_subgoals_finished, 0)
+            meanvalue_subgoals_steps = np.mean(mean_subgoals_steps, 0)
+        else:
+            meanvalue = [item for row in success for item in row]
+            meanvalue_rew = [item for row in mean_reward for item in row]
+            meanvalue_std = [item for row in std_reward for item in row]
+            meanvalue_steps = [item for row in mean_steps for item in row]
+            meanvalue_error = [item for row in mean_distance_error for item in row]
+            meanvalue_subgoals = [item for row in mean_subgoals_finished for item in row]
+            meanvalue_subgoals_steps = mean_subgoals_steps[counter]
+
+        for i in range(len(success)):
+            ax_plot(ax1, steps, meanvalue, color_map[alg], alg)
+            ax_plot(ax2, steps, meanvalue_rew, color_map[alg], alg)
+            ax2.plot(steps, meanvalue_std, alpha=0.8, color=color_map[alg],
+                     linestyle='dotted', linewidth=3, marker='o', markerfacecolor=color_map[alg], markersize=4,
+                     label=f"{alg} std")
+            ax_plot(ax3, steps, meanvalue_steps, color_map[alg], alg)
+            ax_plot(ax4, steps, meanvalue_error, color_map[alg], alg)
+            ax5.set_ylim([0, 100])
+            ax_plot(ax5, steps, meanvalue_subgoals, color_map[alg], alg)
+            ax5.set_yticks(ticks)
 
         ax = fig2.add_subplot(ceiling(plot_num / 2), ceiling(plot_num / 2), counter + 1)
         ax.set_ylim(0, 100)
@@ -376,24 +397,43 @@ def main() -> None:
             if len(mean_subgoals_steps[counter][l]) != len(steps):
                 print(f"Data length mismatch: {len(mean_subgoals_steps[counter][l])} vs {len(steps)}")
                 continue
-            p = ax.bar(x=steps, height=mean_subgoals_steps[counter][l],
+            p = ax.bar(x=steps, height=meanvalue_subgoals_steps[l],
                        color=color_map_acts.get(acts[label_counter], "black"),
                        label=f"{acts[label_counter]}", bottom=bottom, width=-width, align='edge',
                        edgecolor='black')
-            bottom = [sum(x) for x in zip(bottom, mean_subgoals_steps[counter][l])]
+            bottom = [sum(x) for x in zip(bottom, meanvalue_subgoals_steps[l])]
 
             ax.bar_label(
                 p,
-                labels=[f"{v:.1f}" for v in mean_subgoals_steps[counter][l]],
+                labels=[f"{v:.1f}" for v in meanvalue_subgoals_steps[l]],
                 label_type='center',
                 color='black',
                 fontsize=13,
                 fmt='%g'
             )
+            unused = []
+            if l == len(mean_subgoals_steps[counter]) - 1:
+                for k in bottom:
+                    if k < 100:
+                        unused.append(100 - k)
+                    else:
+                        unused.append(0.0)
+                d = ax.bar(x=steps, height=unused,
+                           color="white",
+                           label="unused steps", bottom=bottom, width=-width, align='edge',
+                           edgecolor='black')
+                ax.bar_label(
+                    d,
+                    labels=[f"{v:.1f}" for v in unused],
+                    label_type='center',
+                    color='black',
+                    fontsize=13,
+                    fmt='%g'
+                )
             label_counter += 1
         counter += 1
 
-        ax_set(ax, f'Subgoal steps over episode for algo:, {algo}, task: {task}', 'Meansteps, %')
+        ax_set(ax, f'Subgoal steps over episode for algo:, {alg}, task: {task}', 'Meansteps, %')
 
     # Set titles for axes
     ax_set(ax1, 'Success rate', 'Successful episodes(%)')
