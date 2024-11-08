@@ -35,7 +35,8 @@ mapping = {
     "gripper_at": lambda g, o: g.location == o.location,
     "gripper_open": lambda g: np.random.random() < 0.5,
     "object_at": lambda g, o: g.location == o.location,
-    "exists": lambda e: True
+    "exists": lambda e: True,
+    "on_top" : lambda e: True
 }
 
 Operand.set_mapping(mapping)
@@ -44,7 +45,7 @@ from rddl import AtomicAction, Entity, Reward
 from rddl.actions import Approach, Grasp, Drop, Move, Follow
 from rddl.entities import GraspableObject, Gripper, Location, ObjectEntity
 from rddl.operators import NotOp
-from rddl.predicates import IsHolding, Near
+from rddl.predicates import IsHolding, Near, OnTop
 
 # CONSTANTS
 
