@@ -1,7 +1,7 @@
 import random
 import myGym.envs.scene_objects # allows binding with rddl
 from myGym.envs.scene_objects import TiagoGripper
-from rddl.rddl_sampler import RDDLWorld
+from rddl.rddl_sampler import RDDLWorld, RDDLTask
 from rddl.entities import Gripper, ObjectEntity
 
 class TaskModule():
@@ -32,6 +32,7 @@ class TaskModule():
         self.rddl_world = RDDLWorld(allowed_actions=self.cfg_strings_to_classes(self.allowed_protoactions), 
                                     allowed_entities=self.cfg_strings_to_classes(self.allowed_objects) + [TiagoGripper], 
                                     allowed_initial_actions=self.cfg_strings_to_classes(self.allowed_protoactions))
+        #self.rddl_task = RDDLTask()
 
     def sample_num_subtasks(self):
         '''Whenever a new sequence of actions is desired, this function chooses a random
