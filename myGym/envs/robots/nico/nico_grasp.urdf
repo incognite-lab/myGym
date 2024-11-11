@@ -295,6 +295,11 @@
         		<sphere radius="0.007"/>
       		</geometry>
     	</visual>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
   	</link>
 	<joint name="endeffector_joint" type="fixed">
     	<parent link="gripper"/>
@@ -570,6 +575,11 @@
         		<sphere radius="0.007"/>
       		</geometry>
     	</visual>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
   	</link>
 	<joint name="endeffectol_joint" type="fixed">
     	<parent link="left_palm"/>
