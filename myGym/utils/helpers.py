@@ -100,7 +100,7 @@ def get_robot_dict():
                              'panda': {'path': '/envs/robots/franka_emika/panda_bullet/panda.urdf', 'position': np.array([0.0, -0.05, -0.04])},
                              'jaco': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq.urdf', 'position': np.array([0.0, 0.0, -0.041])},
                              'jaco_fixed': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq_fixed.urdf', 'position': np.array([0.0, 0.0, -0.041])},
-                             'nico': {'path': '/envs/robots/nico/complete.urdf', 'position': np.array([0.0, 0.0, -0.041])},
+                             'nico': {'path': '/envs/robots/nico/nico_alljoints.urdf', 'position': np.array([0.0, 0.0, -0.041])},
                              'nico_upper': {'path': '/envs/robots/nico/nico_upper.urdf', 'position': np.array([-0.0, 0.1, -0.475])},
                              'nico_upper_rh6d': {'path': '/envs/robots/nico/nico_upper_rh6d.urdf', 'position': np.array([-0.0, 0.1, 0.05])},
                              'nico_grasp': {'path': '/envs/robots/nico/nico_grasp.urdf', 'position': np.array([-0.0, 0.1, 0.05])},

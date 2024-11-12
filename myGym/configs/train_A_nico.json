@@ -10,8 +10,8 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"nico_grasp",
-    "robot_action"  :"joints_gripper",
+    "robot"         :"nico",
+    "robot_action"  :"joints",
     "robot_init"    :[0.5, 0.2, 0.4],
     "max_velocity"  :5,
     "max_force"     :300,
