@@ -26,7 +26,6 @@ class Reward:
         self.rewards_history = []
         self.current_network = 0
         self.num_networks = env.num_networks
-        #self.check_num_networks()
         self.network_rewards = [0] * self.num_networks
 
 
@@ -261,15 +260,6 @@ class Protorewards(Reward):
         distance_rew = (self.last_move_dist - dist)
         gripper_rew = (self.last_grip_dist - gripdist)*0.1
         reward = distance_rew + gripper_rew
-        # self.env.p.addUserDebugText(f"Distance rew:{distance_rew}", [0.63, 0.8, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
-        # self.env.p.addUserDebugText(f"gripper rew:{gripper_rew}", [0.63, 0.8, 0.42], lifeTime=0.5,
-        #                             textColorRGB=[0, 0, 125])
-        #self.env.p.addUserDebugText(f"reward:{reward}", [0.63, 0.8, 0.32], lifeTime=0.5,
-                            #        textColorRGB=[0, 0, 125])
-        # self.env.p.addUserDebugText(f"reward_old:{rew_old}", [0.63, 0.8, 0.65], lifeTime=0.5,
-        #                             textColorRGB=[125, 0, 125])
-        # self.env.p.addUserDebugText(f"gripdist:{gripdist}", [0.63, 0.8, 0.75], lifeTime=0.5,
-        #                             textColorRGB=[125, 60, 125])
         self.last_move_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -357,7 +347,6 @@ class Protorewards(Reward):
         return False
 
     def gripper_opened(self, gripper_states):
-        #self.show_every_n_iters("sum gripper states:", sum(gripper_states), 15)
         if sum(gripper_states) >= self.opengr_threshold:
             self.env.robot.release_object(self.env.env_objects["actual_state"])
             self.env.robot.set_magnetization(False)
@@ -399,7 +388,6 @@ class A(Protorewards):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         if self.gripper_approached_object(object_position, goal_position):
             if self.gripper_opened(gripper_states):
-                # self.current_network += 1
                 self.task.check_goal()
         self.task.check_episode_steps()
         return self.current_network
@@ -427,7 +415,6 @@ class AaG(Protorewards):
             if self.gripper_approached_object(object_position, goal_position):
                 if self.gripper_opened(gripper_states):
                     self.current_network = 1
-                # self.task.check_goal()
         if self.current_network == 1:
             if self.gripper_closed(gripper_states):
                 self.task.check_goal()
@@ -450,35 +437,18 @@ class AaGaM(Protorewards):
         return reward
 
     def decide(self, observation = None):
-        #TODO: revert this debug change
-        # goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        # if self.env.network_switcher == "keyboard":
-        #     self.change_network_based_on_key()
-        # else:
-        #     if self.current_network == 0:
-        #         if self.gripper_approached_object(gripper_position, object_position):
-        #             if self.gripper_opened(gripper_states):
-        #                 self.current_network = 1
-        #     if self.current_network == 1:
-        #         if self.gripper_approached_object(gripper_position, object_position):
-        #             if self.gripper_closed(gripper_states):
-        #                 self.current_network = 2
-        # if self.current_network == 2:
-        #     if self.object_near_goal(object_position, goal_position):
-        #         self.task.check_goal()
-        # self.task.check_episode_steps()
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        if self.env.episode_steps == 0:
-            #print("starting from zero steps")
-            pass
-        if self.current_network == 0:
-            if self.env.episode_steps == 100:
-                #print("changing network to 1")
-                self.current_network = 1
-        if self.current_network == 1:
-            if self.env.episode_steps == 300:
-                #print("changing network to 2")
-                self.current_network = 2
+        if self.env.network_switcher == "keyboard":
+            self.change_network_based_on_key()
+        else:
+            if self.current_network == 0:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_opened(gripper_states):
+                        self.current_network = 1
+            if self.current_network == 1:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        self.current_network = 2
         if self.current_network == 2:
             if self.object_near_goal(object_position, goal_position):
                 self.task.check_goal()
@@ -530,7 +500,6 @@ class AaGaMaDaW(Protorewards):
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-        #self.show_every_n_iters("gripper states:", gripper_states, 15)
         owner = self.decide(observation)
         target = [[gripper_position, object_position, gripper_states],
                   [gripper_position, object_position, gripper_states],
@@ -554,7 +523,6 @@ class AaGaMaDaW(Protorewards):
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_opened(gripper_states):
                         self.current_network = 1
-                        # self.task.check_goal()
             if self.current_network == 1:
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_closed(gripper_states):

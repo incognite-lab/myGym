@@ -73,10 +73,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
         env_arguments["network_switcher"] = arg_dict["network_switcher"]
     if arg_dict["algo"] == "her":
         env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
-    # elif arg_dict["multiprocessing"]:
-    #     env = GymEnv(**env_arguments)
     else:
-        #env = gym.make(arg_dict["env_name"], **env_arguments)
         env = env_creator(env_arguments)
         env.spec.max_episode_steps = 512
     if for_train:
@@ -104,9 +101,9 @@ def make_env(arg_dict: dict, rank: int, seed: int = 0, model_logdir = None) -> C
         env = configure_env(arg_dict, for_train = True, model_logdir=model_logdir)
         env.reset()
         return env
-
     set_random_seed(seed)
     return _init
+
 
 def env_creator(env_config):
     env = EnvCompatibility(GymEnv(**env_config))
@@ -212,6 +209,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     print("learn started")
     model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
     print("learn ended")
+    env.close()
     model.save(os.path.join(model_logdir, model_name))
     print("Training time: {:.2f} s".format(time.time() - start_time))
     print("Training steps: {:} s".format(model.num_timesteps))
@@ -225,7 +223,8 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     #Envinronment
-    parser.add_argument("-cfg", "--config", default="./configs/train_A_RDDL.json", help="Can be passed instead of all arguments")
+    #TODO: change default arg of config, multiprocessing
+    parser.add_argument("-cfg", "--config", default="./configs/train_AGM_RDDL.json", help="Can be passed instead of all arguments")
     parser.add_argument("-n", "--env_name", type=str, help="The name of environment")
     parser.add_argument("-ws", "--workspace", type=str, help="The name of workspace")
     parser.add_argument("-p", "--engine", type=str,  help="Name of the simulation engine you want to use")
@@ -269,7 +268,7 @@ def get_parser():
     parser.add_argument("-l", "--logdir", type=str,  help="Where to save results of training and trained models")
     parser.add_argument("-r", "--record", type=int, help="1: make a gif of model perfomance, 2: make a video of model performance, 0: don't record")
     #Mujoco
-    parser.add_argument("-i", "--multiprocessing", type=int,  help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
+    parser.add_argument("-i", "--multiprocessing", default = 5, type=int, help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
     parser.add_argument("-v", "--vectorized_envs", type=int,  help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
     #Paths
     parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")
@@ -323,13 +322,13 @@ def task_objects_replacement(task_objects_new, task_objects_old, task_type):
 def process_natural_language_command(cmd, env, output_relative_path=os.path.join("envs", "examples", "natural_language.txt")):
     env.reset()
     nl = NaturalLanguage(env)
-
     if cmd in ["description", "new_tasks"]:
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_relative_path), "w") as file:
             file.write(nl.generate_task_description() if cmd == "description" else "\n".join(nl.generate_new_tasks()))
     else:
         msg = f"Unknown natural language command: {cmd}"
         raise Exception(msg)
+
 
 def main():
     parser = get_parser()
@@ -352,21 +351,14 @@ def main():
         except:
             model_logdir = "_".join((model_logdir_ori, str(add)))
             add += 1
-
-
-
     if arg_dict["multiprocessing"]:
         NUM_CPU = int(arg_dict["multiprocessing"])
         env = SubprocVecEnv([make_env(arg_dict, i, model_logdir = model_logdir) for i in range(NUM_CPU)])
-        print("subproc:", env)
         env = VecMonitor(env, model_logdir)
-        print("env:", env)
     else:
         env = configure_env(arg_dict, model_logdir, for_train=1)
-        print("env:", env)
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
     train(env, implemented_combos, model_logdir, arg_dict, arg_dict["pretrained_model"])
-    print(model_logdir)
 
 if __name__ == "__main__":
     main()

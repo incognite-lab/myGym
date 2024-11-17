@@ -7,7 +7,6 @@ import torch as th
 from gymnasium import spaces
 
 from stable_baselines3.common.base_class import BaseAlgorithm
-#from stable_baselines3.common.buffers import DictRolloutBuffer, RolloutBuffer
 from myGym.stable_baselines_mygym.buffersSB3 import RolloutBuffer, DictRolloutBuffer
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.policies import ActorCriticPolicy
@@ -157,8 +156,6 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         assert self._last_obs is not None, "No previous observation was provided"
         # Switch to eval mode (this affects batch norm / dropout)
 
-
-
         n_steps = 0
         rollout_buffer.reset()
         # Sample new weights for the state dependent exploration
@@ -168,7 +165,6 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                 self.models[i].policy.set_training_mode(False)
 
         callback.on_rollout_start()
-
         while n_steps < n_rollout_steps:
             if self.use_sde and self.sde_sample_freq > 0 and n_steps % self.sde_sample_freq == 0:
                 # Sample a new noise matrix for every model
@@ -176,6 +172,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     model.policy.reset_noise(env.num_envs)
             # Choosing model based on observation
             owner = self.approved(self._last_obs)
+
             if isinstance(owner, list):
                 owner = owner[0]
             model = self.models[owner]
@@ -186,6 +183,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                 obs_tensor = obs_as_tensor(self._last_obs, self.device)
                 actions, values, log_probs = model.policy(obs_tensor)
             actions = actions.cpu().numpy()
+
 
             # Rescale and perform action
             clipped_actions = actions
@@ -198,9 +196,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     # Otherwise, clip the actions to avoid out of bound error
                     # as we are sampling from an unbounded Gaussian distribution
                     clipped_actions = np.clip(actions, self.action_space.low, self.action_space.high)
-
             new_obs, rewards, dones, infos = env.step(clipped_actions)
-
             self.num_timesteps += env.num_envs
 
             # Give access to local variables
@@ -227,7 +223,6 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     with th.no_grad():
                         terminal_value = model.policy.predict_values(terminal_obs)[0]  # type: ignore[arg-type]
                     rewards[idx] += self.gamma * terminal_value
-
             rollout_buffer.add(
                 self._last_obs,  # type: ignore[arg-type]
                 actions,
@@ -237,7 +232,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                 log_probs,
                 owner
             )
-            self._last_obs = new_obs  # type: ignore[assignment]
+            self._last_obs = new_obs
             self._last_episode_starts = dones
 
         with th.no_grad():
@@ -253,7 +248,6 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         callback.update_locals(locals())
 
         callback.on_rollout_end()
-
         return True
 
     def train(self) -> None:
@@ -307,10 +301,8 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         callback.on_training_start(locals(), globals())
 
         assert self.env is not None
-
         while self.num_timesteps < total_timesteps:
             continue_training = self.collect_rollouts(self.env, callback, self.rollout_buffer, n_rollout_steps=self.n_steps)
-
             if not continue_training:
                 break
 

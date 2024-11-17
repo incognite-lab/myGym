@@ -247,7 +247,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             for name in torch_variable_names:
                 attr = recursive_getattr(self, name)
                 pytorch_variables[name] = attr
-        #print("data:", data)
         # Build dict of state_dicts
         data.pop("models")
         for model in self.models:
@@ -259,14 +258,10 @@ class MultiPPOSB3(OnPolicyAlgorithm):
     def approved(self, observation):
         # based on obs, decide which model should be used
         if hasattr(self.env, 'envs'):
-            #print("option 1")
             submodel_id = self.env.envs[0].env.env.reward.network_switch_control(self.env.envs[0].env.env.observation["task_objects"])
         elif isinstance(self.env, VecMonitor):
-            #print("option 2")
-            obs = self.env.get_attr("env")[0].observation["task_objects"]
-            submodel_id = self.env.network_control(obs)
+            submodel_id = self.env.network_control()
         else:
-            #print("option 3")
             submodel_id = self.env.reward.network_switch_control(self.env.observation["task_objects"])
         return submodel_id
 
@@ -395,7 +390,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 # Optimization step
                 model.policy.optimizer.zero_grad()
                 loss.backward()
-                #print("training model", owner, "collected samples:", len(actions))
                 # Clip grad norm
                 th.nn.utils.clip_grad_norm_(model.policy.parameters(), self.max_grad_norm)
                 model.policy.optimizer.step()
@@ -403,13 +397,11 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             self._n_updates += 1
             if not continue_training:
                 break
-        #print("flattened arrs:", np.array(self.rollout_buffer.value_arrs).flatten(), np.array(self.rollout_buffer.return_arrs).flatten())
         explained_vars = []
         owner_sizes = self.rollout_buffer.owner_sizes
         for i in range(self.models_num):
             val_arr = self.rollout_buffer.value_arrs[i]
             ret_arr = self.rollout_buffer.return_arrs[i]
-            #print("return_arr:", ret_arr)
             if val_arr.shape != ret_arr.shape:
                 print("Value and return arr shapes are not equal:")
                 print("val_arr shape:", val_arr.shape)

@@ -63,7 +63,7 @@ def _worker(
             elif cmd == "is_wrapped":
                 remote.send(is_wrapped(env, data))
             elif cmd == "network_control":
-                remote.send(env.env.network_control(data))
+                remote.send(env.env.network_control())
             else:
                 raise NotImplementedError(f"`{cmd}` is not implemented in the worker")
         except EOFError:
@@ -128,6 +128,7 @@ class SubprocVecEnv(VecEnv):
         self.waiting = True
 
     def step_wait(self) -> VecEnvStepReturn:
+
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs, rews, dones, infos, self.reset_infos = zip(*results)  # type: ignore[assignment]
@@ -208,10 +209,10 @@ class SubprocVecEnv(VecEnv):
         return [self.remotes[i] for i in indices]
 
 
-    def network_control(self, observation, indices: VecEnvIndices = None) -> List[Any]:
-        target_remotes = self._get_target_remotes(indices)
+    def network_control(self, indices: VecEnvIndices = None) -> List[Any]:
+        target_remotes = self.remotes
         for remote in target_remotes:
-            remote.send(("network_control", observation))
+            remote.send(("network_control", None))
         return [remote.recv() for remote in target_remotes]
 
 
@@ -239,6 +240,8 @@ def _flatten_obs(obs: Union[List[VecEnvObs], Tuple[VecEnvObs]], space: spaces.Sp
         return tuple(np.stack([o[i] for o in obs]) for i in range(obs_len))  # type: ignore[index]
     else:
         return np.stack(obs)  # type: ignore[arg-type]
+
+
 
 
 

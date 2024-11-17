@@ -445,8 +445,6 @@ class RolloutBuffer(BaseBuffer):
         for i in range(len(self.owner_sizes)):
             owner_size = self.owner_sizes[i]
             for step in reversed(range(owner_size)):
-                #print("i = :", i)
-                #print("step = :", step)
                 if step == owner_size - 1:
                     next_non_terminal = 1.0 - dones.astype(np.float32)
                     next_values = last_values
@@ -455,7 +453,6 @@ class RolloutBuffer(BaseBuffer):
                     next_values = self.value_arrs[i][step + 1]
                 delta = self.reward_arrs[i][step] + self.gamma * next_values * next_non_terminal - self.value_arrs[i][step]
                 last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
-                #print("advantage of model, ", i,  " on step", step, "set to:", last_gae_lam)
                 self.advantage_arrs[i][step] = last_gae_lam
             # TD(lambda) estimator, see Github PR #375 or "Telescoping in TD(lambda)"
             # in David Silver Lecture 4: https://www.youtube.com/watch?v=PnHCvfgC_ZA
@@ -517,13 +514,6 @@ class RolloutBuffer(BaseBuffer):
             adv = self.advantage_arrs[i]
             ret = self.return_arrs[i]
             rew = self.reward_arrs[i]
-            # self.observation_arrs[i] = obs[~np.all(obs == 0., axis =(2,1))]
-            # self.action_arrs[i] = act[~np.all(act == 0., axis =(2,1))]
-            # self.value_arrs[i] = vals[~np.all(vals == 0., axis =1)]
-            # self.log_prob_arrs[i] = log_p[~np.all(log_p == 0., axis =1)]
-            # self.advantage_arrs[i] = adv[~np.all(adv == 0., axis =1)]
-            # self.return_arrs[i] = ret[~np.all(ret == 0., axis =1)]
-
             self.observation_arrs[i] = obs[~np.all(obs== 0., axis=(2, 1))]
             self.action_arrs[i] = act[~np.all(act == 0., axis=(2, 1))]
             self.reward_arrs[i] = rew[~np.all(rew == 0, axis = 1)]
@@ -531,7 +521,6 @@ class RolloutBuffer(BaseBuffer):
             self.log_prob_arrs[i] = log_p[~np.all(log_p == 0., axis=1)]
             self.advantage_arrs[i] = adv[~np.all(adv == 0., axis=1)]
             self.return_arrs[i] = ret[~np.all(ret == 0., axis=1)]
-        #sys.exit()
 
 
     def get(self, batch_size: Optional[int] = None) -> Generator[RolloutBufferSamples, None, None]:
@@ -552,8 +541,6 @@ class RolloutBuffer(BaseBuffer):
                     self.__dict__[tensor][i] = self.swap_and_flatten(self.__dict__[tensor][i])
             self.generator_ready = True
 
-        #owner_sizes = self.get_owner_sizes()
-
         # Return everything, don't create minibatches
         if batch_size is None:
             batch_size = self.buffer_size * self.n_envs
@@ -561,12 +548,8 @@ class RolloutBuffer(BaseBuffer):
             start_idx = 0
             owner_size = self.owner_sizes[i]
             indices = np.random.permutation(owner_size)
-            iter = 0
 
             while start_idx < owner_size:
-                #TODO: inspect what this iter is doing here and remove it if possible
-                if iter > 2000:
-                    break
                 #End index mustn't be larger than owner_size
                 end_idx = min(owner_size, start_idx + batch_size)
                 try:
@@ -588,7 +571,6 @@ class RolloutBuffer(BaseBuffer):
                     minimum = min(adv_size, action_size, value_size, log_prob_size, return_size)
                     indices = np.random.permutation(minimum)
                     owner_size = minimum
-                iter += 1
 
 
 
