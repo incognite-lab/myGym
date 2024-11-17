@@ -111,27 +111,20 @@ def visualize_infotext(action, env, info):
 def detect_key(keypress, arg_dict, action):
     if 97 in keypress.keys() and keypress[97] == 1:  # A
         action[2] += .03
-        # print(action)
     if 122 in keypress.keys() and keypress[122] == 1:  # Z/Y
         action[2] -= .03
-        # print(action)
     if 65297 in keypress.keys() and keypress[65297] == 1:  # ARROW UP
         action[1] -= .03
-        # print(action)
     if 65298 in keypress.keys() and keypress[65298] == 1:  # ARROW DOWN
         action[1] += .03
-        # print(action)
     if 65295 in keypress.keys() and keypress[65295] == 1:  # ARROW LEFT
         action[0] += .03
-        # print(action)
     if 65296 in keypress.keys() and keypress[65296] == 1:  # ARROW RIGHT
         action[0] -= .03
-        # print(action)
     if 120 in keypress.keys() and keypress[120] == 1:  # X
         if action[3] > 0:
             action[3] -= .005
             action[4] -= .005
-        # print(action)
     if 99 in keypress.keys() and keypress[99] == 1:  # C
         if action[3] <=0.0455:
             action[3] += .005
@@ -143,15 +136,12 @@ def detect_key(keypress, arg_dict, action):
     elif "joints" in arg_dict["robot_action"]:
         print("Robot action: Joints - KEYBOARD CONTROL UNDER DEVELOPMENT")
         quit()
-    #for key in keypress.keys():
-        #print("pressed key number:", key)
     return action
 
 
 def test_env(env, arg_dict):
     spawn_objects = False
     env.render()
-    # env.reset()
     # Prepare names for sliders
     joints = ['Joint1', 'Joint2', 'Joint3', 'Joint4', 'Joint5', 'Joint6', 'Joint7', 'Joint 8', 'Joint 9', 'Joint10',
               'Joint11', 'Joint12', 'Joint13', 'Joint14', 'Joint15', 'Joint16', 'Joint17', 'Joint 18', 'Joint 19']
@@ -219,7 +209,6 @@ def test_env(env, arg_dict):
     if arg_dict["vsampling"] == True:
         visualize_sampling_area(arg_dict)
 
-    # visualgr = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=.005, rgbaColor=[0,0,1,.1])
 
     if arg_dict["control"] == "random":
         action = env.action_space.sample()

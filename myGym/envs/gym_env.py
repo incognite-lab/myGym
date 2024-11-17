@@ -152,7 +152,7 @@ class GymEnv(CameraEnv):
                 exc = f"Expected task_objects to be of type {dict} instead of {type(self.task_objects_dict)}"
                 raise Exception(exc)
             # # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
-            # self.num_networks = 3
+
         self.rng = np.random.default_rng(seed=0)
         self.task_objects_were_given_as_list = isinstance(self.task_objects_dict, list)
         self.n_subtasks = len(self.task_objects_dict) if self.task_objects_were_given_as_list else 1
@@ -191,7 +191,6 @@ class GymEnv(CameraEnv):
         self._add_scene_object_uid(self._load_static_scene_urdf(path="rooms/plane.urdf", name="floor"), "floor")
         if self.visgym:
             self._add_scene_object_uid(self._load_urdf(path="rooms/room.urdf"), "gym")
-            #self._change_texture("gym", self._load_texture("verticalmaze.jpg"))
             [self._add_scene_object_uid(self._load_urdf(path="rooms/visual/" + self.workspace_dict[w]['urdf']), w)
              for w in self.workspace_dict if w != self.workspace]
         self._add_scene_object_uid(
@@ -266,9 +265,6 @@ class GymEnv(CameraEnv):
         if "step" in self.robot_action:
             self.action_low = np.array([-1] * action_dim)
             self.action_high = np.array([1] * action_dim)
-            # if "gripper" in self.robot_action:
-            #    self.action_low = np.insert(self.action_low, action_dim, self.robot.gjoints_limits[0][1])
-            #    self.action_high = np.insert(self.action_high, action_dim,self.robot.gjoints_limits[1][1])
 
 
         elif "absolute" in self.robot_action:
@@ -490,14 +486,12 @@ class GymEnv(CameraEnv):
         else:
             reward = self.reward.compute(observation=self._observation)
             self.episode_reward += reward
-            # self.task.check_goal()
             done = self.episode_over
             info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
         if done: self.successful_finish(info)
         if self.task.subtask_over:
             self.reset(only_subtask=True)
-        # return self._observation, reward, done, info
         return self.flatten_obs(self._observation.copy()), reward, done, info
 
     def compute_reward(self, achieved_goal, desired_goal, info):
@@ -512,7 +506,6 @@ class GymEnv(CameraEnv):
             :param info: (dict) logged information about training
         """
         self.episode_final_reward.append(self.episode_reward)
-        #self.episode_final_distance.append(self.task.last_distance / self.task.init_distance)
         self.episode_number += 1
         self._print_episode_summary(info)
 
@@ -530,9 +523,7 @@ class GymEnv(CameraEnv):
             if hasattr(self, "human"):
                 self.human.point_finger_at(position=self.task_objects["goal_state"].get_position())
             self.p.stepSimulation()
-        # print(f"Substeps:{i}")
         self.episode_steps += 1
-        #print(f"Episode step: {self.episode_steps}")
         
     def choose_goal_object_by_human_with_keys(self, objects: List[EnvObject]) -> EnvObject:
         self.text_id = self.p.addUserDebugText("Point the human's finger via arrow keys at the goal object and press enter", [1, 0, 0.5], textSize=1)
@@ -656,5 +647,5 @@ class GymEnv(CameraEnv):
         self.task_objects["actual_state"] = goal
 
 
-    def network_control(self, observation):
-        return self.reward.network_switch_control(observation)
+    def network_control(self):
+        return self.reward.network_switch_control(self.observation["task_objects"])
