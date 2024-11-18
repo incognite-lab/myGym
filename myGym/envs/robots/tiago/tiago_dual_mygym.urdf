@@ -859,6 +859,11 @@
     <origin rpy="0 0 0" xyz="0.0 0.0 -0.20"/>
   </joint>
   <link name="endeffector">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.00"/>
+      <inertia ixx="0.0000" ixy="0.0" ixz="0.0" iyy="0.0000" iyz="0.0" izz="0.0000"/>
+    </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="-0.0 0.0 0.0"/>
       <geometry>

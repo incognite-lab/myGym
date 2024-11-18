@@ -1,6 +1,6 @@
 [project]
 name = "myGym"
-version = "0.1.0"
+version = "3.10.0"
 description = "myGym"
 authors = [
     {name = "Incognite group CIIRC CVUT", email = "michal.vavrecka@cvut.cz"},
@@ -23,15 +23,13 @@ dependencies = [
     "pybullet==3.2.6",
     "open3d==0.18.0",
     "gym==0.26.2",
-    "tensorflow>=2.11.0",
-    "torch<2.5,>=2.2",
-    "torchvision>=0.17.1",
-    "torchaudio>=2.2.1",
+    "torch>=2.5.1",
+    "torchvision>=0.20.1",
+    "torchaudio>=2.5.1",
     "matplotlib>=3.8.3",
     "pyquaternion>=0.9.9",
     "commentjson>=0.9.0",
-    "ray[rllib,tune]>=2.9.3",
-    "gymnasium>=0.28.1",
+    "gymnasium==0.29.1",
     "protobuf<4,>3",
 ]
 requires-python = ">=3.10,<3.11"
