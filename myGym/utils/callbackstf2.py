@@ -10,8 +10,8 @@ import imageio
 from typing import Union, List, Dict, Any, Optional
 from tqdm.auto import tqdm
 import numpy as np
-import tensorflow as tf
 import gymnasium as gym
+#import tensorflow as tf
 
 import warnings
 
@@ -133,7 +133,7 @@ class CustomEvalCallback(EvalCallback):
             gif_path = os.path.join(self.log_path, "last_eval_episode_after_{}_steps.gif".format(self.n_calls))
             imageio.mimsave(gif_path, [np.array(img) for i, img in enumerate(images) if i%2 == 0], fps=15)
             #optimize(gif_path)
-            os.system('./utils/gifopt -O3 --lossy=5 -o {dest} {source}'.format(source=gif_path, dest=gif_path)) 
+            os.system('./utils/gifopt -O3 --lossy=5 -o {dest} {source}'.format(source=gif_path, dest=gif_path))
             print("Record saved to " + gif_path)
 
         results = {
