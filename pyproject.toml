@@ -1,6 +1,6 @@
 [project]
 name = "myGym"
-version = "0.1.0"
+version = "3.10.0"
 description = "myGym"
 authors = [
     {name = "Incognite group CIIRC CVUT", email = "michal.vavrecka@cvut.cz"},
@@ -23,20 +23,21 @@ dependencies = [
     "pybullet==3.2.6",
     "open3d==0.18.0",
     "gym==0.26.2",
-    "tensorflow>=2.11.0",
-    "torch<2.5,>=2.2",
+    "tensorboard>=2.18.0",
+    "torch=2.5.1",
     "torchvision>=0.17.1",
     "torchaudio>=2.2.1",
     "matplotlib>=3.8.3",
     "pyquaternion>=0.9.9",
     "commentjson>=0.9.0",
-    "ray[rllib,tune]>=2.9.3",
-    "gymnasium>=0.28.1",
+    "gymnasium>=1.0.0",
     "protobuf<4,>3",
+    "stable-baselines3>=2.4.0",
+    "shimmy==0.2.1",
 ]
 requires-python = ">=3.10,<3.11"
 readme = "README.md"
-license = {text = "MIT License\n\nCopyright (c) 2020 CIIRC, CTU in Prague\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n\n"}
+license = {text = "MIT License\n\nCopyright (c) 2024 CIIRC, CTU in Prague\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n\n"}
 maintainers = [
     {email = "michal.vavrecka@cvut.cz"},
 ]
