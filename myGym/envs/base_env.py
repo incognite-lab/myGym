@@ -11,10 +11,9 @@ from gymnasium import envs
 from gymnasium.utils import seeding
 
 from myGym.envs.camera import Camera
-
-currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
-repodir = os.path.join(pkg_resources.files("myGym"), "./")
-
+import importlib.resources as resources
+currentdir = resources.files("myGym").joinpath("envs")
+repodir = resources.files("myGym").parent
 
 class BaseEnv(gym.Env):
     """
@@ -33,8 +32,8 @@ class BaseEnv(gym.Env):
 
     def __init__(self,
                  gui_on=True,
-                 objects_dir_path= os.path.join(pkg_resources.files("myGym"), "envs/"),
-                 max_ep_steps=1024,
+                 objects_dir_path=resources.files("myGym").joinpath("envs"),
+                 max_steps=1024,
                  show_bounding_boxes_gui=False,
                  changing_light_gui=False,
                  shadows_on_gui=True
