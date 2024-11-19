@@ -9,8 +9,8 @@ import glob
 import numpy as np
 import sys, shutil
 from datetime import datetime
-import pkg_resources
-currentdir = pkg_resources.resource_filename("myGym", "envs")
+import importlib.resources as resources
+currentdir = resources.files("myGym").joinpath("envs")
 from myGym.envs.vision_module import VisionModule
 
 class EnvObject(VisionModule):
@@ -212,7 +212,7 @@ class EnvObject(VisionModule):
         Returns:
             :return self.uid: (int) ID of loaded object
         """
-        self.uid = self.p.loadURDF(self.urdf_path, self.init_position, self.init_orientation, useFixedBase=self.fixed,  flags=self.p.URDF_USE_SELF_COLLISION)
+        self.uid = self.p.loadURDF(str(self.urdf_path), self.init_position, self.init_orientation, useFixedBase=self.fixed,  flags=self.p.URDF_USE_SELF_COLLISION)
         if self.fixed:
             self.p.changeDynamics(self.uid, 0, collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
         else:

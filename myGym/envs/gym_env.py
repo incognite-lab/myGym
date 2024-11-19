@@ -14,14 +14,15 @@ from itertools import chain
 import random
 
 from myGym.utils.helpers import get_workspace_dict
-import pkg_resources
+import importlib.resources as resources
+currentdir = resources.files("myGym").joinpath("envs")
 from myGym.envs.human import Human
 import myGym.utils.colors as cs
 from myGym.utils.helpers import get_module_type
 from myGym.envs.natural_language import NaturalLanguage
 from myGym.envs.task import TaskModule
 
-currentdir = pkg_resources.resource_filename("myGym", "envs")
+
 
 # used to exclude these colors for other objects, in the order of goal, init, done, else
 COLORS_RESERVED_FOR_HIGHLIGHTING = ["dark green", "green", "blue", "gray"]
@@ -201,14 +202,14 @@ class GymEnv(CameraEnv):
 
     def _load_urdf(self, path, fixedbase=True, maxcoords=True):
         transform = self.workspace_dict[self.workspace]['transform']
-        return self.p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", path)),
+        return self.p.loadURDF(resources.files("myGym").joinpath("envs",path),
                                transform['position'],  self.p.getQuaternionFromEuler(transform['orientation']),
                                useFixedBase=fixedbase,
                                useMaximalCoordinates=maxcoords)
 
     def _load_static_scene_urdf(self, path, name, fixedbase=True):
         transform = self.workspace_dict[self.workspace]['transform']
-        object = env_object.EnvObject(pkg_resources.resource_filename("myGym", os.path.join("envs", path)), self, transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase, observation=self.vision_source, vae_path=self.vae_path, yolact_path=self.yolact_path, yolact_config=self.yolact_config)
+        object = env_object.EnvObject(resources.files("myGym").joinpath("envs",path), self, transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase, observation=self.vision_source, vae_path=self.vae_path, yolact_path=self.yolact_path, yolact_config=self.yolact_config)
         self.static_scene_objects[name] = object
         return object.uid
 
@@ -218,7 +219,7 @@ class GymEnv(CameraEnv):
 
 
     def _load_texture(self, name):
-        return self.p.loadTexture(pkg_resources.resource_filename("myGym", "/envs/textures/{}".format(name)))
+        return self.p.loadTexture(str(resources.files("myGym").joinpath("envs/textures/",name)))
 
 
     def _set_observation_space(self):

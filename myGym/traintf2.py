@@ -1,4 +1,5 @@
-import pkg_resources
+import importlib.resources as resources
+#import pkg_resources
 import os, sys, time, yaml
 import argparse
 import numpy as np
@@ -131,7 +132,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
     if pretrained_model:
         if not os.path.isabs(pretrained_model):
-            pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
+            pretrained_model = resources.files("myGym").joinpath(pretrained_model)
         env = model_args[1]
         vec_env = DummyVecEnv([lambda: env])
         model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env)
@@ -233,7 +234,7 @@ def get_arguments(parser):
     with open(args.config, "r") as f:
             arg_dict = commentjson.load(f)
     for key, value in vars(args).items():
-        if value is not None and key is not "config":
+        if value != None and key != "config":
             if key in ["robot_init", "object_sampling_area"]:
                 arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
             else:
