@@ -47,7 +47,7 @@ class Robot(EnvObject):
                  vae_path=None,
                  yolact_path=None,
                  yolact_config=None):
-
+        self.debug = False
         self.p = pybullet_client
         self.robot_dict = get_robot_dict()
         self.robot_path = self.robot_dict[robot]['path']
@@ -132,16 +132,19 @@ class Robot(EnvObject):
                 self.gripper_indices.append(i)
                 self.gripper_positions.append(self.p.getJointState(self.uid,i)[0])
 
-        print("Robot summary")
-        print("--------------")
-        print("Links:")
-        print("\n".join(map(str,self.link_names)))
-        print("Joints:")
-        print("\n".join(map(str,self.motor_names)))
-        print("Gripper joints:")
-        print("\n".join(map(str,self.gripper_names)))
-        print("Gripper index is: " + str(self.gripper_index))
-        print("End effector index is: " + str(self.end_effector_index))
+        if self.debug:
+            print("Robot summary")
+            print("--------------")
+            print("Links:")
+            print("\n".join(map(str,self.link_names)))
+            print("Joints:")
+            print("\n".join(map(str,self.motor_names)))
+            print("Gripper joints:")
+            print("\n".join(map(str,self.gripper_names)))
+            print("Gripper index is: " + str(self.gripper_index))
+            print("End effector index is: " + str(self.end_effector_index))
+        else:
+            print("Robot initialized")
         self.joints_num = len(self.motor_names)
         self.gjoints_num = len(self.gripper_names)
 
