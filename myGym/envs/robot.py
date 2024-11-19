@@ -47,7 +47,6 @@ class Robot(EnvObject):
                  vae_path=None,
                  yolact_path=None,
                  yolact_config=None,
-                 pybullet_client=None):
         self.debug = False
         self.p = pybullet_client
         self.robot_dict = get_robot_dict()
@@ -158,6 +157,8 @@ class Robot(EnvObject):
             print("\n".join(map(str,self.gripper_names)))
             print("Gripper index is: " + str(self.gripper_index))
             print("End effector index is: " + str(self.end_effector_index))
+        else:
+            print("Robot initialized")
         self.joints_num = len(self.motor_names)
         self.gjoints_num = len(self.gripper_names)
 
