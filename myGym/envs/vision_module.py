@@ -6,15 +6,11 @@ import sys
 import numpy as np
 import cv2
 import random
-import pkg_resources
-currentdir = pkg_resources.resource_filename("myGym", "envs")
+import importlib.resources as resources
+currentdir = resources.files("myGym").joinpath("envs")
 
 # import vision models YOLACT, VAE
-sys.path.append(pkg_resources.resource_filename("myGym", "yolact_vision")) #may be moved somewhere else
-try:
-    from inference_tool import InfTool
-except:
-    print("Problem importing YOLACT.")
+sys.path.append(resources.files("myGym").joinpath("yolact_vision")) #may be moved somewhere else
 from myGym.vae.vis_helpers import load_checkpoint
 from myGym.vae import  sample
 
@@ -260,7 +256,7 @@ class VisionModule:
             :param network: (string) Source of information from environment (yolact, vae)
         """
         if network == "vae":
-            weights_pth = pkg_resources.resource_filename("myGym", self.vae_path)
+            weights_pth = resources.files("myGym").joinpath(self.vae_path)
             try:
                 self.vae_embedder, imsize = load_checkpoint(weights_pth, use_cuda=True)
             except:
@@ -268,10 +264,14 @@ class VisionModule:
             self.vae_imsize = imsize
             self.obsdim = (2*self.vae_embedder.n_latents) + 3
         elif network == "yolact":
-            weights = pkg_resources.resource_filename("myGym", self.yolact_path)
+            weights = resources.files("myGym").joinpath(self.yolact_path)
             if ".obj" in self.yolact_config:
-                config = pkg_resources.resource_filename("myGym", self.yolact_config)
+                config = resources.files("myGym").joinpath(self.yolact_config)
             try:
+                try:
+                    from inference_tool import InfTool
+                except:
+                    print("Problem importing YOLACT.")
                 self.yolact_cnn = InfTool(weights=weights, config=config, score_threshold=0.2)
             except:
                 raise Exception("For yolact observations, you need to download pre-trained vision model and specify its path in config. Specified {} and {} not found.".format(self.yolact_path, self.yolact_config))

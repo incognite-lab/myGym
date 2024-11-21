@@ -9,7 +9,6 @@ import os
 import torch
 import cv2
 import numpy as np
-import pkg_resources
 import dill
 import numpy as np
 

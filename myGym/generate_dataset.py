@@ -16,17 +16,18 @@ from pycocotools import mask
 import pybullet as p
 from bbox import BBox3D
 from myGym.envs.wrappers import RandomizedEnvWrapper
-import pkg_resources
+import importlib.resources as resources
+
 
 # config, specify here or pass as an input argument
-CONFIG_DEFAULT = pkg_resources.resource_filename("myGym", 'configs/dataset_coco.json')
+CONFIG_DEFAULT = resources.files("myGym").joinpath("configs/dataset_coco.json")
 
 # helper functions:
 def color_names_to_rgb():
     """
     Assign RGB colors to objects by name as specified in the training config file
     """
-    with open(pkg_resources.resource_filename("myGym", 'utils/rgbcolors.json'), "r") as read_file:
+    with open(resources.files("myGym").joinpath("utils/rgbcolors.json"), "r") as read_file:
         clr = json.load(read_file) #json file with suggested colors
         new_dict = {}
         for key, value in config['object_colors'].items():
@@ -498,7 +499,7 @@ if __name__ == "__main__":
         config_path = CONFIG_DEFAULT
         print('No config.json passed in argument. Loading default config: {}'.format(CONFIG_DEFAULT))
     else:
-        config_path = pkg_resources.resource_filename("myGym", sys.argv[1])
+        config_path = resources.files("myGym").joinpath(sys.argv[1])
     with open(config_path) as file:
         config = commentjson.load(file)
 

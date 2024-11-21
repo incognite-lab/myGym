@@ -1,5 +1,4 @@
 import importlib.resources as resources
-#import pkg_resources
 import os, sys, time, yaml
 import argparse
 import numpy as np
