@@ -3,13 +3,9 @@ import time
 
 import gymnasium as gym
 import numpy as np
-import importlib.resources as pkg_resources
-import pybullet
-import pybullet_data
-import pybullet_utils.bullet_client as bc
-from gymnasium import envs
 from gymnasium.utils import seeding
-
+import gymnasium as gym
+import inspect
 from myGym.envs.camera import Camera
 import importlib.resources as resources
 currentdir = resources.files("myGym").joinpath("envs")

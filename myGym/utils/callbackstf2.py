@@ -49,7 +49,7 @@ class CustomEvalCallback(EvalCallback):
                  gui_on = True,
                  record=False,
                  camera_id=0,
-                 record_steps_limit=256): 
+                 record_steps_limit=256):
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.eval_freq = eval_freq

@@ -23,6 +23,7 @@ from myGym.envs.natural_language import NaturalLanguage
 from myGym.envs.task import TaskModule
 import torch as th
 from stable_baselines3.common.utils import obs_as_tensor
+from gymnasium import spaces
 
 
 # used to exclude these colors for other objects, in the order of goal, init, done, else
@@ -263,9 +264,6 @@ class GymEnv(CameraEnv):
         """
         Set observation space type, dimensions and range
         """
-        from gymnasium import spaces
-
-        # self._init_task_and_reward()
         if self.obs_space == "dict":
             goaldim = int(self.obsdim / 2) if self.obsdim % 2 == 0 else int(self.obsdim / 3)
             self.observation_space = spaces.Dict(
@@ -284,7 +282,6 @@ class GymEnv(CameraEnv):
         Set action space dimensions and range
         """
         self._init_task_and_reward() # we first need rddl to make a robot
-        from gymnasium import spaces
         action_dim = self.robot.get_action_dimension()
         if "step" in self.robot_action:
             self.action_low = np.array([-1] * action_dim)

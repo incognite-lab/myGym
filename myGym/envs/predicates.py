@@ -34,9 +34,9 @@ class IsReachable():
     def get_value(self, obj, robot):
         pass
 
-    
-    
-    
+
+
+
 def get_scale_from_urdf(pth):
     with open(pth) as f:
         lines = f.readlines()
