@@ -229,7 +229,7 @@ class GymEnv(CameraEnv):
         if self.framework == "ray":
             from gymnasium import spaces
         else:
-            from gym import spaces
+            from gymnasium import spaces
         if self.obs_space == "dict":
             goaldim = int(self.obsdim / 2) if self.obsdim % 2 == 0 else int(self.obsdim / 3)
             self.observation_space = spaces.Dict(
@@ -250,7 +250,7 @@ class GymEnv(CameraEnv):
         if self.framework == "ray":
             from gymnasium import spaces
         else:
-            from gym import spaces
+            from gymnasium import spaces
         action_dim = self.robot.get_action_dimension()
         if "step" in self.robot_action:
             self.action_low = np.array([-1] * action_dim)

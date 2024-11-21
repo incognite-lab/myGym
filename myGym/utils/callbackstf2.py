@@ -11,7 +11,7 @@ from typing import Union, List, Dict, Any, Optional
 from tqdm.auto import tqdm
 import numpy as np
 #import tensorflow as tf
-import gym
+import gymnasium as gym
 
 import warnings
 

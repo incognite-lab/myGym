@@ -1,6 +1,6 @@
 ## script to generate train/test sets from the simulator in COCO or DOPE format. Used for vision training.
 
-import gym
+import gymnasium as gym
 from myGym import envs
 from matplotlib.pyplot import imshow, show
 import cv2

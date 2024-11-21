@@ -4,14 +4,14 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import json, commentjson
-import gym
+import gymnasium as gym
 from myGym import envs
 import myGym.utils.cfg_comparator as cfg
 #from stable_baselines.common.policies import MlpPolicy
 #from stable_baselines.common import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv
 #from stable_baselines.bench import Monitor
-from myGym.utils import results_plotter
+#from myGym.utils import results_plotter
 from stable_baselines3.her import GoalSelectionStrategy #, HERGoalEnvWrapper
 # For now I am importing both with slightly modified names P-PyTorch T-TensorFlow
 #from stable_baselines import PPO1 as PPO1_T, PPO2 as PPO2_T, HER as HER_T, SAC as SAC_T
@@ -44,8 +44,8 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
         model_logdir = arg_dict["logdir"]
     print(f"model_logdir: {model_logdir}")
 
-    results_plotter.EPISODES_WINDOW = 100
-    results_plotter.plot_results([model_logdir], arg_dict["steps"], results_plotter.X_TIMESTEPS, arg_dict["algo"] + " " + arg_dict["env_name"] + " reward")
+    #results_plotter.EPISODES_WINDOW = 100
+    #results_plotter.plot_results([model_logdir], arg_dict["steps"], results_plotter.X_TIMESTEPS, arg_dict["algo"] + " " + arg_dict["env_name"] + " reward")
     plt.gcf().set_size_inches(8, 6)
     plt.savefig(os.path.join(model_logdir, model_name) + '_reward_results.png')
     #plot_extended_results(model_logdir, 'd', results_plotter.X_TIMESTEPS, arg_dict["algo"] + " " + arg_dict["env_name"] + " distance", "Episode Distances")
@@ -53,7 +53,7 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
     plt.savefig(os.path.join(model_logdir, model_name) + '_distance_results.png')
     plt.close()
     plt.close()
-    results_plotter.plot_curves([(np.arange(len(env.unwrapped.episode_final_distance)),np.asarray(env.unwrapped.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
+    #results_plotter.plot_curves([(np.arange(len(env.unwrapped.episode_final_distance)),np.asarray(env.unwrapped.episode_final_distance))],'episodes',arg_dict["algo"] + " " + arg_dict["env_name"] + ' final step distance')
     plt.gcf().set_size_inches(8, 6)
     plt.ylabel("Step Distances")
     plt.savefig(os.path.join(model_logdir, model_name) + "_final_distance_results.png")

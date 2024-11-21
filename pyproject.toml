@@ -22,7 +22,6 @@ dependencies = [
     "opencv-python==4.9.0.80",
     "pybullet==3.2.6",
     "open3d==0.18.0",
-    "gym==0.26.2",
     "tensorboard>=2.18.0",
     "torch=2.5.1",
     "torchvision>=0.17.1",

@@ -1,7 +1,7 @@
 from pickle import NONE
 import time
 import os
-import gym
+import gymnasium as gym
 import numpy as np
 from numpy.lib.function_base import append
 from myGym.utils.callbacks import SaveOnTopRewardCallback
