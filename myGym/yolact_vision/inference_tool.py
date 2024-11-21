@@ -9,7 +9,6 @@ import os
 import torch
 import cv2
 import numpy as np
-import importlib.resources as pkg_resources
 import dill
 import numpy as np
 
@@ -157,7 +156,7 @@ class InfTool:
         assert len(classes) == len(scores) == len(masks)
 
 
-        
+
         # also get centroids
         centroids = []
         for i in range(len(masks)):

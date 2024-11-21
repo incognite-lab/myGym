@@ -16,17 +16,18 @@ from pycocotools import mask
 import pybullet as p
 from bbox import BBox3D
 from myGym.envs.wrappers import RandomizedEnvWrapper
-import importlib.resources as pkg_resources
+import importlib.resources as resources
+
 
 # config, specify here or pass as an input argument
-CONFIG_DEFAULT = os.path.join(pkg_resources.files("myGym"), 'configs/dataset_coco.json')
+CONFIG_DEFAULT = resources.files("myGym").joinpath("configs/dataset_coco.json")
 
 # helper functions:
 def color_names_to_rgb():
     """
     Assign RGB colors to objects by name as specified in the training config file
     """
-    with open(pkg_resources.resource_filename("myGym", 'utils/rgbcolors.json'), "r") as read_file:
+    with open(resources.files("myGym").joinpath("utils/rgbcolors.json"), "r") as read_file:
         clr = json.load(read_file) #json file with suggested colors
         new_dict = {}
         for key, value in config['object_colors'].items():
@@ -51,7 +52,7 @@ def _category_coco_format(): #COCO
 def _segmentationToPoly(mask, ):
     """
     Convert segmentation from RLE to polynoms ([[x1 y1 x2 x2 y2 ...]]). Code from https://github.com/facebookresearch/Detectron/issues/100#issuecomment-362882830.
-    
+
     Parameters:
         :param mask: (array) Bitmap mask
         :return segmentationPoly: (list) Segmentation converted to polynoms
@@ -127,7 +128,7 @@ class GeneratorCoco: #COCO
             camera_resolution = config['camera_resolution'],
             renderer=p.ER_BULLET_HARDWARE_OPENGL,
             dataset = True,
-            ), 
+            ),
             config_path = config['output_folder']+'/config_dataset.json')
         p.setGravity(0, 0, -9.81)
         return env
@@ -498,7 +499,7 @@ if __name__ == "__main__":
         config_path = CONFIG_DEFAULT
         print('No config.json passed in argument. Loading default config: {}'.format(CONFIG_DEFAULT))
     else:
-        config_path = pkg_resources.resource_filename("myGym", sys.argv[1])
+        config_path = resources.files("myGym").joinpath(sys.argv[1])
     with open(config_path) as file:
         config = commentjson.load(file)
 
@@ -578,7 +579,7 @@ if __name__ == "__main__":
         env.reset(random_robot=config['random_arm_movement'], random_pos=True, hard=False)
         observation = env.get_observation()
         env_objects = observation["objects"]
-        
+
         for t in range(config['num_steps']): #loop through steps
             # randomize the movements of robots (using joint control)
             action = env.action_space.sample()
