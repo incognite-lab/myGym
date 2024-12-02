@@ -23,6 +23,8 @@ dependencies = [
     "pybullet==3.2.6",
     "open3d==0.18.0",
     "gym==0.26.2",
+    "stable-baselines3>=2.2.1",
+    "tensorboard>=2.15.2",
     "torch>=2.5.1",
     "torchvision>=0.20.1",
     "torchaudio>=2.5.1",
