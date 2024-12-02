@@ -512,7 +512,7 @@ class GymEnv(CameraEnv):
             :return info: (dict) Additional information about step
         """
         self._apply_action_robot(action)
-        print("robot action: {}".format(action))
+        print("robot action: {}".format(action), end="\r")
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
         if self.dataset:

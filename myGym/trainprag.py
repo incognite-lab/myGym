@@ -7,30 +7,12 @@ import json, commentjson
 import gymnasium as gym
 from myGym import envs
 import myGym.utils.cfg_comparator as cfg
-#from stable_baselines.common.policies import MlpPolicy
-#from stable_baselines.common import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv
-#from stable_baselines.bench import Monitor
-#from myGym.utils import results_plotter
 from stable_baselines3.her import GoalSelectionStrategy #, HERGoalEnvWrapper
-# For now I am importing both with slightly modified names P-PyTorch T-TensorFlow
-#from stable_baselines import PPO1 as PPO1_T, PPO2 as PPO2_T, HER as HER_T, SAC as SAC_T
-#from stable_baselines import TD3 as TD3_T, A2C as A2C_T, ACKTR as ACKTR_T, TRPO as TRPO_T
 try:
     from stable_baselines3 import PPO as PPO_P, A2C as A2C_P, SAC as SAC_P, TD3 as TD3_P
 except:
     print("Torch isn't probably installed correctly")
-
-# from myGym.stable_baselines_mygym.algo import MyAlgo
-# from myGym.stable_baselines_mygym.policies import MyMlpPolicy
-# from myGym.stable_baselines_mygym.TorchPPO import TorchPPO
-# from myGym.stable_baselines_mygym.TorchPPOpolicies import TorchMlpPolicy
-
-
-#from stable_baselines.gail import ExpertDataset, generate_expert_traj
-# from stable_baselines.sac.policies import MlpPolicy as MlpPolicySAC
-# #from stable_baselines.ddpg.policies import MlpPolicy as MlpPolicyDDPG
-# from stable_baselines.td3.policies import MlpPolicy as MlpPolicyTD3
 
 # Import helper classes and functions for monitoring
 from myGym.utils.callbackstf2 import ProgressBarManager, SaveOnBestTrainingRewardCallback, CustomEvalCallback
@@ -96,17 +78,6 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
 
 def configure_implemented_combos(env, model_logdir, arg_dict):
     implemented_combos = {"ppo":{}, "sac":{}, "td3":{}, "a2c":{}}
-    # implemented_combos = {"ppo2": {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]},
-    #                       "ppo": {"tensorflow": [PPO1_T, (MlpPolicy, env),  {"verbose": 1}],},
-    #                       "sac": {"tensorflow": [SAC_T, (MlpPolicySAC, env), {"verbose": 1}],},
-    #                       "td3": {"tensorflow": [TD3_T, (MlpPolicyTD3, env), {"verbose": 1}],},
-    #                       "acktr": {"tensorflow": [ACKTR_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]},
-    #                       "trpo": {"tensorflow": [TRPO_T, (MlpPolicy, env), {"verbose": 1}]},
-    #                       "a2c":    {"tensorflow": [A2C_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}],},
-    #                       "torchppo": {"tensorflow": [TorchPPO, (TorchMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]},
-    #                       "myalgo": {"tensorflow": [MyAlgo, (MyMlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]},
-    #                       "dual":   {"tensorflow": [PPO2_T, (MlpPolicy, env), {"n_steps": arg_dict["algo_steps"], "verbose": 1}]}}
-
     implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env), {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir}]
     implemented_combos["sac"]["pytorch"] = [SAC_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
     implemented_combos["td3"]["pytorch"] = [TD3_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
@@ -146,8 +117,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 
     start_time = time.time()
     callbacks_list = []
-    #auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env, engine=arg_dict["engine"], multiprocessing=arg_dict["multiprocessing"])
-    #callbacks_list.append(auto_save_callback)
+
     if arg_dict["eval_freq"]:
         eval_env = configure_env(arg_dict, model_logdir, for_train=False)
         eval_callback = CustomEvalCallback(eval_env, log_path=model_logdir,
@@ -156,16 +126,11 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
                                            record=arg_dict["record"],
                                            camera_id=arg_dict["camera"])
         callbacks_list.append(eval_callback)
-    # plotting_callback = PlottingCallback(model_logdir)
-    # with ProgressBarManager(total_timesteps=arg_dict["steps"]) as progress_callback:
-    #     callbacks_list.append(progress_callback)
+
     model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
     model.save(os.path.join(model_logdir, model_name))
     print("Training time: {:.2f} s".format(time.time() - start_time))
 
-    # info_keywords in monitor class above is neccessary for pybullet to save_results
-    # if arg_dict["engine"] == "pybullet":
-    #     save_results(arg_dict, model_name, env, model_logdir)
     return model
 
 def get_parser():
