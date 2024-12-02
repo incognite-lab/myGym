@@ -373,14 +373,14 @@ class GymEnv(CameraEnv):
             :return info: (dict) Additional information about step
         """
         self._apply_action_robot(action)
-        print("robot action: {}".format(action))
+        print("robot action: {}".format(action), end="\r")
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
         if self.dataset:
             reward, done, info = 0, False, {}
         else:
             reward = self.compute_reward()  # this uses rddl protoaction, no arguments needed
-            print("Reward by RDDL: {}".format(reward))
+            print("Reward by RDDL: {}".format(reward),end="\r")
             self.episode_reward += reward
             done = self.episode_over #@TODO replace with actual is_done value from RDDL
             info = {'d': 0.9, 'f': int(self.episode_failed),
