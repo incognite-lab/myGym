@@ -1,7 +1,8 @@
 import random
 import myGym.envs.scene_objects # allows binding with rddl
 from myGym.envs.scene_objects import TiagoGripper
-from rddl.rddl_sampler import RDDLWorld, RDDLTask
+from rddl.rddl_sampler import RDDLWorld
+from rddl.rddl_task import RDDLTask
 from rddl.entities import Gripper, ObjectEntity
 
 class TaskModule():
@@ -59,31 +60,32 @@ class TaskModule():
                 raise Exception("Entity {} not found by RDDL! Check scene_objects.py for this class".format(n_fixed))
         return list_of_classes
 
-    
     def create_new_task_sequence(self):
         '''Calls rddl to make a new sequence of actions (subtasks).'''
         n_samples = self.sample_num_subtasks()
-        task_sequence = self.rddl_world.sample_generator(n_samples)
-        self.current_task_sequence = task_sequence
+        # task_sequence = self.rddl_world.sample_generator(n_samples)
+        self.rddl_task = self.rddl_world.sample_world(n_samples)
+        self.current_task_sequence = self.rddl_task.get_generator()
         print("Generated a new action sequence")
 
     def get_next_task(self):
         '''When the previous action (subtask) is finished, this function will jump to the next one.'''
-        if self.current_task_sequence == None:
+        if self.current_task_sequence is None:
             # if there is no action sequence to follow, first make a new one
             self.create_new_task_sequence()
-        self.current_task = next(self.current_task_sequence)
-        print(f"Current task: {self.current_task}")
+        self.current_action = next(self.current_task_sequence)
+        print(f"Current task: {self.current_action}")
         print("Desired world state after action:")
-        self.rddl_world.show_world_state()
+        self.rddl_task.show_current_state()
 
     def build_scene_for_task_sequence(self):
-        '''After a new sequence of actions (subtasks) is created, this function will create the physical scene according to the 
+        '''After a new sequence of actions (subtasks) is created, this function will create the physical scene according to the
         symbolic template. '''
-        if self.current_task == None:
+        if self.current_action is None:
             # if there is no action sequence, first make a new one
             self.get_next_task()
-        scene_entities = self.rddl_world.get_created_variables()
+        # scene_entities = self.rddl_world.get_created_variables()
+        scene_entities = self.rddl_task.gather_objects()
         for entity in scene_entities:
             if issubclass(entity.type, Gripper) and not entity.is_bound():
                 robot = entity.type(self.env.robot_type, robot_action=self.env.robot_action, task_type=self.env.task_type, **self.env.robot_kwargs)
@@ -159,4 +161,4 @@ class TaskModule():
         self.current_task_length = None
         self.current_task_sequence = None
         self.subtask_over = False
-        self.current_task = None
+        self.current_action = None
