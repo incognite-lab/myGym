@@ -177,10 +177,15 @@ class GymEnv(CameraEnv):
             self.task = TaskModule(self, self.rddl_config["num_task_range"], self.rddl_config["protoactions"], self.rddl_config["allowed_objects"], self.rddl_config["allowed_predicates"], self.p)
             # generates task sequence and initializes scene with objects accordingly. The first action is set as self.task.current_task
             self.task.build_scene_for_task_sequence() # it also loads the robot. must be done his way so that rddl knows about the robot
-            self.reward = self.task.current_task.reward # reward class
-            self.compute_reward = self.task.current_task.reward # function that computes reward (no inputs needed, already bound to the objects)
+            self.reward = self.task.current_action.reward # reward class
+            self.compute_reward = self.task.current_action.reward # function that computes reward (no inputs needed, already bound to the objects)
             obs_entities = self.reward.get_relevant_entities() # does not work yet, must be done in rddl
             self.robot = self.task.rddl_robot # robot class as we know it
+
+            print(f"Initial condition is: {self.task.rddl_task.current_action.initial.decide()}")
+            print(f"Goal condition is: {self.task.rddl_task.current_action.goal.decide()}")
+
+            obs_entities = self.reward.get_relevant_entities() # does not work yet, must be done in rddl
         else:
             if self.unwrapped.reward == 'distractor':
                 self.has_distractor = True
@@ -194,6 +199,7 @@ class GymEnv(CameraEnv):
                 "5-network": {"AGRDW" : AaGaRaDaW},
                 "5-network": {"AGFDW" : AaGaFaDaW},
                 "5-network": {"AGTDW" : AaGaTaDaW}}
+
 
 
             scheme = "{}-network".format(str(self.num_networks))
@@ -210,7 +216,6 @@ class GymEnv(CameraEnv):
 
     def get_wrapper_attr(self, name: str) -> Any:
         return getattr(self.unwrapped, name)
-
 
     def _setup_scene(self):
         """
