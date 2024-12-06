@@ -148,7 +148,8 @@ class EnvObject(VisionModule):
             :return orientation: (array) Position ([x,y,z]) Orientation of object (quaternion [x,y,z,w])
         """
         if not self.virtual:
-            return self.p.getBasePositionAndOrientation(self.uid)
+            # return self.p.getBasePositionAndOrientation(self.uid)
+            return tuple(np.array(a) for a in self.p.getBasePositionAndOrientation(self.uid))
         else:
             return (self.init_position, self.init_orientation)
 

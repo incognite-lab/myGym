@@ -90,6 +90,9 @@ class Robot(EnvObject):
         """
         Load SDF or URDF model of specified robot and place it in the environment to specified position and orientation
         """
+        if self.robot_path.startswith('/'):  # leading slash indicates absolute path
+            self.robot_path = self.robot_path[1:]
+
         if self.robot_path[-3:] == 'sdf':
             objects = self.p.loadSDF(
                 str(resources.files("myGym").joinpath(self.robot_path)))
@@ -305,7 +308,7 @@ class Robot(EnvObject):
         self.observed_links_num = num
         return observation
 
-    def get_position(self):
+    def get_position(self) -> np.ndarray:
         """
         Get position of robot's end-effector link
 
@@ -314,8 +317,8 @@ class Robot(EnvObject):
         """
         #return self.get_accurate_gripper_position()
         #print(self.p.getLinkState(self.uid, self.end_effector_index)[0])
-        return self.p.getLinkState(self.uid, self.end_effector_index)[0]
-        
+        return np.array(self.p.getLinkState(self.uid, self.end_effector_index)[0])
+
     def get_orientation(self):
         """
         Get orientation of robot's end-effector link
