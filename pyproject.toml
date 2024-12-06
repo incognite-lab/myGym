@@ -24,7 +24,7 @@ dependencies = [
     "open3d==0.18.0",
     "stable-baselines3==2.4.0",
     "tensorboard>=2.18.0",
-    "torch=2.5.1",
+    "torch==2.5.1",
     "torchvision>=0.17.1",
     "torchaudio>=2.2.1",
     "matplotlib>=3.8.3",
