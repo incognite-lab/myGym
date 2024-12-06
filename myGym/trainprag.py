@@ -16,6 +16,8 @@ except:
 
 # Import helper classes and functions for monitoring
 from myGym.utils.callbackstf2 import ProgressBarManager, SaveOnBestTrainingRewardCallback, CustomEvalCallback
+import myGym
+
 
 # This is global variable for the type of engine we are working with
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
@@ -190,6 +192,11 @@ def get_parser():
 
 def get_arguments(parser):
     args = parser.parse_args()
+    if not os.path.exists(args.config):
+        # try looking in the package main dir
+        args.config = os.path.join(myGym.__path__[0], args.config)
+        if not os.path.exists(args.config):
+            raise ValueError("Could not find config file: {}".format(args.config))
     with open(args.config, "r") as f:
             arg_dict = commentjson.load(f)
     for key, value in vars(args).items():
