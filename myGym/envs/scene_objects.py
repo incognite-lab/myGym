@@ -33,7 +33,7 @@ mapping = {
     "euclidean_distance": euclidean_distance,
     "is_reachable": lambda g, o: True,
     "near_threshold": NEAR_THRESHOLD,
-    "gripper_at": lambda g, o: g.location == o.location,
+    "gripper_at": lambda g, o: all(g.location == o.location),
     "gripper_open": lambda g: np.random.random() < 0.5,
     "object_at": lambda g, o: g.location == o.location,
     "exists": lambda e: True,
