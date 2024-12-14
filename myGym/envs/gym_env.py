@@ -4,7 +4,7 @@ from typing import List
 from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
-from myGym.envs.base_env import CameraEnv
+from myGym.envs.base_env_debug import CameraEnv
 from collections import ChainMap
 
 from myGym.envs.env_object import EnvObject
@@ -310,7 +310,7 @@ class GymEnv(CameraEnv):
         """
         return [(sub + 1) * (h - l) / 2 + l for sub, l, h in zip(action, self.action_low, self.action_high)]
 
-    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False):
+    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False, seed = None):
         """
         Environment reset called at the beginning of an episode. Reset state of objects, robot, task and reward.
 
@@ -322,6 +322,7 @@ class GymEnv(CameraEnv):
         Returns:
             :return self._observation: (list) Observation data of the environment
         """
+        super().reset(seed=seed)
         if not only_subtask:
             self.task.rddl_robot.reset(random_robot=random_robot)
             super().reset(hard=hard)
@@ -330,14 +331,32 @@ class GymEnv(CameraEnv):
         #self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
-
+        info = {'d': 1, 'f': int(self.episode_failed),
+                'o': self._observation}
         if self.gui_on and self.nl_mode:
             if self.reach_gesture:
                 self.nl.set_current_subtask_description("reach there")
             self.nl_text_id = self.p.addUserDebugText(self.nl.get_previously_generated_subtask_description(), [2, 0, 1], textSize=1)
             if only_subtask and self.nl_text_id is not None:
                 self.p.removeUserDebugItem(self.nl_text_id)
-        return np.asarray(self._observation.copy(), dtype="float32")
+
+        return self.flatten_obs(self._observation.copy()), info
+
+    def shift_next_subtask(self):
+        # put current init and goal back in env_objects
+        self.env_objects["distractor"].extend([self.env_objects["actual_state"], self.env_objects["goal_state"]])
+        # set the next subtask objects as the actual and goal state and remove them from env_objects
+        self.env_objects["actual_state"] = self.env_objects["distractor"][0]
+        self.env_objects["goal_state"] = self.env_objects["distractor"][1]
+        del self.env_objects["distractor"][:2]
+        self.task_objects["distractor"] = self.env_objects["distractor"].copy()
+        # copy the state to task_objects and change colors
+        self.task_objects["actual_state"] = self.env_objects["actual_state"]
+        self.task_objects["goal_state"] = self.env_objects["goal_state"]
+        self.highlight_active_object(self.env_objects["actual_state"], "init")
+        self.highlight_active_object(self.env_objects["goal_state"], "goal")
+        for o in self.env_objects["distractor"][-2:]:
+            self.highlight_active_object(o, "done")
 
     def flatten_obs(self, obs):
         """ Returns the input obs dict as flattened list """
@@ -400,13 +419,14 @@ class GymEnv(CameraEnv):
             reward = self.compute_reward()  # this uses rddl protoaction, no arguments needed
             print("Reward by RDDL: {}".format(reward))
             self.episode_reward += reward
-            done = self.episode_over
+            terminated = self.episode_terminated
+            truncated = self.episode_terminated
             info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
-        if done: self.successful_finish(info)
+        if terminated or truncated: self.successful_finish(info) #Maybe only change to 'if terminated'?
         if self.task.subtask_over:
             self.reset(only_subtask=True)
-        return self.flatten_obs(self._observation.copy()), reward, done, info
+        return self.flatten_obs(self._observation.copy()), reward, terminated, truncated, info
 
 
     def get_linkstates_unpacked(self):

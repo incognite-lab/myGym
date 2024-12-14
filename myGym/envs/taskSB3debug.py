@@ -29,7 +29,6 @@ class TaskModule():
                  vae_path=None, yolact_path=None, yolact_config=None, distance_type='euclidean',
                  logdir=currentdir, env=None, number_tasks=None):
         self.task_type = task_type
-        print("task_type", self.task_type)
         self.distance_type = distance_type
         self.number_tasks = number_tasks
         self.current_task = 0
@@ -375,7 +374,6 @@ class TaskModule():
         #        self.env.episode_over = False
         if finished:
             if self.task_type == "dice_throw":
-
                 if finished == 1:
                     self.end_episode_fail("Finished with wrong dice result thrown")
                 return finished
@@ -387,15 +385,16 @@ class TaskModule():
             self.end_episode_fail("Vision fails repeatedly")
 
     def end_episode_fail(self, message):
-        self.env.episode_over = True
-        self.env.episode_failed = True
+        self.env.episode_truncated = True
+        self.env.episode_terminated = False
         self.env.episode_info = message
         self.env.robot.release_all_objects()
 
     def end_episode_success(self):
         # print("Finished subtask {}".format(self.current_task))
         if self.current_task == (self.number_tasks - 1):
-            self.env.episode_over = True
+            self.env.episode_terminated = True
+            self.env.episode_truncated = False
             self.env.robot.release_all_objects()
             self.current_task = 0
             if self.env.episode_steps == 1:
@@ -403,7 +402,8 @@ class TaskModule():
             else:
                 self.env.episode_info = "Task completed successfully"
         else:
-            self.env.episode_over = False
+            self.env.episode_terminated = False
+            self.env.episode_truncated = False
             self.env.robot.release_all_objects()
             self.subtask_over = True
             self.current_task += 1
