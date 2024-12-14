@@ -4,7 +4,7 @@ from typing import List
 from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
-from myGym.envs.base_env import CameraEnv
+from myGym.envs.base_env_debug import CameraEnv
 from collections import ChainMap
 
 from myGym.envs.env_object import EnvObject
@@ -299,7 +299,7 @@ class GymEnv(CameraEnv):
         """
         return [(sub + 1) * (h - l) / 2 + l for sub, l, h in zip(action, self.action_low, self.action_high)]
 
-    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False):
+    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False, seed = None):
         """
         Environment reset called at the beginning of an episode. Reset state of objects, robot, task and reward.
 
@@ -311,6 +311,7 @@ class GymEnv(CameraEnv):
         Returns:
             :return self._observation: (list) Observation data of the environment
         """
+        super().reset(seed=seed)
         if not only_subtask:
             self.robot.reset(random_robot=random_robot)
             super().reset(hard=hard)
@@ -408,7 +409,8 @@ class GymEnv(CameraEnv):
         self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
-
+        info = {'d': 1, 'f': int(self.episode_failed),
+                'o': self._observation}
         if self.gui_on and self.nl_mode:
             if self.reach_gesture:
                 self.nl.set_current_subtask_description("reach there")
@@ -416,7 +418,7 @@ class GymEnv(CameraEnv):
             if only_subtask and self.nl_text_id is not None:
                 self.p.removeUserDebugItem(self.nl_text_id)
 
-        return self.flatten_obs(self._observation.copy())
+        return self.flatten_obs(self._observation.copy()), info
 
     def shift_next_subtask(self):
         # put current init and goal back in env_objects
@@ -486,13 +488,14 @@ class GymEnv(CameraEnv):
         else:
             reward = self.reward.compute(observation=self._observation)
             self.episode_reward += reward
-            done = self.episode_over
+            terminated = self.episode_terminated
+            truncated = self.episode_terminated
             info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
-        if done: self.successful_finish(info)
+        if terminated or truncated: self.successful_finish(info) #Maybe only change to 'if terminated'?
         if self.task.subtask_over:
             self.reset(only_subtask=True)
-        return self.flatten_obs(self._observation.copy()), reward, done, info
+        return self.flatten_obs(self._observation.copy()), reward, terminated, truncated, info
 
     def compute_reward(self, achieved_goal, desired_goal, info):
         # @TODO: Reward computation for HER, argument for .compute()

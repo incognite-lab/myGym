@@ -8,7 +8,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import json, commentjson
-import gym
+import gymnasium as gym
 from gymnasium.wrappers import EnvCompatibility
 from myGym.envs.gym_env import GymEnv
 import myGym.utils.cfg_comparator as cfg
@@ -81,7 +81,8 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
     if arg_dict["algo"] == "her":
         env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
     else:
-        env = env_creator(env_arguments)
+        #env = env_creator(env_arguments)
+        env = gym.make(arg_dict["env_name"], **env_arguments)
         env.spec.max_episode_steps = 512
     if for_train:
         if arg_dict["engine"] == "mujoco":
@@ -113,7 +114,8 @@ def make_env(arg_dict: dict, rank: int, seed: int = 0, model_logdir = None) -> C
 
 
 def env_creator(env_config):
-    env = EnvCompatibility(GymEnv(**env_config))
+    #env = EnvCompatibility(GymEnv(**env_config))
+    env = gym.make(env_config["env_name"], **env_config)
     env.spec.max_episode_steps = 512
     return env
 
@@ -275,7 +277,7 @@ def get_parser():
     parser.add_argument("-l", "--logdir", type=str,  help="Where to save results of training and trained models")
     parser.add_argument("-r", "--record", type=int, help="1: make a gif of model perfomance, 2: make a video of model performance, 0: don't record")
     #Mujoco
-    parser.add_argument("-i", "--multiprocessing", default = 5, type=int, help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
+    parser.add_argument("-i", "--multiprocessing", type=int, help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
     parser.add_argument("-v", "--vectorized_envs", type=int,  help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
     #Paths
     parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")
@@ -290,6 +292,7 @@ def get_parser():
     #                          "and exit the program (without the actual training taking place). Expected values are \"description\" "
     #                          "(generate a task description) or \"new_tasks\" (generate new tasks)")
     return parser
+
 
 def get_arguments(parser):
     args = parser.parse_args()
@@ -351,6 +354,7 @@ def main():
     model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["task_type"],arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["algo"])))
     model_logdir = model_logdir_ori
     add = 2
+    gym.register("Gym-v0", GymEnv)
     while True:
         try:
             os.makedirs(model_logdir, exist_ok=False)

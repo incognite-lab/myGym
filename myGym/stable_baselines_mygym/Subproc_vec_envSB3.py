@@ -26,6 +26,7 @@ def _worker(
     from stable_baselines3.common.env_util import is_wrapped
 
     parent_remote.close()
+    print("THIS PRINT HAPPENS BEFORE PATCH ENV")
     env = _patch_env(env_fn_wrapper.var())
     reset_info: Optional[Dict[str, Any]] = {}
     while True:
@@ -98,7 +99,6 @@ class SubprocVecEnv(VecEnv):
         self.waiting = False
         self.closed = False
         n_envs = len(env_fns)
-
         if start_method is None:
             # Fork is not a thread safe method (see issue #217)
             # but is more user friendly (does not require to wrap the code in
@@ -106,21 +106,28 @@ class SubprocVecEnv(VecEnv):
             forkserver_available = "forkserver" in mp.get_all_start_methods()
             start_method = "forkserver" if forkserver_available else "spawn"
         ctx = mp.get_context(start_method)
+        #TODO: remove these prints
 
         self.remotes, self.work_remotes = zip(*[ctx.Pipe() for _ in range(n_envs)])
+
         self.processes = []
+        print("BEFORE STARTING PROCESSES REMOTES/PIPES:")
         for work_remote, remote, env_fn in zip(self.work_remotes, self.remotes, env_fns):
             args = (work_remote, remote, CloudpickleWrapper(env_fn))
             # daemon=True: if the main process crashes, we should not cause things to hang
             process = ctx.Process(target=_worker, args=args, daemon=True)  # type: ignore[attr-defined]
             process.start()
+
             self.processes.append(process)
+
             work_remote.close()
 
+        print("AFTER CLOSING WORK_REMOTES")
         self.remotes[0].send(("get_spaces", None))
         observation_space, action_space = self.remotes[0].recv()
 
         super().__init__(len(env_fns), observation_space, action_space)
+
 
     def step_async(self, actions: np.ndarray) -> None:
         for remote, action in zip(self.remotes, actions):
