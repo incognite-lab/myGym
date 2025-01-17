@@ -38,12 +38,12 @@
     "yolact_path"   :null,
     "yolact_config" :null,
     #Train
-    "train_framework"   :"pytorch",
-    "algo"              :"multippo",
+    "train_framework"   :"multippo",
+    "algo"              :"ppo",
     "num_networks"      :3,
     "max_episode_steps" :512,
     "algo_steps"        :512,
-    "steps"             :10000000,
+    "steps"             :2500,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
