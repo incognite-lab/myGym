@@ -24,7 +24,7 @@ from gymnasium.wrappers import EnvCompatibility
 from sklearn.model_selection import ParameterGrid
 
 from myGym.envs.gym_env import GymEnv
-from myGym.eval_results_average import average_results
+#from myGym.eval_results_average import average_results
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -290,65 +290,11 @@ def get_parser():
     parser.add_argument("-yc", "--yolact_config", type=str, help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
     parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
     #Language
-    # parser.add_argument("-nl", "--natural_language", type=str, default="",
-    #                     help="If passed, instead of training the script will produce a natural language output "
-    #                          "of the given type, save it to the predefined file (for communication with other scripts) "
-    #                          "and exit the program (without the actual training taking place). Expected values are \"description\" "
-    #                          "(generate a task description) or \"new_tasks\" (generate new tasks)")
-    parser.add_argument("-ba", "--robot_action", default=["joints"], nargs='*', help="Robot's action control")
-    # parser.add_argument("-ufeeo", "--use_fixed_end_effector_orn", default=0, help="Whether to use fixed end effector orientation")
-    # parser.add_argument("-eeo", "--end_effector_orn", default=[-3.69159265359, -2.24159265359, -1], help="Fixed end effector orientation (only if use_fixed_end_effector_orn set to True)")
-    parser.add_argument("-mv", "--max_velocity", default=[3], nargs='*', help="Arm speed")
-    parser.add_argument("-mf", "--max_force", default=[100], nargs='*', help="Arm force")
-    parser.add_argument("-ar", "--action_repeat", default=[1], nargs='*', help="Simulation substeps without action")
-
-    # Task
-    parser.add_argument("-tt", "--task_type", default=["reach"], nargs='*', help="Task type to learn")
-    parser.add_argument("-to", "--task_objects", nargs="*", type=str, help="Objects to manipulate")
-    parser.add_argument("-u", "--used_objects", nargs="*", type=str, help="Extra objects to appear in the scene")
-
-    # Distractors
-    parser.add_argument("-di", "--distractors", type=str, help="Object to evade")
-    parser.add_argument("-dm", "--distractor_moveable", type=int, help="Can distractor move: 0 or 1")
-    parser.add_argument("-ds", "--distractor_constant_speed", type=int, help="Is speed of distractor constant: 0 or 1")
-    parser.add_argument("-dd", "--distractor_movement_dimensions", type=int, help="Movement directions: 1, 2, or 3")
-    parser.add_argument("-de", "--distractor_movement_endpoints", nargs="*", type=float, help="Movement endpoints")
-    parser.add_argument("-no", "--observed_links_num", type=int, help="Number of robot links in observation space")
-
-    # Reward
-    parser.add_argument("-re", "--reward", type=str, help="Reward computation method")
-    parser.add_argument("-dt", "--distance_type", type=str, help="Distance metrics type: euclidean, manhattan")
-
-    # Train
-    parser.add_argument("-w", "--train_framework", default=["tensorflow"], nargs='*', help="Training framework")
-    parser.add_argument("-a", "--algo", default=["ppo2"], nargs='*', help="Algorithms to test")
-    parser.add_argument("-s", "--steps", type=int, help="Number of training steps")
-    parser.add_argument("-ms", "--max_episode_steps", type=int, help="Maximum steps per episode")
-    parser.add_argument("-ma", "--algo_steps", type=int, help="Steps per algorithm training")
-
-    # Evaluation
-    parser.add_argument("-ef", "--eval_freq", type=int, help="Evaluation frequency in steps")
-    parser.add_argument("-e", "--eval_episodes", type=int, help="Number of evaluation episodes")
-
-    # Saving and Logging
-    parser.add_argument("-l", "--logdir", type=str, default="./trained_models/reach", help="Directory to save results")
-    parser.add_argument("-r", "--record", type=int, help="Record performance: 1 for gif, 2 for video, 0 for none")
-
-    # Mujoco
-    parser.add_argument("-i", "--multiprocessing", type=int,
-                        help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
-    parser.add_argument("-v", "--vectorized_envs", type=int,
-                        help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
-
-    # Paths
-    parser.add_argument("-m", "--model_path", type=str, help="Path to the trained model")
-    parser.add_argument("-vp", "--vae_path", type=str, help="Path to a trained VAE")
-    parser.add_argument("-yp", "--yolact_path", type=str, help="Path to a trained Yolact")
-    parser.add_argument("-yc", "--yolact_config", type=str, help="Path to Yolact config or name in data/Config script")
-    parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model for continued training")
-    parser.add_argument("-thread", "--threaded", type=bool, default=True, help="Run in threads")
-    parser.add_argument("-out", "--output", type=str, default="./trained_models/multitester.json", help="Output file")
-
+    parser.add_argument("-nl", "--natural_language", type=str, default="",
+                        help="If passed, instead of training the script will produce a natural language output "
+                             "of the given type, save it to the predefined file (for communication with other scripts) "
+                             "and exit the program (without the actual training taking place). Expected values are \"description\" "
+                             "(generate a task description) or \"new_tasks\" (generate new tasks)")
     return parser
 
 
@@ -497,9 +443,6 @@ def main():
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
 
-    if len(parameters) != 0 or arg_dict["multiprocessing"]:
-        print("THREADING")
-        multi_main(arg_dict, args.config, commands, parameters)
 
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
@@ -509,8 +452,7 @@ def main():
 
     model_logdir = model_logdir_ori
     add = 2
-    if not arg_dict["multiprocessing"]:
-        gym.register("Gym-v0", GymEnv)
+    gym.register("Gym-v0", GymEnv)
     while True:
         try:
             os.makedirs(model_logdir, exist_ok=False)
@@ -519,14 +461,16 @@ def main():
             model_logdir = "_".join((model_logdir_ori, str(add)))
             add += 1
 
-    env = configure_env(arg_dict, model_logdir, for_train=True)
-    print("env:", env)
+    if arg_dict["multiprocessing"]:
+        NUM_CPU = int(arg_dict["multiprocessing"])
+        env = SubprocVecEnv([make_env(arg_dict, i, model_logdir=model_logdir) for i in range(NUM_CPU)])
+        env = VecMonitor(env, model_logdir)
+    else:
+        env = configure_env(arg_dict, model_logdir, for_train=1)
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
     train(env, implemented_combos, model_logdir, arg_dict, arg_dict["pretrained_model"])
     print(model_logdir)
 
-    if "multi" in arg_dict["logdir"]:
-        average_results(arg_dict["logdir"])
 
 
 if __name__ == "__main__":
