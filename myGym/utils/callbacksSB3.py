@@ -1,30 +1,18 @@
-#from stable_baselines.results_plotter import load_results, ts2xy
-from stable_baselines3.common.results_plotter import load_results, ts2xy
-from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
-#from stable_baselines.common.callbacks import BaseCallback, EvalCallback
-import pprint
-
-import os
-import matplotlib.pyplot as plt
 import json
-import imageio
-
-# from pygifsicle import optimize
-from typing import Union, List, Dict, Any, Optional
-from tqdm.auto import tqdm
-import numpy as np
-#import tensorflow as tf
-import gym
-import pybullet as p
-from numpy import matrix
+import os
 import warnings
+from typing import Union, Optional
 
-#from stable_baselinesš.common.vec_env import VecEnv, sync_envs_normalization, DummyVecEnv
+import gym
+import imageio
+import matplotlib.pyplot as plt
+import numpy as np
+from numpy import matrix
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
+from stable_baselines3.common.results_plotter import load_results, ts2xy
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor, VecEnv, sync_envs_normalization
-from stable_baselines3.common.evaluation import evaluate_policy
+from tqdm.auto import tqdm
 
-
-# tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 class CustomEvalCallback(EvalCallback):
     """
@@ -36,8 +24,8 @@ class CustomEvalCallback(EvalCallback):
     :param eval_freq: (int) Evaluate the agent every eval_freq call of the callback.
     :param log_path: (str) Path to a folder where the evaluations (`evaluations.npz`)
         will be saved. It will be updated at each evaluation.
-    :param best_model_save_path: (str) Path to a folder where the best model
-        according to performance on the eval env will be saved.
+    :param best_model_save_path: (str) Path to a folder where the best model,
+        according to performance on the eval env, will be saved.
     :param deterministic: (bool) Whether the evaluation should
         use a stochastic or deterministic actions.
     :param render: (bool) Whether to render or not the environment during evaluation
@@ -59,7 +47,7 @@ class CustomEvalCallback(EvalCallback):
                  record=False,
                  camera_id=0,
                  record_steps_limit=256,
-                 num_cpu = 1):  # pybullet or mujoco
+                 num_cpu=1):  # pybullet or mujoco
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.algo_steps = algo_steps
@@ -74,18 +62,8 @@ class CustomEvalCallback(EvalCallback):
         self.camera_id = camera_id
         self.record_steps_limit = record_steps_limit
         self.is_tb_set = False
-        # print("eval_env:", eval_env)
-        # Convert to VecEnv for consistency
-        # if not isinstance(eval_env, VecEnv):
-        #     eval_env = DummyVecEnv([lambda: eval_env])
-
-        # assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
-
         self.eval_env = eval_env
         self.best_model_save_path = best_model_save_path
-        # # Logs will be written in `evaluations.npz`
-        # if log_path is not None:
-        #     log_path = os.path.join(log_path, 'evaluations')
         self.log_path = log_path
         self.evaluations_results = {}
         self.evaluations_timesteps = []
@@ -95,13 +73,9 @@ class CustomEvalCallback(EvalCallback):
     def evaluate_policy(
             self,
             model: None,
-            # env: Union[gym.Env, VecEnv],
             n_eval_episodes: int = 10,
             deterministic: bool = False,
     ):
-
-        #if isinstance(self.eval_env, VecEnv):
-            #assert self.eval_env.num_envs == 1, "You must pass only one environment when using this function"
 
         success_episodes_num = 0
         distance_error_sum = 0
@@ -114,7 +88,6 @@ class CustomEvalCallback(EvalCallback):
         subrewsuccess = []
         print("---Evaluation----")
         for e in range(n_eval_episodes):
-            # print("connection info pre-reset:", p.getConnectionInfo())
             # Avoid double reset, as VecEnv are reset automatically
             if not isinstance(self.eval_env, VecEnv) or e == 0:
                 if isinstance(self.eval_env, VecMonitor):
@@ -131,32 +104,23 @@ class CustomEvalCallback(EvalCallback):
             if isinstance(self.eval_env, VecMonitor):
                 # During multiprocess training, evaluation environment needs to be accessed differently
                 evaluation_env = self.eval_env.get_attr("env")[0]
-                #evaluation_env = self.eval_env
-                #pprint.pp(evaluation_env.get_attr("env"))
             else:
                 evaluation_env = self.eval_env.env.env
 
-
-            # print("evaluation env:", evaluation_env)
-
             srewardsteps = np.zeros(evaluation_env.reward.num_networks)
             srewardsuccess = np.zeros(evaluation_env.reward.num_networks)
-            # print("connection info:", p.getConnectionInfo())
             while not done:
                 steps_sum += 1
                 action, state = model.predict(obs, deterministic=deterministic)
                 if isinstance(self.eval_env, VecMonitor):
                     obs, reward, done, info = self.eval_env.step(action)
                 else:
-                    obs, reward, done, _ , info = self.eval_env.step(action)
+                    obs, reward, done, _, info = self.eval_env.step(action)
                 if len(np.shape(action)) == 2:
-                    action = action[0, :]
                     info = info[0]
                     reward = reward[0]
                     done = done[0]
-                #
-                # evaluation_env.p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),5))}",
-                # [.8, .5, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
+
                 if evaluation_env.p.getConnectionInfo()["isConnected"] != 0:
                     evaluation_env.p.addUserDebugText(
                         f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']), 5))}",
@@ -176,10 +140,7 @@ class CustomEvalCallback(EvalCallback):
                     evaluation_env.p.addUserDebugText(f"Step:{steps}",
                                                       [.8, .5, 0.55], textSize=1.0, lifeTime=0.5,
                                                       textColorRGB=[0.2, 0.8, 1])
-                # print(f"Network:{self.eval_env.env.reward.current_network})
                 episode_reward += reward
-                # Info is list with dict inside
-                # info = info[0]
                 is_successful = not info['f']
                 if evaluation_env.reward.current_network != last_network:
                     srewardsteps.put([last_network], steps - last_steps)
@@ -211,7 +172,6 @@ class CustomEvalCallback(EvalCallback):
         if self.record:
             gif_path = os.path.join(self.log_path, "last_eval_episode_after_{}_steps.gif".format(self.n_calls))
             imageio.mimsave(gif_path, [np.array(img) for i, img in enumerate(images) if i % 2 == 0], fps=15)
-            # optimize(gif_path)
             os.system('./utils/gifopt -O3 --lossy=5 -o {dest} {source}'.format(source=gif_path, dest=gif_path))
             print("Record saved to " + gif_path)
 
@@ -221,7 +181,7 @@ class CustomEvalCallback(EvalCallback):
         meansgoals = np.count_nonzero(srsu) / evaluation_env.reward.num_networks / n_eval_episodes * 100
 
         results = {
-            "episode": "{}".format(self.n_calls),
+            "episode": "{}".format(self.n_calls*self.num_cpu),
             "n_eval_episodes": "{}".format(n_eval_episodes),
             "success_episodes_num": "{}".format(success_episodes_num),
             "success_rate": "{}".format(success_episodes_num / n_eval_episodes * 100),
@@ -239,49 +199,12 @@ class CustomEvalCallback(EvalCallback):
         for k, v in results.items():
             print(k, ':', v)
 
-        # print ("mean subtasks finished:{}".format(meansgoals))
-
-        # if not self.is_tb_set:
-        #    with self.model.graph.as_default():
-        #        tf.summary.scalar('value_target', tf.reduce_mean(self.model.value_target))
-        #        self.model.summary = tf.summary.merge_all()
-        #    self.is_tb_set = True
-
-        # from HERE
-        '''summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/1.Episode_success', simple_value=(success_episodes_num/n_eval_episodes*100))])
-        self.locals['writer'].add_summary(summary, self.num_timesteps)
-        summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/3.Mean_distance_error', simple_value=(distance_error_sum / n_eval_episodes))])
-        self.locals['writer'].add_summary(summary, self.num_timesteps)
-        summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/4.Mean_step_num', simple_value=(steps_sum // n_eval_episodes))])
-        self.locals['writer'].add_summary(summary, self.num_timesteps)
-        summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/2.Mean_reward', simple_value=np.mean(episode_rewards))])
-        self.locals['writer'].add_summary(summary, self.num_timesteps)
-        summary = tf.Summary(value=[tf.Summary.Value(tag='Evaluation/2.Mean_sgoals', simple_value=meansgoals)])
-        self.locals['writer'].add_summary(summary, self.num_timesteps)
-
-        for i in range (self.eval_env.env.task.number_tasks):
-            #print("Task: {}".format(i)) 
-            for j, (k,l) in enumerate(zip(meansr,meansrs)):  
-                m = np.count_nonzero(srsu[:,j])/n_eval_episodes*100
-                #print("Reward {}: {} , steps: {} , Success: {}".format(j, k, l, m )) 
-                summary = tf.Summary(value=[tf.Summary.Value(tag='Task{}/Subgoal{}/Reward'.format(i,j),
-                                                                              simple_value=k)])
-                self.locals['writer'].add_summary(summary, self.num_timesteps)
-                summary = tf.Summary(value=[tf.Summary.Value(tag='Task{}/Subgoal{}/Steps'.format(i,j),
-                                                                              simple_value=l)])
-                self.locals['writer'].add_summary(summary, self.num_timesteps)
-                summary = tf.Summary(value=[tf.Summary.Value(tag='Task{}/Subgoal{}/Success'.format(i,j),
-                                                                              simple_value=m)])
-                self.locals['writer'].add_summary(summary, self.num_timesteps)
-'''
-        # to HERE
         self.eval_env.reset()
         print("Evaluation finished successfully")
         return results
 
-
     def _init_callback(self):
-        # Does not work in some corner cases, where the wrapper is not the same
+        # Does not work in some corner cases, where the wrapper is different
         if not type(self.training_env) is type(self.eval_env):
             warnings.warn("Training and eval env are not of the same type"
                           "{} != {}".format(self.training_env, self.eval_env))
@@ -293,8 +216,8 @@ class CustomEvalCallback(EvalCallback):
             os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
 
     def _on_step(self) -> bool:
-        actual_calls = self.n_calls*self.num_cpu
-        if self.eval_freq > 0 and actual_calls % self.eval_freq == 0:
+        actual_calls = self.n_calls * self.num_cpu
+        if (self.eval_freq > 0 and actual_calls % self.eval_freq == 0) or actual_calls == 1:
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
 
@@ -318,13 +241,13 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
     :param check_freq: (int)
     :param args.logdir: (str) Path to the folder where the model will be saved.
-      It must contains the file created by the ``Monitor`` wrapper.
+      It must contain the file created by the ``Monitor`` wrapper.
     :param verbose: (int)
     :args.engine (str) Name of our current simulation engine we are using
     :param env: (gym environment)
     :stats_every (int) How often to create new datapoints for mujoco graph in episodes
     :save_success_graph_every_steps (int) How often to save graph plotting
-    successfull episodes (mujoco)
+    successful episodes (mujoco)
     :save_model_every_steps (int) How often in steps to save our model
     :success_graph_mean_past_episodes (int) How many past episodes will be
     taken into account when calculating average success rate (mujoco)
@@ -367,16 +290,14 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
             if episode:
                 # Average training reward over the last 'self.STATS_EVERY' episodes
                 average_reward = np.mean(y[-self.STATS_EVERY:])
-                # Save the new best model (with best average reward)
+                # Save the new best model (with the best average reward)
                 if average_reward > self.best_average_reward:
                     self.best_average_reward = average_reward
-                    # if self.verbose > 0:
-                    # print("Saving new best model to {}".format(self.save_path))
                     self.model.save(self.save_path)
 
                 if self.engine == "mujoco":  # Mujoco has additional prints
                     # Temporal workaround multiprocessing
-                    if not self.multiprocessing and self.verbose > 0:
+                    if not self.num_cpu==1 and self.verbose > 0:
                         # Current success rate over the last 'self.STATS_EVERY' episodes
                         current_success_rate = np.mean(self.env.successfull_failed_episodes[-self.STATS_EVERY:])
                         print(f"Best average reward: {self.best_average_reward:.2f} \
@@ -388,7 +309,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
         if self.engine == "mujoco":
             # Save graph of success rate every 'self.save_success_graph_every_steps'.
-            if self.n_calls % self.save_success_graph_every_steps == 0 and not self.multiprocessing:
+            if actual_calls % self.save_success_graph_every_steps == 0 and self.num_cpu==1:
                 # Save graph
                 generate_and_save_mean_graph_from_1_or_2arrays(
                     data_array_1=self.env.successfull_failed_episodes,
@@ -415,7 +336,7 @@ class ProgressBarCallback(BaseCallback):
         self._pbar.update(0)
 
 
-# This callback uses the 'with' block, allowing for correct initialisation and destruction
+# This callback uses the 'with' block, allowing for correct initialization and destruction
 class ProgressBarManager(object):
     def __init__(self, total_timesteps):  # Init object with total timesteps
         self.pbar = None
@@ -444,7 +365,7 @@ class PlottingCallback(BaseCallback):
         self._plot = None
         self.logdir = logdir
 
-    def _on_step(self) -> bool:
+    def _on_step(self):
         # get the monitor's data
         x, y = ts2xy(load_results(self.logdir), 'timesteps')
         if self._plot is None:  # Make the plot
@@ -465,24 +386,22 @@ class PlottingCallback(BaseCallback):
 
 
 # This function is imported and called from another file. We can plot data along
-# 2 axis. This function plots 1 or 2 types of data on y axis
+# 2 axes. This function plots 1 or 2 types of data on y-axis
 # x-axis is usually 'episodes' but it represents the total amount of datapoints in our array,
-# y-axis is usually 'success_rate' and/or 'XXX' and represents mean value of our data on some index
+# y-axis is usually 'success_rate' and/or 'XXX' and represents the mean value of our data on some index
 # in our array over some amount of past values ->  'average_x_axis_span'. We will calculate
 # average from the last 'average_x_axis_span' and plot it to y-axis
 def generate_and_save_mean_graph_from_1_or_2arrays(data_array_1=[], data_array_2=None,
                                                    save_dir="", average_x_axis_span=20,
                                                    axis_x_name="episodes", axis_y_names=["success_rate"]):
-    # Initialize storage array
-
+    # Initialize a storage array
     data_to_plot = {axis_x_name: [], axis_y_names[0]: []}
     if data_array_2 is not None:
         data_to_plot = {axis_x_name: [], axis_y_names[0]: [], axis_y_names[1]: []}
 
-    x_axis_length = len(data_array_1)  # Total episode count takenn from array 1
+    x_axis_length = len(data_array_1)  # Total episode count taken from array 1
     # x_axis_counter <==> f.e. episodes
     for x_axis_counter in range(x_axis_length):  # Iterate through every 'episode'/datapoint
-
         # Add data to plotter
         if (x_axis_counter % average_x_axis_span) == 0:
             # Average data over last 'average_episodes_span'
@@ -533,7 +452,7 @@ class SaveOnTopRewardCallback(BaseCallback):
 
     :param check_freq: (int)
     :param args.logdir: (str) Path to the folder where the model will be saved.
-      It must contains the file created by the ``Monitor`` wrapper.
+      It must contain the file created by the ``Monitor`` wrapper.
     :param verbose: (int)
     """
 
@@ -547,7 +466,6 @@ class SaveOnTopRewardCallback(BaseCallback):
     def _on_rollout_end(self) -> bool:
         if self.n_calls % self.check_freq == 0:
             x, y = ts2xy(load_results(self.logdir), 'timesteps')
-
             episode = len(y)  # Current episode
             if episode:
                 i = 0
@@ -558,6 +476,5 @@ class SaveOnTopRewardCallback(BaseCallback):
                         if self.verbose > 0:
                             print("Saving new most rewarded model to {}".format(self.save_path))
                         submodel.save(self.save_path, i)
-
                     i += 1
         return True
