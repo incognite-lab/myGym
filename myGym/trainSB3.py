@@ -354,7 +354,8 @@ def main():
     model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["task_type"],arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["algo"])))
     model_logdir = model_logdir_ori
     add = 2
-    gym.register("Gym-v0", GymEnv)
+    if not arg_dict["multiprocessing"]:
+        gym.register("Gym-v0", GymEnv)
     while True:
         try:
             os.makedirs(model_logdir, exist_ok=False)

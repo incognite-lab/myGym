@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, U
 
 import gymnasium as gym
 import numpy as np
-from gymnasium import spaces
+from gymnasium import spaces, registry
 
 from stable_baselines3.common.vec_env.base_vec_env import (
     CloudpickleWrapper,
@@ -26,7 +26,6 @@ def _worker(
     from stable_baselines3.common.env_util import is_wrapped
 
     parent_remote.close()
-    print("THIS PRINT HAPPENS BEFORE PATCH ENV")
     env = _patch_env(env_fn_wrapper.var())
     reset_info: Optional[Dict[str, Any]] = {}
     while True:
@@ -98,6 +97,7 @@ class SubprocVecEnv(VecEnv):
     def __init__(self, env_fns: List[Callable[[], gym.Env]], start_method: Optional[str] = None):
         self.waiting = False
         self.closed = False
+        self.registry = gym.envs.registry
         n_envs = len(env_fns)
         if start_method is None:
             # Fork is not a thread safe method (see issue #217)
@@ -106,12 +106,10 @@ class SubprocVecEnv(VecEnv):
             forkserver_available = "forkserver" in mp.get_all_start_methods()
             start_method = "forkserver" if forkserver_available else "spawn"
         ctx = mp.get_context(start_method)
-        #TODO: remove these prints
 
         self.remotes, self.work_remotes = zip(*[ctx.Pipe() for _ in range(n_envs)])
 
         self.processes = []
-        print("BEFORE STARTING PROCESSES REMOTES/PIPES:")
         for work_remote, remote, env_fn in zip(self.work_remotes, self.remotes, env_fns):
             args = (work_remote, remote, CloudpickleWrapper(env_fn))
             # daemon=True: if the main process crashes, we should not cause things to hang
@@ -122,7 +120,6 @@ class SubprocVecEnv(VecEnv):
 
             work_remote.close()
 
-        print("AFTER CLOSING WORK_REMOTES")
         self.remotes[0].send(("get_spaces", None))
         observation_space, action_space = self.remotes[0].recv()
 
