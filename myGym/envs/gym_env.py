@@ -4,7 +4,7 @@ from typing import List
 from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
-from myGym.envs.base_env_debug import CameraEnv
+from myGym.envs.base_env import CameraEnv
 from collections import ChainMap
 
 from myGym.envs.env_object import EnvObject
@@ -235,10 +235,7 @@ class GymEnv(CameraEnv):
         """
         Set observation space type, dimensions and range
         """
-        if self.framework == "ray" or self.framework == "SB3":
-            from gymnasium import spaces
-        else:
-            from gym import spaces
+        from gymnasium import spaces
 
         self._init_task_and_reward()
         if self.obs_space == "dict":
@@ -257,10 +254,7 @@ class GymEnv(CameraEnv):
         """
         Set action space dimensions and range
         """
-        if self.framework == "ray" or self.framework == "SB3":
-            from gymnasium import spaces
-        else:
-            from gym import spaces
+        from gymnasium import spaces
         action_dim = self.robot.get_action_dimension()
         if "step" in self.robot_action:
             self.action_low = np.array([-1] * action_dim)
@@ -311,7 +305,7 @@ class GymEnv(CameraEnv):
         Returns:
             :return self._observation: (list) Observation data of the environment
         """
-        super().reset(seed=seed)
+        #super().reset(seed=seed)
         if not only_subtask:
             self.robot.reset(random_robot=random_robot)
             super().reset(hard=hard)
@@ -417,7 +411,6 @@ class GymEnv(CameraEnv):
             self.nl_text_id = self.p.addUserDebugText(self.nl.get_previously_generated_subtask_description(), [2, 0, 1], textSize=1)
             if only_subtask and self.nl_text_id is not None:
                 self.p.removeUserDebugItem(self.nl_text_id)
-
         return self.flatten_obs(self._observation.copy()), info
 
     def shift_next_subtask(self):
@@ -489,10 +482,11 @@ class GymEnv(CameraEnv):
             reward = self.reward.compute(observation=self._observation)
             self.episode_reward += reward
             terminated = self.episode_terminated
-            truncated = self.episode_terminated
+            truncated = self.episode_truncated
             info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
-        if terminated or truncated: self.successful_finish(info) #Maybe only change to 'if terminated'?
+        if terminated or truncated:
+            self.successful_finish(info) #Maybe only change to 'if terminated'?
         if self.task.subtask_over:
             self.reset(only_subtask=True)
         return self.flatten_obs(self._observation.copy()), reward, terminated, truncated, info

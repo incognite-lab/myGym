@@ -236,7 +236,6 @@ class TaskModule():
         if self.current_norm_distance < threshold and self.current_norm_rotation < threshold:
             return True
         return False
-
     
     def get_dice_value(self, quaternion):
         def noramalize(q):
@@ -272,9 +271,6 @@ class TaskModule():
         if len(observation)<3:
             print("Invalid",observation)
         x = np.array(observation["actual_state"][3:])
-        
-        #print(observation)
-        
         if not self.check_distance_threshold(self._observation) and self.env.episode_steps > 25:
             if calc_still(observation["actual_state"], self.stored_observation):
                 if (self.stored_observation == observation["actual_state"]):
@@ -294,7 +290,6 @@ class TaskModule():
         else:
             self.stored_observation = observation["actual_state"]
             self.writebool = True
-            #print(self.get_dice_value(x))
             return 0
 
     def check_points_distance_threshold(self, threshold=0.1):
@@ -373,21 +368,21 @@ class TaskModule():
                 return finished
             self.end_episode_success()
         if self.check_time_exceeded() or self.env.episode_steps == self.env.max_episode_steps:
+
             self.end_episode_fail("Max amount of steps reached")
         if "ground_truth" not in self.vision_src and (self.check_vision_failure()):
             self.stored_observation = []
             self.end_episode_fail("Vision fails repeatedly")
 
     def end_episode_fail(self, message):
-        self.env.episode_over = True
+        self.env.episode_truncated= True
         self.env.episode_failed = True
         self.env.episode_info = message
         self.env.robot.release_all_objects()
 
     def end_episode_success(self):
-        #print("Finished subtask {}".format(self.current_task))
         if self.current_task == (self.number_tasks-1):
-            self.env.episode_over = True
+            self.env.episode_terminated = True
             self.env.robot.release_all_objects()
             self.current_task = 0
             if self.env.episode_steps == 1:
@@ -395,7 +390,7 @@ class TaskModule():
             else:
                 self.env.episode_info = "Task completed successfully"
         else:
-            self.env.episode_over = False
+            self.env.episode_terminated = False
             self.env.robot.release_all_objects()
             self.subtask_over = True
             self.current_task += 1

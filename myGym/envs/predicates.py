@@ -39,7 +39,7 @@ def get_scale_from_urdf(pth):
 
 
 if __name__ == '__main__':
-    import gym
+    import gymnasium as gym
     from myGym.train import configure_env, get_parser, get_arguments
     from myGym import envs
     parser = get_parser()

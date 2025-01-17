@@ -4,7 +4,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import json, commentjson
-import gym
+import gymnasium as gym
 from myGym import envs
 import myGym.utils.cfg_comparator as cfg
 from stable_baselines.common.policies import MlpPolicy

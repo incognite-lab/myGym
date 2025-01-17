@@ -4,9 +4,9 @@ import pybullet
 import pybullet_utils.bullet_client as bc
 import time
 import numpy as np
-from gym.utils import seeding
+from gymnasium.utils import seeding
 import gymnasium as gym
-from gym import envs
+from gymnasium import envs
 import inspect
 from myGym.envs.camera import Camera
 import pkg_resources

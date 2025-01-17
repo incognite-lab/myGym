@@ -4,9 +4,9 @@ import pybullet
 import pybullet_utils.bullet_client as bc
 import time
 import numpy as np
-from gym.utils import seeding
-import gym
-from gym import envs
+from gymnasium.utils import seeding
+import gymnasium as gym
+from gymnasium import envs
 import inspect
 from myGym.envs.camera import Camera
 import pkg_resources
@@ -48,7 +48,8 @@ class BaseEnv(gym.Env):
 
         # Set episode information
         self.episode_start_time = None
-        self.episode_over = False
+        self.episode_terminated = False
+        self.episode_truncated = False
         self.episode_failed = False
         self.episode_reward = 0.0
         self.episode_final_reward = []
@@ -195,15 +196,17 @@ class BaseEnv(gym.Env):
         """
         self.p.removeAllUserDebugItems()
         self.episode_start_time = time.time()
-        self.episode_over = False
+        self.episode_truncated = False
+        self.episode_terminated = False
         self.episode_failed = False
         self.episode_reward = 0.0
         self.episode_steps = 0
 
-    def reset(self, hard=False):
+    def reset(self, hard=False, seed = None):
         """
         Reset the state of the environment
         """
+        super().reset(seed=seed)
         if hard:
           self.hard_reset()
         else:
