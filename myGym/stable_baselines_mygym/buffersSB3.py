@@ -405,18 +405,23 @@ class RolloutBuffer(BaseBuffer):
         for i in range(self.num_models):
             self.observation_arrs.append(np.zeros((self.buffer_size, self.n_envs, *self.obs_shape), dtype=np.float32))
             self.action_arrs.append(np.zeros((self.buffer_size, self.n_envs, self.action_dim), dtype=np.float32))
-            self.reward_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
-            self.episode_start_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
-            self.return_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
-            self.value_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
+            self.reward_arrs.append(np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32))
+            self.episode_start_arrs.append(np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32))
+            self.return_arrs.append(np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32))
+            self.value_arrs.append(np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32))
             self.log_prob_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
-            self.advantage_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
+            self.advantage_arrs.append(np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32))
             self.owner_sizes.append(0)
         self.generator_ready = False
         super().reset()
         self.positions = [0]*self.num_models
-
-
+        # print("shapes:")
+        # print("obs",self.observation_arrs[0].shape)
+        # print("actions",self.action_arrs[0].shape)
+        # print("rewards", self.reward_arrs[0].shape)
+        # print("ep_starts", self.episode_start_arrs[0].shape)
+        # print("ret_arrs", self.return_arrs[0].shape)
+        # print("val_arrs", self.value_arrs[0].shape)
 
     def compute_returns_and_advantage(self, last_values: th.Tensor, dones: np.ndarray) -> None:
         """
@@ -439,9 +444,7 @@ class RolloutBuffer(BaseBuffer):
         """
         # Convert to numpy
         last_values = last_values.clone().cpu().numpy().flatten()  # type: ignore[assignment]
-
         last_gae_lam = 0
-
         for i in range(len(self.owner_sizes)):
             owner_size = self.owner_sizes[i]
             for step in reversed(range(owner_size)):
@@ -486,7 +489,8 @@ class RolloutBuffer(BaseBuffer):
             obs = obs.reshape((self.n_envs, *self.obs_shape))
         # Reshape to handle multi-dim and discrete action spaces, see GH #970 #1392
         action = action.reshape((self.n_envs, self.action_dim))
-
+        # print("action:", action)
+        # print("np.array(action):", np.array(action))
         pos = self.positions[owner]
         self.observation_arrs[owner][pos] = np.array(obs)
         self.action_arrs[owner][pos] = np.array(action)
@@ -504,9 +508,8 @@ class RolloutBuffer(BaseBuffer):
         """
         Removes zeros from observation_arrs, action_arrs, etc, to set proper length..
         """
-
         for i in range(self.num_models):
-
+            self.reward_arrs[i][0] = 10.
             obs = self.observation_arrs[i]
             act = self.action_arrs[i]
             vals = self.value_arrs[i]
@@ -521,6 +524,7 @@ class RolloutBuffer(BaseBuffer):
             self.log_prob_arrs[i] = log_p[~np.all(log_p == 0., axis=1)]
             self.advantage_arrs[i] = adv[~np.all(adv == 0., axis=1)]
             self.return_arrs[i] = ret[~np.all(ret == 0., axis=1)]
+            self.reward_arrs[i][0] = 0.
 
 
     def get(self, batch_size: Optional[int] = None) -> Generator[RolloutBufferSamples, None, None]:
@@ -542,11 +546,22 @@ class RolloutBuffer(BaseBuffer):
             self.generator_ready = True
 
         # Return everything, don't create minibatches
+        print("reward shape:", self.reward_arrs[0].shape)
+        print("action shape:", self.action_arrs[0].shape)
+        print("values shape:", self.value_arrs[0].shape)
+        print("log_prob shape:", self.log_prob_arrs[0].shape)
+        print("advantage shape:", self.advantage_arrs[0].shape)
+        print("returns shape:", self.return_arrs[0].shape)
+        print("owner_size:", self.owner_sizes[1])
+
+        import sys
+        sys.exit()
         if batch_size is None:
             batch_size = self.buffer_size * self.n_envs
         for i in range(len(self.owner_sizes)):
             start_idx = 0
             owner_size = self.owner_sizes[i]
+
             indices = np.random.permutation(owner_size)
 
             while start_idx < owner_size:
@@ -571,7 +586,6 @@ class RolloutBuffer(BaseBuffer):
                     minimum = min(adv_size, action_size, value_size, log_prob_size, return_size)
                     indices = np.random.permutation(minimum)
                     owner_size = minimum
-
 
 
     def _get_samples(
@@ -805,7 +819,6 @@ class DictRolloutBuffer(RolloutBuffer):
         super(RolloutBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
 
         assert isinstance(self.obs_shape, dict), "DictRolloutBuffer must be used with Dict obs space only"
-
         self.gae_lambda = gae_lambda
         self.gamma = gamma
 

@@ -477,7 +477,7 @@ class GymEnv(CameraEnv):
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
         if self.dataset:
-            reward, done, info = 0, False, {}
+            reward, terminated, truncated, info = 0, False, False, {}
         else:
             reward = self.reward.compute(observation=self._observation)
             self.episode_reward += reward

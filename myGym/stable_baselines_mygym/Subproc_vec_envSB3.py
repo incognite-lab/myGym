@@ -132,7 +132,6 @@ class SubprocVecEnv(VecEnv):
         self.waiting = True
 
     def step_wait(self) -> VecEnvStepReturn:
-
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs, rews, dones, infos, self.reset_infos = zip(*results)  # type: ignore[assignment]

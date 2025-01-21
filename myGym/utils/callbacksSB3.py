@@ -69,6 +69,7 @@ class CustomEvalCallback(EvalCallback):
         self.evaluations_timesteps = []
         self.evaluations_length = []
         self.num_cpu = num_cpu
+        self.num_evals = 1
 
     def evaluate_policy(
             self,
@@ -142,7 +143,10 @@ class CustomEvalCallback(EvalCallback):
                                                       textColorRGB=[0.2, 0.8, 1])
                 episode_reward += reward
                 is_successful = not info['f']
+
                 if evaluation_env.reward.current_network != last_network:
+                    # print("current network:", evaluation_env.reward.current_network)
+                    # print("last_network", last_network)
                     srewardsteps.put([last_network], steps - last_steps)
                     srewardsuccess.put([last_network], 1)
                     last_network = evaluation_env.reward.current_network
@@ -217,8 +221,10 @@ class CustomEvalCallback(EvalCallback):
 
     def _on_step(self) -> bool:
         actual_calls = self.n_calls * self.num_cpu
-        if (self.eval_freq > 0 and actual_calls % self.eval_freq == 0) or actual_calls == 1:
+
+        if (self.eval_freq > 0 and actual_calls > self.eval_freq*self.num_evals):
             # Sync training and eval env if there is VecNormalize
+            self.num_evals += 1
             sync_envs_normalization(self.training_env, self.eval_env)
 
             results = self.evaluate_policy(self.model,

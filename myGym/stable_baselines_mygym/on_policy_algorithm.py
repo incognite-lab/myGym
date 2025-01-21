@@ -165,6 +165,12 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                 self.models[i].policy.set_training_mode(False)
 
         callback.on_rollout_start()
+        actions = np.zeros_like(rollout_buffer.action_arrs[0][0])
+        rewards = np.zeros_like(rollout_buffer.reward_arrs[0][0])
+        values = np.zeros_like(rollout_buffer.value_arrs[0][0])
+        log_probs = np.zeros_like(rollout_buffer.log_prob_arrs[0][0])
+        dones = np.zeros(self.env.num_envs)
+        new_obs = np.zeros_like(self._last_obs)
         while n_steps < n_rollout_steps:
             if self.use_sde and self.sde_sample_freq > 0 and n_steps % self.sde_sample_freq == 0:
                 # Sample a new noise matrix for every model
@@ -172,37 +178,45 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     model.policy.reset_noise(env.num_envs)
             # Choosing model based on observation
             owner = self.approved(self._last_obs)
-
+            print("owner:", owner)
             if isinstance(owner, list):
-                owner = owner[0]
-            model = self.models[owner]
-
-
-            with th.no_grad():
-                # Convert to pytorch tensor or to TensorDict
-                obs_tensor = obs_as_tensor(self._last_obs, self.device)
-                actions, values, log_probs = model.policy(obs_tensor)
-            actions = actions.cpu().numpy()
-
-
-            # Rescale and perform action
-            clipped_actions = actions
-            if isinstance(self.action_space, spaces.Box):
-                if model.policy.squash_output:
-                    # Unscale the actions to match env bounds
-                    # if they were previously squashed (scaled in [-1, 1])
-                    clipped_actions = model.policy.unscale_action(clipped_actions)
-                else:
-                    # Otherwise, clip the actions to avoid out of bound error
-                    # as we are sampling from an unbounded Gaussian distribution
-                    clipped_actions = np.clip(actions, self.action_space.low, self.action_space.high)
-            new_obs, rewards, dones, infos = env.step(clipped_actions)
+                for i in range(len(self.models)):
+                    model = self.models[i]
+                    if i in owner:
+                        owner = np.array(owner)
+                        # Indexes of current model got from observation
+                        indexes = np.where(owner == i)
+                        with th.no_grad():
+                            # Convert to pytorch tensor or to TensorDict
+                            obs_tensor = obs_as_tensor(self._last_obs, self.device)
+                            obs_i = obs_tensor[indexes]
+                            actions_i, values_i, log_probs_i = model.policy(obs_i)
+                        print("actions_i", actions_i)
+                        actions[indexes] = actions_i
+                        values[indexes] = values_i
+                        log_probs[indexes] = log_probs_i
+                        # actions_i = actions.cpu().numpy()
+                        # Rescale and perform action
+                if isinstance(self.action_space, spaces.Box):
+                    if model.policy.squash_output:
+                        # Unscale the actions to match env bounds
+                        # if they were previously squashed (scaled in [-1, 1])
+                        clipped_actions = model.policy.unscale_action(actions)
+                    else:
+                        # Otherwise, clip the actions to avoid out of bound error
+                        # as we are sampling from an unbounded Gaussian distribution
+                        clipped_actions = np.clip(actions, self.action_space.low, self.action_space.high)
+                print("actions_i", actions_i)
+                print("actions", actions)
+                print("values_i", values_i)
+                print("values", values[indexes])
+                new_obs, rewards, dones, infos = env.step(clipped_actions)
             self.num_timesteps += env.num_envs
-
             # Give access to local variables
             callback.update_locals(locals())
             if not callback.on_step():
                 return False
+
 
             self._update_info_buffer(infos, dones)
             n_steps += 1
@@ -223,6 +237,14 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     with th.no_grad():
                         terminal_value = model.policy.predict_values(terminal_obs)[0]  # type: ignore[arg-type]
                     rewards[idx] += self.gamma * terminal_value
+
+            # print("data before rollout_buffer.add:")
+            # print("obs_shape",self._last_obs.shape)
+            # print("actions.shape",actions.shape)
+            # print("rewards.shape",rewards.shape)
+            # print("last_ep_starts shape:", self._last_episode_starts.shape)
+            # print("vals shape:", values.shape)
+            # print("log_probs shape:", log_probs.shape)
             rollout_buffer.add(
                 self._last_obs,  # type: ignore[arg-type]
                 actions,
