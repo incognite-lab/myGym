@@ -326,7 +326,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 if isinstance(self.action_space, spaces.Discrete):
                     # Convert discrete action from float to long
                     actions = rollout_data.actions.long().flatten()
-
                 values, log_prob, entropy = model.policy.evaluate_actions(rollout_data.observations, actions)
                 values = values.flatten()
                 # Normalize advantage
@@ -393,7 +392,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 # Clip grad norm
                 th.nn.utils.clip_grad_norm_(model.policy.parameters(), self.max_grad_norm)
                 model.policy.optimizer.step()
-
             self._n_updates += 1
             if not continue_training:
                 break

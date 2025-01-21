@@ -68,6 +68,7 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
 
 
 def configure_env(arg_dict, model_logdir=None, for_train=True):
+    gym.register("Gym-v0", GymEnv)
     env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                      "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
                      # "use_fixed_end_effector_orn" : arg_dict["use_fixed_end_effector_orn"], "end_effector_orn" : arg_dict["end_effector_orn"],
@@ -120,6 +121,7 @@ def make_env(arg_dict: dict, rank: int, seed: int = 0, model_logdir=None) -> Cal
         """
 
     def _init():
+        gym.register("Gym-v0", GymEnv)
         arg_dict["seed"] = seed + rank
         env = configure_env(arg_dict, for_train=True, model_logdir=model_logdir)
         env.reset()
@@ -130,7 +132,6 @@ def make_env(arg_dict: dict, rank: int, seed: int = 0, model_logdir=None) -> Cal
 
 
 def env_creator(env_config):
-    #env = EnvCompatibility(GymEnv(**env_config))
     env = gym.make(env_config["env_name"], **env_config)
     env.spec.max_episode_steps = 512
     return env
@@ -452,7 +453,7 @@ def main():
 
     model_logdir = model_logdir_ori
     add = 2
-    gym.register("Gym-v0", GymEnv)
+
     while True:
         try:
             os.makedirs(model_logdir, exist_ok=False)
