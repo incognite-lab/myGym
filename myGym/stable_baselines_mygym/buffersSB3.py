@@ -405,12 +405,12 @@ class RolloutBuffer(BaseBuffer):
         for i in range(self.num_models):
             self.observation_arrs.append(np.zeros((self.buffer_size, self.n_envs, *self.obs_shape), dtype=np.float32))
             self.action_arrs.append(np.zeros((self.buffer_size, self.n_envs, self.action_dim), dtype=np.float32))
-            self.reward_arrs.append(np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32))
-            self.episode_start_arrs.append(np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32))
-            self.return_arrs.append(np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32))
+            self.reward_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
+            self.episode_start_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
+            self.return_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
             self.value_arrs.append(np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32))
             self.log_prob_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
-            self.advantage_arrs.append(np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32))
+            self.advantage_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
             self.owner_sizes.append(0)
         self.generator_ready = False
         super().reset()
@@ -443,6 +443,11 @@ class RolloutBuffer(BaseBuffer):
         :param dones: if the last step was a terminal step (one bool for each env).
         """
         # Convert to numpy
+        print("owner_sizes: ", self.owner_sizes)
+        print("action_arrs[0]: ", self.action_arrs[0])
+        print("action_arrs[1]: ", self.action_arrs[1])
+        print("action_arrs[2]: ", self.action_arrs[2])
+        sys.exit()
         last_values = last_values.clone().cpu().numpy().flatten()  # type: ignore[assignment]
         last_gae_lam = 0
         for i in range(len(self.owner_sizes)):
@@ -489,19 +494,23 @@ class RolloutBuffer(BaseBuffer):
             obs = obs.reshape((self.n_envs, *self.obs_shape))
         # Reshape to handle multi-dim and discrete action spaces, see GH #970 #1392
         action = action.reshape((self.n_envs, self.action_dim))
-        # print("action:", action)
-        # print("np.array(action):", np.array(action))
-        pos = self.positions[owner]
-        self.observation_arrs[owner][pos] = np.array(obs)
-        self.action_arrs[owner][pos] = np.array(action)
-        self.reward_arrs[owner][pos] = np.array(reward)
-        self.episode_start_arrs[owner][pos] = np.array(episode_start)
-        self.value_arrs[owner][pos] = value.clone().cpu().numpy().flatten()
-        self.log_prob_arrs[owner][pos] = log_prob.clone().cpu().numpy()
-        self.positions[owner] += 1
-        self.owner_sizes[owner] += 1
-        if sum(self.positions) == self.buffer_size:
-            self.full = True
+
+        #cycle through all owners (networks/models):
+        for i in range(self.num_models):
+            if i in owner:
+                owner = np.array(owner)
+                indexes = np.where(owner == i)[0]
+                pos = self.positions[i]
+                self.observation_arrs[i][pos][indexes] = obs[indexes]
+                self.action_arrs[i][pos][indexes] = action[indexes]
+                self.reward_arrs[i][pos][indexes] = reward[indexes]
+                self.episode_start_arrs[i][pos][indexes] = episode_start[indexes]
+                self.value_arrs[i][pos][indexes] = value[indexes]
+                self.log_prob_arrs[i][pos][indexes] = log_prob[indexes]
+                self.positions[i] += 1
+                self.owner_sizes[i] += indexes.shape[0]
+                if sum(self.positions) == self.buffer_size:
+                    self.full = True
 
 
     def remove_zeros(self):
