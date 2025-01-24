@@ -2,7 +2,7 @@ import random
 import myGym.envs.scene_objects # allows binding with rddl
 from myGym.envs.scene_objects import TiagoGripper
 from rddl.rddl_sampler import RDDLWorld
-from rddl.rddl_task import RDDLTask
+from rddl.task import RDDLTask
 from rddl.entities import Gripper, ObjectEntity
 
 class TaskModule():
@@ -28,6 +28,7 @@ class TaskModule():
         self.subtask_over = False
         self.rddl_robot = None
         self.current_task = None
+        self.current_action = None
         self.scene_entities = []
         self.scene_objects = []
         self.rddl_world = RDDLWorld(allowed_actions=self.cfg_strings_to_classes(self.allowed_protoactions), 
