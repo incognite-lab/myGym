@@ -316,8 +316,6 @@ class GymEnv(CameraEnv):
         Returns:
             :return self._observation: (list) Observation data of the environment
         """
-        print("environment got reset")
-        print("episode steps:", self.episode_steps)
         #super().reset(seed=seed)
         if not only_subtask:
             self.task.rddl_robot.reset(random_robot=random_robot)

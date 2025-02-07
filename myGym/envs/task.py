@@ -233,6 +233,7 @@ class TaskModule():
             return True
         return False
 
+
     def get_dice_value(self, quaternion):
         def noramalize(q):
             return q/np.linalg.norm(q)

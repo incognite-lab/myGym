@@ -90,7 +90,7 @@ class CustomEvalCallback(EvalCallback):
         print("---Evaluation----")
         for e in range(n_eval_episodes):
             # Avoid double reset, as VecEnv are reset automatically
-            if not isinstance(self.eval_env, VecEnv) or e == 0:
+            if not isinstance(self.eval_env, VecEnv) or e ==0:
                 if isinstance(self.eval_env, VecMonitor):
                     obs = self.eval_env.reset()
                 else:
@@ -107,6 +107,7 @@ class CustomEvalCallback(EvalCallback):
                 evaluation_env = self.eval_env.get_attr("env")[0]
             else:
                 evaluation_env = self.eval_env.env.env
+                evaluation_env.reset()
 
             srewardsteps = np.zeros(evaluation_env.reward.num_networks)
             srewardsuccess = np.zeros(evaluation_env.reward.num_networks)
@@ -116,7 +117,8 @@ class CustomEvalCallback(EvalCallback):
                 if isinstance(self.eval_env, VecMonitor):
                     obs, reward, done, info = self.eval_env.step(action)
                 else:
-                    obs, reward, done, _, info = self.eval_env.step(action)
+                    obs, reward, terminated, truncated, info = self.eval_env.step(action)
+                    done = terminated or truncated
                 if len(np.shape(action)) == 2:
                     info = info[0]
                     reward = reward[0]
@@ -143,6 +145,7 @@ class CustomEvalCallback(EvalCallback):
                                                       textColorRGB=[0.2, 0.8, 1])
                 episode_reward += reward
                 is_successful = not info['f']
+                print("info:", info)
 
                 if evaluation_env.reward.current_network != last_network:
                     # print("current network:", evaluation_env.reward.current_network)
@@ -151,7 +154,7 @@ class CustomEvalCallback(EvalCallback):
                     srewardsuccess.put([last_network], 1)
                     last_network = evaluation_env.reward.current_network
                     last_steps = steps
-                distance_error = info['d']
+                distance_error = self.eval_env.env.reward.get_distance_error(info['o'])
 
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
