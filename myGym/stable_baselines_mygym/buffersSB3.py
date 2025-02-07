@@ -408,7 +408,7 @@ class RolloutBuffer(BaseBuffer):
             self.reward_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
             self.episode_start_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
             self.return_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
-            self.value_arrs.append(np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32))
+            self.value_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
             self.log_prob_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
             self.advantage_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
             self.owner_sizes.append(0)
@@ -443,11 +443,6 @@ class RolloutBuffer(BaseBuffer):
         :param dones: if the last step was a terminal step (one bool for each env).
         """
         # Convert to numpy
-        print("owner_sizes: ", self.owner_sizes)
-        print("action_arrs[0]: ", self.action_arrs[0])
-        print("action_arrs[1]: ", self.action_arrs[1])
-        print("action_arrs[2]: ", self.action_arrs[2])
-        sys.exit()
         last_values = last_values.clone().cpu().numpy().flatten()  # type: ignore[assignment]
         last_gae_lam = 0
         for i in range(len(self.owner_sizes)):
@@ -465,6 +460,7 @@ class RolloutBuffer(BaseBuffer):
             # TD(lambda) estimator, see Github PR #375 or "Telescoping in TD(lambda)"
             # in David Silver Lecture 4: https://www.youtube.com/watch?v=PnHCvfgC_ZA
             self.return_arrs[i] = self.advantage_arrs[i] + self.value_arrs[i]
+
 
     def add(
         self,
@@ -496,21 +492,34 @@ class RolloutBuffer(BaseBuffer):
         action = action.reshape((self.n_envs, self.action_dim))
 
         #cycle through all owners (networks/models):
-        for i in range(self.num_models):
-            if i in owner:
-                owner = np.array(owner)
-                indexes = np.where(owner == i)[0]
-                pos = self.positions[i]
-                self.observation_arrs[i][pos][indexes] = obs[indexes]
-                self.action_arrs[i][pos][indexes] = action[indexes]
-                self.reward_arrs[i][pos][indexes] = reward[indexes]
-                self.episode_start_arrs[i][pos][indexes] = episode_start[indexes]
-                self.value_arrs[i][pos][indexes] = value[indexes]
-                self.log_prob_arrs[i][pos][indexes] = log_prob[indexes]
-                self.positions[i] += 1
-                self.owner_sizes[i] += indexes.shape[0]
-                if sum(self.positions) == self.buffer_size:
-                    self.full = True
+        if isinstance(owner, list):
+            for i in range(self.num_models):
+                if i in owner:
+                    owner = np.array(owner)
+                    indexes = np.where(owner == i)[0]
+                    pos = self.positions[i]
+                    self.observation_arrs[i][pos][indexes] = obs[indexes]
+                    self.action_arrs[i][pos][indexes] = action[indexes]
+                    self.reward_arrs[i][pos][indexes] = reward[indexes]
+                    self.episode_start_arrs[i][pos][indexes] = episode_start[indexes]
+                    self.value_arrs[i][pos][indexes] = value[indexes]
+                    self.log_prob_arrs[i][pos][indexes] = log_prob[indexes]
+                    self.positions[i] += 1
+                    self.owner_sizes[i] += indexes.shape[0]
+                    if sum(self.positions) == self.buffer_size:
+                        self.full = True
+        else:
+            pos = self.positions[owner]
+            self.observation_arrs[owner][pos]= obs
+            self.action_arrs[owner][pos] = action
+            self.reward_arrs[owner][pos] = reward
+            self.episode_start_arrs[owner][pos] = episode_start
+            self.value_arrs[owner][pos] = value
+            self.log_prob_arrs[owner][pos] = log_prob
+            self.positions[owner] += 1
+            self.owner_sizes[owner] += 1
+            if sum(self.positions) == self.buffer_size:
+                self.full = True
 
 
     def remove_zeros(self):
@@ -555,16 +564,14 @@ class RolloutBuffer(BaseBuffer):
             self.generator_ready = True
 
         # Return everything, don't create minibatches
-        print("reward shape:", self.reward_arrs[0].shape)
-        print("action shape:", self.action_arrs[0].shape)
-        print("values shape:", self.value_arrs[0].shape)
-        print("log_prob shape:", self.log_prob_arrs[0].shape)
-        print("advantage shape:", self.advantage_arrs[0].shape)
-        print("returns shape:", self.return_arrs[0].shape)
-        print("owner_size:", self.owner_sizes[1])
+        # print("reward shape:", self.reward_arrs[0].shape)
+        # print("action shape:", self.action_arrs[0].shape)
+        # print("values shape:", self.value_arrs[0].shape)
+        # print("log_prob shape:", self.log_prob_arrs[0].shape)
+        # print("advantage shape:", self.advantage_arrs[0].shape)
+        # print("returns shape:", self.return_arrs[0].shape)
+        # print("owner_size:", self.owner_sizes[1])
 
-        import sys
-        sys.exit()
         if batch_size is None:
             batch_size = self.buffer_size * self.n_envs
         for i in range(len(self.owner_sizes)):

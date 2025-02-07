@@ -236,6 +236,8 @@ class TaskModule():
         if self.current_norm_distance < threshold and self.current_norm_rotation < threshold:
             return True
         return False
+
+
     
     def get_dice_value(self, quaternion):
         def noramalize(q):

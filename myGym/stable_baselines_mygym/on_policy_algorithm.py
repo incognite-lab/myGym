@@ -195,17 +195,26 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                         log_probs[indexes] = log_probs_i
                         # actions_i = actions.cpu().numpy()
                         # Rescale and perform action
-                if isinstance(self.action_space, spaces.Box):
-                    if model.policy.squash_output:
-                        # Unscale the actions to match env bounds
-                        # if they were previously squashed (scaled in [-1, 1])
-                        clipped_actions = model.policy.unscale_action(actions)
-                    else:
-                        # Otherwise, clip the actions to avoid out of bound error
-                        # as we are sampling from an unbounded Gaussian distribution
-                        clipped_actions = np.clip(actions, self.action_space.low, self.action_space.high)
-                new_obs, rewards, dones, infos = env.step(clipped_actions)
-            self.num_timesteps += env.num_envs
+            else:
+                with th.no_grad():
+                    model = self.models[owner]
+                    # Convert to pytorch tensor or to TensorDict
+                    obs_tensor = obs_as_tensor(self._last_obs, self.device)
+                    actions, values, log_probs = model.policy(obs_tensor)
+            if isinstance(self.action_space, spaces.Box):
+                if model.policy.squash_output:
+                    # Unscale the actions to match env bounds
+                    # if they were previously squashed (scaled in [-1, 1])
+                    clipped_actions = model.policy.unscale_action(actions)
+                else:
+                    # Otherwise, clip the actions to avoid out of bound error
+                    # as we are sampling from an unbounded Gaussian distribution
+                    clipped_actions = np.clip(actions, self.action_space.low, self.action_space.high)
+            new_obs, rewards, dones, infos = env.step(clipped_actions)
+            if isinstance(owner, list):
+                self.num_timesteps += env.num_envs
+            else:
+                self.num_timesteps += 1
             # Give access to local variables
             callback.update_locals(locals())
             if not callback.on_step():
@@ -252,7 +261,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             # Compute value for the last timestep
             owner = self.approved(self._last_obs)
             if isinstance(owner, list):
-                owner = owner[0]
+                owner = owner[0] #TODO: This needs to be fixed when doing multiprocessing
             model = self.models[owner]
             values = model.policy.predict_values(obs_as_tensor(new_obs, self.device))  # type: ignore[arg-type]
 
