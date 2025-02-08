@@ -19,6 +19,7 @@ from myGym.envs.human import Human
 import myGym.utils.colors as cs
 from myGym.envs.vision_module import get_module_type
 from myGym.envs.natural_language import NaturalLanguage
+import torch as th
 
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
@@ -130,6 +131,7 @@ class GymEnv(CameraEnv):
         self.visgym    = visgym
         self.logdir    = logdir
         self.workspace_dict = get_workspace_dict()
+        self.algorithm = None
         if not hasattr(self, "task"):
           self.task = None
 
@@ -161,12 +163,13 @@ class GymEnv(CameraEnv):
 
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 
+
     def _init_task_and_reward(self):
         if self.reward == 'distractor':
             self.has_distractor = True
             self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
         reward_classes = {
-            "1-network": { "A": A,},
+            "1-network": {"A": A,},
             "2-network": {"AG": AaG},
             "3-network": {"AGM": AaGaM},
             "4-network": {"AGMD" : AaGaMaD},
@@ -643,6 +646,20 @@ class GymEnv(CameraEnv):
     def set_current_subtask_goal(self, goal) -> None:
         self.task_objects["actual_state"] = goal
 
-
     def network_control(self):
         return self.reward.network_switch_control(self.observation["task_objects"])
+
+    def get_actions(self, models, owner, observation):
+        model = models[owner]
+        with th.no_grad():
+            obs = th.unsqueeze(observation, 0)
+            print("model", model)
+            print("owner", owner)
+            print("observation", obs)
+            action, value, log_prob = model.policy(obs)
+            print("action: ", action)
+            print("value: ", value)
+            print("log_prob: ", log_prob)
+        return action, value, log_prob
+
+

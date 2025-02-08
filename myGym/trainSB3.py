@@ -216,7 +216,8 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
                                            record=arg_dict["record"],
                                            camera_id=arg_dict["camera"], num_cpu=NUM_CPU)
         callbacks_list.append(eval_callback)
-
+    if arg_dict["multiprocessing"]:
+        model.env.set_link_to_algo(model.models)
     print("learn started")
     model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
     print("learn ended")

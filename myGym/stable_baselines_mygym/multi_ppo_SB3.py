@@ -157,6 +157,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 batch_size > 1
             ), "`batch_size` must be greater than 1. See https://github.com/DLR-RM/stable-baselines3/issues/440"
 
+
         if self.env is not None:
             # Check that `n_steps * n_envs > 1` to avoid NaN
             # when doing advantage normalization
@@ -185,6 +186,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         self.models = []
         if _init_setup_model:
             self._setup_model()
+
 
     def _setup_model(self) -> None:
         super()._setup_model()
@@ -653,11 +655,11 @@ class SubModel(MultiPPOSB3):
             os.makedirs(self.path)
         except:
             pass
-        self.env = parent.env
+        #self.env = parent.env
         self.policy = parent.policy_class(
             parent.observation_space, parent.action_space, parent.lr_schedule, use_sde = parent.use_sde, **parent.policy_kwargs
         )
         self.policy = self.policy.to(parent.device)
-        self.parent = parent
+        #self.parent = parent
 
 
