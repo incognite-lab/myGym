@@ -179,6 +179,8 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             # Choosing model based on observation
             owner = self.approved(self._last_obs)
             if isinstance(owner, list):
+                """
+                OLDEr version of retrieving actions
                 for i in range(len(self.models)):
                     model = self.models[i]
                     if i in owner:
@@ -195,12 +197,23 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                         log_probs[indexes] = log_probs_i
                         # actions_i = actions.cpu().numpy()
                         # Rescale and perform action
+                    """
+                with th.no_grad():
+                    obs_tensor = obs_as_tensor(self._last_obs, self.device)
+                actions, values, log_probs = self.env.get_actions(self.models, owner, obs_tensor)
             else:
                 with th.no_grad():
                     model = self.models[owner]
                     # Convert to pytorch tensor or to TensorDict
                     obs_tensor = obs_as_tensor(self._last_obs, self.device)
+                    print("model", model)
+                    print("observation", obs_tensor)
                     actions, values, log_probs = model.policy(obs_tensor)
+                    print("actions:", actions)
+                    print("values:", values)
+                    print("log_probs:", log_probs)
+                    import sys
+                    sys.exit()
             if isinstance(self.action_space, spaces.Box):
                 if model.policy.squash_output:
                     # Unscale the actions to match env bounds
