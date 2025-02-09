@@ -646,7 +646,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
 
 
-
 class SubModel(MultiPPOSB3):
     def __init__(self, parent, i):
         self.model_num = i

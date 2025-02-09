@@ -65,15 +65,12 @@ def _worker(
             elif cmd == "network_control":
                 remote.send(env.env.network_control())
             elif cmd == "get_actions":
-                print("data[0]:", data[0])
-                print("data[1]:", data[1])
-                print("data[2]:", data[2])
-                print("doing get actions:")
                 #print(env.env.get_actions(data[0], data[1], data[2]))
-                remote.send(env.get_actions(data[0], data[1], data[2]))
-            elif cmd == "set_link_to_algo":
-                print("data",data)
-                remote.send(setattr(env, "algorithm", data))
+                action, value, log_prob = env.get_actions(data[0], data[1])
+                remote.send((action, value, log_prob))
+            elif cmd == "set_link_to_models":
+                env.set_models(data)
+                remote.send(None)
             else:
                 raise NotImplementedError(f"`{cmd}` is not implemented in the worker")
         except EOFError:
@@ -225,18 +222,16 @@ class SubprocVecEnv(VecEnv):
             remote.send(("network_control", None))
         return [remote.recv() for remote in target_remotes]
 
-    def get_actions(self, models, owner_list, obs_list):
+    def get_actions(self, owner_list, obs_list):
         for remote, owner, observation in zip(self.remotes, owner_list, obs_list):
-            remote.send(("get_actions", (models, owner, observation)))
+            remote.send(("get_actions", (owner, observation)))
         ret = [remote.recv() for remote in self.remotes]
-        print("return", ret)
-        print("ret[0][0]", ret[0][0])
-        print("ret[1][1]", ret[1][1])
-        return ret
+        actions, values, log_probs = zip(*ret)
+        return np.squeeze(np.stack(actions)), np.squeeze(np.stack(values)), np.squeeze(np.stack(log_probs))
 
-    def set_link_to_algo(self, algo):
+    def set_link_to_models(self, models):
         for remote in self.remotes:
-            remote.send(("set_link_to_algo", CloudpickleWrapper(algo)))
+            remote.send(("set_link_to_models", models))
         for remote in self.remotes:
             remote.recv()
 

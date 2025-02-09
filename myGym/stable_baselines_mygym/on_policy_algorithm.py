@@ -200,21 +200,22 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     """
                 with th.no_grad():
                     obs_tensor = obs_as_tensor(self._last_obs, self.device)
-                actions, values, log_probs = self.env.get_actions(self.models, owner, obs_tensor)
+                actions, values, log_probs = self.env.get_actions(owner, obs_tensor)
+                actions = th.from_numpy(actions)
+                values = th.from_numpy(values)
+                log_probs = th.from_numpy(log_probs)
+                model = self.models[owner[0]]
             else:
                 with th.no_grad():
                     model = self.models[owner]
                     # Convert to pytorch tensor or to TensorDict
                     obs_tensor = obs_as_tensor(self._last_obs, self.device)
-                    print("model", model)
-                    print("observation", obs_tensor)
                     actions, values, log_probs = model.policy(obs_tensor)
                     print("actions:", actions)
                     print("values:", values)
                     print("log_probs:", log_probs)
-                    import sys
-                    sys.exit()
             if isinstance(self.action_space, spaces.Box):
+
                 if model.policy.squash_output:
                     # Unscale the actions to match env bounds
                     # if they were previously squashed (scaled in [-1, 1])
@@ -224,6 +225,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     # as we are sampling from an unbounded Gaussian distribution
                     clipped_actions = np.clip(actions, self.action_space.low, self.action_space.high)
             new_obs, rewards, dones, infos = env.step(clipped_actions)
+
             if isinstance(owner, list):
                 self.num_timesteps += env.num_envs
             else:
@@ -277,7 +279,8 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                 owner = owner[0] #TODO: This needs to be fixed when doing multiprocessing
             model = self.models[owner]
             values = model.policy.predict_values(obs_as_tensor(new_obs, self.device))  # type: ignore[arg-type]
-
+        import sys
+        sys.exit()
         rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
 
         callback.update_locals(locals())
