@@ -45,9 +45,9 @@
     "algo_steps"        :512,
     "steps"             :10000,
     "pretrained_model"  :null,
-    "multiprocessing"   :false,
+    "multiprocessing"   :4,
     #Evaluation
-    "eval_freq"     :2000,
+    "eval_freq"     :20000,
     "eval_episodes" :5,
     #Saving and logging
     "logdir"    :"trained_models/AGM",

@@ -217,7 +217,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
                                            camera_id=arg_dict["camera"], num_cpu=NUM_CPU)
         callbacks_list.append(eval_callback)
     if arg_dict["multiprocessing"]:
-        model.env.set_link_to_algo(model.models)
+        model.env.set_link_to_models(model.models)
     print("learn started")
     model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
     print("learn ended")
@@ -236,7 +236,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     # Environment
-    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_AGMDW_RDDL.json", help="Config file path")
+    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_AGM_RDDL.json", help="Config file path")
     parser.add_argument("-n", "--env_name", type=str, help="Environment name")
     parser.add_argument("-ws", "--workspace", type=str, help="Workspace name")
     parser.add_argument("-p", "--engine", type=str, help="Simulation engine name")

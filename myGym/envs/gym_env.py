@@ -131,7 +131,6 @@ class GymEnv(CameraEnv):
         self.visgym    = visgym
         self.logdir    = logdir
         self.workspace_dict = get_workspace_dict()
-        self.algorithm = None
         if not hasattr(self, "task"):
           self.task = None
 
@@ -649,17 +648,16 @@ class GymEnv(CameraEnv):
     def network_control(self):
         return self.reward.network_switch_control(self.observation["task_objects"])
 
-    def get_actions(self, models, owner, observation):
-        model = models[owner]
+    def get_actions(self, owner, observation):
+
+        model = self.models_link[owner]
         with th.no_grad():
             obs = th.unsqueeze(observation, 0)
-            print("model", model)
-            print("owner", owner)
-            print("observation", obs)
             action, value, log_prob = model.policy(obs)
-            print("action: ", action)
-            print("value: ", value)
-            print("log_prob: ", log_prob)
         return action, value, log_prob
+
+    def set_models(self, models):
+        self.models_link = models
+
 
 
