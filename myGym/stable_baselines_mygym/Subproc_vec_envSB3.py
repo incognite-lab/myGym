@@ -32,6 +32,7 @@ def _worker(
         try:
             cmd, data = remote.recv()
             if cmd == "step":
+                #print("action sent into worker step:", data)
                 observation, reward, terminated, truncated, info = env.step(data)
                 # convert to SB3 VecEnv api
                 done = terminated or truncated
@@ -227,6 +228,7 @@ class SubprocVecEnv(VecEnv):
             remote.send(("get_actions", (owner, observation)))
         ret = [remote.recv() for remote in self.remotes]
         actions, values, log_probs = zip(*ret)
+        print("zipped actoins: ", actions)
         return np.squeeze(np.stack(actions)), np.squeeze(np.stack(values)), np.squeeze(np.stack(log_probs))
 
     def set_link_to_models(self, models):
