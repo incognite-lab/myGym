@@ -216,7 +216,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
                                            record=arg_dict["record"],
                                            camera_id=arg_dict["camera"], num_cpu=NUM_CPU)
         callbacks_list.append(eval_callback)
-    if arg_dict["multiprocessing"]:
+    if arg_dict["multiprocessing"] and arg_dict["algo"] == "multippo":
         model.env.set_link_to_models(model.models)
     print("learn started")
     model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
@@ -282,7 +282,7 @@ def get_parser():
     parser.add_argument("-l", "--logdir", type=str,  help="Where to save results of training and trained models")
     parser.add_argument("-r", "--record", type=int, help="1: make a gif of model perfomance, 2: make a video of model performance, 0: don't record")
     #Mujoco
-    parser.add_argument("-i", "--multiprocessing", type=int, help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
+    parser.add_argument("-i", "--multiprocessing", type=int, default =4, help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
     parser.add_argument("-v", "--vectorized_envs", type=int,  help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
     #Paths
     parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")

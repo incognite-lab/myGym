@@ -392,29 +392,19 @@ class RolloutBuffer(BaseBuffer):
         self.reset()
 
     def reset(self) -> None:
-        self.observation_arrs = []
-        self.action_arrs = []
-        self.reward_arrs = []
-        self.return_arrs = []
-        self.episode_start_arrs = []
-        self.value_arrs = []
-        self.log_prob_arrs = []
-        self.advantage_arrs = []
-        self.owner_sizes = []
-
-        for i in range(self.num_models):
-            self.observation_arrs.append(np.zeros((self.buffer_size, self.n_envs, *self.obs_shape), dtype=np.float32))
-            self.action_arrs.append(np.zeros((self.buffer_size, self.n_envs, self.action_dim), dtype=np.float32))
-            self.reward_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
-            self.episode_start_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
-            self.return_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
-            self.value_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
-            self.log_prob_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
-            self.advantage_arrs.append(np.zeros((self.buffer_size, self.n_envs), dtype=np.float32))
-            self.owner_sizes.append(0)
+        self.observations = np.zeros((self.buffer_size, self.n_envs, *self.obs_shape),dtype=np.float32)
+        self.actions = np.zeros((self.buffer_size, self.n_envs, self.action_dim), dtype=np.float32)
+        self.rewards = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
+        self.episode_starts = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
+        self.returns = np.zeros((self.buffer_size,self.n_envs), dtype=np.float32)
+        self.values = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
+        self.log_probs = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
+        self.advantages = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
+        self.owners = np.zeros((self.buffer_size, self.n_envs), dtype=np.int32)
+        self.owner_sizes = [0]*self.n_envs
         self.generator_ready = False
         super().reset()
-        self.positions = [0]*self.num_models
+        self.pos = 0
         # print("shapes:")
         # print("obs",self.observation_arrs[0].shape)
         # print("actions",self.action_arrs[0].shape)
@@ -445,21 +435,21 @@ class RolloutBuffer(BaseBuffer):
         # Convert to numpy
         last_values = last_values.clone().cpu().numpy().flatten()  # type: ignore[assignment]
         last_gae_lam = 0
-        for i in range(len(self.owner_sizes)):
-            owner_size = self.owner_sizes[i]
-            for step in reversed(range(owner_size)):
-                if step == owner_size - 1:
-                    next_non_terminal = 1.0 - dones.astype(np.float32)
-                    next_values = last_values
-                else:
-                    next_non_terminal = 1.0 - self.episode_start_arrs[i][step + 1]
-                    next_values = self.value_arrs[i][step + 1]
-                delta = self.reward_arrs[i][step] + self.gamma * next_values * next_non_terminal - self.value_arrs[i][step]
-                last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
-                self.advantage_arrs[i][step] = last_gae_lam
-            # TD(lambda) estimator, see Github PR #375 or "Telescoping in TD(lambda)"
-            # in David Silver Lecture 4: https://www.youtube.com/watch?v=PnHCvfgC_ZA
-            self.return_arrs[i] = self.advantage_arrs[i] + self.value_arrs[i]
+
+        for step in reversed(range(self.buffer_size)):
+            if step == self.buffer_size - 1:
+                next_non_terminal = 1.0 - dones.astype(np.float32)
+                next_values = last_values
+            else:
+                next_non_terminal = 1.0 - self.episode_starts[step + 1]
+                next_values = self.values[step + 1]
+            delta = self.rewards[step] + self.gamma * next_values * next_non_terminal - self.values[step]
+            last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
+            self.advantages[step] = last_gae_lam
+        # TD(lambda) estimator, see Github PR #375 or "Telescoping in TD(lambda)"
+        # in David Silver Lecture 4: https://www.youtube.com/watch?v=PnHCvfgC_ZA
+        self.returns = self.advantages + self.values
+
 
 
     def add(
@@ -490,36 +480,23 @@ class RolloutBuffer(BaseBuffer):
             obs = obs.reshape((self.n_envs, *self.obs_shape))
         # Reshape to handle multi-dim and discrete action spaces, see GH #970 #1392
         action = action.reshape((self.n_envs, self.action_dim))
-
-        #cycle through all owners (networks/models):
-        if isinstance(owner, list):
-            for i in range(self.num_models):
-                if i in owner:
-                    owner = np.array(owner)
-                    indexes = np.where(owner == i)[0]
-                    pos = self.positions[i]
-                    self.observation_arrs[i][pos][indexes] = obs[indexes]
-                    self.action_arrs[i][pos][indexes] = action[indexes]
-                    self.reward_arrs[i][pos][indexes] = reward[indexes]
-                    self.episode_start_arrs[i][pos][indexes] = episode_start[indexes]
-                    self.value_arrs[i][pos][indexes] = value[indexes]
-                    self.log_prob_arrs[i][pos][indexes] = log_prob[indexes]
-                    self.positions[i] += 1
-                    self.owner_sizes[i] += indexes.shape[0]
-                    if sum(self.positions) == self.buffer_size:
-                        self.full = True
-        else:
-            pos = self.positions[owner]
-            self.observation_arrs[owner][pos]= obs
-            self.action_arrs[owner][pos] = action
-            self.reward_arrs[owner][pos] = reward
-            self.episode_start_arrs[owner][pos] = episode_start
-            self.value_arrs[owner][pos] = value
-            self.log_prob_arrs[owner][pos] = log_prob
-            self.positions[owner] += 1
-            self.owner_sizes[owner] += 1
-            if sum(self.positions) == self.buffer_size:
-                self.full = True
+        self.observations[self.pos] = obs
+        self.actions[self.pos] = action
+        self.rewards[self.pos] = reward
+        self.episode_starts[self.pos] = episode_start
+        self.values[self.pos] = value
+        self.log_probs[self.pos] = log_prob
+        self.owners[self.pos] = owner
+        self.pos += 1
+        if self.pos == self.buffer_size:
+            self.full = True
+            # print("obs:", self.observations)
+            # print("actions:", self.actions)
+            # print("rewards:", self.rewards)
+            # print("episode_starts:", self.episode_starts)
+            # print("values:", self.values)
+            # print("log_probs:", self.log_probs)
+            # print("owners:", self.owners)
 
 
     def remove_zeros(self):
@@ -549,29 +526,29 @@ class RolloutBuffer(BaseBuffer):
         assert self.full, ""
         # Prepare the data
         if not self.generator_ready:
-            self.remove_zeros()
-            for i in range(len(self.owner_sizes)):
-                _tensor_names = [
-                    "observation_arrs",
-                    "action_arrs",
-                    "value_arrs",
-                    "log_prob_arrs",
-                    "advantage_arrs",
-                    "return_arrs",
-                ]
-                for tensor in _tensor_names:
-                    self.__dict__[tensor][i] = self.swap_and_flatten(self.__dict__[tensor][i])
+            _tensor_names = [
+                "observations",
+                "actions",
+                "values",
+                "log_probs",
+                "advantages",
+                "returns",
+            ]
+            for tensor in _tensor_names:
+                self.__dict__[tensor] = self.swap_and_flatten(self.__dict__[tensor])
             self.generator_ready = True
 
         # Return everything, don't create minibatches
-        # print("reward shape:", self.reward_arrs[0].shape)
-        # print("action shape:", self.action_arrs[0].shape)
-        # print("values shape:", self.value_arrs[0].shape)
-        # print("log_prob shape:", self.log_prob_arrs[0].shape)
-        # print("advantage shape:", self.advantage_arrs[0].shape)
-        # print("returns shape:", self.return_arrs[0].shape)
-        # print("owner_size:", self.owner_sizes[1])
-
+        # TODO:  delete this
+        print("reward shape:", self.rewards.shape)
+        print("action shape:", self.actions.shape)
+        print("values shape:", self.values.shape)
+        print("log_prob shape:", self.log_probs.shape)
+        print("advantage shape:", self.advantages.shape)
+        print("returns shape:", self.returns.shape)
+        print("owner_size:", self.owners)
+        import sys
+        sys.exit()
         if batch_size is None:
             batch_size = self.buffer_size * self.n_envs
         for i in range(len(self.owner_sizes)):

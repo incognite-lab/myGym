@@ -649,7 +649,6 @@ class GymEnv(CameraEnv):
         return self.reward.network_switch_control(self.observation["task_objects"])
 
     def get_actions(self, owner, observation):
-
         model = self.models_link[owner]
         with th.no_grad():
             obs = th.unsqueeze(observation, 0)
