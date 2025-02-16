@@ -155,7 +155,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         """
         assert self._last_obs is not None, "No previous observation was provided"
         # Switch to eval mode (this affects batch norm / dropout)
-
+        start_time = time.time()
         n_steps = 0
         rollout_buffer.reset()
         # Sample new weights for the state dependent exploration
@@ -182,8 +182,9 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             owner = self.approved(self._last_obs)
             #owner = [0, 0, 0, 0]
             if isinstance(owner, list):
+
+                #OLDEr version of retrieving actions
                 """
-                OLDEr version of retrieving actions
                 for i in range(len(self.models)):
                     model = self.models[i]
                     if i in owner:
@@ -200,11 +201,27 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                         log_probs[indexes] = log_probs_i
                         # actions_i = actions.cpu().numpy()
                         # Rescale and perform action
-                    """
+                """
+                owner = np.array(owner)
+                for i in range(np.max(owner)+1):
+                    model = self.models[i]
+                    indices = np.where(owner == i)
 
-                with th.no_grad():
-                    obs_tensor = obs_as_tensor(self._last_obs, self.device)
-                actions, values, log_probs = self.env.get_actions(owner, obs_tensor)
+                    with th.no_grad():
+                        obs_tensor = obs_as_tensor(self._last_obs, self.device)
+                        actions_i, values_i, log_probs_i = model.policy(obs_tensor)
+
+                    actions[indices] = actions_i[indices].cpu().numpy()
+                    values[indices] = values_i[indices].cpu().numpy().squeeze()
+                    log_probs[indices] = log_probs_i[indices].cpu().numpy()
+
+                actions = actions_i.cpu().numpy()
+                values = values_i.cpu().numpy()
+                log_probs = log_probs_i.cpu().numpy()
+
+                # with th.no_grad():
+                #     obs_tensor = obs_as_tensor(self._last_obs, self.device)
+                #actions, values, log_probs = self.env.get_actions(owner, self._last_obs)
 
                 #print("action returned from get_actions:", actions)
                 model = self.models[owner[0]]
@@ -285,25 +302,20 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             # Compute value for the last timestep
             owner = self.approved(self._last_obs)
             if isinstance(owner, list):
-                owner = owner[0] #TODO: This needs to be fixed when doing multiprocessing
-            model = self.models[owner]
-            values = model.policy.predict_values(obs_as_tensor(new_obs, self.device))  # type: ignore[arg-type]
-
+                owner = np.array(owner)
+                for i in range(np.max(owner)+1):
+                    indices = np.where(owner == i)
+                    model = self.models[i]
+                    values_i = model.policy.predict_values(obs_as_tensor(new_obs, self.device))
+                    print("values_i:", values_i)# type: ignore[arg-type]
+                    values[indices] = values_i[indices].squeeze()
+                    print("values:", values)
         rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
-        end_time = time.time()
-        total_time = end_time - start_time
-        print("Total time: {}".format(total_time))
-        # print("buffer values")
-        # print("observations:", rollout_buffer.observations, rollout_buffer.observations.shape)
-        # print("actions:", rollout_buffer.actions, rollout_buffer.actions.shape)
-        # print("rewards:", rollout_buffer.rewards, rollout_buffer.rewards.shape)
-        # print("values:", rollout_buffer.values, rollout_buffer.values.shape)
-        # print("log_probs:", rollout_buffer.log_probs, rollout_buffer.log_probs.shape)
-        # print("returns:", rollout_buffer.returns, rollout_buffer.returns.shape)
-        import sys
-        sys.exit()
         callback.update_locals(locals())
         callback.on_rollout_end()
+        end_time = time.time()
+        total_time = end_time - start_time
+        print("rollout_time:", total_time)
         return True
 
     def train(self) -> None:

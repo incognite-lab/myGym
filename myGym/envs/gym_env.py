@@ -21,6 +21,7 @@ from myGym.utils.helpers import get_module_type
 from myGym.envs.natural_language import NaturalLanguage
 from myGym.envs.task import TaskModule
 import torch as th
+from stable_baselines3.common.utils import obs_as_tensor
 
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 
@@ -530,7 +531,8 @@ class GymEnv(CameraEnv):
     def get_actions(self, owner, observation):
         model = self.models_link[owner]
         with th.no_grad():
-            obs = th.unsqueeze(observation, 0)
+            obs = obs_as_tensor(observation, "cpu")
+            obs = th.unsqueeze(obs, 0)
             action, value, log_prob = model.policy(obs)
         return action, value, log_prob
 

@@ -104,14 +104,16 @@ class CustomEvalCallback(EvalCallback):
             last_steps = 0
             if isinstance(self.eval_env, VecMonitor):
                 # During multiprocess training, evaluation environment needs to be accessed differently
-                evaluation_env = self.eval_env.get_attr("env")[0]
+                evaluation_env = self.eval_env
+                env_reward = evaluation_env.get_attr("reward")[0]
             else:
                 evaluation_env = self.eval_env.env.env
                 evaluation_env.reset()
+                env_reward = evaluation_env.reward
 
-            srewardsteps = np.zeros(evaluation_env.reward.num_networks)
-            srewardsuccess = np.zeros(evaluation_env.reward.num_networks)
-            while not done:
+            srewardsteps = np.zeros(env_reward.num_networks)
+            srewardsuccess = np.zeros(env_reward.num_networks)
+            while not any(done):
                 steps_sum += 1
                 action, state = model.predict(obs, deterministic=deterministic)
                 if isinstance(self.eval_env, VecMonitor):
@@ -119,42 +121,51 @@ class CustomEvalCallback(EvalCallback):
                 else:
                     obs, reward, terminated, truncated, info = self.eval_env.step(action)
                     done = terminated or truncated
-                if len(np.shape(action)) == 2:
-                    info = info[0]
-                    reward = reward[0]
-                    done = done[0]
+                # if len(np.shape(action)) == 2:
+                #     info = info[0]
+                #     reward = reward[0]
+                #     done = done[0]
+                p = evaluation_env.get_attr("p")[0]
+                if p.getConnectionInfo()["isConnected"] != 0:
 
-                if evaluation_env.p.getConnectionInfo()["isConnected"] != 0:
-                    evaluation_env.p.addUserDebugText(
+                    p.addUserDebugText(
                         f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']), 5))}",
                         [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
-                    evaluation_env.p.addUserDebugText(
+                    p.addUserDebugText(
                         f"Object:{matrix(np.around(np.array(info['o']['actual_state']), 5))}",
                         [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-                    evaluation_env.p.addUserDebugText(f"Network:{evaluation_env.reward.current_network}",
+                    network = env_reward.current_network
+                    p.addUserDebugText(f"Network:{network}",
                                                       [.8, .5, 0.25], textSize=1.0, lifeTime=0.5,
                                                       textColorRGB=[0.0, 0.0, 1])
-                    evaluation_env.p.addUserDebugText(f"Subtask:{evaluation_env.task.current_task}",
+                    subtask = evaluation_env.get_attr("task").current_task
+                    p.addUserDebugText(f"Subtask:{subtask}",
                                                       [.8, .5, 0.35], textSize=1.0, lifeTime=0.5,
                                                       textColorRGB=[0.4, 0.2, 1])
-                    evaluation_env.p.addUserDebugText(f"Episode:{e}",
+                    p.addUserDebugText(f"Episode:{e}",
                                                       [.8, .5, 0.45], textSize=1.0, lifeTime=0.5,
                                                       textColorRGB=[0.4, 0.2, .3])
-                    evaluation_env.p.addUserDebugText(f"Step:{steps}",
+                    p.addUserDebugText(f"Step:{steps}",
                                                       [.8, .5, 0.55], textSize=1.0, lifeTime=0.5,
                                                       textColorRGB=[0.2, 0.8, 1])
                 episode_reward += reward
-                is_successful = not info['f']
+                is_successful = []
+                for i in range(len(info)):
+                    is_successful = not info[i]['f']
+
                 print("info:", info)
 
-                if evaluation_env.reward.current_network != last_network:
+                if env_reward.current_network != last_network:
                     # print("current network:", evaluation_env.reward.current_network)
                     # print("last_network", last_network)
                     srewardsteps.put([last_network], steps - last_steps)
                     srewardsuccess.put([last_network], 1)
-                    last_network = evaluation_env.reward.current_network
+                    last_network = env_reward.current_network
                     last_steps = steps
-                distance_error = self.eval_env.env.reward.get_distance_error(info['o'])
+                distance_errors = []
+                for i in range(len(info)):
+                    distance_error = env_reward.get_distance_error(info[i]['o'])
+                    distance_errors.append(distance_error)
 
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
@@ -165,7 +176,7 @@ class CustomEvalCallback(EvalCallback):
 
                 if self.physics_engine == "mujoco" and self.gui_on:  # Rendering for mujoco engine
                     evaluation_env.render()
-                steps += 1
+                steps += len(info)
             srewardsteps.put([last_network], steps - last_steps)
             if is_successful:
                 srewardsuccess.put([last_network], 1)
@@ -243,6 +254,242 @@ class CustomEvalCallback(EvalCallback):
         return True
 
 
+class CustomEvalCallbackMultiproc(EvalCallback):
+    """
+    Callback for evaluating an agent.
+    :param eval_env: (Union[gym.Env, VecEnv]) The environment used for initialization
+    :param callback_on_new_best: (Optional[BaseCallback]) Callback to trigger
+        when there is a new best model according to the `mean_reward`
+    :param n_eval_episodes: (int) The number of episodes to test the agent
+    :param eval_freq: (int) Evaluate the agent every eval_freq call of the callback.
+    :param log_path: (str) Path to a folder where the evaluations (`evaluations.npz`)
+        will be saved. It will be updated at each evaluation.
+    :param best_model_save_path: (str) Path to a folder where the best model,
+        according to performance on the eval env, will be saved.
+    :param deterministic: (bool) Whether the evaluation should
+        use a stochastic or deterministic actions.
+    :param render: (bool) Whether to render or not the environment during evaluation
+    :param verbose: (int)
+    """
+
+    def __init__(self, eval_env: Union[gym.Env, SubprocVecEnv],
+                 callback_on_new_best: Optional[BaseCallback] = None,
+                 n_eval_episodes: int = 10,
+                 algo_steps: int = 256,
+                 eval_freq: int = 10000,
+                 log_path: str = None,
+                 best_model_save_path: str = None,
+                 deterministic: bool = False,
+                 render: bool = False,
+                 verbose: int = 1,
+                 physics_engine="pybullet",
+                 gui_on=True,
+                 record=False,
+                 camera_id=0,
+                 record_steps_limit=256,
+                 num_cpu=1):  # pybullet or mujoco
+        super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
+        self.n_eval_episodes = n_eval_episodes
+        self.algo_steps = algo_steps
+        self.eval_freq = eval_freq
+        self.best_mean_reward = -np.inf
+        self.last_mean_reward = -np.inf
+        self.deterministic = deterministic
+        self.render = render
+        self.physics_engine = physics_engine
+        self.gui_on = gui_on
+        self.record = record
+        self.camera_id = camera_id
+        self.record_steps_limit = record_steps_limit
+        self.is_tb_set = False
+        self.eval_env = eval_env
+        self.best_model_save_path = best_model_save_path
+        self.log_path = log_path
+        self.evaluations_results = {}
+        self.evaluations_timesteps = []
+        self.evaluations_length = []
+        self.num_cpu = num_cpu
+        self.num_evals = 1
+
+
+    def evaluate_policy(
+            self,
+            model: None,
+            n_eval_episodes: int = 10,
+            deterministic: bool = False,
+    ):
+
+        success_episodes_num = 0
+        distance_error_sum = 0
+        steps_sum = 0
+
+        episode_rewards = []
+        images = []
+        subrewards = []
+        subrewsteps = []
+        subrewsuccess = []
+        print("---Evaluation----")
+        for e in range(n_eval_episodes):
+            # Avoid double reset, as VecEnv are reset automatically
+            if not isinstance(self.eval_env, VecEnv) or e ==0:
+                if isinstance(self.eval_env, VecMonitor):
+                    obs = self.eval_env.reset()
+                else:
+                    obs, info = self.eval_env.reset()
+            state = None
+            done = [False]*model.n_envs
+            is_successful = np.zeros(model.n_envs, dtype=bool)
+            distance_error = 0
+            episode_reward = np.zeros(model.n_envs, dtype=np.float32)
+            steps = 0
+            last_network = 0
+            last_steps = 0
+
+            # During multiprocess training, evaluation environment needs to be accessed differently
+            evaluation_env = self.eval_env
+            env_reward = evaluation_env.get_attr("reward")[0]
+
+
+            srewardsteps = np.zeros(env_reward.num_networks)
+            srewardsuccess = np.zeros(env_reward.num_networks)
+            while not any(done):
+                steps_sum += 1
+                action, state = model.predict(obs, deterministic=deterministic)
+                if isinstance(self.eval_env, VecMonitor):
+                    obs, reward, done, info = self.eval_env.step(action)
+                else:
+                    obs, reward, terminated, truncated, info = self.eval_env.step(action)
+                    done = terminated or truncated
+                # if len(np.shape(action)) == 2:
+                #     info = info[0]
+                #     reward = reward[0]
+                #     done = done[0]
+                p = evaluation_env.get_attr("p")[0]
+                if p.getConnectionInfo()["isConnected"] != 0:
+
+                    p.addUserDebugText(
+                        f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']), 5))}",
+                        [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
+                    p.addUserDebugText(
+                        f"Object:{matrix(np.around(np.array(info['o']['actual_state']), 5))}",
+                        [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+                    network = env_reward.current_network
+                    p.addUserDebugText(f"Network:{network}",
+                                                      [.8, .5, 0.25], textSize=1.0, lifeTime=0.5,
+                                                      textColorRGB=[0.0, 0.0, 1])
+                    subtask = evaluation_env.get_attr("task").current_task
+                    p.addUserDebugText(f"Subtask:{subtask}",
+                                                      [.8, .5, 0.35], textSize=1.0, lifeTime=0.5,
+                                                      textColorRGB=[0.4, 0.2, 1])
+                    p.addUserDebugText(f"Episode:{e}",
+                                                      [.8, .5, 0.45], textSize=1.0, lifeTime=0.5,
+                                                      textColorRGB=[0.4, 0.2, .3])
+                    p.addUserDebugText(f"Step:{steps}",
+                                                      [.8, .5, 0.55], textSize=1.0, lifeTime=0.5,
+                                                      textColorRGB=[0.2, 0.8, 1])
+                episode_reward += reward
+                is_successful = []
+                for i in range(len(info)):
+                    is_successful = not info[i]['f']
+                print("info:", info)
+                #TODO: this also needs to be fixed for parallelization
+                if env_reward.current_network != last_network:
+                    srewardsteps.put([last_network], steps - last_steps)
+                    srewardsuccess.put([last_network], 1)
+                    last_network = env_reward.current_network
+                    last_steps = steps
+                distance_errors = []
+                for i in range(len(info)):
+                    distance_error = env_reward.get_distance_error(info[i]['o'])
+                    distance_errors.append(distance_error)
+
+                if self.physics_engine == "pybullet":
+                    if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
+                        render_info = evaluation_env.render(mode="rgb_array", camera_id=self.camera_id)
+                        image = render_info[self.camera_id]["image"]
+                        images.append(image)
+                        print(f"appending image: total size: {len(images)}]")
+
+                if self.physics_engine == "mujoco" and self.gui_on:  # Rendering for mujoco engine
+                    evaluation_env.render()
+                steps += len(info)
+            srewardsteps.put([last_network], steps - last_steps)
+            if is_successful:
+                srewardsuccess.put([last_network], 1)
+            subrewards.append(evaluation_env.reward.network_rewards)
+            subrewsteps.append(srewardsteps)
+            subrewsuccess.append(srewardsuccess)
+            episode_rewards.append(episode_reward)
+            success_episodes_num += is_successful
+            distance_error_sum += distance_error
+
+        if self.record:
+            gif_path = os.path.join(self.log_path, "last_eval_episode_after_{}_steps.gif".format(self.n_calls))
+            imageio.mimsave(gif_path, [np.array(img) for i, img in enumerate(images) if i % 2 == 0], fps=15)
+            os.system('./utils/gifopt -O3 --lossy=5 -o {dest} {source}'.format(source=gif_path, dest=gif_path))
+            print("Record saved to " + gif_path)
+
+        meansr = np.mean(subrewards, axis=0)
+        meansrs = np.mean(subrewsteps, axis=0)
+        srsu = np.array(subrewsuccess)
+        meansgoals = np.count_nonzero(srsu) / evaluation_env.reward.num_networks / n_eval_episodes * 100
+
+        results = {
+            "episode": "{}".format(self.n_calls*self.num_cpu),
+            "n_eval_episodes": "{}".format(n_eval_episodes),
+            "success_episodes_num": "{}".format(success_episodes_num),
+            "success_rate": "{}".format(success_episodes_num / n_eval_episodes * 100),
+            "mean_distance_error": "{:.2f}".format(distance_error_sum / n_eval_episodes),
+            "mean_steps_num": "{}".format(steps_sum // n_eval_episodes),
+            "mean_reward": "{:.2f}".format(np.mean(episode_rewards)),
+            "std_reward": "{:.2f}".format(np.std(episode_rewards)),
+            "number of tasks": "{}".format(evaluation_env.task.number_tasks),
+            "number of networks": "{}".format(evaluation_env.reward.num_networks),
+            "mean subgoals finished": "{}".format(str(meansgoals)),
+            "mean subgoal reward": "{}".format(str(meansr)),
+            "mean subgoal steps": "{}".format(str(meansrs)),
+        }
+
+        for k, v in results.items():
+            print(k, ':', v)
+
+        self.eval_env.reset()
+        print("Evaluation finished successfully")
+        return results
+
+
+    def _init_callback(self):
+        # Does not work in some corner cases, where the wrapper is different
+        if not type(self.training_env) is type(self.eval_env):
+            warnings.warn("Training and eval env are not of the same type"
+                          "{} != {}".format(self.training_env, self.eval_env))
+        # Create folders if needed
+        if self.best_model_save_path is not None:
+            os.makedirs(self.best_model_save_path, exist_ok=True)
+        if self.log_path is not None:
+            os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
+
+    def _on_step(self) -> bool:
+        actual_calls = self.n_calls * self.num_cpu
+
+        if (self.eval_freq > 0 and actual_calls > self.eval_freq*self.num_evals):
+            # Sync training and eval env if there is VecNormalize
+            self.num_evals += 1
+            sync_envs_normalization(self.training_env, self.eval_env)
+
+            results = self.evaluate_policy(self.model,
+                                           n_eval_episodes=self.n_eval_episodes,
+                                           deterministic=self.deterministic)
+
+            if self.log_path is not None:
+                self.evaluations_results["evaluation_after_{}_steps".format(actual_calls)] = results
+                filename = "evaluation_results.json"
+                with open(os.path.join(self.log_path, filename), 'w') as f:
+                    json.dump(self.evaluations_results, f, indent=4)
+                print("Evaluation stored after {} calls.".format(actual_calls))
+        return True
+
+
 class SaveOnBestTrainingRewardCallback(BaseCallback):
     """
     Callback for saving a model (the check is done every ``check_freq`` steps)
@@ -284,6 +531,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
         self.save_success_graph_every_steps = save_success_graph_every_steps
         self.success_graph_mean_past_episodes = success_graph_mean_past_episodes
         self.num_cpu = multiprocessing if multiprocessing > 0 else 1
+
 
     def _on_step(self) -> bool:
         actual_calls = self.n_calls * self.num_cpu

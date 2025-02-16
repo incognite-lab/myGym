@@ -466,14 +466,18 @@ class AaGaM(Protorewards):
             if self.object_near_goal(object_position, goal_position):
                 self.task.check_goal()
         self.task.check_episode_steps()
-        if self.env.episode_steps == 100:
-            print("changed network to 1")
-            self.current_network = 1
-        elif self.env.episode_steps == 250:
-            self.current_network = 2
-            print("changed network to 2")
+
+        #Change after 100 and 250 steps:
+        # if self.env.episode_steps == 100:
+        #     print("changed network to 1")
+        #     self.current_network = 1
+        # elif self.env.episode_steps == 250:
+        #     self.current_network = 2
+        #     print("changed network to 2")
+
+        #Random
         # self.current_network=np.random.randint(0, self.num_networks)
-        self.task.check_episode_steps()
+        # self.task.check_episode_steps()
         return self.current_network
 
 
