@@ -228,7 +228,6 @@ class SubprocVecEnv(VecEnv):
             remote.send(("get_actions", (owner, observation)))
         ret = [remote.recv() for remote in self.remotes]
         actions, values, log_probs = zip(*ret)
-        print("zipped actoins: ", actions)
         return np.squeeze(np.stack(actions)), np.squeeze(np.stack(values)), np.squeeze(np.stack(log_probs))
 
     def set_link_to_models(self, models):

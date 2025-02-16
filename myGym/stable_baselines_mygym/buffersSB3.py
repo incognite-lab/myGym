@@ -433,7 +433,10 @@ class RolloutBuffer(BaseBuffer):
         :param dones: if the last step was a terminal step (one bool for each env).
         """
         # Convert to numpy
-        last_values = last_values.clone().cpu().numpy().flatten()  # type: ignore[assignment]
+        try:
+            last_values = last_values.clone().cpu().numpy().flatten()  # type: ignore[assignment]
+        except:
+            pass
         last_gae_lam = 0
 
         for step in reversed(range(self.buffer_size)):
@@ -533,6 +536,7 @@ class RolloutBuffer(BaseBuffer):
                 "log_probs",
                 "advantages",
                 "returns",
+                "owners"
             ]
             for tensor in _tensor_names:
                 self.__dict__[tensor] = self.swap_and_flatten(self.__dict__[tensor])
@@ -540,23 +544,54 @@ class RolloutBuffer(BaseBuffer):
 
         # Return everything, don't create minibatches
         # TODO:  delete this
-        print("reward shape:", self.rewards.shape)
-        print("action shape:", self.actions.shape)
-        print("values shape:", self.values.shape)
-        print("log_prob shape:", self.log_probs.shape)
-        print("advantage shape:", self.advantages.shape)
-        print("returns shape:", self.returns.shape)
-        print("owner_size:", self.owners)
-        import sys
-        sys.exit()
+        # print("reward shape:", self.rewards.shape)
+        # print("action shape:", self.actions.shape)
+        # print("values shape:", self.values.shape)
+        # print("log_prob shape:", self.log_probs.shape)
+        # print("advantage shape:", self.advantages.shape)
+        # print("returns shape:", self.returns.shape)
+        # print("owners", self.owners)
+
+        #Reordering arrays based on owner:
+        indexes = np.argsort(self.owners.flatten())
+        self.observations = self.observations[indexes]
+        self.actions = self.actions[indexes]
+        self.values = self.values[indexes]
+        self.log_probs = self.log_probs[indexes]
+        self.advantages = self.advantages[indexes]
+        self.returns = self.returns[indexes]
+
+        #retrieve owner sizes:
+        owner_sizes = []
+        for i in range(self.num_models):
+            owner_sizes.append(np.count_nonzero(self.owners == i))
         if batch_size is None:
             batch_size = self.buffer_size * self.n_envs
-        for i in range(len(self.owner_sizes)):
+        self.owner_sizes = owner_sizes
+        start_idx = 0
+        current_owner = 0
+        increase_owner = False
+        while start_idx < self.buffer_size * self.n_envs:
+            end_idx = start_idx + batch_size
+            limit = sum(owner_sizes[:(current_owner + 1)])
+            if end_idx > limit:
+                end_idx = sum(owner_sizes[:(current_owner + 1)])
+                increase_owner = True
+
+            indices = np.arange(start_idx, end_idx)
+            np.random.shuffle(indices)
+            yield self._get_samples(indices, current_owner)
+            if increase_owner:
+                current_owner += 1
+                increase_owner = False
+            start_idx = end_idx
+        """
+        Previous way of doing things:
+       
+        for i in range(len(owner_sizes)):
             start_idx = 0
-            owner_size = self.owner_sizes[i]
-
+            owner_size = owner_sizes[i]
             indices = np.random.permutation(owner_size)
-
             while start_idx < owner_size:
                 #End index mustn't be larger than owner_size
                 end_idx = min(owner_size, start_idx + batch_size)
@@ -579,7 +614,7 @@ class RolloutBuffer(BaseBuffer):
                     minimum = min(adv_size, action_size, value_size, log_prob_size, return_size)
                     indices = np.random.permutation(minimum)
                     owner_size = minimum
-
+             """
 
     def _get_samples(
         self,
@@ -588,12 +623,12 @@ class RolloutBuffer(BaseBuffer):
         env: Optional[VecNormalize] = None,
     ) -> RolloutBufferSamples:
         data = (
-            self.observation_arrs[owner][batch_inds],
-            self.action_arrs[owner][batch_inds],
-            self.value_arrs[owner][batch_inds].flatten(),
-            self.log_prob_arrs[owner][batch_inds].flatten(),
-            self.advantage_arrs[owner][batch_inds].flatten(),
-            self.return_arrs[owner][batch_inds].flatten(),
+            self.observations[batch_inds],
+            self.actions[batch_inds],
+            self.values[batch_inds].flatten(),
+            self.log_probs[batch_inds].flatten(),
+            self.advantages[batch_inds].flatten(),
+            self.returns[batch_inds].flatten(),
         )
         return RolloutBufferSamples(*tuple(map(self.to_torch, data))), owner
 

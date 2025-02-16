@@ -47,7 +47,7 @@ except:
     print("Torch isn't probably installed correctly")
 
 # Import helper classes and functions for monitoring
-from myGym.utils.callbacksSB3 import SaveOnBestTrainingRewardCallback, CustomEvalCallback
+from myGym.utils.callbacksSB3 import SaveOnBestTrainingRewardCallback, CustomEvalCallback, CustomEvalCallbackMultiproc
 from myGym.envs.natural_language import NaturalLanguage
 from myGym.stable_baselines_mygym.multi_ppo_SB3 import MultiPPOSB3
 from myGym.stable_baselines_mygym.Subproc_vec_envSB3 import SubprocVecEnv
@@ -209,15 +209,21 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         NUM_CPU = int(arg_dict["multiprocessing"])
         if NUM_CPU == 0:
             NUM_CPU = 1
-        eval_callback = CustomEvalCallback(eval_env, log_path=model_logdir,
+        if arg_dict["multiprocessing"]:
+            eval_callback = CustomEvalCallbackMultiproc(eval_env, log_path=model_logdir,
+                                               eval_freq=arg_dict["eval_freq"],
+                                               algo_steps=arg_dict["algo_steps"],
+                                               n_eval_episodes=arg_dict["eval_episodes"],
+                                               record=arg_dict["record"],
+                                               camera_id=arg_dict["camera"], num_cpu=NUM_CPU)
+        else:
+            eval_callback = CustomEvalCallback(eval_env, log_path=model_logdir,
                                            eval_freq=arg_dict["eval_freq"],
                                            algo_steps=arg_dict["algo_steps"],
                                            n_eval_episodes=arg_dict["eval_episodes"],
                                            record=arg_dict["record"],
                                            camera_id=arg_dict["camera"], num_cpu=NUM_CPU)
         callbacks_list.append(eval_callback)
-    if arg_dict["multiprocessing"] and arg_dict["algo"] == "multippo":
-        model.env.set_link_to_models(model.models)
     print("learn started")
     model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
     print("learn ended")
