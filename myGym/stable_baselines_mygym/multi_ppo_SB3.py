@@ -292,14 +292,11 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
         owner = np.array(owner)
         actions = np.zeros((self.n_envs, self.action_space.shape[0]))
-        print("owner:", owner)
         for i in range(np.max(owner) + 1):
             model = self.models[i]
             indices = np.where(owner == i)
             action_i, state_i = model.policy.predict(observation, state, episode_start, deterministic)
-            print("action_i", action_i)
             actions[indices] = action_i[indices]
-        print("actions", actions)
         return model.policy.predict(observation, state, episode_start, deterministic)
 
 

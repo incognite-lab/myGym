@@ -477,7 +477,7 @@ class AaGaM(Protorewards):
 
         #Random
         # self.current_network=np.random.randint(0, self.num_networks)
-        # self.task.check_episode_steps()
+        self.task.check_episode_steps()
         return self.current_network
 
 

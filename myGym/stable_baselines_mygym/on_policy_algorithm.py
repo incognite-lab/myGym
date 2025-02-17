@@ -258,7 +258,6 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     clipped_actions = np.clip(actions, self.action_space.low, self.action_space.high)
             #print("clipped actions:", clipped_actions)
             new_obs, rewards, dones, infos = env.step(clipped_actions)
-
             if isinstance(owner, list):
                 self.num_timesteps += env.num_envs
             else:
@@ -307,9 +306,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     indices = np.where(owner == i)
                     model = self.models[i]
                     values_i = model.policy.predict_values(obs_as_tensor(new_obs, self.device))
-                    print("values_i:", values_i)# type: ignore[arg-type]
                     values[indices] = values_i[indices].squeeze()
-                    print("values:", values)
         rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
         callback.update_locals(locals())
         callback.on_rollout_end()

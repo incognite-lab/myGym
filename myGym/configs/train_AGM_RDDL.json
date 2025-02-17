@@ -47,7 +47,7 @@
     "pretrained_model"  :null,
     "multiprocessing"   :4,
     #Evaluation
-    "eval_freq"     :1000,
+    "eval_freq"     :10000,
     "eval_episodes" :4,
     #Saving and logging
     "logdir"    :"trained_models/AGM",
