@@ -396,6 +396,135 @@ class TaskModule():
         """
         Check if episode should finish based on fulfilled goal or exceeded number of steps
         """
+
+        if self.distance_type == "euclidean":
+            dist = np.linalg.norm(np.asarray(obj1[:3]) - np.asarray(obj2[:3]))
+            #print("Calculated distance:", dist)
+        elif self.distance_type == "manhattan":
+            dist = cityblock(obj1, obj2)
+        return dist
+
+    def calc_height_diff(self, obj1, obj2):
+        """
+        Calculate height difference between objects
+
+        Parameters:
+            :param obj1: (float array) First object position representation
+            :param obj2: (float array) Second object position representation
+        Returns:
+            :return dist: (float) Distance iz Z axis
+        """
+        #TODO
+        dist = abs(obj1[2] - obj2[2])
+        return dist
+
+    def calc_rot_quat(self, obj1, obj2):
+        """
+        Calculate difference between two quaternions
+
+        Parameters:
+            :param obj1: (float array) First object quaternion
+            :param obj2: (float array) Second object object quaternion
+        Returns:
+            :return dist: (float) Distance between 2 float arrays
+        """
+        #TODO
+        #tran = np.linalg.norm(np.asarray(obj1[:3]) - np.asarray(obj2[:3]))
+        rot = Quaternion.distance(Quaternion(obj1[3:]), Quaternion(obj2[3:]))
+        #print(obj1[3:])
+        #print(obj2[3:])
+        #print(rot)
+        return rot
+
+    def calc_rotation_diff(self, obj1, obj2):
+        """
+        Calculate diffrence between orientation of two objects
+
+        Parameters:
+            :param obj1: (float array) First object orientation (Euler angles)
+            :param obj2: (float array) Second object orientation (Euler angles)
+        Returns:
+            :return diff: (float) Distance between 2 float arrays
+        """
+        if self.distance_type == "euclidean":
+            diff = np.linalg.norm(np.asarray(obj1) - np.asarray(obj2))
+        elif self.distance_type == "manhattan":
+            diff = cityblock(obj1, obj2)
+        return diff
+
+    def trajectory_distance(self, trajectory, point, last_nearest_index, n=10):
+        """Compute the distance of point from a trajectory, n points around the last nearest point"""
+        index1, index2 = last_nearest_index - (int(n / 2)), last_nearest_index + int(n / 2)
+        print("indexes:", index1, index2)
+        if (index1) < 0:  # index can't be less than zero
+            index1 -= last_nearest_index - (int(n / 2))
+            index2 -= last_nearest_index - (int(n / 2))
+        if (index2 > np.shape(trajectory)[1]):
+            index2 =np.shape(trajectory)[1]
+        trajectory_points = np.transpose(
+            trajectory[:, index1:index2])  # select n points around last nearest point of trajectory
+        distances = []
+        for i in range(index2-index1):
+            distances.append(self.calc_distance(point, trajectory_points[i]))
+        min_idx = int(np.argwhere(distances == np.min(distances)))
+        min = np.min(distances)
+        nearest_index = min_idx + index1
+        return min, nearest_index
+
+    def create_trajectory(self, fx, fy, fz, t):
+        """General trajectory creator. Pass functions fx, fy, fz and parametric vector t to create any 3D trajectory"""
+        trajectory = np.asarray([fx(t), fy(t), fz(t)])
+        return trajectory
+
+
+    def create_line(self, point1, point2, step=0.01):
+        """Creates line from point1 to point2 -> vectors of length 1/step"""
+        t = np.arange(0, 1, step)
+
+        def linemaker_x(t):
+            "axis: 0 = x, 1 = y, 2 = z"
+            return (point2[0] - point1[0]) * t + point1[0]
+
+        def linemaker_y(t):
+            return (point2[1] - point1[1]) * t + point1[1]
+
+        def linemaker_z(t):
+            return (point2[2] - point1[2]) * t + point1[2]
+
+        return self.create_trajectory(fx=linemaker_x, fy=linemaker_y, fz=linemaker_z, t=t)
+
+
+    def create_circular_trajectory(self, center, radius, rot_vector = [0.0, 0.0, 0.0], arc=np.pi, step=0.01, direction = 1):
+        """Creates a 2D circular trajectory in 3D space.
+        params: center ([x,y,z]), radius (float): self-explanatory
+                rot_vector ([x,y,z]): Axis of rotation. Angle of rotation is norm of rot_vector
+                arc (radians): 2pi means full circle, 1 pi means half a circle etc...
+        """
+        phi = np.arange(0, arc, step)
+        v = np.asarray(rot_vector)
+        theta = np.linalg.norm(v)
+
+        # creation of non-rotated circle of given radius located at [0,0,0]
+        base_circle = np.array([np.cos(phi) * radius, np.sin(phi) * radius, [0] * len(phi)])*direction
+        rotation = np.eye(3)
+        print(theta)
+        if theta != 0.0:
+            normalized_v = v * (1 / theta)
+            # Rodrigues' formula:
+            rotation = (np.eye(3) + np.sin(theta) * self.skew_symmetric(normalized_v) +
+                        (1 - np.cos(theta)) * np.matmul(self.skew_symmetric(normalized_v),
+                                                        self.skew_symmetric(normalized_v)))
+        rotated = np.asarray([[], [], []])
+        for i in range(len(phi)):
+            rotated_v = np.asarray([np.matmul(rotation, base_circle[:3, i])])
+            rotated = np.append(rotated, np.transpose(rotated_v), axis=1)
+        # moving circle to its center
+        move = np.asarray(center)
+        final_circle = np.transpose(np.transpose(rotated) + move)
+        return final_circle
+
+
+    def create_circular_trajectory_v2(self, point1, point2, radius, direction):
         pass
 
 

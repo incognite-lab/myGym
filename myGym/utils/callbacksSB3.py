@@ -119,10 +119,6 @@ class CustomEvalCallback(EvalCallback):
                 else:
                     obs, reward, terminated, truncated, info = self.eval_env.step(action)
                     done = terminated or truncated
-                if len(np.shape(action)) == 2:
-                    info = info[0]
-                    reward = reward[0]
-                    done = done[0]
 
                 if evaluation_env.p.getConnectionInfo()["isConnected"] != 0:
                     evaluation_env.p.addUserDebugText(
@@ -145,16 +141,17 @@ class CustomEvalCallback(EvalCallback):
                                                       textColorRGB=[0.2, 0.8, 1])
                 episode_reward += reward
                 is_successful = not info['f']
-                print("info:", info)
 
                 if evaluation_env.reward.current_network != last_network:
-                    # print("current network:", evaluation_env.reward.current_network)
-                    # print("last_network", last_network)
                     srewardsteps.put([last_network], steps - last_steps)
                     srewardsuccess.put([last_network], 1)
                     last_network = evaluation_env.reward.current_network
                     last_steps = steps
+                    print("last_steps:", last_steps)
+                    print("last_network:", last_network)
                 distance_error = self.eval_env.env.reward.get_distance_error(info['o'])
+                print("distance_error:", distance_error)
+                #print("distance_error", distance_error)
 
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
@@ -175,6 +172,7 @@ class CustomEvalCallback(EvalCallback):
             episode_rewards.append(episode_reward)
             success_episodes_num += is_successful
             distance_error_sum += distance_error
+            print("distance_error_sum:", distance_error_sum)
 
         if self.record:
             gif_path = os.path.join(self.log_path, "last_eval_episode_after_{}_steps.gif".format(self.n_calls))
@@ -186,7 +184,7 @@ class CustomEvalCallback(EvalCallback):
         meansrs = np.mean(subrewsteps, axis=0)
         srsu = np.array(subrewsuccess)
         meansgoals = np.count_nonzero(srsu) / evaluation_env.reward.num_networks / n_eval_episodes * 100
-
+        print("n_eval_episodes:", n_eval_episodes)
         results = {
             "episode": "{}".format(self.n_calls*self.num_cpu),
             "n_eval_episodes": "{}".format(n_eval_episodes),
@@ -311,12 +309,18 @@ class CustomEvalCallbackMultiproc(EvalCallback):
         success_episodes_num = 0
         distance_error_sum = 0
         steps_sum = 0
-
+        evaluation_env = self.eval_env
+        env_reward = evaluation_env.get_attr("reward")[0]
         episode_rewards = []
+
+        network_rewards = []
+        for _ in range(model.n_envs):
+            network_rewards.append(np.zeros(env_reward.num_networks))
         images = []
         subrewsteps = []
         subrewsuccess = []
-        eval_episodes = n_eval_episodes // model.n_envs
+        eval_episodes = max(1,n_eval_episodes // model.n_envs) #Number used in for cycle below
+        n_eval_episodes = eval_episodes * model.n_envs #Actual number of evaluated episodes
         print("---Evaluation----")
         for e in range(eval_episodes):
             # Avoid double reset, as VecEnv are reset automatically
@@ -333,12 +337,7 @@ class CustomEvalCallbackMultiproc(EvalCallback):
             steps = [0]*model.n_envs
             last_network = [0]*model.n_envs
             last_steps = [0]*model.n_envs
-
-            # During multiprocess training, evaluation environment needs to be accessed differently
-            evaluation_env = self.eval_env
-            env_reward = evaluation_env.get_attr("reward")[0]
-
-            network_rewards = [np.zeros(env_reward.num_networks)]*model.n_envs
+            network_reward = [np.zeros(env_reward.num_networks)]*model.n_envs
             srewardsteps = [np.zeros(env_reward.num_networks)]*model.n_envs
             srewardsuccess = [np.zeros(env_reward.num_networks)]*model.n_envs
             while not all(done):
@@ -381,13 +380,13 @@ class CustomEvalCallbackMultiproc(EvalCallback):
                         #Network for environment i has changed:
                         srewardsteps[i].put([last_network[i]], steps[i] - last_steps[i])
                         srewardsuccess[i].put([last_network[i]], 1)
+                        #During the last step, network gets reset back to 0, breaking some computations.
                         if not done[i]:
                             last_network[i] = current_env_reward.current_network
                             last_steps[i] = steps[i]
+                            distance_error = current_env_reward.get_distance_error(info[i]['o'])
+                            distance_errors[i] = distance_error
 
-
-                    distance_error = env_reward.get_distance_error(info[i]['o'])
-                    distance_errors[i] = distance_error
 
                     if self.physics_engine == "pybullet":
                         if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
@@ -400,21 +399,24 @@ class CustomEvalCallbackMultiproc(EvalCallback):
                         evaluation_env.render()
                     steps[i] += 1
                     if not done[i]:
-                        network_rewards[i] = current_env_reward.network_rewards
+                        network_reward[i] = current_env_reward.network_rewards
+                    # else:
+                    #     print("step_rewards", reward)
+                    #     print("network_rewards:", network_rewards)
+                    #     print("episode_rewards:", episode_reward)
+                    #     print("----------------------")
 
             for i in range(model.n_envs):
                 current_env_reward = evaluation_env.get_attr("reward")[i]
                 srewardsteps[i].put([last_network[i]], steps[i] - last_steps[i])
+                network_rewards[i] += network_reward[i]
                 if not is_successful[i]:
                     srewardsuccess[i].put([last_network[i]], 0)
-
             success_episodes_num += sum(is_successful)
-
+            distance_error_sum += sum(distance_errors)
             subrewsteps.extend(srewardsteps)
             subrewsuccess.extend(srewardsuccess)
             episode_rewards.extend(episode_reward)
-
-            distance_error_sum += sum(distance_errors)
 
         if self.record:
             gif_path = os.path.join(self.log_path, "last_eval_episode_after_{}_steps.gif".format(self.n_calls))
@@ -422,7 +424,7 @@ class CustomEvalCallbackMultiproc(EvalCallback):
             os.system('./utils/gifopt -O3 --lossy=5 -o {dest} {source}'.format(source=gif_path, dest=gif_path))
             print("Record saved to " + gif_path)
 
-        meansr = np.mean(network_rewards, axis=0)
+        meansr = np.mean(network_rewards, axis=0)/eval_episodes
         meansrs = np.mean(subrewsteps, axis=0)
         srsu = np.array(subrewsuccess)
         meansgoals = np.count_nonzero(srsu) / env_reward.num_networks / n_eval_episodes * 100
@@ -524,7 +526,10 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
         self.STATS_EVERY = stats_every
         self.save_success_graph_every_steps = save_success_graph_every_steps
         self.success_graph_mean_past_episodes = success_graph_mean_past_episodes
-        self.num_cpu = multiprocessing if multiprocessing > 0 else 1
+        if multiprocessing is not None:
+            self.num_cpu = multiprocessing
+        else:
+            self.num_cpu = 1
 
 
     def _on_step(self) -> bool:

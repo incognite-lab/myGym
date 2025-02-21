@@ -289,15 +289,21 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             (used in recurrent policies)
         """
         owner = self.approved(observation)
+        #MUltiprocessing
+        if isinstance(owner, list):
+            owner = np.array(owner)
+            actions = np.zeros((self.n_envs, self.action_space.shape[0]))
 
-        owner = np.array(owner)
-        actions = np.zeros((self.n_envs, self.action_space.shape[0]))
-        for i in range(np.max(owner) + 1):
-            model = self.models[i]
-            indices = np.where(owner == i)
-            action_i, state_i = model.policy.predict(observation, state, episode_start, deterministic)
-            actions[indices] = action_i[indices]
-        return model.policy.predict(observation, state, episode_start, deterministic)
+            for i in range(np.max(owner) + 1):
+                model = self.models[i]
+                indices = np.where(owner == i)
+                action_i, state_i = model.policy.predict(observation, state, episode_start, deterministic)
+                actions[indices] = action_i[indices]
+        #Single process
+        else:
+            model = self.models[owner]
+            actions, state =model.policy.predict(observation, state, episode_start, deterministic)
+        return actions, state
 
 
     def train(self) -> None:
@@ -406,7 +412,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 break
         explained_vars = []
         owner_sizes = self.rollout_buffer.owner_sizes
-        print("owner_sizes", owner_sizes)
         for i in range(self.models_num):
             val_arr = self.rollout_buffer.values[sum(owner_sizes[:i]):sum(owner_sizes[:i+1])]
             ret_arr = self.rollout_buffer.returns[sum(owner_sizes[:i]):sum(owner_sizes[:i+1])]

@@ -339,7 +339,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             self.logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
         self.logger.record("time/fps", fps)
         self.logger.record("time/time_elapsed", int(time_elapsed), exclude="tensorboard")
-        self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
+        self.logger.record("time/total_timesteps", self.num_timesteps*self.n_envs, exclude="tensorboard")
         if len(self.ep_success_buffer) > 0:
             self.logger.record("rollout/success_rate", safe_mean(self.ep_success_buffer))
         self.logger.dump(step=self.num_timesteps)
