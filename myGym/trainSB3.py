@@ -206,8 +206,9 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     callbacks_list.append(auto_save_callback)
     if arg_dict["eval_freq"]:
         eval_env = env
-        NUM_CPU = int(arg_dict["multiprocessing"])
-        if NUM_CPU == 0:
+        if arg_dict["multiprocessing"] is not None:
+            NUM_CPU = int(arg_dict["multiprocessing"])
+        else:
             NUM_CPU = 1
         if arg_dict["multiprocessing"]:
             eval_callback = CustomEvalCallbackMultiproc(eval_env, log_path=model_logdir,
@@ -288,7 +289,7 @@ def get_parser():
     parser.add_argument("-l", "--logdir", type=str,  help="Where to save results of training and trained models")
     parser.add_argument("-r", "--record", type=int, help="1: make a gif of model perfomance, 2: make a video of model performance, 0: don't record")
     #Mujoco
-    parser.add_argument("-i", "--multiprocessing", type=int, default =4, help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
+    parser.add_argument("-i", "--multiprocessing", type=int, help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
     parser.add_argument("-v", "--vectorized_envs", type=int,  help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
     #Paths
     parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")
@@ -467,8 +468,8 @@ def main():
         except:
             model_logdir = "_".join((model_logdir_ori, str(add)))
             add += 1
-
-    if arg_dict["multiprocessing"]:
+    print("multiproc:", arg_dict["multiprocessing"])
+    if arg_dict["multiprocessing"] is not None:
         NUM_CPU = int(arg_dict["multiprocessing"])
         env = SubprocVecEnv([make_env(arg_dict, i, model_logdir=model_logdir) for i in range(NUM_CPU)])
         env = VecMonitor(env, model_logdir)

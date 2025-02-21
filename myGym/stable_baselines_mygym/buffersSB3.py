@@ -493,13 +493,6 @@ class RolloutBuffer(BaseBuffer):
         self.pos += 1
         if self.pos == self.buffer_size:
             self.full = True
-            # print("obs:", self.observations)
-            # print("actions:", self.actions)
-            # print("rewards:", self.rewards)
-            # print("episode_starts:", self.episode_starts)
-            # print("values:", self.values)
-            # print("log_probs:", self.log_probs)
-            # print("owners:", self.owners)
 
 
     def remove_zeros(self):
@@ -543,14 +536,6 @@ class RolloutBuffer(BaseBuffer):
             self.generator_ready = True
 
         # Return everything, don't create minibatches
-        # TODO:  delete this
-        # print("reward shape:", self.rewards.shape)
-        # print("action shape:", self.actions.shape)
-        # print("values shape:", self.values.shape)
-        # print("log_prob shape:", self.log_probs.shape)
-        # print("advantage shape:", self.advantages.shape)
-        # print("returns shape:", self.returns.shape)
-        # print("owners", self.owners)
 
         #Reordering arrays based on owner:
         indexes = np.argsort(self.owners.flatten())
@@ -600,7 +585,6 @@ class RolloutBuffer(BaseBuffer):
                     start_idx += batch_size
                 except Exception as e:
                     print("exception occured at line 570 in buffersSB3.py:", e)
-                    print("owner_size (obs_size):", owner_size)
                     adv_size = self.advantage_arrs[i].shape[0]
                     action_size = self.action_arrs[i].shape[0]
                     value_size = self.value_arrs[i].shape[0]
