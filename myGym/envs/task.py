@@ -89,7 +89,7 @@ class TaskModule():
         scene_entities = self.rddl_task.gather_objects()
         for entity in scene_entities:
             if issubclass(entity.type, Gripper) and not entity.is_bound():
-                robot = entity.type(self.env.robot_type, robot_action=self.env.robot_action, task_type=self.env.task_type, **self.env.robot_kwargs)
+                robot = entity.type(robot=self.env.robot_type, robot_action=self.env.robot_action, task_type=self.env.task_type, **self.env.robot_kwargs)
                 entity.bind(robot)
                 self.rddl_robot = entity
                 self.scene_objects.append(robot)
