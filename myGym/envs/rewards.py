@@ -458,12 +458,10 @@ class AaGaM(Protorewards):
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_opened(gripper_states):
                         self.current_network = 1
-                        print("current network changed to 1")
             if self.current_network == 1:
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_closed(gripper_states):
                         self.current_network = 2
-                        print("current network changed to 2")
         if self.current_network == 2:
             if self.object_near_goal(object_position, goal_position):
                 self.task.check_goal()

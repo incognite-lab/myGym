@@ -251,10 +251,11 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 pytorch_variables[name] = attr
         # Build dict of state_dicts
         data.pop("models")
-        for model in self.models:
+        for i in range(len(self.models)):
+            model = self.models[i]
             params_to_save = model.get_parameters()
-            path = os.path.join(model.path, 'best_model')
-            save_to_zip_file(path, data=data, params=params_to_save, pytorch_variables=pytorch_variables)
+            save_path = os.path.join(path, f"submodel_{i}" + "/best_model")
+            save_to_zip_file(save_path, data=data, params=params_to_save, pytorch_variables=pytorch_variables)
 
 
     def approved(self, observation):
@@ -540,9 +541,10 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         load_path = load_path.split("/")
         load_path = load_path[:-1]
         path = "/".join(load_path)
+        print("path", path)
+        import sys
 
         import commentjson
-
         with open(path + "/train.json", "r") as f:
             json = commentjson.load(f)
 

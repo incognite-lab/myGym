@@ -48,8 +48,7 @@ except:
     print("Torch isn't probably installed correctly")
 
 # Import helper classes and functions for monitoring
-from myGym.utils.callbacksSB3 import SaveOnBestTrainingRewardCallback, CustomEvalCallback, EvalCallbackDeparalelized
-
+from myGym.utils.callbacksSB3 import SaveOnBestTrainingRewardCallback, CustomEvalCallback, CustomEvalCallbackMultiproc
 from myGym.envs.natural_language import NaturalLanguage
 from myGym.stable_baselines_mygym.multi_ppo_SB3 import MultiPPOSB3
 from myGym.stable_baselines_mygym.Subproc_vec_envSB3 import SubprocVecEnv
@@ -170,13 +169,11 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         random.seed(seed)
         model_kwargs["seed"] = seed
     if pretrained_model:
+        model_logdir = pretrained_model
         if not os.path.isabs(pretrained_model):
             pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
         env = model_args[1]
-        if not arg_dict["multiprocessing"]:
-            vec_env = DummyVecEnv([lambda: env])
-        else:
-            vec_env = env
+        vec_env = DummyVecEnv([lambda: env])
         model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env)
     else:
         model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0](*model_args, **model_kwargs)
@@ -471,7 +468,8 @@ def main():
 
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
-    os.makedirs(arg_dict["logdir"], exist_ok=True)
+    if not arg_dict["pretrained_model"]:
+        os.makedirs(arg_dict["logdir"], exist_ok=True)
     model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join(
         (arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"], arg_dict["robot_action"], arg_dict["algo"])))
 
