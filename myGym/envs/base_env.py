@@ -1,15 +1,17 @@
-import pybullet_data
 import os
-import pybullet
-import pybullet_utils.bullet_client as bc
 import time
-import numpy as np
-from gymnasium.utils import seeding
+
 import gymnasium as gym
-from gymnasium import envs
-import inspect
-from myGym.envs.camera import Camera
+import numpy as np
 import pkg_resources
+import pybullet
+import pybullet_data
+import pybullet_utils.bullet_client as bc
+from gymnasium import envs
+from gymnasium.utils import seeding
+
+from myGym.envs.camera import Camera
+
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 repodir = pkg_resources.resource_filename("myGym", "./")
 
@@ -19,12 +21,12 @@ class BaseEnv(gym.Env):
     The base class for environments without rendering
 
     Parameters:
-        :param gui_on: (bool) Whether or not to use PyBullet built-in GUI
+        :param gui_on: (bool) Whether to use PyBullet built-in GUI
         :param objects_dir_path: (str) Path to directory with URDF files for objects
         :param max_steps: (int) The maximum number of actions per episode
-        :param show_bounding_boxes_gui: (bool) Whether or not to show bounding boxes in GUI
-        :param changing_light_gui: (bool) Whether or not to change light in GUI
-        :param shadows_on_gui: (bool) Whether or not to show shadows in GUI
+        :param show_bounding_boxes_gui: (bool) Whether to show bounding boxes in GUI
+        :param changing_light_gui: (bool) Whether to change light in GUI
+        :param shadows_on_gui: (bool) Whether to show shadows in GUI
     """
     metadata = {'render.modes': [
         'human', 'rgb_array'], 'video.frames_per_second': 50}
@@ -79,7 +81,6 @@ class BaseEnv(gym.Env):
         self._set_action_space()
         self._set_observation_space()
 
-
     def _connect_to_physics_server(self):
         """
         Connect to the PyBullet physics server in SHARED_MEMORY, GUI or DIRECT mode
@@ -87,10 +88,8 @@ class BaseEnv(gym.Env):
         if self.gui_on:
             try:
                 self.p = bc.BulletClient(connection_mode=pybullet.GUI)
-                # if (self.p < 0):
-                #     self.p = bc.BulletClient(connection_mode=p.GUI)
                 self._set_gui_mode()
-            except: #multithread training allows only one gui instance
+            except:  # multithread training allows only one gui instance
                 self.p = bc.BulletClient(connection_mode=pybullet.DIRECT)
         else:
             self.p = bc.BulletClient(connection_mode=pybullet.DIRECT)
@@ -109,11 +108,14 @@ class BaseEnv(gym.Env):
         Set physics engine parameters
         """
         self.p.setGravity(0, 0, -9.81)
-        self.p.setPhysicsEngineParameter(solverResidualThreshold=0.001, numSolverIterations=150, numSubSteps=20, useSplitImpulse=1, collisionFilterMode=1, constraintSolverType=self.p.CONSTRAINT_SOLVER_LCP_DANTZIG, globalCFM=0.000001, contactBreakingThreshold=0.001)
+        self.p.setPhysicsEngineParameter(solverResidualThreshold=0.001, numSolverIterations=150, numSubSteps=20,
+                                         useSplitImpulse=1, collisionFilterMode=1,
+                                         constraintSolverType=self.p.CONSTRAINT_SOLVER_LCP_DANTZIG, globalCFM=0.000001,
+                                         contactBreakingThreshold=0.001)
         self.p.setTimeStep(self.time_step)
         self.p.setRealTimeSimulation(0)
         self.p.setPhysicsEngineParameter(enableConeFriction=1)
-        #print(self.p.getPhysicsEngineParameters())
+        # print(self.p.getPhysicsEngineParameters())
 
     def _setup_scene(self):
         """
@@ -186,7 +188,7 @@ class BaseEnv(gym.Env):
         self.p.disconnect()
         self._connect_to_physics_server()
         self.scene_objects_uids = {}
-        #self.episode_number = 0
+        # self.episode_number = 0
         self._set_physics()
         self._setup_scene()
 
@@ -202,15 +204,15 @@ class BaseEnv(gym.Env):
         self.episode_reward = 0.0
         self.episode_steps = 0
 
-    def reset(self, hard=False, seed = None):
+    def reset(self, hard=False, seed=None):
         """
         Reset the state of the environment
         """
         super().reset(seed=seed)
         if hard:
-          self.hard_reset()
+            self.hard_reset()
         else:
-          self._remove_all_objects()
+            self._remove_all_objects()
 
         self._restart_episode()
 
@@ -229,7 +231,7 @@ class BaseEnv(gym.Env):
 
     def _print_episode_summary(self, info_dict={}):
         """
-        Show an extra information about the episode
+        Show extra information about the episode
 
         Parameters:
             :param info_dict: (dict) Extra info
@@ -238,19 +240,7 @@ class BaseEnv(gym.Env):
             episode_status = "FAILURE"
         else:
             episode_status = "SUCCESS"
-        #print("#---------Episode-Summary---------#")
         print(str(self.episode_steps) + " , " + str(episode_status) + " , " + str(self.episode_info))
-        #print("Episode's number of steps: " + str(self.episode_steps))
-        #print("Episode status: " + episode_status)
-        #print("Episode info: " + self.episode_info)
-        #print("Episode reward: " + str(self.episode_reward))
-        #if hasattr(self.reward, "network_rewards"):
-        #        [print("Reward network {}: {}".format(i, x)) for i, x in enumerate(self.reward.network_rewards)]
-        #print("Last step reward: " + str(self.reward.rewards_history[-1]))
-        #print("#---------------------------------#")
-
-        #for key, value in info_dict.items():
-        #    print(key + ": " + str(value))
 
     def _get_urdf_filename(self, obj_name):
         """
@@ -293,7 +283,7 @@ class BaseEnv(gym.Env):
         assert all_objects_filenames is not [], "Could not find any urdf among the objects: {}".format(used_objects)
 
         selected_objects_filenames = []
-        if (n <= len(all_objects_filenames)):
+        if n <= len(all_objects_filenames):
             selected_objects = np.random.choice(
                 np.arange(len(all_objects_filenames)), n, replace=True)
         else:
@@ -330,7 +320,6 @@ class BaseEnv(gym.Env):
         assert hasattr(obj, 'get_uid'), "Trying to remove something else than EnvObject"
         self.p.removeBody(obj.get_uid())
 
-
     def _remove_all_objects(self):
         """
         Remove all objects from simulation (not scene objects or robots)
@@ -339,11 +328,11 @@ class BaseEnv(gym.Env):
         for key, o in env_objects_copy.items():
             if isinstance(o, list):
                 for i in o:
-                  if o not in [self.robot, []]:
-                    self._remove_object(i)
+                    if o not in [self.robot, []]:
+                        self._remove_object(i)
             else:
-              if o != self.robot:
-                self._remove_object(o)
+                if o != self.robot:
+                    self._remove_object(o)
 
     def get_texturizable_objects_uids(self):
         """
@@ -357,9 +346,9 @@ class BaseEnv(gym.Env):
             if hasattr(val, "get_uid"):
                 uids.append(val.get_uid())
             elif isinstance(val, list):
-               for item in val:
-                  if hasattr(item, "get_uid"):
-                    uids.append(item.get_uid())
+                for item in val:
+                    if hasattr(item, "get_uid"):
+                        uids.append(item.get_uid())
         return uids + list(self.scene_objects_uids.keys())
 
     def get_colorizable_objects_uids(self):
@@ -387,11 +376,12 @@ class CameraEnv(BaseEnv):
 
     Parameters:
         :param camera_resolution: (list) The number of pixels in image (WxH)
-        :param shadows_on: (bool) Whether or not to use shadows while rendering, only applies to ER_TINY_RENDERER
+        :param shadows_on: (bool) Whether to use shadows while rendering, only applies to ER_TINY_RENDERER
         :param render_on: (bool) Turn on rendering
         :param renderer: (int) self.p.ER_TINY_RENDERER (CPU) or self.p.ER_BULLET_HARDWARE_OPENGL (GPU)
         :param active_cameras: (list) Set 1 at a position(=camera number) to save images from this camera
     """
+
     def __init__(self, camera_resolution=[640, 480], shadows_on=True,
                  render_on=True, renderer=pybullet.ER_BULLET_HARDWARE_OPENGL,
                  active_cameras=None, **kwargs):
@@ -412,7 +402,7 @@ class CameraEnv(BaseEnv):
                   light_distance=1., light_ambient=1., light_diffuse=1.,
                   light_specular=1.):
         """
-        Set light parameters for rendering, doesn't affect PyBullet GUI. Appart from light_direction, all parameters only apply to ER_TINY_RENDERER.
+        Set light parameters for rendering, doesn't affect PyBullet GUI. Apart from light_direction, all parameters only apply to ER_TINY_RENDERER.
 
         Parameters:
             :param light_direction: (list) Specifies the world position of the light source
@@ -504,7 +494,7 @@ class CameraEnv(BaseEnv):
             if camera_id is not None:
                 camera_data[camera_id] = self.cameras[camera_id].render()
             else:
-                for camera_num in range(len(self.active_cameras)):
+                for camera_num in range(self.active_cameras):
                     if self.active_cameras[camera_num]:
                         camera_data[camera_num] = self.cameras[camera_num].render()
         return camera_data

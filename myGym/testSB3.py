@@ -136,6 +136,7 @@ def detect_key(keypress: dict, arg_dict: dict, action: list) -> list:
 
 
 def test_env(env: object, arg_dict: dict) -> None:
+    env.reset()
     env.render()
     # Prepare names for sliders
     joints = [f"Joint{i}" for i in range(1, 20)]
@@ -249,7 +250,7 @@ def test_env(env: object, arg_dict: dict) -> None:
                 visualizations = [[], []]
                 env.render()
                 for camera_id in range(len(env.env.cameras)):
-                    #cannot set render mode?
+                    # cannot set render mode?
                     camera_render = env.render(mode="rgb_array", camera_id=camera_id)
                     image = cv2.cvtColor(camera_render[camera_id]["image"], cv2.COLOR_RGB2BGR)
                     depth = camera_render[camera_id]["depth"]
@@ -274,6 +275,7 @@ def test_env(env: object, arg_dict: dict) -> None:
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
                 break
+
 
 def test_model(
         env: Any,
