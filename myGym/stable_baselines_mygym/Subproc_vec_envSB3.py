@@ -236,6 +236,16 @@ class SubprocVecEnv(VecEnv):
         for remote in self.remotes:
             remote.recv()
 
+    def eval_step(self, action: np.ndarray):
+        #Special step method which only sends step method to the first environment - this is used for evaluation
+        remote = self.remotes[0]
+        remote.send(("step", action))
+        self.waiting = True
+        obs, rew, done, info, self.reset_infos = remote.recv()
+        #print("obs:", obs)
+        self.waiting = False
+        return obs, rew, done, info
+
 
 def _flatten_obs(obs: Union[List[VecEnvObs], Tuple[VecEnvObs]], space: spaces.Space) -> VecEnvObs:
     """
