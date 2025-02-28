@@ -447,15 +447,13 @@ class EvalCallbackDeparalelized(EvalCallback):
             # Sync training and eval env if there is VecNormalize
             self.num_evals += 1
             sync_envs_normalization(self.training_env, self.eval_env)
-
             results = self.evaluate_policy(self.model,
                                            n_eval_episodes=self.n_eval_episodes,
                                            deterministic=self.deterministic)
-
             if self.log_path is not None:
                 self.evaluations_results["evaluation_after_{}_steps".format(actual_calls)] = results
                 filename = "evaluation_results.json"
-                with open(os.path.join(self.log_path, filename), 'w') as f:
+                with open(os.path.join(self.log_path, filename), 'a+') as f:
                     json.dump(self.evaluations_results, f, indent=4)
                 print("Evaluation stored after {} calls.".format(actual_calls))
         return True
@@ -620,11 +618,6 @@ class CustomEvalCallbackMultiproc(EvalCallback):
                     steps[i] += 1
                     if not done[i]:
                         network_reward[i] = current_env_reward.network_rewards
-                    # else:
-                    #     print("step_rewards", reward)
-                    #     print("network_rewards:", network_rewards)
-                    #     print("episode_rewards:", episode_reward)
-                    #     print("----------------------")
 
             for i in range(model.n_envs):
                 current_env_reward = evaluation_env.get_attr("reward")[i]
@@ -750,15 +743,17 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
             self.num_cpu = multiprocessing
         else:
             self.num_cpu = 1
+        self.num_evals = 1
 
 
     def _on_step(self) -> bool:
         actual_calls = self.n_calls * self.num_cpu
-        # DOESNT WORK WITH MULTIPROCESSING
-        if actual_calls % self.save_model_every_steps == 0:
-            print("Saving model to {}".format(self.periodical_save_path))
+        # DOESNT WORK WITH MULTIPROCESSING (?)
+        if actual_calls >= self.save_model_every_steps*self.num_evals:
+            print("Saving model to {}".format(self.periodical_save_path) + f"{actual_calls}")
             self.model.save(self.periodical_save_path + f"{actual_calls}")
-        if actual_calls % self.check_freq == 0:
+            self.num_evals += 1
+        if self.n_calls % self.check_freq == 0:
             # Retrieve training reward
             x, y = ts2xy(load_results(self.logdir), 'timesteps')
 

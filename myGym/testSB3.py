@@ -288,6 +288,7 @@ def test_model(
     try:
         if "multi" in arg_dict["algo"]:
             model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
+            #print("arg_dict model path:", arg_dict["model_path"])
             model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"])
             model.env = model_args[1].env
         else:
@@ -318,7 +319,8 @@ def test_model(
         while not done:
             steps_sum += 1
             action, _state = model.predict(obs, deterministic=deterministic)
-            obs, reward, done, _, info = env.step(action)
+            obs, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated
             is_successful = not info['f']
             distance_error = info['d']
             if arg_dict["vinfo"] == True:
@@ -435,7 +437,7 @@ def main() -> None:
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
-    parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
+    # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
 
     arg_dict, commands = get_arguments(parser)
     parameters = {}
@@ -471,7 +473,7 @@ def main() -> None:
     else:
         env = configure_env(arg_dict, model_logdir, for_train=0)
         implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
-        test_model(env, None, implemented_combos, arg_dict, model_logdir)
+        test_model(env, None, implemented_combos, arg_dict, model_logdir, deterministic = False)
 
 
 if __name__ == "__main__":
