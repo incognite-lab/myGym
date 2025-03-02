@@ -158,9 +158,20 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     conf_pth = os.path.join(model_logdir, "train.json")
     model_path = os.path.join(model_logdir, "best_model.zip")
     arg_dict["model_path"] = model_path
+
     seed = arg_dict.get("seed", None)
-    with open(conf_pth, "w") as f:
-        json.dump(arg_dict, f, indent=4)
+    steps = 0
+    if not pretrained_model:
+        #creating train.json when training from scratch
+        with open(conf_pth, "w") as f:
+            json.dump(arg_dict, f, indent=4)
+        with open(os.path.join(model_logdir,"trained_steps.txt"), "a+") as f:
+            f.write(f"model {model_name} has been saved at steps:" + "\n")
+    else:
+        with open(os.path.join(model_logdir,"trained_steps.txt"), "r") as f:
+            lines = f.readlines()
+            line = lines[-1]
+            steps = int(line)
 
     model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
     model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
@@ -169,7 +180,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         random.seed(seed)
         model_kwargs["seed"] = seed
     if pretrained_model:
-        model_logdir = pretrained_model
+        # model_logdir = pretrained_model
         if not os.path.isabs(pretrained_model):
             pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
         env = model_args[1]
@@ -177,7 +188,6 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             vec_env = DummyVecEnv([lambda: env])
         else:
             vec_env = env
-        print("pretrained_model:", pretrained_model)
         model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env)
     else:
         model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0](*model_args, **model_kwargs)
@@ -196,19 +206,21 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 
     start_time = time.time()
     callbacks_list = []
-    if pretrained_model:
-        model_logdir = pretrained_model.split('/')
-        model_logdir = model_logdir[:-1]
-        model_logdir = "/".join(model_logdir)
-        auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env,
+    # if pretrained_model:
+    #     model_logdir = pretrained_model.split('/')
+    #     model_logdir = model_logdir[:-1]
+    #     model_logdir = "/".join(model_logdir)
+    #     print("model_logdir:", model_logdir)
+
+    #     auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env,
+    #                                                           engine=arg_dict["engine"],
+    #                                                           multiprocessing=arg_dict["multiprocessing"],
+    #                                                           save_model_every_steps=arg_dict["eval_freq"])
+    # else:
+    auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env,
                                                               engine=arg_dict["engine"],
                                                               multiprocessing=arg_dict["multiprocessing"],
-                                                              save_model_every_steps=arg_dict["eval_freq"])
-    else:
-        auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env,
-                                                              engine=arg_dict["engine"],
-                                                              multiprocessing=arg_dict["multiprocessing"],
-                                                              save_model_every_steps=arg_dict["eval_freq"])
+                                                              save_model_every_steps=arg_dict["eval_freq"], starting_steps = steps)
     callbacks_list.append(auto_save_callback)
     if arg_dict["eval_freq"]:
         eval_env = env
@@ -222,8 +234,9 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
                                                algo_steps=arg_dict["algo_steps"],
                                                n_eval_episodes=arg_dict["eval_episodes"],
                                                record=arg_dict["record"],
-                                               camera_id=arg_dict["camera"], num_cpu=NUM_CPU)
+                                               camera_id=arg_dict["camera"], num_cpu=NUM_CPU, starting_steps = steps)
         else:
+            #Needs to be updated:
             eval_callback = CustomEvalCallback(eval_env, log_path=model_logdir,
                                            eval_freq=arg_dict["eval_freq"],
                                            algo_steps=arg_dict["algo_steps"],
@@ -460,21 +473,27 @@ def main():
 
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
-    if not arg_dict["pretrained_model"]:
-        os.makedirs(arg_dict["logdir"], exist_ok=True)
+    os.makedirs(arg_dict["logdir"], exist_ok=True)
     model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join(
         (arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"], arg_dict["robot_action"], arg_dict["algo"])))
 
     model_logdir = model_logdir_ori
     add = 2
+    if not arg_dict["pretrained_model"]:
+        #If training from scratch, make a new logdir for the model
+        #logdir includes train.json file and monitor.csv file
+        while True:
+            try:
+                os.makedirs(model_logdir, exist_ok=False)
+                break
+            except:
+                model_logdir = "_".join((model_logdir_ori, str(add)))
+                add += 1
+    else:
+        #In case of renewing training from a checkpoint, logdir with monitor.csv
+        #and train.json are located in the directory where pretrained model is stored
+        model_logdir = os.path.dirname(os.path.dirname(arg_dict["pretrained_model"]))
 
-    while True:
-        try:
-            os.makedirs(model_logdir, exist_ok=False)
-            break
-        except:
-            model_logdir = "_".join((model_logdir_ori, str(add)))
-            add += 1
     if arg_dict["multiprocessing"] is not None:
         NUM_CPU = int(arg_dict["multiprocessing"])
         env = SubprocVecEnv([make_env(arg_dict, i, model_logdir=model_logdir) for i in range(NUM_CPU)])
@@ -483,7 +502,6 @@ def main():
         env = configure_env(arg_dict, model_logdir, for_train=1)
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
     train(env, implemented_combos, model_logdir, arg_dict, arg_dict["pretrained_model"])
-    print(model_logdir)
 
 
 
