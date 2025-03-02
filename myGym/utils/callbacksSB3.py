@@ -277,7 +277,7 @@ class EvalCallbackDeparalelized(EvalCallback):
                  record=False,
                  camera_id=0,
                  record_steps_limit=256,
-                 num_cpu=1):  # pybullet or mujoco
+                 num_cpu=1, starting_steps = 0):  # pybullet or mujoco
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.algo_steps = algo_steps
@@ -300,6 +300,7 @@ class EvalCallbackDeparalelized(EvalCallback):
         self.evaluations_length = []
         self.num_cpu = num_cpu
         self.num_evals = 1
+        self.starting_steps = starting_steps
 
     def evaluate_policy(
             self,
@@ -330,7 +331,6 @@ class EvalCallbackDeparalelized(EvalCallback):
             steps = 0
             last_network = 0
             last_steps = 0
-            #two lines below won't work
             srewardsteps = np.zeros(env_reward.num_networks)
             srewardsuccess = np.zeros(env_reward.num_networks)
             while not done:
@@ -451,11 +451,11 @@ class EvalCallbackDeparalelized(EvalCallback):
                                            n_eval_episodes=self.n_eval_episodes,
                                            deterministic=self.deterministic)
             if self.log_path is not None:
-                self.evaluations_results["evaluation_after_{}_steps".format(actual_calls)] = results
+                self.evaluations_results["evaluation_after_{}_steps".format(actual_calls+self.starting_steps)] = results
                 filename = "evaluation_results.json"
                 with open(os.path.join(self.log_path, filename), 'a+') as f:
                     json.dump(self.evaluations_results, f, indent=4)
-                print("Evaluation stored after {} calls.".format(actual_calls))
+                print("Evaluation stored after {} calls.".format(actual_calls + self.starting_steps))
         return True
 
 
@@ -725,7 +725,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
                  save_success_graph_every_steps=40_000,
                  save_model_every_steps=500_000,
                  success_graph_mean_past_episodes=30,
-                 multiprocessing=0):
+                 multiprocessing=0, starting_steps=0):
         super(SaveOnBestTrainingRewardCallback, self).__init__(verbose)
         self.check_freq = check_freq
         self.logdir = logdir
@@ -734,11 +734,12 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
         self.engine = engine
         self.save_model_every_steps = save_model_every_steps
         # MUJOCO PART FOR NOW
-        self.periodical_save_path = os.path.join(logdir, 'steps_')
+        self.periodical_save_path = logdir
         self.env = env  # Our access to running environment
         self.STATS_EVERY = stats_every
         self.save_success_graph_every_steps = save_success_graph_every_steps
         self.success_graph_mean_past_episodes = success_graph_mean_past_episodes
+        self.starting_steps = starting_steps
         if multiprocessing is not None:
             self.num_cpu = multiprocessing
         else:
@@ -750,8 +751,8 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
         actual_calls = self.n_calls * self.num_cpu
         # DOESNT WORK WITH MULTIPROCESSING (?)
         if actual_calls >= self.save_model_every_steps*self.num_evals:
-            print("Saving model to {}".format(self.periodical_save_path) + f"{actual_calls}")
-            self.model.save(self.periodical_save_path + f"{actual_calls}")
+            print("Saving model to {}".format(self.periodical_save_path) + f"{self.starting_steps + actual_calls}")
+            self.model.save(self.periodical_save_path, self.starting_steps +actual_calls)
             self.num_evals += 1
         if self.n_calls % self.check_freq == 0:
             # Retrieve training reward

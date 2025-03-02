@@ -207,7 +207,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
     def save(
         self,
-        path: Union[str, pathlib.Path, io.BufferedIOBase],
+        path: Union[str, pathlib.Path, io.BufferedIOBase], steps = None,
         exclude: Optional[Iterable[str]] = None,
         include: Optional[Iterable[str]] = None,
     ) -> None:
@@ -220,6 +220,10 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         """
         # Copy parameter list so we don't mutate the original dict
         data = self.__dict__.copy()
+        if steps is not None:
+            path_steps = os.path.join(path, f"steps_{steps}/" )
+            with open(os.path.join(path, "trained_steps.txt"), "a") as f:
+                f.write(f"{steps}\n")
 
         # Exclude is union of specified parameters (if any) and standard exclusions
         if exclude is None:
@@ -251,10 +255,14 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 pytorch_variables[name] = attr
         # Build dict of state_dicts
         data.pop("models")
+        # with open()
         for i in range(len(self.models)):
             model = self.models[i]
             params_to_save = model.get_parameters()
-            save_path = os.path.join(path, f"submodel_{i}" + "/best_model")
+            if steps is not None:
+                save_path = os.path.join(path_steps,  f"submodel_{i}" + "/best_model")
+            else:
+                save_path = os.path.join(path, f"submodel_{i}" + "/best_model")
             save_to_zip_file(save_path, data=data, params=params_to_save, pytorch_variables=pytorch_variables)
 
 
@@ -541,13 +549,12 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         load_path = load_path.split("/")
         load_path = load_path[:-1]
         path = "/".join(load_path)
-        print("path", path)
-        import sys
+        dir_path = os.path.dirname(path)
+
 
         import commentjson
-        with open(path + "/train.json", "r") as f:
+        with open(dir_path + "/train.json", "r") as f:
             json = commentjson.load(f)
-
         num_models = json["num_networks"]
         load = [] #data, params, pytorch_variables
 
