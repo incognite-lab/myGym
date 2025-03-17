@@ -75,11 +75,15 @@ class Robot:
         self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)       
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
+            self.opengr_threshold = 2*(self.gjoints_limits[1][0]-0.1*(self.gjoints_ranges[0]))
+            self.closegr_threshold = 2*(self.gjoints_limits[0][0]+0.1*(self.gjoints_ranges[0]))
+        else:
+            self.opengr_threshold = 0.5
+            self.closegr_threshold = 0.001
         #TODO Clean code (test and gym_env) to initialize just from coordinates
         #if self.robot_action != "joints":
         self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
-        self.opengr_threshold = 0.07
-        self.closegr_threshold = 0.001
+        
         #else:
         #self.init_joint_poses = np.zeros((len(self.motor_names)))
         #self.reset()

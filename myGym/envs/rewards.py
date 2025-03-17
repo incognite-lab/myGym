@@ -118,8 +118,8 @@ class Protorewards(Reward):
         self.grip_threshold = 0.1
         self.approached_threshold = 0.08
         self.withdraw_threshold = 0.3
-        self.opengr_threshold = 0.07
-        self.closegr_threshold = 0.001
+        self.opengr_threshold = self.env.robot.opengr_threshold
+        self.closegr_threshold = self.env.robot.closegr_threshold
         self.near_threshold = 0.1
         self.lift_threshold = 0.1
         self_above_threshold = 0.1
@@ -200,6 +200,8 @@ class Protorewards(Reward):
         self.env.robot.set_magnetization(False)
         self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
         dist = self.task.calc_distance(gripper[:3], object[:3])
+        print("Open",self.opengr_threshold)
+        print("Closed",self.closegr_threshold)
         gripdist = sum(gripper_states)
         if self.last_approach_dist is None:
             self.last_approach_dist = dist
