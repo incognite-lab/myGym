@@ -13,7 +13,7 @@
     "robot"         :"tiago_dual",
     "robot_action"  :"joints",
     "robot_init"    :[0.5, 0.2, 0.4],
-    "max_velocity"  :1,
+    "max_velocity"  :5,
     "max_force"     :300,
     "action_repeat" :1,
     #Task

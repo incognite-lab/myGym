@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<robot name="00_apple_red">
+  <link name="base_link">
+    <contact>
+      <restitution value="0.332"/>
+      <lateral_friction value="0.7"/>
+  </contact>
+    <inertial>
+      <origin xyz="0. 0. 0." />
+      <mass value="0.1" />
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001" />
+    </inertial>
+    <visual name="00_apple_red">
+      <origin xyz="0. 0. 0."/>
+      <geometry>
+        <mesh filename="../obj/apple.obj" scale = "0.5 0.5 0.5"/>
+        
+      </geometry>
+    </visual>
+<collision>
+      <origin xyz="0. 0. 0."/>
+      <geometry>
+        <mesh filename="../obj/apple.obj" scale = "0.5 0.5 0.5"/>
+      </geometry>
+    </collision>
+
+  </link>
+</robot>

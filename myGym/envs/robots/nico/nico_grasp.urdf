@@ -377,16 +377,16 @@
 	<joint name="r_litlefinger_x_gjoint" type="revolute">
 		<parent link="gripper"/>
 		<child link="r_littlefinger"/>
-		<origin rpy="0 0 0" xyz="0.00 0.02 -0.06"/>
+		<origin rpy="0 -2 0" xyz="0.00 0.02 -0.06"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-2.57" upper="0" velocity="5"/>
+		<limit effort="30" lower="0" upper="2" velocity="10"/>
 	</joint>
 	<joint name="r_indexfinger_x_gjoint" type="revolute">
 		<parent link="gripper"/>
 		<child link="r_indexfinger"/>
-		<origin rpy="0 0 0" xyz="0.00 -0.02 -0.06"/>
+		<origin rpy="0 -2. 0" xyz="0.00 -0.02 -0.06"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-2.57" upper="0" velocity="5"/>
+		<limit effort="30" lower="0" upper="2" velocity="0"/>
 	</joint>
     <!-- ====LEFT ARM=== -->
     <link name="left_shoulder">

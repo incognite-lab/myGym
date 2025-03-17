@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 import numpy as np
 
 # Constants
-GRIPPER_OPEN = 1
+GRIPPER_OPEN = 2
 GRIPPER_CLOSED = 0
 DEFAULT_WITHDRAW_OFFSET = np.array([0.0, 0, 0.4])
 
