@@ -455,7 +455,7 @@ class CameraEnv(BaseEnv):
 
         Parameters:
             :param position: (list) Eye position in Cartesian world coordinates
-            :prarm target_position: (list) Position of the target point
+            :param target_position: (list) Position of the target point
             :param up_vector: (list) Up vector of the camera
             :param up_axis_index: (int) Either 1 for Y or 2 for Z axis up
             :param yaw: (float) Yaw angle in degrees left/right around up-axis
@@ -470,7 +470,7 @@ class CameraEnv(BaseEnv):
 
     def set_active_cameras(self, active_cameras):
 
-        if (len(active_cameras) == len(self.cameras)):
+        if len(active_cameras) == len(self.cameras):
             self.active_cameras = active_cameras
 
     def change_current_camera(self, camera_num):
@@ -495,7 +495,7 @@ class CameraEnv(BaseEnv):
                 camera_data[camera_id] = self.cameras[camera_id].render()
             else:
                 for camera_num in range(self.active_cameras):
-                    if self.active_cameras[camera_num]:
+                    if self.active_cameras >= camera_num:
                         camera_data[camera_num] = self.cameras[camera_num].render()
         return camera_data
 
