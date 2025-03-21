@@ -258,10 +258,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     clipped_actions = np.clip(actions, self.action_space.low, self.action_space.high)
             #print("clipped actions:", clipped_actions)
             new_obs, rewards, dones, infos = env.step(clipped_actions)
-            if isinstance(owner, list):
-                self.num_timesteps += env.num_envs
-            else:
-                self.num_timesteps += 1
+            self.num_timesteps += env.num_envs
             # Give access to local variables
             callback.update_locals(locals())
             if not callback.on_step():
@@ -296,7 +293,6 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             )
             self._last_obs = new_obs
             self._last_episode_starts = dones
-
         with th.no_grad():
             # Compute value for the last timestep
             owner = self.approved(self._last_obs)
@@ -339,7 +335,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             self.logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
         self.logger.record("time/fps", fps)
         self.logger.record("time/time_elapsed", int(time_elapsed), exclude="tensorboard")
-        self.logger.record("time/total_timesteps", self.num_timesteps*self.n_envs, exclude="tensorboard")
+        self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
         if len(self.ep_success_buffer) > 0:
             self.logger.record("rollout/success_rate", safe_mean(self.ep_success_buffer))
         self.logger.dump(step=self.num_timesteps)

@@ -42,6 +42,18 @@ def _worker(
                     info["terminal_observation"] = observation
                     observation, reset_info = env.reset()
                 remote.send((observation, reward, done, info, reset_info))
+
+            elif cmd == "eval_step":
+                observation, reward, terminated, truncated, info = env.step(data)
+                # convert to SB3 VecEnv api
+                done = terminated or truncated
+                info["TimeLimit.truncated"] = truncated and not terminated
+                if done:
+                    # save final observation where user can get it, then reset
+                    info["terminal_observation"] = observation
+                    observation, reset_info = env.reset()
+                network = env.reward.current_network
+                remote.send((observation, reward, done, info, reset_info, network))
             elif cmd == "reset":
                 maybe_options = {"options": data[1]} if data[1] else {}
                 observation, reset_info = env.reset(seed=data[0], **maybe_options)
@@ -239,12 +251,12 @@ class SubprocVecEnv(VecEnv):
     def eval_step(self, action: np.ndarray):
         #Special step method which only sends step method to the first environment - this is used for evaluation
         remote = self.remotes[0]
-        remote.send(("step", action))
+        remote.send(("eval_step", action))
         self.waiting = True
-        obs, rew, done, info, self.reset_infos = remote.recv()
+        obs, rew, done, info, self.reset_infos, network = remote.recv()
         #print("obs:", obs)
         self.waiting = False
-        return obs, rew, done, info
+        return obs, rew, done, info, network
 
 
 def _flatten_obs(obs: Union[List[VecEnvObs], Tuple[VecEnvObs]], space: spaces.Space) -> VecEnvObs:

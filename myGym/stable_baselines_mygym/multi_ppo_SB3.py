@@ -208,6 +208,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
     def save(
         self,
         path: Union[str, pathlib.Path, io.BufferedIOBase], steps = None,
+        best = False,
         exclude: Optional[Iterable[str]] = None,
         include: Optional[Iterable[str]] = None,
     ) -> None:
@@ -220,10 +221,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         """
         # Copy parameter list so we don't mutate the original dict
         data = self.__dict__.copy()
-        if steps is not None:
-            path_steps = os.path.join(path, f"steps_{steps}/" )
-            with open(os.path.join(path, "trained_steps.txt"), "a") as f:
-                f.write(f"{steps}\n")
+        with open(os.path.join(path, "trained_steps.txt"), "a") as f:
+            f.write(f"{steps}\n")
 
         # Exclude is union of specified parameters (if any) and standard exclusions
         if exclude is None:
@@ -256,13 +255,15 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         # Build dict of state_dicts
         data.pop("models")
         # with open()
+        reward_names = self.env.get_attr("reward")[0].network_names
+        # path_steps = os.path.join(path, f"steps_{steps}/" )
         for i in range(len(self.models)):
             model = self.models[i]
             params_to_save = model.get_parameters()
-            if steps is not None:
-                save_path = os.path.join(path_steps,  f"submodel_{i}" + "/best_model")
+            if not best:
+                save_path = os.path.join(path, reward_names[i] + f"/steps_{steps}")
             else:
-                save_path = os.path.join(path, f"submodel_{i}" + "/best_model")
+                save_path = os.path.join(path, reward_names[i] + "/best_model")
             save_to_zip_file(save_path, data=data, params=params_to_save, pytorch_variables=pytorch_variables)
 
 
@@ -547,19 +548,18 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             get_system_info()
 
         load_path = load_path.split("/")
-        load_path = load_path[:-1]
+        #load_path = load_path[:-1]
         path = "/".join(load_path)
         dir_path = os.path.dirname(path)
 
-
         import commentjson
-        with open(dir_path + "/train.json", "r") as f:
+        with open(path + "/train.json", "r") as f:
             json = commentjson.load(f)
         num_models = json["num_networks"]
         load = [] #data, params, pytorch_variables
-
+        reward_names = env.get_attr("reward")[0].network_names
         for i in range(num_models):
-            load_path = path + "/submodel_" + str(i) + "/best_model.zip"
+            load_path = path + "/" + reward_names[i] + "/best_model"
             data, params, pytorch_variables = load_from_zip_file(
                 load_path,
                 device=device,
@@ -700,7 +700,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 class SubModel(MultiPPOSB3):
     def __init__(self, parent, i):
         self.model_num = i
-        self.path = parent.tensorboard_log + "/submodel_" + str(i)
+        reward_names = parent.env.get_attr("reward")[0].network_names
+        self.path = os.path.join(parent.tensorboard_log, reward_names[i])
         try:
             os.makedirs(self.path)
         except:
