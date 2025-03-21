@@ -96,7 +96,6 @@ class Protorewards(Reward):
         self.prev_object_position = None
         self.was_near = False
         self.current_network = 0
-        self.eval_network_rewards = self.network_rewards
         self.network_rewards = [0] * self.num_networks
         self.has_left = False
         self.last_traj_idx = 0
@@ -376,10 +375,6 @@ class Protorewards(Reward):
 
 class A(Protorewards):
 
-    def reset(self):
-        super().reset()
-        self.network_names = ["approach"]
-
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
@@ -401,11 +396,6 @@ class A(Protorewards):
 
 
 class AaG(Protorewards):
-
-
-    def reset(self):
-        super().reset()
-        self.network_names = ["approach", "grasp"]
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -435,10 +425,6 @@ class AaG(Protorewards):
 
 
 class AaGaM(Protorewards):
-
-    def reset(self):
-        super().reset()
-        self.network_names = ["approach", "grasp", "move"]
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -487,10 +473,6 @@ class AaGaM(Protorewards):
 
 class AaGaMaD(Protorewards):
 
-    def reset(self):
-        super().reset()
-        self.network_names = ["approach", "grasp", "move", "drop"]
-
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
@@ -530,10 +512,6 @@ class AaGaMaD(Protorewards):
 
 
 class AaGaMaDaW(Protorewards):
-
-    def reset(self):
-        super().reset()
-        self.network_names = ["approach", "grasp", "move", "drop", "withdraw"]
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
