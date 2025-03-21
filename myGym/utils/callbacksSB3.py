@@ -448,7 +448,7 @@ class EvalCallbackDeparalelized(EvalCallback):
     def _on_step(self) -> bool:
         actual_calls = self.n_calls * self.num_cpu
 
-        if (self.eval_freq > 0 and actual_calls > self.eval_freq*self.num_evals):
+        if (self.eval_freq > 0 and actual_calls >= self.eval_freq*self.num_evals):
             # Sync training and eval env if there is VecNormalize
             self.num_evals += 1
             sync_envs_normalization(self.training_env, self.eval_env)
@@ -522,6 +522,7 @@ class PPOEvalCallback(EvalCallback):
         self.evaluations_length = []
         self.num_cpu = num_cpu
         self.starting_steps = starting_steps
+        self.num_evals = 0
 
     def evaluate_policy(
             self,
@@ -677,8 +678,9 @@ class PPOEvalCallback(EvalCallback):
 
     def _on_step(self) -> bool:
         actual_calls = self.n_calls * self.num_cpu
-        if (self.eval_freq > 0 and actual_calls % self.eval_freq == 0) or actual_calls == 1:
+        if (self.eval_freq > 0 and actual_calls >= self.eval_freq*self.num_evals):
             # Sync training and eval env if there is VecNormalize
+            self.num_evals += 1
             sync_envs_normalization(self.training_env, self.eval_env)
 
             results = self.evaluate_policy(self.model,
@@ -740,7 +742,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
             self.num_cpu = multiprocessing
         else:
             self.num_cpu = 1
-        self.num_evals = 1
+        self.num_evals = 0
 
 
     def _on_step(self) -> bool:

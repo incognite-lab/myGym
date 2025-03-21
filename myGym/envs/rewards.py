@@ -1,9 +1,12 @@
+import numpy as np
+import matplotlib.pyplot as plt
 # from stable_baselines import results_plotter
 import os
+import math
+from math import sqrt, fabs, exp, pi, asin
+from myGym.utils.vector import Vector
+import random
 import time
-
-import matplotlib.pyplot as plt
-import numpy as np
 
 GREEN = [0, 125, 0]
 RED = [125, 0, 0]
@@ -57,6 +60,8 @@ class Reward:
         save_dir = os.path.join(self.env.logdir, "rewards")
         os.makedirs(save_dir, exist_ok=True)
         if self.env.episode_steps > 0:
+            # results_plotter.EPISODES_WINDOW=50
+            # results_plotter.plot_curves([(np.arange(self.env.episode_steps),np.asarray(self.rewards_history[-self.env.episode_steps:]))],'step','Step rewards')
             plt.ylabel("reward")
             plt.gcf().set_size_inches(8, 6)
             plt.savefig(save_dir + "/reward_over_steps_episode{}.png".format(self.env.episode_number))
@@ -69,6 +74,8 @@ class Reward:
         save_dir = os.path.join(self.env.logdir, "rewards")
         os.makedirs(save_dir, exist_ok=True)
         if self.env.episode_number > 0:
+            # results_plotter.EPISODES_WINDOW=10
+            # results_plotter.plot_curves([(np.arange(self.env.episode_number),np.asarray(self.env.episode_final_reward[-self.env.episode_number:]))],'episode','Episode rewards')
             plt.ylabel("reward")
             plt.gcf().set_size_inches(8, 6)
             plt.savefig(save_dir + "/reward_over_episodes_episode{}.png".format(self.env.episode_number))
@@ -96,6 +103,7 @@ class Protorewards(Reward):
         self.prev_object_position = None
         self.was_near = False
         self.current_network = 0
+        self.eval_network_rewards = self.network_rewards
         self.network_rewards = [0] * self.num_networks
         self.has_left = False
         self.last_traj_idx = 0
@@ -133,7 +141,7 @@ class Protorewards(Reward):
         self.iter += 1
 
     def disp_reward(self, reward, owner):
-        """Display reward in green if it's positive or in red if it's negative"""
+        "Display reward in green if it's positive or in red if it's negative"
         if reward > 0:
             color = GREEN
         else:
@@ -173,7 +181,8 @@ class Protorewards(Reward):
     def get_positions(self, observation):
         goal_position = observation["goal_state"]
         object_position = observation["actual_state"]
-        gripper_position = self.env.robot.get_accurate_gripper_position()
+        # gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
+        gripper_position = self.env.robot.get_accurate_gripper_position()  # observation["additional_obs"][gripper_name][:3]
         gripper_position = observation["additional_obs"]["endeff_xyz"]
         gripper_states = self.env.robot.get_gjoints_states()
 
@@ -188,17 +197,18 @@ class Protorewards(Reward):
         self.env.robot.set_magnetization(False)
         self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
         dist = self.task.calc_distance(gripper[:3], object[:3])
-        print("Open", self.opengr_threshold)
-        print("Closed", self.closegr_threshold)
         gripdist = sum(gripper_states)
         if self.last_approach_dist is None:
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
         reward = (self.last_approach_dist - dist) + ((gripdist - self.last_grip_dist) * 0.2)
+        # self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
+        # self.env.p.addUserDebugText(f"Rewards:{self.network_rewards[0]}", [0.65, 0.6, 0.7], lifeTime=0.5,
+        #                            textColorRGB=[0, 0, 125])
         self.reward_name = "approach"
         return reward
 
@@ -375,6 +385,10 @@ class Protorewards(Reward):
 
 class A(Protorewards):
 
+    def reset(self):
+        super().reset()
+        self.network_names = ["approach"]
+
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
@@ -396,6 +410,10 @@ class A(Protorewards):
 
 
 class AaG(Protorewards):
+
+    def reset(self):
+        super().reset()
+        self.network_names = ["approach", "grasp"]
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -426,12 +444,16 @@ class AaG(Protorewards):
 
 class AaGaM(Protorewards):
 
+    def reset(self):
+        super().reset()
+        self.network_names = ["approach", "grasp", "move"]
+
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
         target = \
-            [[gripper_position, object_position, gripper_states], [gripper_position, object_position, gripper_states],
-             [object_position, goal_position, gripper_states]][owner]
+        [[gripper_position, object_position, gripper_states], [gripper_position, object_position, gripper_states],
+         [object_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute][owner](*target)
         self.disp_reward(reward, owner)
         self.last_owner = owner
@@ -473,6 +495,10 @@ class AaGaM(Protorewards):
 
 class AaGaMaD(Protorewards):
 
+    def reset(self):
+        super().reset()
+        self.network_names = ["approach", "grasp", "move", "drop"]
+
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
@@ -513,6 +539,10 @@ class AaGaMaD(Protorewards):
 
 class AaGaMaDaW(Protorewards):
 
+    def reset(self):
+        super().reset()
+        self.network_names = ["approach", "grasp", "move", "drop", "withdraw"]
+
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
@@ -522,9 +552,8 @@ class AaGaMaDaW(Protorewards):
                   [gripper_position, object_position, gripper_states],
                   [gripper_position, object_position, gripper_states]][owner]
         reward = \
-            [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute, self.withdraw_compute][
-                owner](
-                *target)
+        [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute, self.withdraw_compute][owner](
+            *target)
         self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)

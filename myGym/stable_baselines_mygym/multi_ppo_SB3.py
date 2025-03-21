@@ -256,8 +256,10 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         # Build dict of state_dicts
         data.pop("models")
         # with open()
-        reward_names = self.env.get_attr("reward")[0].network_names
-        reward_names = self.env.reward.network_names
+        if isinstance(self.env, VecMonitor):
+            reward_names = self.env.get_attr("reward")[0].network_names
+        else:
+            reward_names = self.env.reward.network_names
         # path_steps = os.path.join(path, f"steps_{steps}/" )
         for i in range(len(self.models)):
             model = self.models[i]
@@ -559,8 +561,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             json = commentjson.load(f)
         num_models = json["num_networks"]
         load = [] #data, params, pytorch_variables
-        print("ENV:", env)
-        if isinstance(env, SubprocVecEnv):
+        if isinstance(env, VecMonitor):
             reward_names = env.get_attr("reward")[0].network_names
         else:
             reward_names = env.reward.network_names
@@ -706,7 +707,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 class SubModel(MultiPPOSB3):
     def __init__(self, parent, i):
         self.model_num = i
-        if isinstance(parent.env, SubprocVecEnv):
+        if isinstance(parent.env, VecMonitor):
             reward_names = parent.env.get_attr("reward")[0].network_names
         else:
             reward_names = parent.env.reward.network_names
