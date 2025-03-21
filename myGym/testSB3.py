@@ -285,14 +285,15 @@ def test_model(
         model_logdir: str = None,
         deterministic: bool = False
 ) -> None:
+    env.reset()
     try:
         if "multi" in arg_dict["algo"]:
             model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
             #print("arg_dict model path:", arg_dict["model_path"])
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"])
+            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env = env)
             model.env = model_args[1].env
         else:
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"])
+            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env = env)
     except:
         if (arg_dict["algo"] in implemented_combos.keys()) and (
                 arg_dict["train_framework"] not in list(implemented_combos[arg_dict["algo"]].keys())):
