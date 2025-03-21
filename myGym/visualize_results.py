@@ -2,7 +2,6 @@ import argparse
 import json
 import os
 import re
-import shutil
 from math import ceil as ceiling
 from typing import Any, Dict, List, Tuple
 
@@ -109,9 +108,10 @@ def multi_dict_diff_by_key(dict_list: List[Dict[str, Any]]) -> Tuple[Dict[str, A
 
 def get_arguments() -> argparse.Namespace:
     """Parse and return command-line arguments."""
+    # '/home/student/mygym/myGym/trained_models/AGM_table_tiago_tiago_dual_joints_gripper_ppo_'
     parser = argparse.ArgumentParser()
     parser.add_argument("--pth",
-                        default='/home/student/mygym/myGym/trained_models/AGM_table_tiago_tiago_dual_joints_gripper_ppo_',
+                        default='/home/sofia/mygym/myGym/trained_models/AGM',
                         type=str)
     parser.add_argument("--robot", default=["kuka", "panda"], nargs='*', type=str)
     parser.add_argument("--algo", default=["multiacktr", "multippo2", "ppo2", "ppo", "acktr", "sac", "ddpg",
@@ -167,7 +167,8 @@ def main() -> None:
     min_steps = 100
     steps = []
     x = []
-
+    if len(dirs) == 0:
+        dirs.append(args.pth)
     # Process data from directories
     for idx, file in enumerate(dirs):
         try:
@@ -220,8 +221,6 @@ def main() -> None:
             print(f"{len(x[3])} datapoints in folder: {file}")
         except FileNotFoundError:
             print(f"0 datapoints in folder: {file}")
-            shutil.rmtree(os.path.join(args.pth, file))
-            print(f"Removed {file}")
 
     for i in range(len(mean_subgoals_steps)):
         mean_subgoals_steps[i] = [item for sublist in mean_subgoals_steps[i] for item in sublist]
@@ -340,7 +339,7 @@ def main() -> None:
                             fmt='%g'
                         )
                 counter += 1
-                ax_set(ax, f'Subgoal steps over episode for algo:, {algo}, task: {task}', 'Meansteps, %')
+                ax_set(ax, f'Subgoal steps over episode for algo: {algo}, task: {task}', 'Meansteps, %')
 
     elif 'robot' in diff.keys() and len(args.robot) > 1:
         index = [[] for _ in range(len(args.robot))]
@@ -433,7 +432,7 @@ def main() -> None:
             label_counter += 1
         counter += 1
 
-        ax_set(ax, f'Subgoal steps over episode for algo:, {alg}, task: {task}', 'Meansteps, %')
+        ax_set(ax, f'Subgoal steps over episode for algo: {alg}, task: {task}', 'Meansteps, %')
 
     # Set titles for axes
     ax_set(ax1, 'Success rate', 'Successful episodes(%)')
@@ -446,6 +445,7 @@ def main() -> None:
     logdir = cut_before_last_slash(logdir)
     fig1.savefig(f"./trained_models/{logdir}_train.png")
     fig2.savefig(f"./trained_models/{logdir}_goals.png")
+    print(f"Figures saved to ./trained_models/{logdir}_train.png and ./trained_models/{logdir}_goals.png")
     plt.show()
 
 
