@@ -46,7 +46,7 @@ except:
     print("Torch isn't probably installed correctly")
 
 # Import helper classes and functions for monitoring
-from myGym.utils.callbacksSB3 import SaveOnBestTrainingRewardCallback, EvalCallbackDeparalelized, PPOEvalCallback
+from myGym.utils.callbacksSB3 import SaveOnBestTrainingRewardCallback, MultiPPOEvalCallback, PPOEvalCallback
 from myGym.envs.natural_language import NaturalLanguage
 from myGym.stable_baselines_mygym.multi_ppo_SB3 import MultiPPOSB3
 from myGym.stable_baselines_mygym.ppoSB3 import PPO as PPO_P
@@ -57,7 +57,7 @@ AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
 #TODO: determine whether this global var is needed
-NUM_CPU = 1
+
 
 
 def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
@@ -211,7 +211,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         else:
             NUM_CPU = 1
         if arg_dict["algo"] == "multippo":
-            eval_callback = EvalCallbackDeparalelized(eval_env, log_path=model_logdir,
+            eval_callback = MultiPPOEvalCallback(eval_env, log_path=model_logdir,
                                                eval_freq=arg_dict["eval_freq"],
                                                algo_steps=arg_dict["algo_steps"],
                                                n_eval_episodes=arg_dict["eval_episodes"],

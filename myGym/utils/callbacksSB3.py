@@ -246,10 +246,11 @@ class CustomEvalCallback(EvalCallback):
         return True
 
 
-class EvalCallbackDeparalelized(EvalCallback):
+class MultiPPOEvalCallback(EvalCallback):
     """
     Callback for evaluating an agent.
-    This method is called for multiprocess training where subprocvecenv has to be used.
+    This method is called for evaluating multippo algorithm. Works both for single process or multi process
+    training.
     Evaluation is carried using only the first env of vecenv (that's why for example observation
     used is obs[0])- special methods had to be implemented for this to work.
     Also, this callback is used for multi-policy algorithms (unlike PPOEvalCallback)
@@ -349,8 +350,15 @@ class EvalCallbackDeparalelized(EvalCallback):
             srewardsuccess = np.zeros(env_reward.num_networks)
             while not done: #Carry out episode steps until the episode is done
                 steps_sum += 1
-                action, state = model.eval_predict(obs, deterministic=deterministic) #Predict action in first environment
-                obs, reward, done, info, current_network = self.eval_env.eval_step(action) #Special eval step (uses first env of vec env only)
+                if isinstance(self.eval_env, VecEnv):
+                    action, state = model.eval_predict(obs, deterministic=deterministic) #Predict action in first environment
+                    obs, reward, done, info, current_network = self.eval_env.eval_step(action)
+                else:
+                    action, state = model.predict(obs, deterministic = deterministic)
+                    obs, reward, terminated, truncated, info = self.eval_env.step(action)
+                    done = terminated or truncated
+                    current_network = self.eval_env.reward.current_network
+                 #Special eval step (uses first env of vec env only)
                 if env_p.getConnectionInfo()["isConnected"] != 0:
                     env_p.addUserDebugText(
                         f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']), 5))}",
@@ -358,10 +366,10 @@ class EvalCallbackDeparalelized(EvalCallback):
                     env_p.addUserDebugText(
                         f"Object:{matrix(np.around(np.array(info['o']['actual_state']), 5))}",
                         [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-                    env_p.addUserDebugText(f"Network:{evaluation_env.reward.current_network}",
+                    env_p.addUserDebugText(f"Network:{env_reward.current_network}",
                                                       [.8, .5, 0.25], textSize=1.0, lifeTime=0.5,
                                                       textColorRGB=[0.0, 0.0, 1])
-                    env_p.addUserDebugText(f"Subtask:{evaluation_env.task.current_task}",
+                    env_p.addUserDebugText(f"Subtask:{env_task.current_task}",
                                                       [.8, .5, 0.35], textSize=1.0, lifeTime=0.5,
                                                       textColorRGB=[0.4, 0.2, 1])
                     env_p.addUserDebugText(f"Episode:{e}",
@@ -384,13 +392,13 @@ class EvalCallbackDeparalelized(EvalCallback):
                 distance_error = env_reward.get_distance_error(info['o']) #Compute how far from goal is the gripper/object
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
-                        render_info = evaluation_env.render(mode="rgb_array", camera_id=self.camera_id)
+                        render_info = self.eval_env.render(mode="rgb_array", camera_id=self.camera_id)
                         image = render_info[self.camera_id]["image"]
                         images.append(image)
                         print(f"appending image: total size: {len(images)}]")
 
                 if self.physics_engine == "mujoco" and self.gui_on:  # Rendering for mujoco engine
-                    evaluation_env.render()
+                    self.eval_env.render()
                 steps += 1
 
             #Save all gathered eval episode values
@@ -418,7 +426,10 @@ class EvalCallbackDeparalelized(EvalCallback):
         meansrs = np.mean(subrewsteps, axis=0)
         srsu = np.array(subrewsuccess)
         meansgoals = np.count_nonzero(srsu) / env_reward.num_networks / n_eval_episodes * 100
-        env_task = self.eval_env.get_attr("task")[0]
+        if isinstance(self.eval_env, VecEnv):
+            env_task = self.eval_env.get_attr("task")[0]
+        else:
+            env_task = self.eval_env.task
         results = {
             "episode": "{}".format(self.n_calls*self.num_cpu),
             "n_eval_episodes": "{}".format(n_eval_episodes),
@@ -584,8 +595,9 @@ class PPOEvalCallback(EvalCallback):
                 if isinstance(self.eval_env, VecMonitor):
                     obs, reward, done, info, current_network = self.eval_env.eval_step(action)
                 else:
-                    obs, reward, terminated, truncated, info, current_network = self.eval_env.step(action)
+                    obs, reward, terminated, truncated, info = self.eval_env.step(action)
                     done = terminated or truncated
+                    current_network = self.eval_env.reward.current_network
 
                 if env_p.getConnectionInfo()["isConnected"] != 0:
                     env_p.addUserDebugText(
@@ -626,7 +638,10 @@ class PPOEvalCallback(EvalCallback):
                 if self.physics_engine == "mujoco" and self.gui_on:  # Rendering for mujoco engine
                     evaluation_env.render()
                 steps += 1
-            env_reward = self.eval_env.get_attr("reward")[0]
+            if isinstance(self.eval_env, VecEnv):
+                env_reward = self.eval_env.get_attr("reward")[0]
+            else:
+                env_reward = self.eval_env.reward
             srewardsteps.put([last_network], steps - last_steps)
             if is_successful:
                 srewardsuccess.put([last_network], 1)
