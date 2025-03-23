@@ -32,7 +32,6 @@ def _worker(
         try:
             cmd, data = remote.recv()
             if cmd == "step":
-                #print("action sent into worker step:", data)
                 observation, reward, terminated, truncated, info = env.step(data)
                 # convert to SB3 VecEnv api
                 done = terminated or truncated
@@ -42,8 +41,7 @@ def _worker(
                     info["terminal_observation"] = observation
                     observation, reset_info = env.reset()
                 remote.send((observation, reward, done, info, reset_info))
-
-            elif cmd == "eval_step":
+            elif cmd == "eval_step": #Step which also returns current network (used for evaluation)
                 observation, reward, terminated, truncated, info = env.step(data)
                 # convert to SB3 VecEnv api
                 done = terminated or truncated
@@ -77,13 +75,6 @@ def _worker(
                 remote.send(is_wrapped(env, data))
             elif cmd == "network_control":
                 remote.send(env.env.network_control())
-            elif cmd == "get_actions":
-                #print(env.env.get_actions(data[0], data[1], data[2]))
-                action, value, log_prob = env.get_actions(data[0], data[1])
-                remote.send((action, value, log_prob))
-            elif cmd == "set_link_to_models":
-                env.set_models(data)
-                remote.send(None)
             else:
                 raise NotImplementedError(f"`{cmd}` is not implemented in the worker")
         except EOFError:
@@ -228,19 +219,11 @@ class SubprocVecEnv(VecEnv):
         indices = self._get_indices(indices)
         return [self.remotes[i] for i in indices]
 
-
     def network_control(self, indices: VecEnvIndices = None) -> List[Any]:
         target_remotes = self.remotes
         for remote in target_remotes:
             remote.send(("network_control", None))
         return [remote.recv() for remote in target_remotes]
-
-    def get_actions(self, owner_list, obs_list):
-        for remote, owner, observation in zip(self.remotes, owner_list, obs_list):
-            remote.send(("get_actions", (owner, observation)))
-        ret = [remote.recv() for remote in self.remotes]
-        actions, values, log_probs = zip(*ret)
-        return np.squeeze(np.stack(actions)), np.squeeze(np.stack(values)), np.squeeze(np.stack(log_probs))
 
     def set_link_to_models(self, models):
         for remote in self.remotes:
@@ -254,7 +237,6 @@ class SubprocVecEnv(VecEnv):
         remote.send(("eval_step", action))
         self.waiting = True
         obs, rew, done, info, self.reset_infos, network = remote.recv()
-        #print("obs:", obs)
         self.waiting = False
         return obs, rew, done, info, network
 

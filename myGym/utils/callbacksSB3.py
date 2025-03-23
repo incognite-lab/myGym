@@ -15,6 +15,8 @@ from tqdm.auto import tqdm
 import time
 
 np.set_printoptions(suppress = True)
+
+#TODO: CustomEvalCallback might not be used - maybe delete
 class CustomEvalCallback(EvalCallback):
     """
     Callback for evaluating an agent.
@@ -247,6 +249,11 @@ class CustomEvalCallback(EvalCallback):
 class EvalCallbackDeparalelized(EvalCallback):
     """
     Callback for evaluating an agent.
+    This method is called for multiprocess training where subprocvecenv has to be used.
+    Evaluation is carried using only the first env of vecenv (that's why for example observation
+    used is obs[0])- special methods had to be implemented for this to work.
+    Also, this callback is used for multi-policy algorithms (unlike PPOEvalCallback)
+
     :param eval_env: (Union[gym.Env, VecEnv]) The environment used for initialization
     :param callback_on_new_best: (Optional[BaseCallback]) Callback to trigger
         when there is a new best model according to the `mean_reward`
@@ -319,13 +326,18 @@ class EvalCallbackDeparalelized(EvalCallback):
         subrewsteps = []
         subrewsuccess = []
         print("---Evaluation----")
-        env_reward = self.eval_env.get_attr("reward")[0]
-
-        for e in range(n_eval_episodes):
-            obs = self.eval_env.reset()
-            obs = obs[0]
-
+        if isinstance(self.eval_env, VecEnv):
+            env_reward = self.eval_env.get_attr("reward")[0]
             env_p = self.eval_env.get_attr("p")[0]
+            env_task = self.eval_env.get_attr("task")[0]
+        else:
+            env_reward = self.eval_env.reward
+            env_p = self.eval_env.p
+            env_task = self.eval_env.task
+
+        for e in range(n_eval_episodes): #Iterate through eval episodes
+            obs = self.eval_env.reset()
+            obs = obs[0] #Use only first env for evaluation
             done, state = False, None
             is_successful = 0
             distance_error = 0
@@ -335,10 +347,10 @@ class EvalCallbackDeparalelized(EvalCallback):
             last_steps = 0
             srewardsteps = np.zeros(env_reward.num_networks)
             srewardsuccess = np.zeros(env_reward.num_networks)
-            while not done:
+            while not done: #Carry out episode steps until the episode is done
                 steps_sum += 1
-                action, state = model.eval_predict(obs, deterministic=deterministic)
-                obs, reward, done, info, current_network = self.eval_env.eval_step(action)
+                action, state = model.eval_predict(obs, deterministic=deterministic) #Predict action in first environment
+                obs, reward, done, info, current_network = self.eval_env.eval_step(action) #Special eval step (uses first env of vec env only)
                 if env_p.getConnectionInfo()["isConnected"] != 0:
                     env_p.addUserDebugText(
                         f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']), 5))}",
@@ -369,7 +381,7 @@ class EvalCallbackDeparalelized(EvalCallback):
                         last_network = current_network
                         last_steps = steps
 
-                distance_error = env_reward.get_distance_error(info['o'])
+                distance_error = env_reward.get_distance_error(info['o']) #Compute how far from goal is the gripper/object
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
                         render_info = evaluation_env.render(mode="rgb_array", camera_id=self.camera_id)
@@ -379,17 +391,17 @@ class EvalCallbackDeparalelized(EvalCallback):
 
                 if self.physics_engine == "mujoco" and self.gui_on:  # Rendering for mujoco engine
                     evaluation_env.render()
-
-                # if not done:
-                #    #network_rewards = env_reward.network_rewards
                 steps += 1
+
+            #Save all gathered eval episode values
             srewardsteps.put([last_network], steps - last_steps)
             if is_successful:
                 srewardsuccess.put([last_network], 1)
-            env_reward = self.eval_env.get_attr("reward")[0]
-
+            if isinstance(self.eval_env, VecEnv):
+                env_reward = self.eval_env.get_attr("reward")[0]
+            else:
+                env_reward = self.eval_env.reward
             subrewards.append(env_reward.eval_network_rewards)
-
             subrewsteps.append(srewardsteps)
             subrewsuccess.append(srewardsuccess)
             episode_rewards.append(episode_reward)
@@ -458,7 +470,6 @@ class EvalCallbackDeparalelized(EvalCallback):
             if self.log_path is not None:
                 self.evaluations_results["evaluation_after_{}_steps".format(actual_calls+self.starting_steps)] = results
                 filename = "evaluation_results.json"
-                #print("saving ev res to:", os.path.join(self.log_path, filename))
                 with open(os.path.join(self.log_path, filename), 'w') as f:
                     json.dump(self.evaluations_results, f, indent=4)
                 print("Evaluation stored after {} calls.".format(actual_calls + self.starting_steps))
@@ -469,6 +480,7 @@ class EvalCallbackDeparalelized(EvalCallback):
 class PPOEvalCallback(EvalCallback):
     """
     Callback for evaluating an agent.
+    This callback is used for training single-policy PPO.
     :param eval_env: (Union[gym.Env, VecEnv]) The environment used for initialization
     :param callback_on_new_best: (Optional[BaseCallback]) Callback to trigger
         when there is a new best model according to the `mean_reward`
@@ -543,13 +555,16 @@ class PPOEvalCallback(EvalCallback):
         print("---Evaluation----")
         start_timer = time.time()
 
-
-        env_reward = self.eval_env.get_attr("reward")[0]
-        env_p = self.eval_env.get_attr("p")[0]
-        env_task = self.eval_env.get_attr("task")[0]
+        if isinstance(self.eval_env, VecEnv):
+            env_reward = self.eval_env.get_attr("reward")[0]
+            env_p = self.eval_env.get_attr("p")[0]
+            env_task = self.eval_env.get_attr("task")[0]
+        else:
+            env_reward = self.eval_env.reward
+            env_p = self.eval_env.p
+            env_task = self.eval_env.task
 
         for e in range(n_eval_episodes):
-            #print("iteration:", e)
             obs = self.eval_env.reset()
             obs = obs[0]
             done, state = False, None
@@ -559,11 +574,6 @@ class PPOEvalCallback(EvalCallback):
             steps = 0
             last_network = 0
             last_steps = 0
-            # if isinstance(self.eval_env, VecMonitor):
-            #     # During multiprocess training, evaluation environment needs to be accessed differently
-            #     evaluation_env = self.eval_env.get_attr("env")[0]
-            # else:
-            #     evaluation_env = self.eval_env.env.env
 
             srewardsteps = np.zeros(env_reward.num_networks)
             srewardsuccess = np.zeros(env_reward.num_networks)
@@ -638,7 +648,6 @@ class PPOEvalCallback(EvalCallback):
         meansrs = np.mean(subrewsteps, axis=0)
         srsu = np.array(subrewsuccess)
         meansgoals = np.count_nonzero(srsu) / env_reward.num_networks / n_eval_episodes * 100
-        print("success episodes num:", success_episodes_num)
         results = {
             "episode": "{}".format(self.n_calls * self.num_cpu),
             "n_eval_episodes": "{}".format(n_eval_episodes),
@@ -742,18 +751,14 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
             self.num_cpu = multiprocessing
         else:
             self.num_cpu = 1
-        self.num_evals = 0
+        self.num_evals = 0 #Number of undergone evaluations
 
 
     def _on_step(self) -> bool:
-        actual_calls = self.n_calls * self.num_cpu
+        actual_calls = self.n_calls * self.num_cpu #self.n_calls doesn't calculate with multiproc
         # DOESNT WORK WITH MULTIPROCESSING (?)
-        if actual_calls >= self.save_model_every_steps*self.num_evals:
+        if actual_calls >= self.save_model_every_steps*self.num_evals: #Saving model just before evaluation
             print("Saving model to {}".format(self.periodical_save_path))
-            #if self.algo == "multippo":
-            #self.model.save(self.periodical_save_path, self.starting_steps +actual_calls)
-            #else:
-                #self.model.save(os.path.join(self.periodical_save_path, "steps_" + f"{actual_calls}/"))
             self.model.save(self.periodical_save_path, steps = actual_calls + self.starting_steps)
             self.num_evals += 1
         if self.n_calls % self.check_freq == 0:
@@ -767,10 +772,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
                 # Save the new best model (with the best average reward)
                 if average_reward > self.best_average_reward:
                     self.best_average_reward = average_reward
-                    # if self.algo == "multippo":
                     self.model.save(self.save_path, steps = self.starting_steps + actual_calls, best = True)
-                    # else:
-                    #     self.model.save(os.path.join(self.save_path, "best_model"))
                 if self.engine == "mujoco":  # Mujoco has additional prints
                     # Temporal workaround multiprocessing
                     if not self.num_cpu==1 and self.verbose > 0:

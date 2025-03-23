@@ -262,7 +262,7 @@ class PPO(OnPolicyAlgorithm):
         # Gym -> Gymnasium space conversion
         for key in {"observation_space", "action_space"}:
             data[key] = _convert_space(data[key])
-
+        #Commented lines below: copied from original load function of BaseAlgorithm, causes problems. Maybe remove
         # if env is not None:
         #     # Wrap first if needed
         #     env = cls._wrap_env(env, data["verbose"])

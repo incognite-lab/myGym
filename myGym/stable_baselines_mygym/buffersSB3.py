@@ -1,5 +1,4 @@
 import warnings
-import sys
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 
@@ -16,7 +15,7 @@ from stable_baselines3.common.type_aliases import (
 )
 from stable_baselines3.common.utils import get_device
 from stable_baselines3.common.vec_env import VecNormalize
-import time
+
 
 try:
     # Check memory used by replay buffer when possible
@@ -391,6 +390,7 @@ class RolloutBuffer(BaseBuffer):
         self.num_models = num_models
         self.reset()
 
+
     def reset(self) -> None:
         self.observations = np.zeros((self.buffer_size, self.n_envs, *self.obs_shape),dtype=np.float32)
         self.actions = np.zeros((self.buffer_size, self.n_envs, self.action_dim), dtype=np.float32)
@@ -405,13 +405,6 @@ class RolloutBuffer(BaseBuffer):
         self.generator_ready = False
         super().reset()
         self.pos = 0
-        # print("shapes:")
-        # print("obs",self.observation_arrs[0].shape)
-        # print("actions",self.action_arrs[0].shape)
-        # print("rewards", self.reward_arrs[0].shape)
-        # print("ep_starts", self.episode_start_arrs[0].shape)
-        # print("ret_arrs", self.return_arrs[0].shape)
-        # print("val_arrs", self.value_arrs[0].shape)
 
     def compute_returns_and_advantage(self, last_values: th.Tensor, dones: np.ndarray) -> None:
         """
@@ -481,6 +474,7 @@ class RolloutBuffer(BaseBuffer):
 
         if isinstance(self.observation_space, spaces.Discrete):
             obs = obs.reshape((self.n_envs, *self.obs_shape))
+
         # Reshape to handle multi-dim and discrete action spaces, see GH #970 #1392
         action = action.reshape((self.n_envs, self.action_dim))
         self.observations[self.pos] = obs
@@ -546,7 +540,7 @@ class RolloutBuffer(BaseBuffer):
         self.advantages = self.advantages[indexes]
         self.returns = self.returns[indexes]
 
-        #retrieve owner sizes:
+        #retrieve owner sizes (owner = index of network, owner size = how many steps have been done for each network):
         owner_sizes = []
         for i in range(self.num_models):
             owner_sizes.append(np.count_nonzero(self.owners == i))
@@ -570,35 +564,7 @@ class RolloutBuffer(BaseBuffer):
                 current_owner += 1
                 increase_owner = False
             start_idx = end_idx
-        """
-        Previous way of doing things:
-       
-        for i in range(len(owner_sizes)):
-            start_idx = 0
-            owner_size = owner_sizes[i]
-            indices = np.random.permutation(owner_size)
-            while start_idx < owner_size:
-                #End index mustn't be larger than owner_size
-                end_idx = min(owner_size, start_idx + batch_size)
-                try:
-                    yield self._get_samples(indices[start_idx : end_idx], i)
-                    start_idx += batch_size
-                except Exception as e:
-                    print("exception occured at line 570 in buffersSB3.py:", e)
-                    adv_size = self.advantage_arrs[i].shape[0]
-                    action_size = self.action_arrs[i].shape[0]
-                    value_size = self.value_arrs[i].shape[0]
-                    log_prob_size = self.log_prob_arrs[i].shape[0]
-                    return_size = self.return_arrs[i].shape[0]
-                    print("adv_size:", adv_size)
-                    print("action_size:", action_size)
-                    print("value_size:", value_size)
-                    print("log_prob_size:", log_prob_size)
-                    print("return size:", return_size)
-                    minimum = min(adv_size, action_size, value_size, log_prob_size, return_size)
-                    indices = np.random.permutation(minimum)
-                    owner_size = minimum
-             """
+
 
     def _get_samples(
         self,
