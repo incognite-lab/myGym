@@ -341,6 +341,7 @@ def test_model(
 ) -> None:
     env.reset()
     try:
+        #TODO: maybe this if else is unnecessary?
         if "multi" in arg_dict["algo"]:
             model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
             model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env = env)

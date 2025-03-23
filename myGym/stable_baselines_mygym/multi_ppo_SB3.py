@@ -222,6 +222,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         """
         # Copy parameter list so we don't mutate the original dict
         data = self.__dict__.copy()
+
+        #Write down the number of steps trained
         with open(os.path.join(path, "trained_steps.txt"), "a") as f:
             f.write(f"{steps}\n")
 
@@ -255,7 +257,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 pytorch_variables[name] = attr
         # Build dict of state_dicts
         data.pop("models")
-        # with open()
+        # Collect names of subtasks (i. e. approach, grasp, move..)
         if isinstance(self.env, VecMonitor) or isinstance(self.env, DummyVecEnv):
             reward_names = self.env.get_attr("reward")[0].network_names
         else:
@@ -274,9 +276,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
     def approved(self, observation):
         # based on obs, decide which model should be used
-        if hasattr(self.env, 'envs'):
-            submodel_id = self.env.envs[0].env.env.reward.network_switch_control(self.env.envs[0].env.env.observation["task_objects"])
-        elif isinstance(self.env, VecMonitor):
+        if isinstance(self.env, VecMonitor):
             submodel_id = self.env.network_control()
         else:
             submodel_id = self.env.reward.network_switch_control(self.env.observation["task_objects"])
@@ -329,6 +329,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             deterministic: bool = False,
     ) -> Tuple[np.ndarray, Optional[Tuple[np.ndarray, ...]]]:
         """
+        Used in evaluation. Uses only first env of VecEnv.
         Get the policy action from an observation (and optional hidden state).
         Includes sugar-coating to handle different observations (e.g. normalizing images).
 
@@ -553,6 +554,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             json = commentjson.load(f)
         num_models = json["num_networks"]
         load = [] #data, params, pytorch_variables
+
+        #Collect reward names:
         if isinstance(env, VecMonitor) or isinstance(env, DummyVecEnv):
             reward_names = env.get_attr("reward")[0].network_names
         else:
@@ -593,23 +596,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             data[key] = _convert_space(data[key])
 
         #Commented lines below are from original load function located in SB3 BaseClass - they cause problems
-
-        # if env is not None:
-        #     # Wrap first if needed
-        #     #env = cls._wrap_env(env, data["verbose"])
-        #     # Check if given env is valid
-        #     check_for_correct_spaces(env, data["observation_space"], data["action_space"])
-        #     # Discard `_last_obs`, this will force the env to reset before training
-        #     # See issue https://github.com/DLR-RM/stable-baselines3/issues/597
-        #     if force_reset and data is not None:
-        #         data["_last_obs"] = None
-        #     # `n_envs` must be updated. See issue https://github.com/DLR-RM/stable-baselines3/issues/1018
-        #     if data is not None:
-        #         data["n_envs"] = env.num_envs
-        # else:
-        #     # Use stored env, if one exists. If not, continue as is (can be used for predict)
-        #     if "env" in data:
-        #         env = data["env"]
         model = cls(
             policy=data["policy_class"],
             env=env,
@@ -626,10 +612,13 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         model._setup_model()
         i = 0
         for submodel in model.models:
+            params = load[i][1]
+            pytorch_variables = load[i][2]
             try:
                 # put state_dicts back in place
-                submodel.set_parameters(load[i][1], exact_match=True, device=device)
+                submodel.set_parameters(params, exact_match=True, device=device)
                 print("successfully set parameters of model", i)
+
             except RuntimeError as e:
                 # Patch to load policies saved using SB3 < 1.7.0
                 # the error is probably due to old policy being loaded
@@ -659,7 +648,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     params["policy.optimizer"]["param_groups"][0]["params"] = saved_optim_params[
                                                                               :n_params]  # type: ignore[index]
 
-                    submodel.set_parameters(params, exact_match=True, device=device)
+                    submodel.set_rparameters(params, exact_match=True, device=device)
                     warnings.warn(
                         "You are probably loading a DQN model saved with SB3 < 2.4.0, "
                         "we truncated the optimizer state so you can save the model "
@@ -673,6 +662,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
             # put other pytorch variables back in place
             if pytorch_variables is not None:
+
                 for name in pytorch_variables:
                     # Skip if PyTorch variable was not defined (to ensure backward compatibility).
                     # This happens when using SAC/TQC.
