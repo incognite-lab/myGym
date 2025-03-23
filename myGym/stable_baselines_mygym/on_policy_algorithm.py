@@ -107,20 +107,18 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         self.max_grad_norm = max_grad_norm
         self.rollout_buffer_class = rollout_buffer_class
         self.rollout_buffer_kwargs = rollout_buffer_kwargs or {}
-
         if _init_setup_model:
             self._setup_model()
+
 
     def _setup_model(self) -> None:
         self._setup_lr_schedule()
         self.set_random_seed(self.seed)
-
         if self.rollout_buffer_class is None:
             if isinstance(self.observation_space, spaces.Dict):
                 self.rollout_buffer_class = DictRolloutBuffer
             else:
                 self.rollout_buffer_class = RolloutBuffer
-
         self.rollout_buffer = self.rollout_buffer_class(
             self.n_steps,
             self.observation_space,  # type: ignore[arg-type]
@@ -132,6 +130,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             num_models = self.models_num,
             **self.rollout_buffer_kwargs,
         )
+
 
     def collect_rollouts(
         self,
@@ -166,6 +165,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         start_time = time.time()
 
         callback.on_rollout_start()
+
         #arrays for one iteration
         actions = np.zeros((self.n_envs, self.action_space.shape[0]))
         rewards = np.zeros(self.n_envs)
@@ -178,30 +178,10 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                 # Sample a new noise matrix for every model
                 for model in self.models:
                     model.policy.reset_noise(env.num_envs)
+
             # Choosing model based on observation
             owner = self.approved(self._last_obs)
-            #owner = [0, 0, 0, 0]
-            if isinstance(owner, list):
-
-                #OLDEr version of retrieving actions
-                """
-                for i in range(len(self.models)):
-                    model = self.models[i]
-                    if i in owner:
-                        owner = np.array(owner)
-                        # Indexes of current model got from observation
-                        indexes = np.where(owner == i)
-                        with th.no_grad():
-                            # Convert to pytorch tensor or to TensorDict
-                            obs_tensor = obs_as_tensor(self._last_obs, self.device)
-                            obs_i = obs_tensor[indexes]
-                            actions_i, values_i, log_probs_i = model.policy(obs_i)
-                        actions[indexes] = actions_i
-                        values[indexes] = values_i
-                        log_probs[indexes] = log_probs_i
-                        # actions_i = actions.cpu().numpy()
-                        # Rescale and perform action
-                """
+            if isinstance(owner, list): #MultiPPO
                 owner = np.array(owner)
                 for i in range(np.max(owner)+1):
                     model = self.models[i]
@@ -219,34 +199,15 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                 values = values_i.cpu().numpy()
                 log_probs = log_probs_i.cpu().numpy()
 
-                # with th.no_grad():
-                #     obs_tensor = obs_as_tensor(self._last_obs, self.device)
-                #actions, values, log_probs = self.env.get_actions(owner, self._last_obs)
-
-                #print("action returned from get_actions:", actions)
-                model = self.models[owner[0]]
-                # actions = actions.cpu().numpy()
-                # actions = th.from_numpy(actions)
-                # values = th.from_numpy(values)
-                # log_probs = th.from_numpy(log_probs)
-
-
-                # with th.no_grad():
-                #     # Convert to pytorch tensor or to TensorDict
-                #     obs_tensor = obs_as_tensor(self._last_obs, self.device)
-                #     actions, values, log_probs = self.models[owner[0]].policy(obs_tensor)
-
-                #actions = actions.cpu().numpy()
-                model = self.models[owner[0]]
+                model = self.models[owner[0]] #Surrogate choice of model (action has already been determined)
                 values = np.squeeze(values)
-
-            else:
+            else: #Single policy algorithm
                 with th.no_grad():
                     model = self.models[owner]
                     # Convert to pytorch tensor or to TensorDict
                     obs_tensor = obs_as_tensor(self._last_obs, self.device)
                     actions, values, log_probs = model.policy(obs_tensor)
-            #actions = actions.cpu().numpy()
+
             if isinstance(self.action_space, spaces.Box):
                 if model.policy.squash_output:
                     # Unscale the actions to match env bounds
@@ -256,7 +217,6 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     # Otherwise, clip the actions to avoid out of bound error
                     # as we are sampling from an unbounded Gaussian distribution
                     clipped_actions = np.clip(actions, self.action_space.low, self.action_space.high)
-            #print("clipped actions:", clipped_actions)
             new_obs, rewards, dones, infos = env.step(clipped_actions)
             self.num_timesteps += env.num_envs
             # Give access to local variables
@@ -293,6 +253,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             )
             self._last_obs = new_obs
             self._last_episode_starts = dones
+
         with th.no_grad():
             # Compute value for the last timestep
             owner = self.approved(self._last_obs)
@@ -310,6 +271,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         total_time = end_time - start_time
         print("rollout_time:", total_time)
         return True
+
 
     def train(self) -> None:
         """

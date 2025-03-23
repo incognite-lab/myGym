@@ -9,7 +9,7 @@
     "gui"       :0,
     "visualize" :0,
     "visgym"    :0,
-    #Robot
+    #Robot;
     "robot"         :"tiago_dual",
     "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.4],
@@ -39,7 +39,7 @@
     "yolact_config" :null,
     #Train
     "train_framework"   :"pytorch",
-    "algo"              :"ppo",
+    "algo"              :"multippo",
     "num_networks"      :3,
     "max_episode_steps" :512,
     "algo_steps"        :512,

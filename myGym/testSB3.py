@@ -343,7 +343,6 @@ def test_model(
     try:
         if "multi" in arg_dict["algo"]:
             model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
-            #print("arg_dict model path:", arg_dict["model_path"])
             model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env = env)
             model.env = model_args[1].env
         else:
@@ -412,67 +411,6 @@ def test_model(
     file.write("#Mean distance error is {:.2f}% \n".format(mean_distance_error * 100))
     file.write("#Mean number of steps {}\n".format(mean_steps_num))
     file.close()
-
-
-def multi_test(params: Dict[str, Any], arg_dict: Dict[str, Any], configfile: str, commands: Dict[str, Any]) -> None:
-    """Execute a multi-test command with the specified parameters.
-        Args:
-            params (Dict[str, Any]): Parameters for the test.
-            arg_dict (Dict[str, Any]): Argument dictionary for configuration.
-            configfile (str): Path to the configuration file.
-            commands (Dict[str, Any]): Additional command options.
-    """
-    logdirfile = arg_dict["logdir"]
-    print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
-    command = (
-            f"python testSB3.py --config {configfile} --logdir {logdirfile} "
-            + " ".join(f"--{key} {value}" for key, value in params.items()) + " "
-            + " ".join(
-        f"--{key} {' '.join(map(str, value)) if isinstance(value, list) else value}" for key, value in commands.items())
-    )
-    print(command)
-
-    # use this if you want all the prints in terminal + file
-    # with open("test.log", "wb") as f:
-    #     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-    #     for c in iter(lambda: process.stdout.read(1), b''):
-    #         sys.stdout.buffer.write(c)
-    #         f.write(c)
-
-    # use this if you don't want prints from threads
-    subprocess.check_output(command.split())
-
-
-def multi_main(arg_dict: Dict[str, Any], parameters: Dict[str, Any], configfile: str, commands: Dict[str, Any]) -> None:
-    """Manage the execution of multi-test commands, either in threads or sequentially.
-
-    Args:
-        arg_dict (Dict[str, Any]): Argument dictionary for configuration.
-        parameters (Dict[str, Any]): Parameter grid for testing.
-        configfile (str): Path to the configuration file.
-        commands (Dict[str, Any]): Additional command options.
-    """
-    parameter_grid = ParameterGrid(parameters)
-
-    threaded = arg_dict["threaded"]
-    threads = []
-
-    start_time = time.time()
-    for i, params in enumerate(parameter_grid):
-        if threaded:
-            print(f"Thread {i + 1} starting")
-            thread = multiprocessing.Process(target=multi_test, args=(params, arg_dict, configfile, commands))
-            thread.start()
-            threads.append(thread)
-        else:
-            multi_test(params.copy(), arg_dict, configfile, commands)
-    if threaded:
-        for i, thread in enumerate(threads):
-            thread.join()
-            print(f"Thread {i + 1} finishing")
-
-    end_time = time.time()
-    print(f"Total time: {end_time - start_time:.2f} seconds")
 
 
 def main() -> None:

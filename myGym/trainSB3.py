@@ -46,7 +46,7 @@ except:
     print("Torch isn't probably installed correctly")
 
 # Import helper classes and functions for monitoring
-from myGym.utils.callbacksSB3 import SaveOnBestTrainingRewardCallback, CustomEvalCallback, EvalCallbackDeparalelized, PPOEvalCallback
+from myGym.utils.callbacksSB3 import SaveOnBestTrainingRewardCallback, EvalCallbackDeparalelized, PPOEvalCallback
 from myGym.envs.natural_language import NaturalLanguage
 from myGym.stable_baselines_mygym.multi_ppo_SB3 import MultiPPOSB3
 from myGym.stable_baselines_mygym.ppoSB3 import PPO as PPO_P
@@ -128,13 +128,6 @@ def make_env(arg_dict: dict, rank: int, seed: int = 0, model_logdir=None) -> Cal
     set_random_seed(seed)
     return _init
 
-#TODO: maybe delete this - not needed
-"""
-def env_creator(env_config):
-    env = gym.make(env_config["env_name"], **env_config)
-    env.spec.max_episode_steps = 512
-    return env
-"""
 
 def configure_implemented_combos(env, model_logdir, arg_dict):
     implemented_combos = {"ppo": {}, "sac": {}, "td3": {}, "a2c": {}, "multippo": {}}
@@ -217,7 +210,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             NUM_CPU = int(arg_dict["multiprocessing"])
         else:
             NUM_CPU = 1
-        if arg_dict["multiprocessing"] and arg_dict["algo"] == "multippo":
+        if arg_dict["algo"] == "multippo":
             eval_callback = EvalCallbackDeparalelized(eval_env, log_path=model_logdir,
                                                eval_freq=arg_dict["eval_freq"],
                                                algo_steps=arg_dict["algo_steps"],
