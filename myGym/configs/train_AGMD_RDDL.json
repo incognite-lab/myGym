@@ -40,15 +40,15 @@
     #Train
     "train_framework"   :"pytorch",
     "algo"              :"multippo",
-    "num_networks"      :4,
+    "num_networks"      :1,
     "max_episode_steps" :512,
     "algo_steps"        :512,
-    "steps"             :100000,
+    "steps"             :5000000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
-    "eval_freq"     :30000,
-    "eval_episodes" :10,
+    "eval_freq"     :500000,
+    "eval_episodes" :50,
     #Saving and logging
     "logdir"    :"trained_models/AGMD",
     "record"    :0
