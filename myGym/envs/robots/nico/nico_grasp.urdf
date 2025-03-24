@@ -93,12 +93,12 @@
 		<limit effort="30" lower="-0.8726" upper="0.4363" velocity="1"/>
 	</joint>
 	<link name="sight">
-    	<visual>
+    	<!---visual>
       		<origin rpy="0 1.67 0" xyz="0.4 0.0 0.06"/>
       		<geometry>
         		<cylinder radius="0.001" length = "0.6"/>
       		</geometry>
-    	</visual>
+    	</visual-->
 		<inertial>
 			<mass value="0.000009"/>
 			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
