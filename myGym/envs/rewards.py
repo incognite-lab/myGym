@@ -198,8 +198,6 @@ class Protorewards(Reward):
         self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
         dist = self.task.calc_distance(gripper[:3], object[:3])        
         gripdist = sum(gripper_states)
-        print(f"Distance: {dist}")
-        print(f"Gripper states: {gripdist}")
         if self.last_approach_dist is None:
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
@@ -233,8 +231,6 @@ class Protorewards(Reward):
         self.env.robot.set_magnetization(True)
         dist = self.task.calc_distance(gripper[:3], object[:3])
         gripdist = sum(gripper_states)
-        print(f"Distance: {dist}")
-        print(f"Gripper states: {gripdist}")
         if self.last_approach_dist is None:
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
