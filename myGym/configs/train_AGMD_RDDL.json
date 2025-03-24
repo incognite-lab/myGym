@@ -40,7 +40,7 @@
     #Train
     "train_framework"   :"pytorch",
     "algo"              :"multippo",
-    "num_networks"      :1,
+    "num_networks"      :4,
     "max_episode_steps" :512,
     "algo_steps"        :512,
     "steps"             :5000000,
