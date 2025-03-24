@@ -4,6 +4,7 @@ from typing import Any, ClassVar, Dict, Optional, Type, TypeVar, Union, Iterable
 import numpy as np
 import torch as th
 from gymnasium import spaces
+from stable_baselines_mygym.Subproc_vec_envSB3 import SubprocVecEnv
 from torch.nn import functional as F
 import os
 import sys
@@ -12,9 +13,8 @@ import io
 
 from stable_baselines3.common.save_util import save_to_zip_file, recursive_getattr, load_from_zip_file
 from stable_baselines3.common.buffers import RolloutBuffer
-#from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
 from myGym.stable_baselines_mygym.on_policy_algorithm import OnPolicyAlgorithm
-from stable_baselines3.common.vec_env import VecMonitor
+from stable_baselines3.common.vec_env import VecMonitor, DummyVecEnv
 from stable_baselines3.common.policies import ActorCriticCnnPolicy, ActorCriticPolicy, BasePolicy, MultiInputActorCriticPolicy
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
 from stable_baselines3.common.utils import explained_variance, get_schedule_fn
@@ -190,6 +190,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
     def _setup_model(self) -> None:
         super()._setup_model()
+        self.env.reset()
         # Initialize schedules for policy/value clipping
         self.clip_range = get_schedule_fn(self.clip_range)
         if self.clip_range_vf is not None:
@@ -208,6 +209,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
     def save(
         self,
         path: Union[str, pathlib.Path, io.BufferedIOBase], steps = None,
+        best = False,
         exclude: Optional[Iterable[str]] = None,
         include: Optional[Iterable[str]] = None,
     ) -> None:
@@ -220,10 +222,10 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         """
         # Copy parameter list so we don't mutate the original dict
         data = self.__dict__.copy()
-        if steps is not None:
-            path_steps = os.path.join(path, f"steps_{steps}/" )
-            with open(os.path.join(path, "trained_steps.txt"), "a") as f:
-                f.write(f"{steps}\n")
+
+        #Write down the number of steps trained
+        with open(os.path.join(path, "trained_steps.txt"), "a") as f:
+            f.write(f"{steps}\n")
 
         # Exclude is union of specified parameters (if any) and standard exclusions
         if exclude is None:
@@ -255,22 +257,26 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 pytorch_variables[name] = attr
         # Build dict of state_dicts
         data.pop("models")
-        # with open()
+        # Collect names of subtasks (i. e. approach, grasp, move..)
+        if isinstance(self.env, VecMonitor) or isinstance(self.env, DummyVecEnv):
+            reward_names = self.env.get_attr("reward")[0].network_names
+        else:
+            reward_names = self.env.reward.network_names
+
+        #Save every submodel in the correct folder (denoted by the corresponding reward name)
         for i in range(len(self.models)):
             model = self.models[i]
             params_to_save = model.get_parameters()
-            if steps is not None:
-                save_path = os.path.join(path_steps,  f"submodel_{i}" + "/best_model")
+            if not best:
+                save_path = os.path.join(path, reward_names[i] + f"/steps_{steps}")
             else:
-                save_path = os.path.join(path, f"submodel_{i}" + "/best_model")
+                save_path = os.path.join(path, reward_names[i] + "/best_model")
             save_to_zip_file(save_path, data=data, params=params_to_save, pytorch_variables=pytorch_variables)
 
 
     def approved(self, observation):
         # based on obs, decide which model should be used
-        if hasattr(self.env, 'envs'):
-            submodel_id = self.env.envs[0].env.env.reward.network_switch_control(self.env.envs[0].env.env.observation["task_objects"])
-        elif isinstance(self.env, VecMonitor):
+        if isinstance(self.env, VecMonitor):
             submodel_id = self.env.network_control()
         else:
             submodel_id = self.env.reward.network_switch_control(self.env.observation["task_objects"])
@@ -298,7 +304,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             (used in recurrent policies)
         """
         owner = self.approved(observation)
-        #MUltiprocessing
+        #Multiprocessing
         if isinstance(owner, list):
             owner = np.array(owner)
             actions = np.zeros((self.n_envs, self.action_space.shape[0]))
@@ -323,6 +329,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             deterministic: bool = False,
     ) -> Tuple[np.ndarray, Optional[Tuple[np.ndarray, ...]]]:
         """
+        Used in evaluation. Uses only first env of VecEnv.
         Get the policy action from an observation (and optional hidden state).
         Includes sugar-coating to handle different observations (e.g. normalizing images).
 
@@ -336,8 +343,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             (used in recurrent policies)
         """
         owner = self.approved(observation)
-        #print("owner=", owner)
-        #print("observation", observation)
         owner = owner[0]
         model = self.models[owner]
         action, state = model.policy.predict(observation, state, episode_start, deterministic)
@@ -377,8 +382,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 if isinstance(self.action_space, spaces.Discrete):
                     # Convert discrete action from float to long
                     actions = rollout_data.actions.long().flatten()
-                # print("actions", actions)
-                # print("observations", rollout_data.observations)
                 values, log_prob, entropy = model.policy.evaluate_actions(rollout_data.observations, actions)
                 values = values.flatten()
                 # Normalize advantage
@@ -453,15 +456,9 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         for i in range(self.models_num):
             val_arr = self.rollout_buffer.values[sum(owner_sizes[:i]):sum(owner_sizes[:i+1])]
             ret_arr = self.rollout_buffer.returns[sum(owner_sizes[:i]):sum(owner_sizes[:i+1])]
-            if val_arr.shape != ret_arr.shape:
-                print("Value and return arr shapes are not equal:")
-                print("val_arr shape:", val_arr.shape)
-                print("ret_arr shape:", ret_arr.shape)
             if owner_sizes[i] != 0:
                 flat_val = np.array(val_arr).flatten()
                 flat_ret = np.array(ret_arr).flatten()
-                if flat_val.shape != flat_ret.shape:
-                    print("flattened value and return arr shapes are not equal")
                 try:
                     explained_vars.append(explained_variance(flat_val, np.array(ret_arr).flatten()))
                 except Exception as e:
@@ -470,7 +467,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     explained_vars.append(np.nan)
             else:
                 explained_vars.append(np.nan)
-        #explained_var = explained_variance(np.array(self.rollout_buffer.value_arrs).flatten(), np.array(self.rollout_buffer.return_arrs).flatten())
 
         # Logs
         self.logger.record("train/entropy_loss", np.mean(entropy_losses))
@@ -489,6 +485,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         if self.clip_range_vf is not None:
             self.logger.record("train/clip_range_vf", clip_range_vf)
 
+
     def learn(
         self: SelfPPO,
         total_timesteps: int,
@@ -506,6 +503,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             reset_num_timesteps=reset_num_timesteps,
             progress_bar=progress_bar,
         )
+
 
     @classmethod
     def load(  # noqa: C901
@@ -547,19 +545,23 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             get_system_info()
 
         load_path = load_path.split("/")
-        load_path = load_path[:-1]
         path = "/".join(load_path)
         dir_path = os.path.dirname(path)
 
-
+        #Load arguments from train.json config
         import commentjson
-        with open(dir_path + "/train.json", "r") as f:
+        with open(path + "/train.json", "r") as f:
             json = commentjson.load(f)
         num_models = json["num_networks"]
         load = [] #data, params, pytorch_variables
 
+        #Collect reward names:
+        if isinstance(env, VecMonitor) or isinstance(env, DummyVecEnv):
+            reward_names = env.get_attr("reward")[0].network_names
+        else:
+            reward_names = env.reward.network_names
         for i in range(num_models):
-            load_path = path + "/submodel_" + str(i) + "/best_model.zip"
+            load_path = path + "/" + reward_names[i] + "/best_model"
             data, params, pytorch_variables = load_from_zip_file(
                 load_path,
                 device=device,
@@ -593,23 +595,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         for key in {"observation_space", "action_space"}:
             data[key] = _convert_space(data[key])
 
-
-        # if env is not None:
-        #     # Wrap first if needed
-        #     #env = cls._wrap_env(env, data["verbose"])
-        #     # Check if given env is valid
-        #     check_for_correct_spaces(env, data["observation_space"], data["action_space"])
-        #     # Discard `_last_obs`, this will force the env to reset before training
-        #     # See issue https://github.com/DLR-RM/stable-baselines3/issues/597
-        #     if force_reset and data is not None:
-        #         data["_last_obs"] = None
-        #     # `n_envs` must be updated. See issue https://github.com/DLR-RM/stable-baselines3/issues/1018
-        #     if data is not None:
-        #         data["n_envs"] = env.num_envs
-        # else:
-        #     # Use stored env, if one exists. If not, continue as is (can be used for predict)
-        #     if "env" in data:
-        #         env = data["env"]
+        #Commented lines below are from original load function located in SB3 BaseClass - they cause problems
         model = cls(
             policy=data["policy_class"],
             env=env,
@@ -617,8 +603,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             _init_setup_model=False,  # type: ignore[call-arg]
         )
 
-        # load parameters
-
+        # Load parameters
         model.__dict__.update(data)
         model.__dict__.update(kwargs)
         if env is not None:
@@ -627,10 +612,13 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         model._setup_model()
         i = 0
         for submodel in model.models:
+            params = load[i][1]
+            pytorch_variables = load[i][2]
             try:
                 # put state_dicts back in place
-                submodel.set_parameters(load[i][1], exact_match=True, device=device)
+                submodel.set_parameters(params, exact_match=True, device=device)
                 print("successfully set parameters of model", i)
+
             except RuntimeError as e:
                 # Patch to load policies saved using SB3 < 1.7.0
                 # the error is probably due to old policy being loaded
@@ -660,7 +648,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     params["policy.optimizer"]["param_groups"][0]["params"] = saved_optim_params[
                                                                               :n_params]  # type: ignore[index]
 
-                    submodel.set_parameters(params, exact_match=True, device=device)
+                    submodel.set_rparameters(params, exact_match=True, device=device)
                     warnings.warn(
                         "You are probably loading a DQN model saved with SB3 < 2.4.0, "
                         "we truncated the optimizer state so you can save the model "
@@ -674,6 +662,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
             # put other pytorch variables back in place
             if pytorch_variables is not None:
+
                 for name in pytorch_variables:
                     # Skip if PyTorch variable was not defined (to ensure backward compatibility).
                     # This happens when using SAC/TQC.
@@ -698,18 +687,24 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
 
 class SubModel(MultiPPOSB3):
+    """
+    Small submodel class used to store policy data for each network separately
+    """
     def __init__(self, parent, i):
         self.model_num = i
-        self.path = parent.tensorboard_log + "/submodel_" + str(i)
+        if isinstance(parent.env, VecMonitor) or isinstance(parent.env, DummyVecEnv):
+            reward_names = parent.env.get_attr("reward")[0].network_names
+        else:
+            reward_names = parent.env.reward.network_names
+        self.path = os.path.join(parent.tensorboard_log, reward_names[i])
         try:
             os.makedirs(self.path)
         except:
             pass
-        #self.env = parent.env
         self.policy = parent.policy_class(
             parent.observation_space, parent.action_space, parent.lr_schedule, use_sde = parent.use_sde, **parent.policy_kwargs
         )
         self.policy = self.policy.to(parent.device)
-        #self.parent = parent
+
 
 

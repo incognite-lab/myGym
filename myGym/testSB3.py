@@ -138,10 +138,12 @@ def detect_key(keypress: dict, arg_dict: dict, action: list) -> list:
 def test_env(env: object, arg_dict: dict) -> None:
     env.reset()
     env.render()
+    global done
     # Prepare names for sliders
     joints = [f"Joint{i}" for i in range(1, 20)]
     jointparams = [f"Jnt{i}" for i in range(1, 20)]
 
+    images = []
     action = None
     info = None
 
@@ -249,9 +251,8 @@ def test_env(env: object, arg_dict: dict) -> None:
             if arg_dict["visualize"]:
                 visualizations = [[], []]
                 env.render()
-                for camera_id in range(len(env.env.cameras)):
-                    # cannot set render mode?
-                    camera_render = env.render(mode="rgb_array", camera_id=camera_id)
+                for camera_id in range(arg_dict["camera"]):
+                    camera_render = env.render()
                     image = cv2.cvtColor(camera_render[camera_id]["image"], cv2.COLOR_RGB2BGR)
                     depth = camera_render[camera_id]["depth"]
                     image = cv2.copyMakeBorder(image, 30, 10, 10, 20, cv2.BORDER_CONSTANT, value=[255, 255, 255])
@@ -272,9 +273,62 @@ def test_env(env: object, arg_dict: dict) -> None:
                 cv2.imshow('Camera depth renders', fig_depth)
                 cv2.waitKey(1)
 
+            if arg_dict["record"] > 0 and len(images) < 80000:
+                if len(images) < 1:
+                    avi_path = make_path(arg_dict, ".avi", False)
+                    gif_path = make_path(arg_dict, ".gif", False)
+                if arg_dict["record"] == 1:
+                    record_video(images, arg_dict, env, gif_path)
+                elif arg_dict["record"] == 2:
+                    record_video(images, arg_dict, env, avi_path)
+
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
                 break
+
+
+def record_video(images: list, arg_dict: dict, env: object, path: str) -> None:
+    if arg_dict["camera"] < 1:
+        raise ValueError("Camera parameter must be set to > 0 to record!")
+
+    render_info = env.render()
+    image = render_info[arg_dict["camera"] - 1]["image"]
+    images.append(image)
+    print(f"appending image; total size: {len(images)}")
+    if len(images) >= 80000:
+        print(f"too many images; total size: {len(images)}")
+    if ".gif" in path and done:
+        imageio.mimsave(path, [np.array(img) for i, img in enumerate(images) if i % 2 == 0], duration=65)
+        os.system(
+            './utils/gifopt -O3 --lossy=5 --colors 256 -o {dest} {source}'.format(source=path, dest=path))
+        print("Record saved to " + path)
+    elif ".avi" in path and done:
+        height, width, layers = image.shape
+        out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'XVID'), 30, (width, height))
+        for img in images:
+            out.write(cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+        out.release()
+        print("Record saved to " + path)
+
+
+def make_path(arg_dict: dict, record_format: str, model: bool):
+    counter = 0
+    if model:
+        model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
+        model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
+        logdir = os.path.join(model_logdir, "train_record_" + model_name)
+        print("Saving to " + logdir)
+    else:
+        if not os.path.exists(arg_dict["logdir"]):
+            os.makedirs(arg_dict["logdir"])
+        logdir = os.path.join(arg_dict["logdir"], "train_record_" + arg_dict["task_type"])
+
+    video_path = logdir + "_" + str(counter) + record_format
+    while os.path.exists(video_path):
+        counter += 1
+        video_path = logdir + "_" + str(counter) + record_format
+
+    return video_path
 
 
 def test_model(
@@ -285,14 +339,15 @@ def test_model(
         model_logdir: str = None,
         deterministic: bool = False
 ) -> None:
+    env.reset()
     try:
+        #TODO: maybe this if else is unnecessary?
         if "multi" in arg_dict["algo"]:
             model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
-            #print("arg_dict model path:", arg_dict["model_path"])
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"])
+            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env = env)
             model.env = model_args[1].env
         else:
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"])
+            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env = env)
     except:
         if (arg_dict["algo"] in implemented_combos.keys()) and (
                 arg_dict["train_framework"] not in list(implemented_combos[arg_dict["algo"]].keys())):
@@ -308,14 +363,16 @@ def test_model(
     success_episodes_num = 0
     distance_error_sum = 0
     steps_sum = 0
+    global done
 
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
-
+    model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
     for e in range(arg_dict["eval_episodes"]):
         done = False
         obs, info = env.reset()
         is_successful = 0
         distance_error = 0
+
         while not done:
             steps_sum += 1
             action, _state = model.predict(obs, deterministic=deterministic)
@@ -323,14 +380,17 @@ def test_model(
             done = terminated or truncated
             is_successful = not info['f']
             distance_error = info['d']
-            if arg_dict["vinfo"] == True:
+            if arg_dict["vinfo"]:
                 visualize_infotext(action, env, info)
 
-            if (arg_dict["record"] > 0) and (len(images) < 8000):
-                render_info = env.render(mode="rgb_array", camera_id=arg_dict["camera"])
-                image = render_info[arg_dict["camera"]]["image"]
-                images.append(image)
-                print(f"appending image: total size: {len(images)}]")
+            if arg_dict["record"] > 0 and len(images) < 8000:
+                if len(images) < 1:
+                    avi_path = make_path(arg_dict, ".avi", True)
+                    gif_path = make_path(arg_dict, ".gif", True)
+                if arg_dict["record"] == 1:
+                    record_video(images, arg_dict, env, gif_path)
+                elif arg_dict["record"] == 2:
+                    record_video(images, arg_dict, env, avi_path)
 
         success_episodes_num += is_successful
         distance_error_sum += distance_error
@@ -344,7 +404,7 @@ def test_model(
     print("Mean distance error is {:.2f}%".format(mean_distance_error * 100))
     print("Mean number of steps {}".format(mean_steps_num))
     print("#------------------------------------#")
-    model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
+
     file = open(os.path.join(model_logdir, "train_" + model_name + ".txt"), 'a')
     file.write("\n")
     file.write("#Evaluation results: \n")
@@ -352,81 +412,6 @@ def test_model(
     file.write("#Mean distance error is {:.2f}% \n".format(mean_distance_error * 100))
     file.write("#Mean number of steps {}\n".format(mean_steps_num))
     file.close()
-
-    if arg_dict["record"] == 1:
-        gif_path = os.path.join(model_logdir, "train_" + model_name + ".gif")
-        imageio.mimsave(gif_path, [np.array(img) for i, img in enumerate(images) if i % 2 == 0], fps=15)
-        os.system('./utils/gifopt -O3 --lossy=5 -o {dest} {source}'.format(source=gif_path, dest=gif_path))
-        print("Record saved to " + gif_path)
-    elif arg_dict["record"] == 2:
-        video_path = os.path.join(model_logdir, "train_" + model_name + ".avi")
-        height, width, layers = image.shape
-        out = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*'XVID'), 30, (width, height))
-        for img in images:
-            out.write(cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
-        out.release()
-        print("Record saved to " + video_path)
-
-
-def multi_test(params: Dict[str, Any], arg_dict: Dict[str, Any], configfile: str, commands: Dict[str, Any]) -> None:
-    """Execute a multi-test command with the specified parameters.
-        Args:
-            params (Dict[str, Any]): Parameters for the test.
-            arg_dict (Dict[str, Any]): Argument dictionary for configuration.
-            configfile (str): Path to the configuration file.
-            commands (Dict[str, Any]): Additional command options.
-    """
-    logdirfile = arg_dict["logdir"]
-    print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
-    command = (
-            f"python testSB3.py --config {configfile} --logdir {logdirfile} "
-            + " ".join(f"--{key} {value}" for key, value in params.items()) + " "
-            + " ".join(
-        f"--{key} {' '.join(map(str, value)) if isinstance(value, list) else value}" for key, value in commands.items())
-    )
-    print(command)
-
-    # use this if you want all the prints in terminal + file
-    # with open("test.log", "wb") as f:
-    #     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-    #     for c in iter(lambda: process.stdout.read(1), b''):
-    #         sys.stdout.buffer.write(c)
-    #         f.write(c)
-
-    # use this if you don't want prints from threads
-    subprocess.check_output(command.split())
-
-
-def multi_main(arg_dict: Dict[str, Any], parameters: Dict[str, Any], configfile: str, commands: Dict[str, Any]) -> None:
-    """Manage the execution of multi-test commands, either in threads or sequentially.
-
-    Args:
-        arg_dict (Dict[str, Any]): Argument dictionary for configuration.
-        parameters (Dict[str, Any]): Parameter grid for testing.
-        configfile (str): Path to the configuration file.
-        commands (Dict[str, Any]): Additional command options.
-    """
-    parameter_grid = ParameterGrid(parameters)
-
-    threaded = arg_dict["threaded"]
-    threads = []
-
-    start_time = time.time()
-    for i, params in enumerate(parameter_grid):
-        if threaded:
-            print(f"Thread {i + 1} starting")
-            thread = multiprocessing.Process(target=multi_test, args=(params, arg_dict, configfile, commands))
-            thread.start()
-            threads.append(thread)
-        else:
-            multi_test(params.copy(), arg_dict, configfile, commands)
-    if threaded:
-        for i, thread in enumerate(threads):
-            thread.join()
-            print(f"Thread {i + 1} finishing")
-
-    end_time = time.time()
-    print(f"Total time: {end_time - start_time:.2f} seconds")
 
 
 def main() -> None:
@@ -473,7 +458,7 @@ def main() -> None:
     else:
         env = configure_env(arg_dict, model_logdir, for_train=0)
         implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
-        test_model(env, None, implemented_combos, arg_dict, model_logdir, deterministic = False)
+        test_model(env, None, implemented_combos, arg_dict, model_logdir, deterministic=False)
 
 
 if __name__ == "__main__":

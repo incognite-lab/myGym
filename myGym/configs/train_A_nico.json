@@ -10,7 +10,7 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"nico_grasp",
+    "robot"         :"nico",
     "robot_action"  :"joints",
     "robot_init"    :[0.5, 0.2, 0.4],
     "max_velocity"  :5,
@@ -39,7 +39,7 @@
     "yolact_config" :null,
     #Train
     "train_framework"   :"pytorch",
-    "algo"              :"multippo",
+    "algo"              :"ppo",
     "num_networks"      :1,
     "max_episode_steps" :512,
     "algo_steps"        :512,

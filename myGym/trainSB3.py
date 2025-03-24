@@ -24,8 +24,6 @@ from sklearn.model_selection import ParameterGrid
 
 from myGym.envs.gym_env import GymEnv
 
-# from myGym.eval_results_average import average_results
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 os.environ["OMP_NUM_THREADS"] = "4"  # export OMP_NUM_THREADS=4
@@ -43,21 +41,23 @@ except Exception as e:
     print(e)
 
 try:
-    from stable_baselines3 import PPO as PPO_P, A2C as A2C_P, SAC as SAC_P, TD3 as TD3_P
+    from stable_baselines3 import A2C as A2C_P, SAC as SAC_P, TD3 as TD3_P
 except:
     print("Torch isn't probably installed correctly")
 
 # Import helper classes and functions for monitoring
-from myGym.utils.callbacksSB3 import SaveOnBestTrainingRewardCallback, CustomEvalCallback, EvalCallbackDeparalelized
+from myGym.utils.callbacksSB3 import SaveOnBestTrainingRewardCallback, MultiPPOEvalCallback, PPOEvalCallback
 from myGym.envs.natural_language import NaturalLanguage
 from myGym.stable_baselines_mygym.multi_ppo_SB3 import MultiPPOSB3
+from myGym.stable_baselines_mygym.ppoSB3 import PPO as PPO_P
 from myGym.stable_baselines_mygym.Subproc_vec_envSB3 import SubprocVecEnv
 
 # This is a global variable for the type of engine we are working with
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
-NUM_CPU = 1
+#TODO: determine whether this global var is needed
+
 
 
 def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
@@ -71,7 +71,6 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
     gym.register("Gym-v0", GymEnv)
     env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                      "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
-                     # "use_fixed_end_effector_orn" : arg_dict["use_fixed_end_effector_orn"], "end_effector_orn" : arg_dict["end_effector_orn"],
                      "robot_action": arg_dict["robot_action"], "max_velocity": arg_dict["max_velocity"],
                      "max_force": arg_dict["max_force"], "task_type": arg_dict["task_type"],
                      "action_repeat": arg_dict["action_repeat"],
@@ -95,7 +94,6 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
     if arg_dict["algo"] == "her":
         env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
     else:
-        #env = env_creator(env_arguments)
         env = gym.make(arg_dict["env_name"], **env_arguments)
         env.spec.max_episode_steps = 512
 
@@ -131,12 +129,6 @@ def make_env(arg_dict: dict, rank: int, seed: int = 0, model_logdir=None) -> Cal
     return _init
 
 
-def env_creator(env_config):
-    env = gym.make(env_config["env_name"], **env_config)
-    env.spec.max_episode_steps = 512
-    return env
-
-
 def configure_implemented_combos(env, model_logdir, arg_dict):
     implemented_combos = {"ppo": {}, "sac": {}, "td3": {}, "a2c": {}, "multippo": {}}
 
@@ -156,9 +148,8 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
 def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None):
     model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
     conf_pth = os.path.join(model_logdir, "train.json")
-    model_path = os.path.join(model_logdir, "best_model.zip")
-    arg_dict["model_path"] = model_path
-
+    arg_dict["logdir"] = model_logdir #TODO: figure out whether logdir is needed (as there is a duplicity with pretrained model)
+    arg_dict["pretrained_model"] = model_logdir
     seed = arg_dict.get("seed", None)
     steps = 0
     if not pretrained_model:
@@ -168,10 +159,12 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         with open(os.path.join(model_logdir,"trained_steps.txt"), "a+") as f:
             f.write(f"model {model_name} has been saved at steps:" + "\n")
     else:
-        with open(os.path.join(model_logdir,"trained_steps.txt"), "r") as f:
+        #when loading pretrained model, figure out how many steps have already been trained
+        with open(os.path.join(pretrained_model,"trained_steps.txt"), "r") as f:
             lines = f.readlines()
             line = lines[-1]
             steps = int(line)
+        model_logdir = pretrained_model
 
     model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
     model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
@@ -180,7 +173,6 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         random.seed(seed)
         model_kwargs["seed"] = seed
     if pretrained_model:
-        # model_logdir = pretrained_model
         if not os.path.isabs(pretrained_model):
             pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
         env = model_args[1]
@@ -188,7 +180,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             vec_env = DummyVecEnv([lambda: env])
         else:
             vec_env = env
-        model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env)
+        model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env, device = "cpu")
     else:
         model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0](*model_args, **model_kwargs)
 
@@ -206,21 +198,11 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 
     start_time = time.time()
     callbacks_list = []
-    # if pretrained_model:
-    #     model_logdir = pretrained_model.split('/')
-    #     model_logdir = model_logdir[:-1]
-    #     model_logdir = "/".join(model_logdir)
-    #     print("model_logdir:", model_logdir)
-
-    #     auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env,
-    #                                                           engine=arg_dict["engine"],
-    #                                                           multiprocessing=arg_dict["multiprocessing"],
-    #                                                           save_model_every_steps=arg_dict["eval_freq"])
-    # else:
     auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq=1024, logdir=model_logdir, env=env,
                                                               engine=arg_dict["engine"],
                                                               multiprocessing=arg_dict["multiprocessing"],
-                                                              save_model_every_steps=arg_dict["eval_freq"], starting_steps = steps)
+                                                              save_model_every_steps=arg_dict["eval_freq"], starting_steps = steps,
+                                                          algo = arg_dict["algo"])
     callbacks_list.append(auto_save_callback)
     if arg_dict["eval_freq"]:
         eval_env = env
@@ -228,27 +210,26 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             NUM_CPU = int(arg_dict["multiprocessing"])
         else:
             NUM_CPU = 1
-        if arg_dict["multiprocessing"]:
-            eval_callback = EvalCallbackDeparalelized(eval_env, log_path=model_logdir,
+        if arg_dict["algo"] == "multippo":
+            eval_callback = MultiPPOEvalCallback(eval_env, log_path=model_logdir,
                                                eval_freq=arg_dict["eval_freq"],
                                                algo_steps=arg_dict["algo_steps"],
                                                n_eval_episodes=arg_dict["eval_episodes"],
                                                record=arg_dict["record"],
                                                camera_id=arg_dict["camera"], num_cpu=NUM_CPU, starting_steps = steps)
         else:
-            #Needs to be updated:
-            eval_callback = CustomEvalCallback(eval_env, log_path=model_logdir,
+            eval_callback = PPOEvalCallback(eval_env, log_path=model_logdir,
                                            eval_freq=arg_dict["eval_freq"],
                                            algo_steps=arg_dict["algo_steps"],
                                            n_eval_episodes=arg_dict["eval_episodes"],
                                            record=arg_dict["record"],
-                                           camera_id=arg_dict["camera"], num_cpu=NUM_CPU)
+                                           camera_id=arg_dict["camera"], num_cpu=NUM_CPU, starting_steps = steps)
         callbacks_list.append(eval_callback)
     print("learn started")
     model.learn(total_timesteps=arg_dict["steps"], callback=callbacks_list)
     print("learn ended")
+    model.save(model_logdir, steps = steps + model.num_timesteps)
     env.close()
-    model.save(os.path.join(model_logdir, model_name))
     print("Training time: {:.2f} s".format(time.time() - start_time))
     print("Training steps: {:} s".format(model.num_timesteps))
 
@@ -262,7 +243,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     # Environment
-    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_AGM_RDDL.json", help="Config file path")
+    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_AGMDW_RDDL.json", help="Config file path")
     parser.add_argument("-n", "--env_name", type=str, help="Environment name")
     parser.add_argument("-ws", "--workspace", type=str, help="Workspace name")
     parser.add_argument("-p", "--engine", type=str, help="Simulation engine name")
@@ -308,7 +289,7 @@ def get_parser():
     parser.add_argument("-l", "--logdir", type=str,  help="Where to save results of training and trained models")
     parser.add_argument("-r", "--record", type=int, help="1: make a gif of model perfomance, 2: make a video of model performance, 0: don't record")
     #Mujoco
-    parser.add_argument("-i", "--multiprocessing", type=int, help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
+    parser.add_argument("-i", "--multiprocessing", type=int,  help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
     parser.add_argument("-v", "--vectorized_envs", type=int,  help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
     #Paths
     parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")
@@ -386,71 +367,6 @@ def process_natural_language_command(cmd, env,
         raise Exception(msg)
 
 
-def multi_train(arg_dict, configfile, commands, params=None):
-    logdirfile = arg_dict["logdir"]
-    if params:
-        print((" ".join(f"--{key} {value}" for key, value in params.items())).split())
-        # WE WANT TO ALSO SEND PARAMS FROM THE COMMAND LINE
-        command = (
-                f"python trainSB3.py --config {configfile} --logdir {logdirfile} "
-                + " ".join(f"--{key} {value}" for key, value in params.items()) + " "
-                + " ".join(
-            f"--{key} {' '.join(map(str, value)) if isinstance(value, list) else value}" for key, value in
-            commands.items())
-        )
-        print(command)
-    else:
-        logdirfile = logdirfile + "_multi"
-        command = (
-                f"python trainSB3.py --config {configfile} --logdir {logdirfile} --multiprocessing 0"
-                + " ".join(
-            f"--{key} {' '.join(map(str, value)) if isinstance(value, list) else value}" for key, value in
-            commands.items())
-        )
-        print(command)
-    with open("train.log", "wb") as f:
-        process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-        for c in iter(lambda: process.stdout.read(1), b''):
-            sys.stdout.buffer.write(c)
-            f.write(c)
-
-
-def multi_main(arg_dict, configfile, commands, parameters=None):
-    if parameters:
-        parameter_grid = ParameterGrid(parameters)
-
-    threaded = arg_dict["threaded"]
-    multiprocess = arg_dict["multiprocessing"]
-    threads = []
-
-    start_time = time.time()
-    if parameters:
-        for i, params in enumerate(parameter_grid):
-            if threaded:
-                print(f"Thread {i + 1} starting")
-                thread = multiprocessing.Process(target=multi_train,
-                                                 args=(arg_dict, configfile, commands, params.copy()))
-                thread.start()
-                threads.append(thread)
-            else:
-                multi_train(params.copy(), arg_dict, configfile, commands)
-    else:
-        for i in range(multiprocess):
-            if multiprocess:
-                print(f"Thread {i + 1} starting")
-                thread = multiprocessing.Process(target=multi_train, args=(arg_dict, configfile, commands))
-                thread.start()
-                threads.append(thread)
-    if threaded or multiprocess:
-        i = 0
-        for thread in threads:
-            thread.join()
-            print(f"Thread {i + 1} finishing")
-            i += 1
-    end_time = time.time()
-    print(f"Took {end_time - start_time}")
-
-
 def main():
     parser = get_parser()
     arg_dict, commands = get_arguments(parser)
@@ -478,7 +394,7 @@ def main():
         (arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"], arg_dict["robot_action"], arg_dict["algo"])))
 
     model_logdir = model_logdir_ori
-    add = 2
+    add = 1
     if not arg_dict["pretrained_model"]:
         #If training from scratch, make a new logdir for the model
         #logdir includes train.json file and monitor.csv file
