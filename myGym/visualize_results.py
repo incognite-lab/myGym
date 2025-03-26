@@ -111,7 +111,7 @@ def get_arguments() -> argparse.Namespace:
     # '/home/student/mygym/myGym/trained_models/AGM_table_tiago_tiago_dual_joints_gripper_ppo_'
     parser = argparse.ArgumentParser()
     parser.add_argument("--pth",
-                        default='/home/sofia/mygym/myGym/trained_models/AGM',
+                        default='/home/sofia/mygym/myGym/trained_models/AGMD',
                         type=str)
     parser.add_argument("--robot", default=["kuka", "panda"], nargs='*', type=str)
     parser.add_argument("--algo", default=["multiacktr", "multippo2", "ppo2", "ppo", "acktr", "sac", "ddpg",
@@ -151,6 +151,7 @@ def main() -> None:
     global color_map_acts
     args = get_arguments()
     root, dirs, _ = next(os.walk(str(args.pth)))
+    dirs.append(args.pth)
     dirs.sort(key=natural_keys)
 
     plt.rcParams.update({'font.size': 12})
@@ -167,8 +168,6 @@ def main() -> None:
     min_steps = 100
     steps = []
     x = []
-    if len(dirs) == 0:
-        dirs.append(args.pth)
     # Process data from directories
     for idx, file in enumerate(dirs):
         try:
@@ -389,6 +388,7 @@ def main() -> None:
 
         ax = fig2.add_subplot(ceiling(plot_num / 2), ceiling(plot_num / 2), counter + 1)
         ax.set_ylim(0, 100)
+        ax.set_xticks(steps)
         label_counter = 0
         bottom = [0] * len(steps)
 
