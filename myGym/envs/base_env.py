@@ -28,7 +28,7 @@ class BaseEnv(gym.Env):
         :param changing_light_gui: (bool) Whether to change light in GUI
         :param shadows_on_gui: (bool) Whether to show shadows in GUI
     """
-    metadata = {'render.modes': [
+    metadata = {'render_modes': [
         'human', 'rgb_array'], 'video.frames_per_second': 50}
 
     def __init__(self,

@@ -1,4 +1,8 @@
-import argparse
+import multiprocessing
+import subprocess
+import sys
+import warnings
+
 import commentjson
 import copy
 import json
@@ -9,7 +13,6 @@ import subprocess
 import sys
 import time
 from typing import Callable
-
 import pkg_resources
 import os, sys, time, yaml
 import argparse
@@ -21,11 +24,9 @@ import gymnasium as gym
 import numpy as np
 import pkg_resources
 from sklearn.model_selection import ParameterGrid
-
 from myGym.envs.gym_env import GymEnv
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
 os.environ["OMP_NUM_THREADS"] = "4"  # export OMP_NUM_THREADS=4
 os.environ["OPENBLAS_NUM_THREADS"] = "4"  # export OPENBLAS_NUM_THREADS=4
 os.environ["MKL_NUM_THREADS"] = "6"  # export MKL_NUM_THREADS=6
@@ -56,7 +57,6 @@ from myGym.stable_baselines_mygym.Subproc_vec_envSB3 import SubprocVecEnv
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
-#TODO: determine whether this global var is needed
 
 
 
@@ -68,7 +68,8 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
 
 
 def configure_env(arg_dict, model_logdir=None, for_train=True):
-    gym.register("Gym-v0", GymEnv)
+    if "Gym-v0" not in gym.registry:
+        gym.register("Gym-v0", GymEnv)
     env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                      "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
                      "robot_action": arg_dict["robot_action"], "max_velocity": arg_dict["max_velocity"],

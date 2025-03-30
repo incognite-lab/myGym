@@ -50,6 +50,6 @@
     "eval_freq"     :500000,
     "eval_episodes" :50,
     #Saving and logging
-    "logdir"    :"trained_models/AGMD_nico",
+    "logdir"    :"trained_models/AGMD",
     "record"    :0
     }
