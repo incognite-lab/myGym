@@ -41,14 +41,14 @@
     "train_framework"   :"pytorch",
     "algo"              :"multippo",
     "num_networks"      :5,
-    "max_episode_steps" :1536,
-    "algo_steps"        :1536,
-    "steps"             :10000000,
+    "max_episode_steps" :512,
+    "algo_steps"        :512,
+    "steps"             :5000000,
     "pretrained_model"  :null,
-    "multiprocessing"   :5,
+    "multiprocessing"   :false,
     #Evaluation
-    "eval_freq"     :1,
-    "eval_episodes" :4,
+    "eval_freq"     :500000,
+    "eval_episodes" :50,
     #Saving and logging
     "logdir"    :"trained_models/AGMDW",
     "record"    :0
