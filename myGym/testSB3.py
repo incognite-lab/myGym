@@ -453,6 +453,7 @@ def main() -> None:
             "Testing random actions in selected environment."
         )
         arg_dict["gui"] = 1
+        arg_dict["network_switcher"] = "keyboard" #temporary TODO: delete this
         env = configure_env(arg_dict, model_logdir, for_train=0)
         test_env(env, arg_dict)
     else:

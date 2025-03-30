@@ -164,6 +164,7 @@ class GymEnv(CameraEnv):
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 
 
+
     def _init_task_and_reward(self):
         if self.reward == 'distractor':
             self.has_distractor = True
@@ -231,7 +232,7 @@ class GymEnv(CameraEnv):
 
 
     def _load_texture(self, name):
-        return self.p.loadTexture(pkg_resources.resource_filename("myGym", "/envs/textures/{}".format(name)))
+        return self.p.loadTexture(pkg_resources.resource_filename("myGym", "./envs/textures/{}".format(name)))
 
 
     def _set_observation_space(self):
@@ -244,14 +245,15 @@ class GymEnv(CameraEnv):
         if self.obs_space == "dict":
             goaldim = int(self.task.obsdim / 2) if self.task.obsdim % 2 == 0 else int(self.task.obsdim / 3)
             self.observation_space = spaces.Dict(
-                {"observation": spaces.Box(low=-10, high=10, shape=(self.task.obsdim,)),
-                 "achieved_goal": spaces.Box(low=-10, high=10, shape=(goaldim,)),
-                 "desired_goal": spaces.Box(low=-10, high=10, shape=(goaldim,))})
+                {"observation": spaces.Box(-10.0, high=10., shape=(self.task.obsdim,),dtype = np.float64),
+                 "achieved_goal": spaces.Box(low=-10., high=10., shape=(goaldim,)),
+                 "desired_goal": spaces.Box(low=-10., high=10., shape=(goaldim,))})
         else:
             observationDim = self.task.obsdim
-            observation_high = np.array([100] * observationDim)
+            observation_high = np.array([100] * observationDim, dtype = np.float64)
             self.observation_space = spaces.Box(-observation_high,
-                                                observation_high)
+                                                observation_high, dtype = np.float64)
+
 
     def _set_action_space(self):
         """
@@ -271,19 +273,19 @@ class GymEnv(CameraEnv):
                 self.action_low = np.array(borders_min[0:7:2])
                 self.action_high = np.array(borders_max[1:7:2])
             else:
-                self.action_low = np.array(self.objects_area_borders[0:7:2])
-                self.action_high = np.array(self.objects_area_borders[1:7:2])
+                self.action_low = np.array(self.objects_area_borders[0:7:2],dtype = np.float64)
+                self.action_high = np.array(self.objects_area_borders[1:7:2], dtype = np.float64)
 
 
         elif "joints" in self.robot_action:
-            self.action_low = np.array(self.robot.joints_limits[0])
-            self.action_high = np.array(self.robot.joints_limits[1])
+            self.action_low = np.array(self.robot.joints_limits[0], dtype = np.float64)
+            self.action_high = np.array(self.robot.joints_limits[1], dtype = np.float64)
 
         if "gripper" in self.robot_action:
             self.action_low = np.append(self.action_low, np.array(self.robot.gjoints_limits[0]))
             self.action_high = np.append(self.action_high, np.array(self.robot.gjoints_limits[1]))
 
-        self.action_space = spaces.Box(self.action_low, self.action_high)
+        self.action_space = spaces.Box(self.action_low, self.action_high, dtype = np.float64)
 
     def _rescale_action(self, action):
         """
@@ -296,7 +298,7 @@ class GymEnv(CameraEnv):
         """
         return [(sub + 1) * (h - l) / 2 + l for sub, l, h in zip(action, self.action_low, self.action_high)]
 
-    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False, seed = None):
+    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False, seed = None, options = None):
         """
         Environment reset called at the beginning of an episode. Reset state of objects, robot, task and reward.
 

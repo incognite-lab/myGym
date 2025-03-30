@@ -188,6 +188,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             self._setup_model()
 
 
+
     def _setup_model(self) -> None:
         super()._setup_model()
         self.env.reset()
@@ -592,8 +593,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             raise KeyError("The observation_space and action_space were not given, can't verify new environments")
 
         # Gym -> Gymnasium space conversion
-        for key in {"observation_space", "action_space"}:
-            data[key] = _convert_space(data[key])
+        # for key in {"observation_space", "action_space"}:
+        #     data[key] = _convert_space(data[key])
 
         #Commented lines below are from original load function located in SB3 BaseClass - they cause problems
         model = cls(
@@ -635,6 +636,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     )
                 else:
                     raise e
+
             except ValueError as e:
                 # Patch to load DQN policies saved using SB3 < 2.4.0
                 # The target network params are no longer in the optimizer

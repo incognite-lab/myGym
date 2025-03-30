@@ -477,7 +477,6 @@ class AaGaM(Protorewards):
         if self.current_network == 2:
             if self.object_near_goal(object_position, goal_position):
                 self.task.check_goal()
-        self.task.check_episode_steps()
 
         # Change after 100 and 250 steps:
         # if self.env.episode_steps == 100:
@@ -505,7 +504,7 @@ class AaGaMaD(Protorewards):
         target = [[gripper_position, object_position, gripper_states],
                   [gripper_position, object_position, gripper_states],
                   [object_position, goal_position, gripper_states],
-                  [gripper_position, object_position, gripper_states]][owner]
+                  [gripper_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute][owner](*target)
         self.disp_reward(reward, owner)
         self.last_owner = owner
@@ -550,7 +549,7 @@ class AaGaMaDaW(Protorewards):
                   [gripper_position, object_position, gripper_states],
                   [object_position, goal_position, gripper_states],
                   [gripper_position, object_position, gripper_states],
-                  [gripper_position, object_position, gripper_states]][owner]
+                  [gripper_position, goal_position, gripper_states]][owner]
         reward = \
         [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute, self.withdraw_compute][owner](
             *target)
@@ -559,6 +558,7 @@ class AaGaMaDaW(Protorewards):
         self.rewards_history.append(reward)
         self.rewards_num = 5
         return reward
+
 
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
