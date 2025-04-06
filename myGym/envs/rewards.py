@@ -220,7 +220,11 @@ class Protorewards(Reward):
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (dist - self.last_approach_dist) + ((gripdist - self.last_grip_dist) * 0.2)
+        if dist >= self.withdraw_threshold: #rewarding only up to distance which should finish the task
+            reward = 0 #This is done so that robot doesnt learn to drop object out of goal and then get the biggest reward by
+            #withdrawing without finishing the task
+        else:
+            reward = (dist - self.last_approach_dist) + ((gripdist - self.last_grip_dist) * 0.2)
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -394,6 +398,8 @@ class A(Protorewards):
         owner = self.decide(observation)
         target = [[object_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute][owner](*target)
+        if self.env.episode_terminated:
+            reward += 0.2 #Adding reward for succesful finish of episode
         self.last_owner = owner
         self.disp_reward(reward, owner)
         self.rewards_history.append(reward)
@@ -421,6 +427,8 @@ class AaG(Protorewards):
         target = [[object_position, goal_position, gripper_states], [object_position, goal_position, gripper_states]][
             owner]
         reward = [self.approach_compute, self.grasp_compute][owner](*target)
+        if self.env.episode_terminated:
+            reward += 0.2 #Adding reward for succesful finish of episode
         self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
@@ -455,6 +463,8 @@ class AaGaM(Protorewards):
         [[gripper_position, object_position, gripper_states], [gripper_position, object_position, gripper_states],
          [object_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute][owner](*target)
+        if self.env.episode_terminated:
+            reward += 0.2 #Adding reward for succesful finish of episode
         self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
@@ -506,6 +516,8 @@ class AaGaMaD(Protorewards):
                   [object_position, goal_position, gripper_states],
                   [gripper_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute][owner](*target)
+        if self.env.episode_terminated:
+            reward += 0.2 #Adding reward for succesful finish of episode
         self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
@@ -553,6 +565,8 @@ class AaGaMaDaW(Protorewards):
         reward = \
         [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute, self.withdraw_compute][owner](
             *target)
+        if self.env.episode_terminated:
+            reward += 0.2 #Adding reward for succesful finish of episode
         self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
@@ -584,6 +598,7 @@ class AaGaMaDaW(Protorewards):
             if self.gripper_withdraw_object(gripper_position, object_position):
                 if self.gripper_opened(gripper_states):
                     self.task.check_goal()
+
         self.task.check_episode_steps()
         # self.current_network = np.random.randint(0, self.num_networks)
         return self.current_network

@@ -279,6 +279,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         # based on obs, decide which model should be used
         if isinstance(self.env, VecMonitor):
             submodel_id = self.env.network_control()
+        elif isinstance(self.env, SubprocVecEnv):
+            submodel_id = self.env.get_attr("reward")[0].network_switch_control(self.env.get_attr("observation")[0]["task_objects"])
         else:
             submodel_id = self.env.reward.network_switch_control(self.env.observation["task_objects"])
         return submodel_id
@@ -575,6 +577,9 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         # Remove stored device information and replace with ours
 
         data = load[0][0]
+        print("load:", load[0][0])
+        import sys
+        sys.exit()
         if "policy_kwargs" in data:
             if "device" in data["policy_kwargs"]:
                 del data["policy_kwargs"]["device"]
