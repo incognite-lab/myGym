@@ -577,9 +577,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         # Remove stored device information and replace with ours
 
         data = load[0][0]
-        print("load:", load[0][0])
-        import sys
-        sys.exit()
+
         if "policy_kwargs" in data:
             if "device" in data["policy_kwargs"]:
                 del data["policy_kwargs"]["device"]
