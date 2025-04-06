@@ -304,7 +304,7 @@ class MultiPPOEvalCallback(EvalCallback):
         self.evaluations_timesteps = []
         self.evaluations_length = []
         self.num_cpu = num_cpu
-        self.num_evals = 0
+        self.num_evals = 1
         self.starting_steps = starting_steps
 
     def evaluate_policy(

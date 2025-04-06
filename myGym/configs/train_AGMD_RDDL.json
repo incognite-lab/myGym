@@ -39,7 +39,7 @@
     "yolact_config" :null,
     #Train
     "train_framework"   :"pytorch",
-    "algo"              :"multippo",
+    "algo"              :"ppo",
     "num_networks"      :4,
     "max_episode_steps" :2048,
     "algo_steps"        :2048,
@@ -47,8 +47,8 @@
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
-    "eval_freq"     :30000,
-    "eval_episodes" :10,
+    "eval_freq"     :100000,
+    "eval_episodes" :5,
     #Saving and logging
     "logdir"    :"trained_models/AGMD",
     "record"    :0

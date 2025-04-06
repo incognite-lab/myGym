@@ -241,7 +241,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     # Environment
-    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_AGMDW_RDDL.json", help="Config file path")
+    parser.add_argument("-cfg", "--config", type=str, default="./trained_models/AG/AG_table_tiago_tiago_dual_joints_gripper_multippo/train.json", help="Config file path")
     parser.add_argument("-n", "--env_name", type=str, help="Environment name")
     parser.add_argument("-ws", "--workspace", type=str, help="Workspace name")
     parser.add_argument("-p", "--engine", type=str, help="Simulation engine name")
@@ -287,7 +287,7 @@ def get_parser():
     parser.add_argument("-l", "--logdir", type=str,  help="Where to save results of training and trained models")
     parser.add_argument("-r", "--record", type=int, help="1: make a gif of model perfomance, 2: make a video of model performance, 0: don't record")
     #Mujoco
-    parser.add_argument("-i", "--multiprocessing", type=int,  help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
+    parser.add_argument("-i", "--multiprocessing", type=int, help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
     parser.add_argument("-v", "--vectorized_envs", type=int,  help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
     #Paths
     parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")
@@ -407,8 +407,7 @@ def main():
         #In case of renewing training from a checkpoint, logdir with monitor.csv
         #and train.json are located in the directory where pretrained model is stored
         model_logdir = os.path.dirname(os.path.dirname(arg_dict["pretrained_model"]))
-
-    if arg_dict["multiprocessing"] is not None:
+    if arg_dict["multiprocessing"]:
         NUM_CPU = int(arg_dict["multiprocessing"])
         env = SubprocVecEnv([make_env(arg_dict, i, model_logdir=model_logdir) for i in range(NUM_CPU)])
         env = VecMonitor(env, model_logdir)

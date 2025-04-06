@@ -491,7 +491,7 @@ class GymEnv(CameraEnv):
             info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
         if terminated or truncated:
-            self.successful_finish(info) #Maybe only change to 'if terminated'?
+            self.successful_finish(info) #Maybe only change to 'if terminated'? Probably not
         if self.task.subtask_over:
             self.reset(only_subtask=True)
         return self.flatten_obs(self._observation.copy()), reward, terminated, truncated, info

@@ -556,7 +556,6 @@ class RolloutBuffer(BaseBuffer):
             if end_idx > limit:
                 end_idx = sum(owner_sizes[:(current_owner + 1)])
                 increase_owner = True
-
             indices = np.arange(start_idx, end_idx)
             np.random.shuffle(indices)
             yield self._get_samples(indices, current_owner)

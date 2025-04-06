@@ -240,6 +240,10 @@ def test_env(env: object, arg_dict: dict) -> None:
                 action = env.action_space.sample()
 
             observation, reward, done, _, info = env.step(action)
+            # if done:
+            #     print("reward:", reward)
+            #     import sys
+            #     sys.exit()
             if arg_dict["vtrajectory"]:
                 visualize_trajectories(info, action)
             if arg_dict["vinfo"]:
