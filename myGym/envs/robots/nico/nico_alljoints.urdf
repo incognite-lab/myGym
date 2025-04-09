@@ -96,7 +96,7 @@
     	<visual>
       		<origin rpy="0 1.67 0" xyz="0.4 0.0 0.06"/>
       		<geometry>
-        		<cylinder radius="0.001" length = "0.6"/>
+        		<cylinder radius="0.001" length = "0.001"/>
       		</geometry>
     	</visual>
 		<inertial>
