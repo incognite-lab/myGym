@@ -29,7 +29,7 @@ class BaseEnv(gym.Env):
         :param shadows_on_gui: (bool) Whether to show shadows in GUI
     """
     metadata = {'render_modes': [
-        'human', 'rgb_array'], 'video.frames_per_second': 50}
+        'human', 'rgb_array'], 'video.frames_per_second': 50, "render_fps": 30}
 
     def __init__(self,
                  gui_on=True,
