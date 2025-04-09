@@ -3,7 +3,7 @@ import os
 import warnings
 from typing import Union, Optional
 
-import gym
+import gymnasium as gym
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
@@ -150,10 +150,8 @@ class CustomEvalCallback(EvalCallback):
                     srewardsuccess.put([last_network], 1)
                     last_network = evaluation_env.reward.current_network
                     last_steps = steps
-                    print("last_steps:", last_steps)
-                    print("last_network:", last_network)
                 #distance_error = self.eval_env.env.reward.get_distance_error(info['o'])
-                print("distance_error:", distance_error)
+
                 #print("distance_error", distance_error)
 
                 if self.physics_engine == "pybullet":
@@ -175,7 +173,6 @@ class CustomEvalCallback(EvalCallback):
             episode_rewards.append(episode_reward)
             success_episodes_num += is_successful
             distance_error_sum += distance_error
-            print("distance_error_sum:", distance_error_sum)
 
         if self.record:
             gif_path = os.path.join(self.log_path, "last_eval_episode_after_{}_steps.gif".format(self.n_calls))
@@ -307,7 +304,7 @@ class MultiPPOEvalCallback(EvalCallback):
         self.evaluations_timesteps = []
         self.evaluations_length = []
         self.num_cpu = num_cpu
-        self.num_evals = 0
+        self.num_evals = 1
         self.starting_steps = starting_steps
 
     def evaluate_policy(

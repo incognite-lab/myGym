@@ -188,6 +188,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             self._setup_model()
 
 
+
     def _setup_model(self) -> None:
         super()._setup_model()
         self.env.reset()
@@ -278,6 +279,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         # based on obs, decide which model should be used
         if isinstance(self.env, VecMonitor):
             submodel_id = self.env.network_control()
+        elif isinstance(self.env, SubprocVecEnv):
+            submodel_id = self.env.get_attr("reward")[0].network_switch_control(self.env.get_attr("observation")[0]["task_objects"])
         else:
             submodel_id = self.env.reward.network_switch_control(self.env.observation["task_objects"])
         return submodel_id
@@ -574,6 +577,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         # Remove stored device information and replace with ours
 
         data = load[0][0]
+
         if "policy_kwargs" in data:
             if "device" in data["policy_kwargs"]:
                 del data["policy_kwargs"]["device"]
@@ -592,8 +596,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             raise KeyError("The observation_space and action_space were not given, can't verify new environments")
 
         # Gym -> Gymnasium space conversion
-        for key in {"observation_space", "action_space"}:
-            data[key] = _convert_space(data[key])
+        # for key in {"observation_space", "action_space"}:
+        #     data[key] = _convert_space(data[key])
 
         #Commented lines below are from original load function located in SB3 BaseClass - they cause problems
         model = cls(
@@ -635,6 +639,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     )
                 else:
                     raise e
+
             except ValueError as e:
                 # Patch to load DQN policies saved using SB3 < 2.4.0
                 # The target network params are no longer in the optimizer

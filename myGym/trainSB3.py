@@ -1,7 +1,7 @@
-import argparse
 import multiprocessing
 import subprocess
 import sys
+import warnings
 
 import commentjson
 import copy
@@ -11,7 +11,7 @@ import random
 import time
 from typing import Callable
 
-import gym
+
 import numpy as np
 import pkg_resources
 import os, sys, time, yaml
@@ -21,11 +21,9 @@ import matplotlib.pyplot as plt
 import json, commentjson
 import gymnasium as gym
 from sklearn.model_selection import ParameterGrid
-
 from myGym.envs.gym_env import GymEnv
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
 os.environ["OMP_NUM_THREADS"] = "4"  # export OMP_NUM_THREADS=4
 os.environ["OPENBLAS_NUM_THREADS"] = "4"  # export OPENBLAS_NUM_THREADS=4
 os.environ["MKL_NUM_THREADS"] = "6"  # export MKL_NUM_THREADS=6
@@ -56,7 +54,6 @@ from myGym.stable_baselines_mygym.Subproc_vec_envSB3 import SubprocVecEnv
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
-#TODO: determine whether this global var is needed
 
 
 
@@ -68,7 +65,8 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
 
 
 def configure_env(arg_dict, model_logdir=None, for_train=True):
-    gym.register("Gym-v0", GymEnv)
+    if "Gym-v0" not in gym.registry:
+        gym.register("Gym-v0", GymEnv)
     env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                      "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
                      "robot_action": arg_dict["robot_action"], "max_velocity": arg_dict["max_velocity"],
@@ -243,7 +241,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     # Environment
-    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_AGMDW_RDDL.json", help="Config file path")
+    parser.add_argument("-cfg", "--config", type=str, default="./trained_models/AG/AG_table_tiago_tiago_dual_joints_gripper_multippo/train.json", help="Config file path")
     parser.add_argument("-n", "--env_name", type=str, help="Environment name")
     parser.add_argument("-ws", "--workspace", type=str, help="Workspace name")
     parser.add_argument("-p", "--engine", type=str, help="Simulation engine name")
@@ -289,7 +287,7 @@ def get_parser():
     parser.add_argument("-l", "--logdir", type=str,  help="Where to save results of training and trained models")
     parser.add_argument("-r", "--record", type=int, help="1: make a gif of model perfomance, 2: make a video of model performance, 0: don't record")
     #Mujoco
-    parser.add_argument("-i", "--multiprocessing", type=int,  help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
+    parser.add_argument("-i", "--multiprocessing", type=int, help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
     parser.add_argument("-v", "--vectorized_envs", type=int,  help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
     #Paths
     parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")
@@ -409,8 +407,7 @@ def main():
         #In case of renewing training from a checkpoint, logdir with monitor.csv
         #and train.json are located in the directory where pretrained model is stored
         model_logdir = os.path.dirname(os.path.dirname(arg_dict["pretrained_model"]))
-
-    if arg_dict["multiprocessing"] is not None:
+    if arg_dict["multiprocessing"]:
         NUM_CPU = int(arg_dict["multiprocessing"])
         env = SubprocVecEnv([make_env(arg_dict, i, model_logdir=model_logdir) for i in range(NUM_CPU)])
         env = VecMonitor(env, model_logdir)

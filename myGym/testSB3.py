@@ -240,6 +240,10 @@ def test_env(env: object, arg_dict: dict) -> None:
                 action = env.action_space.sample()
 
             observation, reward, done, _, info = env.step(action)
+            # if done:
+            #     print("reward:", reward)
+            #     import sys
+            #     sys.exit()
             if arg_dict["vtrajectory"]:
                 visualize_trajectories(info, action)
             if arg_dict["vinfo"]:
@@ -453,6 +457,7 @@ def main() -> None:
             "Testing random actions in selected environment."
         )
         arg_dict["gui"] = 1
+        arg_dict["network_switcher"] = "keyboard" #temporary TODO: delete this
         env = configure_env(arg_dict, model_logdir, for_train=0)
         test_env(env, arg_dict)
     else:

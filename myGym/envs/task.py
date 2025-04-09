@@ -173,6 +173,8 @@ class TaskModule():
             :return: (bool)
         """
         if (time.time() - self.env.episode_start_time) > self.env.episode_max_time:
+            print("Max time exceeded:" ,(time.time()-self.env.episode_start_time))
+            print("max time:", self.env.episode_max_time)
             self.env.episode_info = "Episode maximum time {} s exceeded".format(self.env.episode_max_time)
             return True
         return False
@@ -370,7 +372,6 @@ class TaskModule():
                 return finished
             self.end_episode_success()
         if self.check_time_exceeded() or self.env.episode_steps == self.env.max_episode_steps:
-
             self.end_episode_fail("Max amount of steps reached")
         if "ground_truth" not in self.vision_src and (self.check_vision_failure()):
             self.stored_observation = []
@@ -392,6 +393,7 @@ class TaskModule():
             else:
                 self.env.episode_info = "Task completed successfully"
         else:
+            print("self.env.episode_terminated set to false")
             self.env.episode_terminated = False
             self.env.robot.release_all_objects()
             self.subtask_over = True
