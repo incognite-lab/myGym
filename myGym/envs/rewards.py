@@ -195,7 +195,7 @@ class Protorewards(Reward):
 
     def approach_compute(self, gripper, object, gripper_states):
         self.env.robot.set_magnetization(False)
-        self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
+        #self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
         dist = self.task.calc_distance(gripper[:3], object[:3])        
         gripdist = sum(gripper_states)
         if self.last_approach_dist is None:
