@@ -62,6 +62,9 @@ class GymEnv(CameraEnv):
         :param natural_language: (bool) Whether the natural language mode should be turned on
         :param training: (bool) Whether a training or a testing is taking place
     """
+    @property
+    def unwrapped(self):
+        return self
 
     def __init__(self,
                  observation,
@@ -80,6 +83,7 @@ class GymEnv(CameraEnv):
                  num_networks=1,
                  network_switcher="gt",
                  distractors=None,
+                 reward='distance',
                  active_cameras=None,
                  dataset=False,
                  obs_space=None,
@@ -91,6 +95,7 @@ class GymEnv(CameraEnv):
                  yolact_config=None,
                  natural_language=False,
                  training=True,
+                 prag_mode: bool = True
                  **kwargs
                  ):
 
@@ -121,6 +126,7 @@ class GymEnv(CameraEnv):
         self.distractors            = distractors
         self.objects_area_borders = None
         self.reachable_borders = None
+        self.unwrapped.reward = reward
         self.dist = d.DistractorModule(distractors["moveable"], distractors["movement_endpoints"],
                                        distractors["constant_speed"], distractors["movement_dims"], env=self)
         self.dataset   = dataset
@@ -132,6 +138,7 @@ class GymEnv(CameraEnv):
         self.workspace_dict = get_workspace_dict()
         self.robot = None
         self.algorithm = None
+        self.prag_mode = prag_mode
         if not hasattr(self, "task"):
           self.task = None
 
@@ -162,10 +169,10 @@ class GymEnv(CameraEnv):
 
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 
-    def _init_task_and_reward(self, prag_mode: bool = True):
+    def _init_task_and_reward(self):
         """Main communicator with rddl. Passes arguments from config to RDDLWorld, tells rddl to make a task sequence and to build
         a scene accordingly, including robot. Work in progress"""
-        if prag_mode:  # FIXME: some better solution for switching between prag and 'normal' mode
+        if self.prag_mode:  # FIXME: some better solution for switching between prag and 'normal' mode
             self.task = TaskModule(self, self.rddl_config["num_task_range"], self.rddl_config["protoactions"], self.rddl_config["allowed_objects"], self.rddl_config["allowed_predicates"], self.p)
             # generates task sequence and initializes scene with objects accordingly. The first action is set as self.task.current_task
             self.task.build_scene_for_task_sequence() # it also loads the robot. must be done his way so that rddl knows about the robot
@@ -174,7 +181,7 @@ class GymEnv(CameraEnv):
             obs_entities = self.reward.get_relevant_entities() # does not work yet, must be done in rddl
             self.robot = self.task.rddl_robot # robot class as we know it
         else:
-            if self.reward == 'distractor':
+            if self.unwrapped.reward == 'distractor':
                 self.has_distractor = True
                 self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
             reward_classes = {
@@ -185,7 +192,7 @@ class GymEnv(CameraEnv):
                 "5-network": {"AGMDW" : AaGaMaDaW}}
 
             scheme = "{}-network".format(str(self.num_networks))
-            assert self.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
+            assert self.unwrapped.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
             self.task = t.TaskModule(task_type=self.task_type,
                                     observation=self.obs_type,
                                     vae_path=self.vae_path,
@@ -194,7 +201,7 @@ class GymEnv(CameraEnv):
                                     distance_type=self.distance_type,
                                     number_tasks=len(self.task_objects_dict),
                                     env=self)
-            self.reward = reward_classes[scheme][self.reward](env=self, task=self.task)
+            self.unwrapped.reward = reward_classes[scheme][self.unwrapped.reward](env=self, task=self.task)
 
     def _setup_scene(self):
         """
@@ -323,9 +330,98 @@ class GymEnv(CameraEnv):
         if not only_subtask:
             self.task.rddl_robot.reset(random_robot=random_robot)
             super().reset(hard=hard)
-        # @TODO I removed support of nl_mode, which is dependent on the old structure. We need to add nl_support again in later phases
+
+            if not self.nl_mode:
+                other_objects = []
+                if self.task_objects_were_given_as_list:
+                    task_objects_dict = copy.deepcopy(self.task_objects_dict)
+                else:
+                    if not self.reach_gesture:
+                        init = self.rng.choice(self.task_objects_dict["init"])
+                        goal = self.rng.choice(self.task_objects_dict["goal"])
+                        objects = self.task_objects_dict["init"] + self.task_objects_dict["goal"]
+                        task_objects_dict = [{"init": init, "goal": goal}]
+                        other_objects = self._randomly_place_objects({"obj_list": [o for o in objects if o != init and o != goal]})
+                    else:
+                        goal = self.rng.choice(self.task_objects_dict["goal"])
+                        task_objects_dict = [{"init": {"obj_name":"null"}, "goal": goal}]
+                        other_objects = self._randomly_place_objects({"obj_list": [o for o in self.task_objects_dict["goal"] if o != goal]})
+
+                all_subtask_objects = [x for i, x in enumerate(task_objects_dict) if i != self.task.current_task]
+                subtasks_processed = [list(x.values()) for x in all_subtask_objects]
+                subtask_objects = self._randomly_place_objects({"obj_list": list(chain.from_iterable(subtasks_processed))})
+                self.env_objects = {"env_objects": self._randomly_place_objects(self.used_objects)}
+                if self.task_objects_were_given_as_list:
+                    self.env_objects["env_objects"] += other_objects
+                self.task_objects = self._randomly_place_objects(task_objects_dict[self.task.current_task])
+                self.task_objects = dict(ChainMap(*self.task_objects))
+                if subtask_objects:
+                    self.task_objects["distractor"] = subtask_objects
+            else:
+                init_objects = []
+                if not self.reach_gesture:
+                    init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
+                    for i, c in enumerate(cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+                        init_objects[i].set_color(c)
+                goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
+                for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=self.task_type != "reach", excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+                    goal_objects[i].set_color(c)
+
+                if self.training or (not self.training and self.reach_gesture) and self.nl_mode:
+                    # setting the objects and generating a description based on them
+                    self.nl.get_venv().set_objects(init_goal_objects=(init_objects, goal_objects))
+                    self.nl.generate_subtask_with_random_description()
+
+                    # resetting the objects to remove the knowledge about whether an object is an init or a goal
+                    self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
+                    self.task_type, self.unwrapped.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
+                else:
+                    success = False
+                    i = 0
+
+                    while (not success):
+                        try:
+                            if i > 0:
+                                print("Unknown task description format. Actual format is very strict. "
+                                      "All articles must be included. Examples of valid subtask descriptions in general:")
+                                print("\"reach the cyan cube\"")
+                                print("\"reach the transparent pink cube left to the gray cube\"")
+                                print("\"pick the orange cube and place it to the same position as the pink cube\"")
+                                print("Pay attention to the fact that colors, task and objects in your case can be different!")
+                                print("To leave the program use Ctrl + Z!")
+                            if self.nl:
+                                self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
+                                # resetting the objects to remove the knowledge about whether an object is an init or a goal
+                                self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
+                                self.task_type, self.unwrapped.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
+                            success = True
+                            break
+                        except:
+                            pass
+                        i += 1
+
+                self.task_objects = {"actual_state": init if init is not None else self.robot, "goal_state": goal}
+                other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
+                self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
+
+                # will set the task and the reward
+                self._set_observation_space()
+        if only_subtask:
+            if self.task.current_task < (len(self.task_objects_dict)) and not self.nl_mode:
+                self.shift_next_subtask()
+        if self.has_distractor:
+            distrs = []
+            if self.distractors["list"]:
+                for distractor in self.distractors["list"]:
+                    distrs.append(
+                        self.dist.place_distractor(distractor, self.p, self.task_objects["goal_state"].get_position()))
+            if self.task_objects["distractor"]:
+                self.task_objects["distractor"].extend(distrs)
+            else:
+                self.task_objects["distractor"] = distrs
+        self.env_objects = {**self.task_objects, **self.env_objects}
         self.task.reset_task()
-        #self.reward.reset()
+        self.unwrapped.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
         info = {'d': 1, 'f': int(self.episode_failed),
@@ -412,8 +508,11 @@ class GymEnv(CameraEnv):
         if self.dataset:
             reward, terminated, truncated, info = 0, False, False, {}
         else:
-            reward = self.compute_reward()  # this uses rddl protoaction, no arguments needed
-            print("Reward by RDDL: {}".format(reward))
+            if self.prag_mode: # FIXME: PRAG reward computation probably needs fixing
+                reward = self.task.current_task.reward()  # this uses rddl protoaction, no arguments needed
+                print("Reward by RDDL: {}".format(reward))
+            else:
+                reward = self.unwrapped.reward.compute(observation=self._observation)
             self.episode_reward += reward
             terminated = self.episode_terminated
             truncated = self.episode_truncated
@@ -425,24 +524,10 @@ class GymEnv(CameraEnv):
             self.reset(only_subtask=True)
         return self.flatten_obs(self._observation.copy()), reward, terminated, truncated, info
 
-
-    def get_linkstates_unpacked(self):
-        o = []
-        [[o.append(x) for x in z] for z in self.robot.observe_all_links()]
-        return o
-
-
-    def check_obs_template(self):
-        """
-        @TODO Add smart and variable observation space constructor based on config?
-
-        Returns:
-            :return obsdim: (int) Dimensionality of observation
-        """
-        obsdim = 14 # 7 values for actual state (object or gripper pose and orientation) and same for goal state
-        if "gripper" in self.robot_action:
-            obsdim += 1 # binary value for gripper close or open
-        return obsdim
+    def compute_reward(self, achieved_goal, desired_goal, info):
+        # @TODO: Reward computation for HER, argument for .compute()
+        reward = self.unwrapped.reward.compute(np.append(achieved_goal, desired_goal))
+        return reward
 
     def successful_finish(self, info):
         """
@@ -461,6 +546,7 @@ class GymEnv(CameraEnv):
         Parameters:
             :param action: (list) Action data returned by trained model
         """
+        use_magnet = self.unwrapped.reward.get_magnetization_status()
         for i in range(self.action_repeat):
             objects = self.env_objects
             self.robot.apply_action(action, env_objects=objects)
@@ -527,7 +613,7 @@ class GymEnv(CameraEnv):
         self.task_objects["actual_state"] = goal
 
     def network_control(self):
-        return self.reward.network_switch_control(self.observation["task_objects"])
+        return self.unwrapped.reward.network_switch_control(self.observation["task_objects"])
 
     def get_actions(self, owner, observation):
         model = self.models_link[owner]
