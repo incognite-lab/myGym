@@ -74,7 +74,7 @@ def _worker(
             elif cmd == "is_wrapped":
                 remote.send(is_wrapped(env, data))
             elif cmd == "network_control":
-                remote.send(env.env.network_control())
+                remote.send(env.env.unwrapped.network_control())
             else:
                 raise NotImplementedError(f"`{cmd}` is not implemented in the worker")
         except EOFError:
