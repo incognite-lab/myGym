@@ -33,7 +33,7 @@ def perform_oraculum_task(t: int, env: Any, arg_dict: Dict[str, Any],
 
     # Check for 'absolute' control mode in robot action
     if "absolute" in arg_dict["robot_action"]:
-        reward_name = env.env.reward.reward_name
+        reward_name = env.env.unwrapped.reward.reward_name
         gripper = "gripper" in arg_dict["robot_action"]
         if reward_name == "approach":
             _set_gripper_action(action, GRIPPER_OPEN, gripper)
@@ -83,7 +83,7 @@ def _get_approach_action(env: Any, info: Dict[str, Any]) -> np.ndarray:
     Returns:
         np.ndarray: Updated approach action.
     """
-    if env.env.reward.rewards_num <= 2:
+    if env.env.unwrapped.reward.rewards_num <= 2:
         action = info['o']["goal_state"][:3]
         if info['o']["actual_state"][2] < -0.25:
             action[2] += 0.05
