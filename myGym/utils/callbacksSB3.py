@@ -112,8 +112,8 @@ class CustomEvalCallback(EvalCallback):
                 evaluation_env = self.eval_env.env.env
                 evaluation_env.reset()
 
-            srewardsteps = np.zeros(evaluation_env.reward.num_networks)
-            srewardsuccess = np.zeros(evaluation_env.reward.num_networks)
+            srewardsteps = np.zeros(evaluation_env.unwrapped.reward.num_networks)
+            srewardsuccess = np.zeros(evaluation_env.unwrapped.reward.num_networks)
             while not done:
                 steps_sum += 1
                 action, state = model.predict(obs, deterministic=deterministic)
@@ -130,7 +130,7 @@ class CustomEvalCallback(EvalCallback):
                     evaluation_env.p.addUserDebugText(
                         f"Object:{matrix(np.around(np.array(info['o']['actual_state']), 5))}",
                         [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-                    evaluation_env.p.addUserDebugText(f"Network:{evaluation_env.reward.current_network}",
+                    evaluation_env.p.addUserDebugText(f"Network:{evaluation_env.unwrapped.reward.current_network}",
                                                       [.8, .5, 0.25], textSize=1.0, lifeTime=0.5,
                                                       textColorRGB=[0.0, 0.0, 1])
                     evaluation_env.p.addUserDebugText(f"Subtask:{evaluation_env.task.current_task}",
@@ -145,12 +145,12 @@ class CustomEvalCallback(EvalCallback):
                 episode_reward += reward
                 is_successful = not info['f']
 
-                if evaluation_env.reward.current_network != last_network:
+                if evaluation_env.unwrapped.reward.current_network != last_network:
                     srewardsteps.put([last_network], steps - last_steps)
                     srewardsuccess.put([last_network], 1)
-                    last_network = evaluation_env.reward.current_network
+                    last_network = evaluation_env.unwrapped.reward.current_network
                     last_steps = steps
-                #distance_error = self.eval_env.env.reward.get_distance_error(info['o'])
+                #distance_error = self.eval_env.env.unwrapped.reward.get_distance_error(info['o'])
 
                 #print("distance_error", distance_error)
 
@@ -167,7 +167,7 @@ class CustomEvalCallback(EvalCallback):
             srewardsteps.put([last_network], steps - last_steps)
             if is_successful:
                 srewardsuccess.put([last_network], 1)
-            subrewards.append(evaluation_env.reward.network_rewards)
+            subrewards.append(evaluation_env.unwrapped.reward.network_rewards)
             subrewsteps.append(srewardsteps)
             subrewsuccess.append(srewardsuccess)
             episode_rewards.append(episode_reward)
@@ -183,7 +183,7 @@ class CustomEvalCallback(EvalCallback):
         meansr = np.mean(subrewards, axis=0)
         meansrs = np.mean(subrewsteps, axis=0)
         srsu = np.array(subrewsuccess)
-        meansgoals = np.count_nonzero(srsu) / evaluation_env.reward.num_networks / n_eval_episodes * 100
+        meansgoals = np.count_nonzero(srsu) / evaluation_env.unwrapped.reward.num_networks / n_eval_episodes * 100
         print("n_eval_episodes:", n_eval_episodes)
         results = {
             "episode": "{}".format(self.n_calls*self.num_cpu),
@@ -195,7 +195,7 @@ class CustomEvalCallback(EvalCallback):
             "mean_reward": "{:.2f}".format(np.mean(episode_rewards)),
             "std_reward": "{:.2f}".format(np.std(episode_rewards)),
             "number of tasks": "{}".format(evaluation_env.task.number_tasks),
-            "number of networks": "{}".format(evaluation_env.reward.num_networks),
+            "number of networks": "{}".format(evaluation_env.unwrapped.reward.num_networks),
             "mean subgoals finished": "{}".format(str(meansgoals)),
             "mean subgoal reward": "{}".format(str(meansr)),
             "mean subgoal steps": "{}".format(str(meansrs)),
@@ -329,7 +329,7 @@ class MultiPPOEvalCallback(EvalCallback):
             env_p = self.eval_env.get_attr("p")[0]
             env_task = self.eval_env.get_attr("task")[0]
         else:
-            env_reward = self.eval_env.reward
+            env_reward = self.eval_env.unwrapped.reward
             env_p = self.eval_env.p
             env_task = self.eval_env.task
 
@@ -354,7 +354,7 @@ class MultiPPOEvalCallback(EvalCallback):
                     action, state = model.predict(obs, deterministic = deterministic)
                     obs, reward, terminated, truncated, info = self.eval_env.step(action)
                     done = terminated or truncated
-                    current_network = self.eval_env.reward.current_network
+                    current_network = self.eval_env.unwrapped.reward.current_network
                  #Special eval step (uses first env of vec env only)
                 if env_p.getConnectionInfo()["isConnected"] != 0:
                     env_p.addUserDebugText(
@@ -405,7 +405,7 @@ class MultiPPOEvalCallback(EvalCallback):
             if isinstance(self.eval_env, VecEnv):
                 env_reward = self.eval_env.get_attr("reward")[0]
             else:
-                env_reward = self.eval_env.reward
+                env_reward = self.eval_env.unwrapped.reward
             subrewards.append(env_reward.eval_network_rewards)
             subrewsteps.append(srewardsteps)
             subrewsuccess.append(srewardsuccess)
@@ -568,7 +568,7 @@ class PPOEvalCallback(EvalCallback):
             env_p = self.eval_env.get_attr("p")[0]
             env_task = self.eval_env.get_attr("task")[0]
         else:
-            env_reward = self.eval_env.reward
+            env_reward = self.eval_env.unwrapped.reward
             env_p = self.eval_env.p
             env_task = self.eval_env.task
 
@@ -594,7 +594,7 @@ class PPOEvalCallback(EvalCallback):
                 else:
                     obs, reward, terminated, truncated, info = self.eval_env.step(action)
                     done = terminated or truncated
-                    current_network = self.eval_env.reward.current_network
+                    current_network = self.eval_env.unwrapped.reward.current_network
 
                 if env_p.getConnectionInfo()["isConnected"] != 0:
                     env_p.addUserDebugText(
@@ -638,7 +638,7 @@ class PPOEvalCallback(EvalCallback):
             if isinstance(self.eval_env, VecEnv):
                 env_reward = self.eval_env.get_attr("reward")[0]
             else:
-                env_reward = self.eval_env.reward
+                env_reward = self.eval_env.unwrapped.reward
             srewardsteps.put([last_network], steps - last_steps)
             if is_successful:
                 srewardsuccess.put([last_network], 1)

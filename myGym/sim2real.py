@@ -94,7 +94,7 @@ def visualize_infotext(action, env, info):
         [.67, 1, .40], textSize=1.0, lifeTime=0.5, textColorRGB=[0.2, 0.8, 1])   
     p.addUserDebugText(f"Subtask:{env.env.task.current_task}",
         [.69, 1, 0.35], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
-    p.addUserDebugText(f"Network:{env.env.reward.current_network}",
+    p.addUserDebugText(f"Network:{env.env.unwrapped.reward.current_network}",
         [.71, 1, 0.3], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
     p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),2))}",
         [.73, 1, 0.25], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
