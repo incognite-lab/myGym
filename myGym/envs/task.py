@@ -210,7 +210,7 @@ class TaskModule():
         return False
 
     def check_turn_threshold(self, desired_angle=57):
-        turned = self.env.reward.get_angle()
+        turned = self.env.unwrapped.reward.get_angle()
         if turned >= desired_angle:
             return True
         elif turned <= - desired_angle:
@@ -314,15 +314,15 @@ class TaskModule():
         Returns:
             :return: (bool)  
         """
-        if self.env.reward.point_was_reached:
-            if not self.env.reward.was_dropped:
+        if self.env.unwrapped.reward.point_was_reached:
+            if not self.env.unwrapped.reward.was_dropped:
                 self.env.episode_over = False
                 self.env.robot.release_all_objects()
                 self.env.task.subtask_over = True
                 self.current_task = 0
-                self.env.reward.was_dropped = True
-        # print("drop episode", self.env.reward.drop_episode, "episode steps", self.env.episode_steps)
-        if self.env.reward.drop_episode and self.env.reward.drop_episode + 35 < self.env.episode_steps:
+                self.env.unwrapped.reward.was_dropped = True
+        # print("drop episode", self.env.unwrapped.reward.drop_episode, "episode steps", self.env.episode_steps)
+        if self.env.unwrapped.reward.drop_episode and self.env.unwrapped.reward.drop_episode + 35 < self.env.episode_steps:
             self.end_episode_success()
             return True
         else: 
@@ -346,10 +346,10 @@ class TaskModule():
             finished = self.check_points_distance_threshold()
         if self.task_type == "switch":
             self.check_distance_threshold(self._observation)
-            finished = abs(self.env.reward.get_angle()) >= 18
+            finished = abs(self.env.unwrapped.reward.get_angle()) >= 18
         if self.task_type == "press":
             self.check_distance_threshold(self._observation)
-            finished = self.env.reward.get_angle() >= 1.71
+            finished = self.env.unwrapped.reward.get_angle() >= 1.71
         if self.task_type == "dice_throw":
             finished = self.check_dice_moving(self._observation)
             

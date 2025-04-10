@@ -84,7 +84,7 @@ def visualize_infotext(action: list, env: object, info: dict) -> None:
         (f"Episode: {env.env.episode_number}", [0.65, 1., 0.45], [0.4, 0.2, .3]),
         (f"Step: {env.env.episode_steps}", [0.67, 1., .40], [0.2, 0.8, 1]),
         (f"Subtask: {env.env.task.current_task}", [0.69, 1., 0.35], [0.4, 0.2, 1]),
-        (f"Network: {env.env.reward.current_network}", [0.71, 1., 0.3], [0.0, 0.0, 1]),
+        (f"Network: {env.env.unwrapped.reward.current_network}", [0.71, 1., 0.3], [0.0, 0.0, 1]),
         (f"Action (Gripper): {matrix(np.around(np.array(action), 2))}", [0.73, 1., 0.25], [1, 0, 0]),
         (f"Actual State: {matrix(np.around(np.array(env.env.observation['task_objects']['actual_state'][:3]), 2))}",
          [0.75, 1., 0.2], [0.0, 1., 0.0]),
