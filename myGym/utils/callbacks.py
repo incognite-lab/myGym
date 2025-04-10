@@ -365,7 +365,7 @@ class EvalCallbackRay(DefaultCallbacks):
 #             steps=0
 #             last_network = 0
 #             last_steps = 0
-#             srewardsteps = np.zeros(self.eval_env.env.reward.num_networks)
+#             srewardsteps = np.zeros(self.eval_env.env.unwrapped.reward.num_networks)
 #             srewardsuccess = np.zeros(self.eval_env.env.reward.num_networks)
 
 #             while not done:
@@ -378,7 +378,7 @@ class EvalCallbackRay(DefaultCallbacks):
 #                 #    [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
 #                 p.addUserDebugText(f"Object:{matrix(np.around(np.array(info['o']['actual_state']),5))}",
 #                     [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-#                 p.addUserDebugText(f"Network:{self.eval_env.env.reward.current_network}",
+#                 p.addUserDebugText(f"Network:{self.eval_env.env.unwrapped.reward.current_network}",
 #                     [.8, .5, 0.25], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
 #                 p.addUserDebugText(f"Subtask:{self.eval_env.env.task.current_task}",
 #                     [.8, .5, 0.35], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
@@ -391,10 +391,10 @@ class EvalCallbackRay(DefaultCallbacks):
 #                 # Info is list with dict inside
 #                 #info = info[0]
 #                 is_successful = not info['f']
-#                 if self.eval_env.env.reward.current_network != last_network:
+#                 if self.eval_env.env.unwrapped.reward.current_network != last_network:
 #                     srewardsteps.put([last_network], steps-last_steps)
 #                     srewardsuccess.put([last_network], 1)
-#                     last_network = self.eval_env.env.reward.current_network
+#                     last_network = self.eval_env.env.unwrapped.reward.current_network
 #                     last_steps = steps
 #                 distance_error = info['d']
 
@@ -412,7 +412,7 @@ class EvalCallbackRay(DefaultCallbacks):
 #             srewardsteps.put([last_network], steps-last_steps)
 #             if is_successful:
 #                 srewardsuccess.put([last_network], 1)
-#             subrewards.append(self.eval_env.env.reward.network_rewards)
+#             subrewards.append(self.eval_env.env.unwrapped.reward.network_rewards)
 #             subrewsteps.append(srewardsteps)
 #             subrewsuccess.append(srewardsuccess)
 #             episode_rewards.append(episode_reward)
@@ -431,7 +431,7 @@ class EvalCallbackRay(DefaultCallbacks):
 #         meansr = np.mean(subrewards, axis=0)
 #         meansrs = np.mean(subrewsteps, axis=0)
 #         srsu = np.array(subrewsuccess)
-#         meansgoals=np.count_nonzero(srsu)/self.eval_env.env.reward.num_networks/n_eval_episodes*100
+#         meansgoals=np.count_nonzero(srsu)/self.eval_env.env.unwrapped.reward.num_networks/n_eval_episodes*100
 
 #         results = {
 #             "episode": "{}".format(self.n_calls),
@@ -443,7 +443,7 @@ class EvalCallbackRay(DefaultCallbacks):
 #             "mean_reward": "{:.2f}".format(np.mean(episode_rewards)),
 #             "std_reward": "{:.2f}".format(np.std(episode_rewards)),
 #             "number of tasks":"{}".format(self.eval_env.env.task.number_tasks),
-#             "number of networks":"{}".format(self.eval_env.env.reward.num_networks),
+#             "number of networks":"{}".format(self.eval_env.env.unwrapped.reward.num_networks),
 #             "mean subgoals finished":"{}".format(str(meansgoals)),
 #             "mean subgoal reward":"{}".format(str(meansr)),
 #             "mean subgoal steps":"{}".format(str(meansrs)),
