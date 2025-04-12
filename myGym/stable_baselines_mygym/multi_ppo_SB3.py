@@ -262,7 +262,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         if isinstance(self.env, VecMonitor) or isinstance(self.env, DummyVecEnv):
             reward_names = self.env.get_attr("reward")[0].network_names
         else:
-            reward_names = self.env.reward.network_names
+            reward_names = self.env.unwrapped.reward.network_names
 
         #Save every submodel in the correct folder (denoted by the corresponding reward name)
         for i in range(len(self.models)):
@@ -277,13 +277,12 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
     def approved(self, observation):
         # based on obs, decide which model should be used
-
         if isinstance(self.env, VecMonitor):
-            submodel_id = self.env.network_control()
+            submodel_id = self.env.unwrapped.network_control()
         elif isinstance(self.env, SubprocVecEnv):
             submodel_id = self.env.get_attr("reward")[0].network_switch_control(self.env.get_attr("observation")[0]["task_objects"])
         else:
-            submodel_id = self.env.envs[0].reward.network_switch_control(self.env.envs[0].observation["task_objects"])
+            submodel_id = self.env.unwrapped.reward.network_switch_control(self.env.observation["task_objects"])
         return submodel_id
 
 
@@ -563,7 +562,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         if isinstance(env, VecMonitor) or isinstance(env, DummyVecEnv):
             reward_names = env.get_attr("reward")[0].network_names
         else:
-            reward_names = env.reward.network_names
+            reward_names = env.unwrapped.reward.network_names
         for i in range(num_models):
             load_path = path + "/" + reward_names[i] + "/best_model"
             data, params, pytorch_variables = load_from_zip_file(
@@ -701,7 +700,7 @@ class SubModel(MultiPPOSB3):
         if isinstance(parent.env, VecMonitor) or isinstance(parent.env, DummyVecEnv):
             reward_names = parent.env.get_attr("reward")[0].network_names
         else:
-            reward_names = parent.env.reward.network_names
+            reward_names = parent.env.unwrapped.reward.network_names
         self.path = os.path.join(parent.tensorboard_log, reward_names[i])
         try:
             os.makedirs(self.path)

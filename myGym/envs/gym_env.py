@@ -61,6 +61,9 @@ class GymEnv(CameraEnv):
         :param natural_language: (bool) Whether the natural language mode should be turned on
         :param training: (bool) Whether a training or a testing is taking place
     """
+    @property
+    def unwrapped(self):
+        return self
 
     def __init__(self,
                  task_objects,
@@ -123,7 +126,7 @@ class GymEnv(CameraEnv):
         self.distractors            = distractors
         self.distance_type          = distance_type
         self.objects_area_borders = None
-        self.reward = reward
+        self.unwrapped.reward = reward
         self.dist = d.DistractorModule(distractors["moveable"], distractors["movement_endpoints"],
                                        distractors["constant_speed"], distractors["movement_dims"], env=self)
         self.dataset   = dataset
@@ -166,7 +169,7 @@ class GymEnv(CameraEnv):
 
 
     def _init_task_and_reward(self):
-        if self.reward == 'distractor':
+        if self.unwrapped.reward == 'distractor':
             self.has_distractor = True
             self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
         reward_classes = {
@@ -177,7 +180,7 @@ class GymEnv(CameraEnv):
             "5-network": {"AGMDW" : AaGaMaDaW}}
     
         scheme = "{}-network".format(str(self.num_networks))
-        assert self.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
+        assert self.unwrapped.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
         self.task = t.TaskModule(task_type=self.task_type,
                                  observation=self.obs_type,
                                  vae_path=self.vae_path,
@@ -186,7 +189,7 @@ class GymEnv(CameraEnv):
                                  distance_type=self.distance_type,
                                  number_tasks=len(self.task_objects_dict),
                                  env=self)
-        self.reward = reward_classes[scheme][self.reward](env=self, task=self.task)
+        self.unwrapped.reward = reward_classes[scheme][self.unwrapped.reward](env=self, task=self.task)
 
     def _setup_scene(self):
         """
@@ -358,7 +361,7 @@ class GymEnv(CameraEnv):
 
                     # resetting the objects to remove the knowledge about whether an object is an init or a goal
                     self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-                    self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
+                    self.task_type, self.unwrapped.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
                 else:
                     success = False
                     i = 0
@@ -377,7 +380,7 @@ class GymEnv(CameraEnv):
                                 self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
                                 # resetting the objects to remove the knowledge about whether an object is an init or a goal
                                 self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-                                self.task_type, self.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
+                                self.task_type, self.unwrapped.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
                             success = True
                             break
                         except:
@@ -405,7 +408,7 @@ class GymEnv(CameraEnv):
                 self.task_objects["distractor"] = distrs
         self.env_objects = {**self.task_objects, **self.env_objects}
         self.task.reset_task()
-        self.reward.reset()
+        self.unwrapped.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
         info = {'d': 1, 'f': int(self.episode_failed),
@@ -484,7 +487,7 @@ class GymEnv(CameraEnv):
         if self.dataset:
             reward, terminated, truncated, info = 0, False, False, {}
         else:
-            reward = self.reward.compute(observation=self._observation)
+            reward = self.unwrapped.reward.compute(observation=self._observation)
             self.episode_reward += reward
             terminated = self.episode_terminated
             truncated = self.episode_truncated
@@ -498,7 +501,7 @@ class GymEnv(CameraEnv):
 
     def compute_reward(self, achieved_goal, desired_goal, info):
         # @TODO: Reward computation for HER, argument for .compute()
-        reward = self.reward.compute(np.append(achieved_goal, desired_goal))
+        reward = self.unwrapped.reward.compute(np.append(achieved_goal, desired_goal))
         return reward
 
     def successful_finish(self, info):
@@ -518,7 +521,7 @@ class GymEnv(CameraEnv):
         Parameters:
             :param action: (list) Action data returned by trained model
         """
-        use_magnet = self.reward.get_magnetization_status()
+        use_magnet = self.unwrapped.reward.get_magnetization_status()
         for i in range(self.action_repeat):
             objects = self.env_objects
             self.robot.apply_action(action, env_objects=objects)
@@ -649,7 +652,7 @@ class GymEnv(CameraEnv):
         self.task_objects["actual_state"] = goal
 
     def network_control(self):
-        return self.reward.network_switch_control(self.observation["task_objects"])
+        return self.unwrapped.reward.network_switch_control(self.observation["task_objects"])
 
     def get_actions(self, owner, observation):
         model = self.models_link[owner]
