@@ -277,12 +277,13 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
     def approved(self, observation):
         # based on obs, decide which model should be used
+
         if isinstance(self.env, VecMonitor):
             submodel_id = self.env.network_control()
         elif isinstance(self.env, SubprocVecEnv):
             submodel_id = self.env.get_attr("reward")[0].network_switch_control(self.env.get_attr("observation")[0]["task_objects"])
         else:
-            submodel_id = self.env.reward.network_switch_control(self.env.observation["task_objects"])
+            submodel_id = self.env.envs[0].reward.network_switch_control(self.env.envs[0].observation["task_objects"])
         return submodel_id
 
 

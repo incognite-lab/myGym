@@ -426,8 +426,8 @@ def main() -> None:
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
+    parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
-
     arg_dict, commands = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
@@ -457,7 +457,6 @@ def main() -> None:
             "Testing random actions in selected environment."
         )
         arg_dict["gui"] = 1
-        arg_dict["network_switcher"] = "keyboard" #temporary TODO: delete this
         env = configure_env(arg_dict, model_logdir, for_train=0)
         test_env(env, arg_dict)
     else:
