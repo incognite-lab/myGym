@@ -281,6 +281,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             submodel_id = self.env.unwrapped.network_control()
         elif isinstance(self.env, SubprocVecEnv):
             submodel_id = self.env.get_attr("reward")[0].network_switch_control(self.env.get_attr("observation")[0]["task_objects"])
+        elif isinstance(self.env, DummyVecEnv):
+            submodel_id = self.env.envs[0].reward.network_switch_control(self.env.envs[0].observation["task_objects"])
         else:
             submodel_id = self.env.unwrapped.reward.network_switch_control(self.env.observation["task_objects"])
         return submodel_id

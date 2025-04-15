@@ -1,12 +1,13 @@
 from re import S
-import pkg_resources
+import importlib.resources as pkg_resources
 from myGym.utils.vector import Vector
 import numpy as np
 import math
 from myGym.utils.helpers import get_robot_dict
+import os
 
-currentdir = pkg_resources.resource_filename("myGym", "envs")
-repodir = pkg_resources.resource_filename("myGym", "")
+currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
+repodir = pkg_resources.files("myGym")
 
 
 class Robot:
@@ -91,14 +92,14 @@ class Robot:
         """
         if self.robot_path[-3:] == 'sdf':
             objects = self.p.loadSDF(
-                pkg_resources.resource_filename("myGym",
+               os.path.join(pkg_resources.files("myGym"),
                                                 self.robot_path))
             self.robot_uid = objects[0]
             self.p.resetBasePositionAndOrientation(self.robot_uid, self.position,
                                               self.orientation)
         else:
             self.robot_uid = self.p.loadURDF(
-                pkg_resources.resource_filename("myGym",
+                os.path.join(pkg_resources.files("myGym"),
                                                 self.robot_path),
                 self.position, self.orientation, useFixedBase=True, flags=(self.p.URDF_USE_SELF_COLLISION))
         for jid in range(self.p.getNumJoints(self.robot_uid)):

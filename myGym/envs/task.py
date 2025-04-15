@@ -3,13 +3,14 @@ import pybullet as p
 import warnings
 import time
 import numpy as np
-import pkg_resources
+import importlib.resources as pkg_resources
 import cv2
+import os
 import random
 from scipy.spatial.distance import cityblock
 from scipy.spatial.transform import Rotation
 from pyquaternion import Quaternion
-currentdir = pkg_resources.resource_filename("myGym", "envs")
+currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
 
 
 class TaskModule():

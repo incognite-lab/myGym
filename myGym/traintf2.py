@@ -1,4 +1,4 @@
-import pkg_resources
+import importlib.resources as pkg_resources
 import os, sys, time, yaml
 import argparse
 import numpy as np
@@ -146,7 +146,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
         if pretrained_model:
             if not os.path.isabs(pretrained_model):
-                pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
+                pretrained_model = os.path.join(pkg_resources.files("myGym"), pretrained_model)
             env = model_args[1]
             vec_env = DummyVecEnv([lambda: env])
             model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env)
@@ -272,7 +272,7 @@ def main():
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
     if not os.path.isabs(arg_dict["logdir"]):
-        arg_dict["logdir"] = pkg_resources.resource_filename("myGym", arg_dict["logdir"])
+        arg_dict["logdir"] = os.path.join(pkg_resources.files("myGym"), arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
     model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["task_type"],arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["reward_type"],arg_dict["algo"])))
     model_logdir = model_logdir_ori

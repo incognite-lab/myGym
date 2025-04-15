@@ -9,8 +9,8 @@ import glob
 import numpy as np
 import sys, shutil
 from datetime import datetime
-import pkg_resources
-currentdir = pkg_resources.resource_filename("myGym", "envs")
+import importlib.resources as pkg_resources
+currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
 
 
 class EnvObject:

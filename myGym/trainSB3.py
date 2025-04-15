@@ -173,7 +173,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         model_kwargs["seed"] = seed
     if pretrained_model:
         if not os.path.isabs(pretrained_model):
-            pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
+            pretrained_model = os.path.join(pkg_resources.files("myGym"), pretrained_model)
         env = model_args[1]
         if not arg_dict["multiprocessing"]:
             vec_env = DummyVecEnv([lambda: env])
@@ -241,8 +241,8 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    # Environment
-    parser.add_argument("-cfg", "--config", type=str, default = "./configs/train_AGM_RDDL.json", help="Config file path")
+    # Environmentr
+    parser.add_argument("-cfg", "--config", type=str, default = "./trained_models/AG/AG_table_tiago_tiago_dual_joints_gripper_multippo/train.json", help="Config file path")
     parser.add_argument("-n", "--env_name", type=str, help="Environment name")
     parser.add_argument("-ws", "--workspace", type=str, help="Workspace name")
     parser.add_argument("-p", "--engine", type=str, help="Simulation engine name")

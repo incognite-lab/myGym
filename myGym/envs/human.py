@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
 import numpy as np
-import pkg_resources
+import importlib.resources as pkg_resources
 
 from myGym.envs.env_object import EnvObject
 from myGym.utils.helpers import get_robot_dict
@@ -56,7 +56,7 @@ class Human:
             :param model_name: (string) Model name in the get_robot_dict() dictionary
         """
         path, position, orientation = get_robot_dict()[model_name].values()
-        path = pkg_resources.resource_filename("myGym", path)
+        path = os.path.join(pkg_resources.files("myGym"), path)
         orientation = self.p.getQuaternionFromEuler(orientation)
 
         if path[-3:] == 'sdf':

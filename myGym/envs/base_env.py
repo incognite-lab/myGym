@@ -3,7 +3,7 @@ import time
 
 import gymnasium as gym
 import numpy as np
-import pkg_resources
+import importlib.resources as pkg_resources
 import pybullet
 import pybullet_data
 import pybullet_utils.bullet_client as bc
@@ -12,8 +12,8 @@ from gymnasium.utils import seeding
 
 from myGym.envs.camera import Camera
 
-currentdir = pkg_resources.resource_filename("myGym", "envs")
-repodir = pkg_resources.resource_filename("myGym", "./")
+currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
+repodir = os.path.join(pkg_resources.files("myGym"), "./")
 
 
 class BaseEnv(gym.Env):
@@ -33,7 +33,7 @@ class BaseEnv(gym.Env):
 
     def __init__(self,
                  gui_on=True,
-                 objects_dir_path=pkg_resources.resource_filename("myGym", "envs/"),
+                 objects_dir_path= os.path.join(pkg_resources.files("myGym"), "envs/"),
                  max_ep_steps=1024,
                  show_bounding_boxes_gui=False,
                  changing_light_gui=False,
