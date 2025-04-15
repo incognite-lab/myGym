@@ -441,11 +441,12 @@ def main() -> None:
                         commands.pop(key)
 
     model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
-    print("Algo:", arg_dict["algo"])
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
+    if arg_dict["control"] == "oraculum":
+        arg_dict["robot_action"] = "absolute_gripper"
 
     if parameters:
         print("THREADING")
