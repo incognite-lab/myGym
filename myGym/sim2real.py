@@ -9,7 +9,7 @@ import time
 from numpy import matrix
 import pybullet as p
 import pybullet_data
-import pkg_resources
+import importlib.resources as pkg_resources
 import random
 import getkey
 import signal

@@ -9,9 +9,8 @@ import glob
 import numpy as np
 import sys, shutil
 from datetime import datetime
-import pkg_resources
-currentdir = pkg_resources.resource_filename("myGym", "envs")
-from myGym.envs.vision_module import VisionModule
+import importlib.resources as pkg_resources
+currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
 
 class EnvObject(VisionModule):
     """
@@ -42,7 +41,7 @@ class EnvObject(VisionModule):
         self.object_mass = 10
         self.color_rgba = rgba
         self.object_stiffness = 1
-        if not self.virtual and not self.is_robot:    
+        if not self.virtual and not self.is_robot:
             self.uid = self.load()
             self.bounding_box = self.get_bounding_box()
             self.centroid = self.get_centroid()
@@ -52,7 +51,7 @@ class EnvObject(VisionModule):
             self.centroid = None
         self.debug_line_ids = []
         self.cuboid_dimensions = None
-        super(EnvObject, self).__init__(observation=observation, env=env, 
+        super(EnvObject, self).__init__(observation=observation, env=env,
                                         vae_path=vae_path, yolact_path=yolact_path, yolact_config = yolact_config)
 
     def set_color(self, color):
@@ -78,7 +77,7 @@ class EnvObject(VisionModule):
     def set_random_texture(self, obj_id, patternPath="dtd/images"):
         """
         Apply texture to object
-        
+
         Parameters:
             :param obj_id: (int) ID of object
             :param patternPath: (string) relative path to *.jpg (recursive) with textures
@@ -216,11 +215,11 @@ class EnvObject(VisionModule):
         if self.fixed:
             self.p.changeDynamics(self.uid, 0, collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
         else:
-            self.p.changeDynamics(self.uid, 0, collisionMargin=0., contactProcessingThreshold=0.0, 
-                                ccdSweptSphereRadius=0, linearDamping=self.object_ldamping, 
+            self.p.changeDynamics(self.uid, 0, collisionMargin=0., contactProcessingThreshold=0.0,
+                                ccdSweptSphereRadius=0, linearDamping=self.object_ldamping,
                                 angularDamping=self.object_adamping, lateralFriction=self.object_lfriction,
                                 rollingFriction=self.object_rfriction, mass=self.object_mass)
-        
+
         return self.uid
 
     def get_bounding_box(self):
@@ -228,7 +227,7 @@ class EnvObject(VisionModule):
         Get 3D axis-aligned bounding box of object
 
         Returns:
-            :return bounding_box: (list) 8 coordinates of vertices of the bounding box and Center 
+            :return bounding_box: (list) 8 coordinates of vertices of the bounding box and Center
         """
         bounding_box = []
         diag = self.p.getAABB(self.uid)
@@ -321,7 +320,7 @@ class EnvObject(VisionModule):
             :return self.uid: Object's unique ID
         """
         return self.uid
-    
+
     def get_obj_position_for_obs(self, img=None, depth=None):
         """
         Get object position in world coordinates of environment for observation (i.e. from Yolact)
@@ -334,7 +333,7 @@ class EnvObject(VisionModule):
             :return position: (list) Centroid of object in world coordinates
         """
         return super().get_obj_position_for_obs(self, img, depth)
-    
+
     def get_obj_orientation_for_obs(self, img=None):
         """
         Get object orientation in world coordinates of environment for observation (i.e. from Yolact)

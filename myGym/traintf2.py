@@ -1,4 +1,4 @@
-import pkg_resources
+import importlib.resources as pkg_resources
 import os, sys, time, yaml
 import argparse
 import numpy as np
@@ -66,7 +66,7 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
 def configure_env(arg_dict, model_logdir=None, for_train=True):
     env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"], "framework":"stable_baselines",
                      "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
-                     "robot_action": arg_dict["robot_action"],"max_velocity": arg_dict["max_velocity"], 
+                     "robot_action": arg_dict["robot_action"],"max_velocity": arg_dict["max_velocity"],
                      "max_force": arg_dict["max_force"],
                      "action_repeat": arg_dict["action_repeat"], "rddl": arg_dict["rddl"],
                      "observation":arg_dict["observation"], "distractors":arg_dict["distractors"],
@@ -130,16 +130,23 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     with open(conf_pth, "w") as f:
         json.dump(arg_dict, f, indent=4)
 
-    model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
-    model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
-    if pretrained_model:
-        if not os.path.isabs(pretrained_model):
-            pretrained_model = pkg_resources.resource_filename("myGym", pretrained_model)
-        env = model_args[1]
-        vec_env = DummyVecEnv([lambda: env])
-        model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env)
-    else:
-        model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0](*model_args, **model_kwargs)
+    try:
+        model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
+        model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
+        if pretrained_model:
+            if not os.path.isabs(pretrained_model):
+                pretrained_model = os.path.join(pkg_resources.files("myGym"), pretrained_model)
+            env = model_args[1]
+            vec_env = DummyVecEnv([lambda: env])
+            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env)
+        else:
+            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0](*model_args, **model_kwargs)
+    except:
+        if arg_dict["algo"] in implemented_combos.keys():
+            err = "{} is only implemented with {}".format(arg_dict["algo"], list(implemented_combos[arg_dict["algo"]].keys())[0])
+        else:
+            err = "{} algorithm is not implemented.".format(arg_dict["algo"])
+        raise Exception(err)
 
     if arg_dict["algo"] == "gail":
         # Multi processing: (using MPI)
@@ -253,7 +260,7 @@ def main():
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
     if not os.path.isabs(arg_dict["logdir"]):
-        arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
+        arg_dict["logdir"] = os.path.join(pkg_resources.files("myGym"), arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
     model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join((arg_dict["workspace"],arg_dict["robot"],arg_dict["robot_action"],arg_dict["algo"])))
     model_logdir = model_logdir_ori

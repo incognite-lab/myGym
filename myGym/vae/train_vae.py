@@ -12,7 +12,7 @@ import multiprocessing as mp
 from datetime import datetime
 from myGym.vae import sample
 from configparser import ConfigParser
-import pkg_resources
+import importlib.resources as pkg_resources
 from myGym.vae.vis_helpers import load_checkpoint
 
 SEED = 1111
@@ -219,7 +219,7 @@ if __name__ == "__main__":
                         help='vae config')
     args = parser.parse_args()
     config = ConfigParser()
-    config.read(pkg_resources.resource_filename("myGym", '/vae/{}'.format(args.config)))
+    config.read(os.path.join(pkg_resources.files("myGym"), '/vae/{}'.format(args.config)))
 
     with open(os.path.join(SAVE_DIR,'config.ini'), 'w') as f:
          config.write(f)

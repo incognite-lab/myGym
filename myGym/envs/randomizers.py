@@ -2,8 +2,8 @@
 import numpy as np
 import os, glob, random
 import pybullet as p
-import pkg_resources
-repodir = pkg_resources.resource_filename("myGym", "")
+import importlib.resources as pkg_resources
+repodir = os.path.join(pkg_resources.files("myGym"), "")
 
 
 

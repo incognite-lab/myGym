@@ -3,6 +3,20 @@ import myGym.envs.scene_objects # allows binding with rddl
 from myGym.envs.scene_objects import TiagoGripper
 from rddl.rddl_sampler import RDDLWorld
 from rddl.entities import Gripper, ObjectEntity
+from myGym.envs.vision_module import VisionModule
+import pybullet as p
+import warnings
+import time
+import numpy as np
+import importlib.resources as pkg_resources
+import cv2
+import os
+import random
+from scipy.spatial.distance import cityblock
+from scipy.spatial.transform import Rotation
+from pyquaternion import Quaternion
+currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
+
 
 class TaskModule():
     """
