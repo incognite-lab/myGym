@@ -15,16 +15,15 @@ dependencies:
   - pip:
     - commentjson==0.9.0
     - ray==2.7.2
-    - gym==0.25.1
-    - gymnasium==0.28.1
+    - gymnasium==1.1.0
     - gymnasium-notices==0.0.1
     - h5py==3.10.0
     - imageio==2.33.1
     - google==3.0.0
     - google-cloud==0.34.0
     - google-auth==2.32.0
-    - matplotlib==3.8.2
-    - numpy==1.23.5
+    - matplotlib==3.8.3
+    - numpy==1.26.4
     - opencv-python==4.9.0.80
     - open3d==0.18.0
     - pandas==2.2.0
@@ -32,7 +31,7 @@ dependencies:
     - protobuf==3.20.0
     - pyarrow==15.0.0
     - pyasn1==0.5.1
-    - pybullet==3.2.6
+    - pybullet==3.2.7
     - pygame==2.5.2
     - pygments==2.17.2
     - pyquaternion==0.9.9
@@ -41,7 +40,7 @@ dependencies:
     - pyyaml==6.0.1
     - scikit-image==0.22.0
     - shimmy==0.2.1
-    - stable-baselines3==2.4.0a7
+    - stable-baselines3==2.6.0
     - tensorflow-addons==0.23.0
     - tensorflow-io-gcs-filesystem==0.36.0
     - torch==2.3.1

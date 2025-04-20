@@ -162,9 +162,6 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             line = lines[-1]
             steps = int(line)
         model_logdir = pretrained_model
-
-
-
     model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
     model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
     if seed is not None:
@@ -242,7 +239,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     # Environmentr
-    parser.add_argument("-cfg", "--config", type=str, default = "./trained_models/AG/AG_table_tiago_tiago_dual_joints_gripper_multippo/train.json", help="Config file path")
+    parser.add_argument("-cfg", "--config", type=str, default = "./configs/train_AGMDW_RDDL.json", help="Config file path")
     parser.add_argument("-n", "--env_name", type=str, help="Environment name")
     parser.add_argument("-ws", "--workspace", type=str, help="Workspace name")
     parser.add_argument("-p", "--engine", type=str, help="Simulation engine name")

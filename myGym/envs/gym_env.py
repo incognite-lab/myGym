@@ -1,5 +1,5 @@
 import copy
-from typing import List
+from typing import List, Any
 
 from myGym.envs import robot, env_object
 from myGym.envs import task as t
@@ -169,7 +169,6 @@ class GymEnv(CameraEnv):
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 
 
-
     def _init_task_and_reward(self):
         if self.unwrapped.reward == 'distractor':
             self.has_distractor = True
@@ -192,6 +191,10 @@ class GymEnv(CameraEnv):
                                  number_tasks=len(self.task_objects_dict),
                                  env=self)
         self.unwrapped.reward = reward_classes[scheme][self.unwrapped.reward](env=self, task=self.task)
+
+    def get_wrapper_attr(self, name: str) -> Any:
+        return getattr(self.unwrapped, name)
+
 
     def _setup_scene(self):
         """
