@@ -330,8 +330,8 @@ class MultiPPOEvalCallback(EvalCallback):
             env_task = self.eval_env.get_attr("task")[0]
         else:
             env_reward = self.eval_env.unwrapped.reward
-            env_p = self.eval_env.p
-            env_task = self.eval_env.task
+            env_p = self.eval_env.unwrapped.p
+            env_task = self.eval_env.unwrapped.task
 
         for e in range(n_eval_episodes): #Iterate through eval episodes
             obs = self.eval_env.reset()
@@ -426,7 +426,7 @@ class MultiPPOEvalCallback(EvalCallback):
         if isinstance(self.eval_env, VecEnv):
             env_task = self.eval_env.get_attr("task")[0]
         else:
-            env_task = self.eval_env.task
+            env_task = self.eval_env.unwrapped.task
         results = {
             "episode": "{}".format(self.n_calls*self.num_cpu),
             "n_eval_episodes": "{}".format(n_eval_episodes),
