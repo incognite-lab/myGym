@@ -16,43 +16,42 @@ We keep training the current state-of-the-art algorithms to provide baselines fo
 [![Generic badge](https://img.shields.io/badge/Docs-Yes-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://shields.io/)
 
-## Install env
+## Install myGym 3.10
 
-For Ray Rllib branch please follow this instructions:
-
-create mygymrl fro rllib.yml file
-
-`conda env create -f ./rllib.yml`
-
-`conda activate mygymrl`
-
-`python setup.py develop`
-
-`pip install ray[tune]`
+From myGym 3.10 there is Stable Baseline 3 and Gymnasium. 
+If you want to use old myGym 3.7. with Stable Baselines1 and Gym, switch to branch mygym-3.7
 
 
+Clone the repository:
 
-## Advantages
+`git clone https://github.com/incognite-lab/mygym.git`
 
-* [Separate modules](https://mygym.readthedocs.io/en/latest/index.html) for fast prototyping (task.py, reward.py, env.py)
+`cd mygym`
 
-![alt text](myGym/images/schemas/mygym_scheme.png "scheme")
+Create Python 3.7 conda env (later Python versions does not support TF 0.15.5 neccesary for Stable baselines ):
 
-* [Pretrained vision](https://mygym.readthedocs.io/en/latest/user_guide/train_camera.html) for instance wise semantic segmentation
+`conda create -n  mygym Python=3.10`
 
-![alt text](myGym/images/results/kuka_reach_yolact_fast.gif "yolact")
+`conda activate mygym`
 
-* [Customizable distractors](https://mygym.readthedocs.io/en/latest/user_guide/train_with_distractors.html) for real enviroment simulation.
+Install myGym:
 
-![alt text](myGym/images/workspaces/small_chaotic_distractors.gif "training")
+`pip install -e .`
 
-* Human-robot collaboration environments (WIP)
+If you face troubles with mpi4py dependency install the lib:
 
-![alt text](myGym/images/workspaces/panda_push.gif "training")
+`sudo apt install libopenmpi-dev`
 
 
 
-From version 2.1:
+## myGym 3.10 news
+
+* Atomic rewards 
+
+
+* Easy multi-step task definition
+
+* Nico and Tiago robot support
 
 * Multi-step tasks defined inside [config file](myGym/configs/train_pnp_2n_multitask4.json#L20)  with customizable [observations](myGym/configs/train_pnp_2n_multitask4.json#L30) 
 
@@ -70,44 +69,6 @@ From version 2.1:
 
 ![alt text](myGym/images/workspaces/train_multi_5000000.gif "Pnr")
 
-
-## Installation
-
-Clone the repository:
-
-`git clone https://github.com/incognite-lab/mygym.git`
-
-`cd mygym`
-
-Create Python 3.7 conda env (later Python versions does not support TF 0.15.5 neccesary for Stable baselines ):
-
-`conda create -n  mygym Python=3.7`
-
-`conda activate mygym`
-
-Install myGym:
-
-`python setup.py develop`
-
-If you face troubles with mpi4py dependency install the lib:
-
-`sudo apt install libopenmpi-dev`
-
-If you want to use the pretrained visual modules, please download them first:
-
-`cd myGym`
-`sh download_vision.sh`
-
-If you want to use the pretrained baseline models, download them here:
-
-`cd myGym`
-`sh download_baselines.sh`
-
-Check, whether the toolbox works:
-
-`sh ./speed_checker.sh`
-
-If everything is correct, the toolbox will train for two minutes without GUI and then shows the test results (at least 30% success rate)
 
 ## Overview
 
