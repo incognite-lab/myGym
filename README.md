@@ -114,102 +114,7 @@ The training will start with the GUI window and a standstill visualization. Wait
 There are more training tutorials in the [documentation](https://mygym.readthedocs.io/en/latest/user_guide/basic_training.html)
 
 
-### Single-step tasks
 
-### [Reach](myGym/images/workspaces/kuka100000.gif "training")
-
-``python train.py --config ./configs/train_reach.json``
-
-### [Press](myGym/images/workspaces/press/kuka500000.gif "training")
-
-``python train.py --config ./configs/train_press.json``
-
-For details see [documentation](https://mygym.readthedocs.io/en/latest/user_guide/train_press.html)
-
-
-### [Switch](myGym/images/workspaces/switch/kuka250000.gif)
-
-``python train.py --config ./configs/train_switch.json``
-
-For details see [documentation](https://mygym.readthedocs.io/en/latest/user_guide/train_switch.html)
-
-### [Turn](myGym/images/workspaces/turn/kuka500000.gif)
-
-``python train.py --config ./configs/train_turn.json``
-
-For details see [documentation](https://mygym.readthedocs.io/en/latest/user_guide/train_turn.html)
-
-### Push (WIP)
-
-``python train.py --config ./configs/train_push.json``
-
-### Poke (WIP)
-
-``python train.py --config ./configs/train_poke.json``
-
-### Pick and Place
-
-``python train.py --config ./configs/train_pnp_1n.json``
-
-## Multi-step tasks
-
-### [Multi reach](myGym/images/workspaces/multireach_jaco.gif)
-
-``python train.py --config ./configs/train_reach_multitask.json``
-
-### [Multi PNP](myGym/images/workspaces/pnp/pnp3n2m_panda1.gif)
-
-``python train.py --config ./configs/train_pnp_3n_multitask2.json``
-
-### [Build a tower](myGym/images/workspaces/pnp/pnp3n3x_kuka.gif)
-
-``python train.py --config ./configs/train_pnp_3n_multitask4.json``
-
-
-
-##  Parametric Training
-
-As myGym is modular, you can easily train with different robots:
-
-`python train.py --robot jaco`
-
-You can also change the workspace within the gym, the task or the goal object. If you want to store an ouput video, just add the record parameter:
-
-`python train.py  --workspace collabtable --robot panda --task push --task_objects wrench --record 1`
-
-Learn more about the simulation parameters in the [documentation](https://mygym.readthedocs.io/en/latest/user_guide/tutorial_parametric.html)
-
-
-## Parallel Training
-
-We have developed scripts for parallel training to speed up this process. You can edit the desired parameter in train_parallel.py and run it:
-
-`python train_parallel.py`
-
-
-## Pretrained models
-
-You can use the test script for the visualization of pretrained models:
-
-`python test.py --config ./trained_models/yourmodel/train.json`
-
-It will load the pretrained model and test it in the task and workspace defined in the config file.
-
-
-## Evaluation
-
-There is automatic evaluation and logging included in the train script. It is controlled by parameters --eval_freq and --eval_episodes. The log files are stored in the folder with the trained model and you can easily visualize the learning progress after the training. There are also gifs for each eval period stored to compare the robot performance during training. We have also implemented evaluation in tensorboard:
-
-`tensorboard --logdir ./trained_models/yourmodel`
-
-![alt text](myGym/images/results/tensorboard_eval.png "training")
-
-If you want to interactively compare different parameters, just run tensorboard without model dir specification:
-
-![alt text](myGym/images/results/tensorboard_compare.png "training")
-
-
-There are also other visualization scripts (Documerntation in preparation)
 
 ## Environment
 
@@ -250,32 +155,7 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 | Maze | navigation  | -- | maze |
 | Stairs | navigation  | -- | stairs |
 
-## Baselines
 
-| Workspace  |Reach| Pick | Place | PicknPlace | Push | Press | Switch | Turn | Poke | Multistep PNP | Multistep Reach |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| Tabledesk | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| Drawer | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| Collaborative table | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-
-## Learnability 
-
-The new global evaluation metric, which we call \textit{learnability}, allows the user to evaluate and compare algorithms in a more systematic fashion. Learnability is defined as a general ability to learn irrespective of environmental conditions. The goal is to test an algorithm with respect to the complexity of environment. We have decomposed the environment complexity into independent scales. The first scale is dedicated to the complexity of the task. Second scale exploits the complexity of the robotic body that is controlled by the neural network. The third scale stands for the temporal complexity of the environment. 
-
-![alt text](myGym/images/schemas/multieval_visualization.png "learnability")
-
-## Leaderboard
-
-Learnability is represented as a single value metric that evaluates algorithms under various conditions, allowing us to compare different RL algorithms. The number of conditions is limited for practical reasons, as the number of training configurations grows exponentially with each new condition, and each configuration requires standalone training and evaluation. Therefore, we limited the total number of combinations to $3^3$ = 27, which can be evaluated in few hours with a standard computer infrastructure.
-
-| Pos. | Algorhitm | Score |
-|---|---|---|
-|1.| PPO2 | 30.11  |
-|2.| TRPO | 28.75  |
-|3.| ACKTR | 27.5  |
-|4.| SAC | 27.43 |
-|5.| PPO | 27.21 |
-|5.| myAlgo | 15.00  |
 
 ## Authors
 
