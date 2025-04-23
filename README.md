@@ -1,5 +1,5 @@
 
-![alt text](myGym/images/mygymlogo.png "myGym")
+![alt text](myGym/images/mygymlogo310.png "myGym")
 
 
 We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks  with increasing complexity and test your network on them. 
