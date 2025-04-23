@@ -600,7 +600,7 @@ class Robot:
             self.apply_action_joints(action)
         if "gripper" in self.robot_action:
             self._move_gripper(action[-(self.gjoints_num):])
-            if self.task_type in ["compositional", "fmot", "AG", "AGM", "AGMD", "AGMDW"]:
+            if self.task_type in ["compositional", "AG", "AGM", "AGMD", "AGMDW"]:
                 if env_objects["actual_state"] != self and self.use_magnet: #if self.use_magnet and ...
                     gripper_states = self.get_gjoints_states()
                     if sum(gripper_states) < self.closegr_threshold:
@@ -622,7 +622,7 @@ class Robot:
             #When gripper is not in robot action it will magnetize objects
                 self.gripper_active = True
                 self.magnetize_object(env_objects["actual_state"])
-            elif self.task_type in ["compositional", "fmot"]:
+            elif self.task_type in ["compositional"]:
                 if self.use_magnet and env_objects["actual_state"] != self:
                     self.gripper_active = True
                     self.magnetize_object(env_objects["actual_state"])

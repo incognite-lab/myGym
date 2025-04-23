@@ -51,8 +51,8 @@ from myGym.stable_baselines_mygym.ppoSB3 import PPO as PPO_P
 from myGym.stable_baselines_mygym.Subproc_vec_envSB3 import SubprocVecEnv
 
 # This is a global variable for the type of engine we are working with
-AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
-AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
+AVAILABLE_SIMULATION_ENGINES = ["pybullet"]
+AVAILABLE_TRAINING_FRAMEWORKS = ["pytorch"]
 
 
 
