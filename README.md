@@ -2,9 +2,9 @@
 ![alt text](myGym/images/mygymlogo.png "myGym")
 
 
-We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks  with increasing complexity and test your network on them. We also included an automatic evaluation and benchmark tool for your developed model. We have pretained the Yolact network for visual recognition of all objects in the simulator, so that you can reward your networks based on visual sensors only. 
+We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks  with increasing complexity and test your network on them. 
 
-We keep training the current state-of-the-art algorithms to provide baselines for the tasks in the toolbox. There is also a leaderboard showing algorithms with the best generalization capability, tested on the tasks in our basic curriculum. From version 2.0 it is possible to train multiple networks within one task and switch between them based on reward or adaptively. The number of neteworks is specified in config file.
+From version 3.10 there is SB3 and Gymnasium implemented and there is basic set of protorewards to ccreate any manipulation task from their combination. Their composition is semi automated and will be fully automated in next realese. It is possible to train multiple networks within one task and switch between them based on reward or adaptively. The number of neteworks is specified in config file.
 
 
 [![Generic badge](https://img.shields.io/badge/OS-Linux-green.svg)](https://shields.io/)
@@ -28,7 +28,7 @@ Clone the repository:
 
 `cd mygym`
 
-Create Python 3.7 conda env (later Python versions does not support TF 0.15.5 neccesary for Stable baselines ):
+Create Python 3.10 conda env:
 
 `conda create -n  mygym Python=3.10`
 
@@ -44,30 +44,31 @@ If you face troubles with mpi4py dependency install the lib:
 
 
 
-## myGym 3.10 news
+## myGym 3.10 presents
 
 * Atomic rewards 
 
+* Protorewards
+
+* Atomic actions
 
 * Easy multi-step task definition
 
 * Nico and Tiago robot support
 
-* Multi-step tasks defined inside [config file](myGym/configs/train_pnp_2n_multitask4.json#L20)  with customizable [observations](myGym/configs/train_pnp_2n_multitask4.json#L30) 
+* Multi-step tasks with custom robots
 
-![alt text](myGym/images/workspaces/multireach_jaco.gif "Multistep")
+![alt text](myGym/images/workspaces/mygym310.gif "Multistep")
 
-* Multi-goal rewards for training long horizon [tasks](myGym/envs/rewards.py#L1365)
+* Multi-goal rewards for training long horizon
 
-![alt text](myGym/images/workspaces/pnp/pnp3n3x_kuka.gif "Multireward")
+![alt text](myGym/images/workspaces/mygym310a.gif "Multireward")
 
-* REAL robotic gripping based on [friction](myGym/envs/robots/franka_emika/panda/urdf/panda1.urdf) or [containment](myGym/envs/robots/franka_emika/panda/urdf/panda_cgripper.urdf)
+* Automatic tasks checker (oraculum) 
 
-![alt text](myGym/images/workspaces/pnp/pnp3n3x_panda_boxgripper.gif "Realgrip")
+![alt text](myGym/images/workspaces/oraculum.gif "Oraculum")
 
-* Multi-network training - three networks switching in Pick and rotate task
-
-![alt text](myGym/images/workspaces/train_multi_5000000.gif "Pnr")
+* Paralelized training within CPU and GPU on cluster
 
 
 ## Overview
@@ -93,27 +94,13 @@ You can visualize the virtual gym env prior to the training.
 
 There will be the default workspace activated.  
 
-EXPERIMENTAL - You can control the robot and gripper from keyboard (arrows and A and Z for third axis in caartesian), spawn object to test the task (WIP)
-
-![alt text](myGym/images/workspaces/gym_table_test2.png "test_work")
-
-There are also visual outputs from the active cameras (both RGB and Depth):
-
-![alt text](myGym/images/workspaces/gym_table_test_cameras.png "test_work")
-
-Find more details about this function in the [documentation](https://mygym.readthedocs.io/en/latest/user_guide/visualization.html)
-
 ## Training
 
 Run the default training without specifying the parameters:
 
 `python train.py`
 
-The training will start with the GUI window and a standstill visualization. Wait until the first evaluation to check the progress: 
-
-There are more training tutorials in the [documentation](https://mygym.readthedocs.io/en/latest/user_guide/basic_training.html)
-
-
+The default traning is without GUI. You can turn GUI on, or parallelize traning (see train parameters)
 
 
 ## Environment
@@ -136,9 +123,9 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 | Human Support Robot (HSR) | arm | gripper | 7 | hsr |
 | ABB Yumi  | dualarm  | two finger  |  12 | yumi  |
 | ReachyLeachy  | dualarm  | passive palms  |  14 | reachy_and_leachy |
-| Pepper  | humanoid | --  |  20 | WIP  |
-| Thiago | humanoid  | --  |  19 | WIP  |
-| Atlas  | humanoid  | --  |  28 | WIP  |
+| Pepper  | humanoid | --  |  20 | pepper  |
+| Tiago | humanoid  | --  |  19 | tiago  |
+| Nico  | humanoid  | --  |  14 | nico  |
 
 ## Workspaces
 
@@ -175,9 +162,15 @@ Core team:
 
 [Nikita Sokovnin](https://www.linkedin.com/in/nikita-sokovnin-250939198/)
 
+[Frederik Albl](https://incognite-lab.github.io)
+
+[Sofia Ostapenko](https://incognite-lab.github.io)
+
+[Radoslav Skoviera](https://incognite-lab.github.io)
+
 Contributors:
 
-Radoslav Skoviera, Peter Basar, Michael Tesar, Vojtech Pospisil, Jiri Kulisek, Anastasia Ostapenko, Sara Thu Nguyen
+Peter Basar, Michael Tesar, Vojtech Pospisil, Jiri Kulisek, Anastasia Ostapenko, Sara Thu Nguyen
 
 ## Citation
 
