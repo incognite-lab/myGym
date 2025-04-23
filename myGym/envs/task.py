@@ -335,9 +335,9 @@ class TaskModule():
         """
         
         finished = None
-        if self.task_type in ['A','AG','AGM','AGMD','AGMDW']: #all tasks ending with R (FMR) have to have distrot checker
+        if self.task_type in ['A','AG','AGM','AGMD','AGMDW','AGTDW']: #all tasks ending with R (FMR) have to have distrot checker
             finished = self.check_distance_threshold(self._observation)  
-        if self.task_type in ['compositional']:
+        if self.task_type in ['compositional', 'AGRDW', 'AGFDW']:
             finished = self.check_distrot_threshold(self._observation)  
         if self.task_type in ["dropmag"]: #FMOT should be compositional
             self.check_distance_threshold(self._observation)
