@@ -177,6 +177,7 @@ class GymEnv(CameraEnv):
             "1-network": {"A": A,},
             "2-network": {"AG": AaG},
             "3-network": {"AGM": AaGaM},
+            "3-network": {"AGR": AaGaR},
             "4-network": {"AGMD" : AaGaMaD},
             "5-network": {"AGMDW" : AaGaMaDaW},
             "5-network": {"AGRDW" : AaGaRaDaW},
@@ -576,7 +577,7 @@ class GymEnv(CameraEnv):
     def _place_object(self, obj_info):
         fixed = True if obj_info["fixed"] == 1 else False
         pos = env_object.EnvObject.get_random_object_position(obj_info["sampling_area"])
-        orn = env_object.EnvObject.get_random_z_rotation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
+        orn = env_object.EnvObject.get_random_object_orientation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
         object = env_object.EnvObject(obj_info["urdf"], pos, orn, pybullet_client=self.p, fixed=fixed)
         if self.color_dict: object.set_color(self.color_of_object(object))
         return object
