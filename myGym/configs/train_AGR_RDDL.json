@@ -50,6 +50,6 @@
     "eval_freq"     :500000,
     "eval_episodes" :50,
     #Saving and logging
-    "logdir"    :"trained_models/AGM",
+    "logdir"    :"trained_models/AGR",
     "record"    :0
     }

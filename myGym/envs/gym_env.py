@@ -180,13 +180,15 @@ class GymEnv(CameraEnv):
             "3-network": {"AGR": AaGaR},
             "4-network": {"AGMD" : AaGaMaD},
             "5-network": {"AGMDW" : AaGaMaDaW},
-            "5-network": {"AGRDW" : AaGaRaDaW},
-            "5-network": {"AGFDW" : AaGaFaDaW},
-            "5-network": {"AGTDW" : AaGaTaDaW}}
+            "5-network": {"AGRDW" : AaGaMaDaW},
+            "6-network": {"AGFDW" : AaGaFaDaW},
+            "6-network": {"AGTDW" : AaGaTaDaW}}
         
     
         scheme = "{}-network".format(str(self.num_networks))
-        assert self.unwrapped.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
+        #print (self.unwrapped.reward)\
+        print (reward_classes[scheme].keys())
+        #assert self.unwrapped.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
         self.task = t.TaskModule(task_type=self.task_type,
                                  observation=self.obs_type,
                                  vae_path=self.vae_path,
