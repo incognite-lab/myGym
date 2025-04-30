@@ -1,4 +1,1 @@
-# MyGym ROS integration
-
-## Workflow
-
+# mygym-ros

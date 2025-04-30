@@ -1,24 +1,62 @@
-import math
-from re import S
-from warnings import warn
-
-import numpy as np
 import pkg_resources
-
-from myGym.utils.helpers import get_robot_dict
+from importlib.resources import files
 from myGym.utils.vector import Vector
+import numpy as np
+import math
+from myGym.utils.helpers import get_robot_dict
+from warnings import warn
+import yaml
 
 try:
     from zmq_comm.pub_sub import ParamPublisher
 except ImportError:
     warn("Package zmq_comm not found, ROSRobot will not be available.")
+    ParamPublisher = None
 
 
 currentdir = pkg_resources.resource_filename("myGym", "envs")
 repodir = pkg_resources.resource_filename("myGym", "")
 
 
-class Robot:
+class ZMQCommMeta(type):
+    def __init__(cls, name, bases, dct):
+        super().__init__(name, bases, dct)
+        cls._zmq_config: dict[str, Any] = {}
+
+    def __call__(cls, *args, **kwargs):
+        if not cls._zmq_config:
+            try:
+                yaml_path = files("myGym").joinpath("ros/zmq_config.yaml")
+            except ModuleNotFoundError:
+                yaml_path = files("mygym_ros").joinpath("../zmq_config.yaml")
+            if not yaml_path.exists():
+                raise FileNotFoundError(f"ZMQ config file not found at {yaml_path}")
+            with yaml_path.open("r") as f:
+                cls._zmq_config = yaml.safe_load(f)
+        setattr(cls, '_zmq_config', cls._zmq_config)
+
+        constr = super().__call__(*args, **kwargs)
+        return constr
+
+
+class RobotClassShim(ZMQCommMeta):
+    _shim_target = None
+
+    def __call__(cls, *args, **kwargs):
+        shim_target = RobotClassShim._shim_target
+        if shim_target is not None and shim_target != cls:
+            if ParamPublisher is None:
+                raise ImportError("ROSRobot is not available. Please install zmq_comm.")
+            warn(f"Using shim class {shim_target} instead of {cls}")
+            return shim_target(*args, **kwargs)
+        return super().__call__(*args, **kwargs)
+
+    @classmethod
+    def shim_to(mcs, other):
+        mcs._shim_target = other
+
+
+class Robot(metaclass=RobotClassShim):
     """
     Robot class for control of robot environment interaction
 
@@ -88,6 +126,7 @@ class Robot:
         #else:
         #self.init_joint_poses = np.zeros((len(self.motor_names)))
         #self.reset()
+
 
     def _load_robot(self):
         """
@@ -260,6 +299,16 @@ class Robot:
            joints.append(self.p.getJointState(self.robot_uid,link)[0])
         return joints
 
+    def get_gjoints_states(self):
+        """
+        Returns the current positions of all robot's joints
+        """
+        gjoints = []
+        for link in self.gripper_indices:
+           gjoints.append(self.p.getJointState(self.robot_uid,link)[0])
+
+        return gjoints
+
     def get_observation_dimension(self):
         """
         Get dimension of robot part of observation data, based on robot task and rewatd type
@@ -344,11 +393,14 @@ class Robot:
                                     positionGain=0.7,
                                     velocityGain=0.3)
 
+
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
         self.end_effector_orn = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
         self.gripper_pos = self.p.getLinkState(self.robot_uid, self.gripper_index)[0]
         self.gripper_orn = self.p.getLinkState(self.robot_uid, self.gripper_index)[1]
-        self.joint_poses = joint_poses
+
+        joints = self.get_joints_states()
+        #print(joints)
 
     def _move_gripper(self, action):
         """
@@ -366,6 +418,9 @@ class Robot:
                                     maxVelocity=self.gjoints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3)
+
+        gjoints = self.get_gjoints_states()
+        #print(gjoints)
 
 
 
@@ -588,6 +643,8 @@ class Robot:
         else:
             if self.gjoints_num:
                 self._move_gripper(self.gjoints_limits[1])
+                #self.gripper_active = True
+                #self.magnetize_object(env_objects["actual_state"])
             if "pnp" in self.task_type:
             #"Need to provide env_objects to use gripper"
             #When gripper is not in robot action it will magnetize objects
@@ -680,11 +737,15 @@ class Robot:
         return self.robot_uid
 
 
-class ROSRobot(Robot):
+class ROSRobot(Robot, metaclass=ZMQCommMeta):
 
     def __init__(self, robot='kuka', position=[-0.1, 0, 0.07], orientation=[0, 0, 0], end_effector_index=None, gripper_index=None, init_joint_poses=None, robot_action="step", task_type="reach", use_fixed_end_effector_orn=False, end_effector_orn=[0, -math.pi, 0], dimension_velocity=0.5, max_velocity=None, max_force=None, pybullet_client=None):
         super().__init__(robot, position, orientation, end_effector_index, gripper_index, init_joint_poses, robot_action, task_type, use_fixed_end_effector_orn, end_effector_orn, dimension_velocity, max_velocity, max_force, pybullet_client)
-        self.zmq_publisher = ParamPublisher(start_port=556677)
+        if ParamPublisher is None:
+            raise ImportError("ROSRobot is not available. Please install zmq_comm.")
+        self.zmq_publisher = ParamPublisher(
+            **self._zmq_config
+        )
 
     def apply_action(self, action, env_objects=None):
         if "joints" in self.robot_action:
@@ -694,7 +755,7 @@ class ROSRobot(Robot):
 
         if "gripper" in self.robot_action:
             self.zmq_publisher.publish("robot_grip", action[-(self.gjoints_num):])
-            raise NotImplementedError("Gripper control does not work, yet!")
+            # raise NotImplementedError("Gripper control does not work, yet!")
         else:
             warn("Robot has no gripper, no gripper information published")
 
