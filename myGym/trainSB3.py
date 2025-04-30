@@ -39,7 +39,7 @@ except Exception as e:
     print(e)
 
 try:
-    from stable_baselines3 import A2C as A2C_P, SAC as SAC_P, TD3 as TD3_P
+    from stable_baselines3 import A2C as A2C_P, SAC as SAC_P, TD3 as TD3_P, PPO
 except:
     print("Torch isn't probably installed correctly")
 
@@ -239,7 +239,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     # Environmentr
-    parser.add_argument("-cfg", "--config", type=str, default = "./configs/train_AGMDW_RDDL.json", help="Config file path")
+    parser.add_argument("-cfg", "--config", type=str, default = "./configs/train_AG_RDDL.json", help="Config file path") #./trained_models/AG/AG_table_tiago_tiago_dual_joints_gripper_multippo/train.json
     parser.add_argument("-n", "--env_name", type=str, help="Environment name")
     parser.add_argument("-ws", "--workspace", type=str, help="Workspace name")
     parser.add_argument("-p", "--engine", type=str, help="Simulation engine name")
@@ -366,16 +366,15 @@ def process_natural_language_command(cmd, env,
 def main():
     parser = get_parser()
     arg_dict, commands = get_arguments(parser)
-    parameters = {}
     args = parser.parse_args()
 
-    for key, arg in arg_dict.items():
-        if type(arg_dict[key]) == list:
-            if len(arg_dict[key]) > 1 and key != "robot_init":
-                if key != "task_objects":
-                    parameters[key] = arg
-                    if key in commands:
-                        commands.pop(key)
+    # for key, arg in arg_dict.items():
+    #     if type(arg_dict[key]) == list:
+    #         if len(arg_dict[key]) > 1 and key != "robot_init":
+    #             if key != "task_objects":
+    #                 parameters[key] = arg
+    #                 if key in commands:
+    #                     commands.pop(key)
 
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
