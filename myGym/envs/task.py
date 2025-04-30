@@ -200,6 +200,17 @@ class TaskModule():
             self.end_episode_fail("Max amount of steps reached")
         return False
 
+    def check_episode_steps(self):
+        """
+        Check if maximum episode steps was exceeded
+
+        Returns:
+            :return: (bool)
+        """
+        if self.env.episode_steps == self.env.max_episode_steps:
+            self.end_episode_fail("Max amount of steps reached")
+        return False
+
     def check_object_moved(self, object, threshold=0.3):
         """
         Check if object moved more than allowed threshold

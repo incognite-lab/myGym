@@ -93,10 +93,12 @@ class Robot(EnvObject):
         #TODO Clean code (test and gym_env) to initialize just from coordinates
         #if self.robot_action != "joints":
         self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
-
+        self.opengr_threshold = 0.07
+        self.closegr_threshold = 0.001
         #else:
         #self.init_joint_poses = np.zeros((len(self.motor_names)))
         #self.reset()
+
 
 
     def _load_robot(self):
@@ -283,6 +285,16 @@ class Robot(EnvObject):
 
         return gjoints
 
+    def get_gjoints_states(self):
+        """
+        Returns the current positions of all robot's joints
+        """
+        gjoints = []
+        for link in self.gripper_indices:
+           gjoints.append(self.p.getJointState(self.robot_uid,link)[0])
+
+        return gjoints
+
     def get_observation_dimension(self):
         """
         Get dimension of robot part of observation data, based on robot task and rewatd type
@@ -375,7 +387,6 @@ class Robot(EnvObject):
 
         joints = self.get_joints_states()
         #print(joints)
-
     def _move_gripper(self, action):
         """
         Move gripper motors towards desired joint poses respecting robot's dynamics

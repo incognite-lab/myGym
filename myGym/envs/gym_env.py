@@ -260,7 +260,6 @@ class GymEnv(CameraEnv):
     def _load_texture(self, name):
         return self.p.loadTexture(os.path.join(pkg_resources.files("myGym"), "./envs/textures/{}".format(name)))
 
-
     def _set_observation_space(self):
         """
         Set observation space type, dimensions and range

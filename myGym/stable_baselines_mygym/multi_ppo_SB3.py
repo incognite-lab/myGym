@@ -276,7 +276,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
     def approved(self, observation):
         # based on obs, decide which model should be used
-
         if isinstance(self.env, VecMonitor):
             submodel_id = self.env.unwrapped.network_control()
         elif isinstance(self.env, SubprocVecEnv):

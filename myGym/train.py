@@ -6,13 +6,22 @@ import warnings
 import commentjson
 import copy
 import json
+import os
+import multiprocessing
+import subprocess
+import sys
+import warnings
+
+import commentjson
+import copy
+import json
 import multiprocessing
 import os
 import random
-import subprocess
-import sys
 import time
 from typing import Callable
+
+
 import numpy as np
 import importlib.resources as pkg_resources
 import os, sys, time, yaml
@@ -20,32 +29,37 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import json, commentjson
-import pkg_resources
-import gymnasium as gym
-import numpy as np
-import pkg_resources
-from sklearn.model_selection import ParameterGrid
-from myGym.envs.gym_env import GymEnv
+import gym
+from myGym import envs
+import myGym.utils.cfg_comparator as cfg
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+#from stable_baselines.common.policies import MlpPolicy
+#from stable_baselines.common import make_vec_env
+#from stable_baselines.common.vec_env import DummyVecEnv
+#from stable_baselines.bench import Monitor
+#from stable_baselines import results_plotter
+#from stable_baselines.her import GoalSelectionStrategy, HERGoalEnvWrapper
+# For now I am importing both with slightly modified names P-PyTorch T-TensorFlow
+#from stable_baselines import PPO1 as PPO1_T, PPO2 as PPO2_T, HER as HER_T, SAC as SAC_T, DDPG as DDPG_T
+#from stable_baselines import TD3 as TD3_T, A2C as A2C_T, ACKTR as ACKTR_T, TRPO as TRPO_T, GAIL as GAIL_T
+#try:
+#    from stable_baselines3 import PPO as PPO_P, A2C as A2C_P, SAC as SAC_P, TD3 as TD3_P
+#except:
+#    print("Torch isn't probably installed correctly")
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ["OMP_NUM_THREADS"] = "4"  # export OMP_NUM_THREADS=4
-os.environ["OPENBLAS_NUM_THREADS"] = "4"  # export OPENBLAS_NUM_THREADS=4
-os.environ["MKL_NUM_THREADS"] = "6"  # export MKL_NUM_THREADS=6
-os.environ["VECLIB_MAXIMUM_THREADS"] = "4"  # export VECLIB_MAXIMUM_THREADS=4
-os.environ["NUMEXPR_NUM_THREADS"] = "6"  # export NUMEXPR_NUM_THREADS=6
+#from myGym.stable_baselines_mygym.algo import MyAlgo
+#from myGym.stable_baselines_mygym.reference import REFER
+#from myGym.stable_baselines_mygym.multi_ppo2 import MultiPPO2
+#from myGym.stable_baselines_mygym.multi_acktr import MultiACKTR
+#from myGym.stable_baselines_mygym.policies import MyMlpPolicy
+#from myGym.stable_baselines_mygym.TorchPPO import TorchPPO
+#from myGym.stable_baselines_mygym.TorchPPOpolicies import TorchMlpPolicy
 
-try:
-    from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor
-    from stable_baselines3.common.monitor import Monitor
-    from stable_baselines3.common.env_util import make_vec_env
-    from stable_baselines3.common.utils import set_random_seed
-except Exception as e:
-    print(e)
 
-try:
-    from stable_baselines3 import A2C as A2C_P, SAC as SAC_P, TD3 as TD3_P
-except:
-    print("Torch isn't probably installed correctly")
+#from stable_baselines.gail import ExpertDataset, generate_expert_traj
+#from stable_baselines.sac.policies import MlpPolicy as MlpPolicySAC
+#from stable_baselines.ddpg.policies import MlpPolicy as MlpPolicyDDPG
+#from stable_baselines.td3.policies import MlpPolicy as MlpPolicyTD3
 
 # Import helper classes and functions for monitoring
 from myGym.utils.callbacksSB3 import SaveOnBestTrainingRewardCallback, MultiPPOEvalCallback, PPOEvalCallback
@@ -302,16 +316,14 @@ def get_parser():
     parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")
     parser.add_argument("-vp", "--vae_path", type=str, help="Path to a trained VAE in 2dvu reward type")
     parser.add_argument("-yp", "--yolact_path", type=str, help="Path to a trained Yolact in 3dvu reward type")
-    parser.add_argument("-yc", "--yolact_config", type=str,
-                        help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
-    parser.add_argument('-ptm', "--pretrained_model", type=str,
-                        help="Path to a model that you want to continue training")
-    # Language
-    # parser.add_argument("-nl", "--natural_language", type=str, default="",
-    #                     help="If passed, instead of training the script will produce a natural language output "
-    #                          "of the given type, save it to the predefined file (for communication with other scripts) "
-    #                          "and exit the program (without the actual training taking place). Expected values are \"description\" "
-    #                          "(generate a task description) or \"new_tasks\" (generate new tasks)")
+    parser.add_argument("-yc", "--yolact_config", type=str, help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
+    parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
+    #Language
+    parser.add_argument("-nl", "--natural_language", type=str, default="",
+                        help="If passed, instead of training the script will produce a natural language output "
+                             "of the given type, save it to the predefined file (for communication with other scripts) "
+                             "and exit the program (without the actual training taking place). Expected values are \"description\" "
+                             "(generate a task description) or \"new_tasks\" (generate new tasks)")
     return parser
 
 
@@ -395,6 +407,7 @@ def main():
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
 
+
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
@@ -426,6 +439,7 @@ def main():
 
     implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
     train(env, implemented_combos, model_logdir, arg_dict, arg_dict["pretrained_model"])
+
 
 
 if __name__ == "__main__":

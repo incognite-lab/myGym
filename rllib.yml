@@ -16,12 +16,12 @@ dependencies:
     - commentjson==0.9.0
     - ray==2.7.2
     - gymnasium==1.1.0
+    - gymnasium==1.1.0
     - gymnasium-notices==0.0.1
     - h5py==3.10.0
     - imageio==2.33.1
     - google==3.0.0
     - google-cloud==0.34.0
-    - memory-profiler==0.61.0
     - google-auth==2.32.0
     - matplotlib==3.8.3
     - numpy==1.26.4
