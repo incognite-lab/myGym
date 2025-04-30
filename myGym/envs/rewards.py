@@ -501,6 +501,79 @@ class AaGaM(Protorewards):
         self.task.check_episode_steps()
         return self.current_network
 
+class AaGaR(Protorewards):
+    """
+    Reward sequence: Approach -> Grasp -> Rotate
+    Uses the 'rotate_compute' protoreward for the third step.
+    """
+    def reset(self):
+        super().reset()
+        # Updated network names to include "rotate"
+        self.network_names = ["approach", "grasp", "rotate"]
+
+    def compute(self, observation=None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+        owner = self.decide(observation)
+
+        # Define targets for each protoreward function
+        # Note: rotate_compute needs object_position and goal_position
+        target = [
+            [gripper_position, object_position, gripper_states],  # approach
+            [gripper_position, object_position, gripper_states],  # grasp
+            [object_position, goal_position]                      # rotate
+        ][owner]
+
+        # List of protoreward functions corresponding to network_names
+        reward_func_list = [
+            self.approach_compute,
+            self.grasp_compute,
+            self.rotate_compute  # Using rotate_compute here
+        ]
+
+        # Calculate reward using the function for the current network owner
+        reward = reward_func_list[owner](*target)
+
+        # Add bonus for successful episode termination
+        if self.env.episode_terminated:
+            reward += 0.2
+
+        # Display, log, and update history
+        self.disp_reward(reward, owner)
+        self.last_owner = owner
+        self.rewards_history.append(reward)
+        self.rewards_num = 3 # Total number of networks is 3
+        return reward
+
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
+        if self.env.network_switcher == "keyboard":
+            self.change_network_based_on_key()
+        else:
+            # Ground truth logic for switching networks based on predicates
+            if self.current_network == 0: # approach
+                # Switch to grasp if gripper is near object and open
+                if self.gripper_approached_object(gripper_position, object_position) and self.gripper_opened(gripper_states):
+                    self.current_network = 1
+            elif self.current_network == 1: # grasp
+                # Switch to rotate if gripper is near object and closed (grasped)
+                if self.gripper_approached_object(gripper_position, object_position) and self.gripper_closed(gripper_states):
+                    self.current_network = 2
+            # Network 2 (rotate) is the final stage
+
+        # Check for task completion in the final network stage (rotate)
+        if self.current_network == 2:
+            # Check if the object is near the goal (rotation might also affect position)
+            if self.object_near_goal(object_position, goal_position):
+                 # Additionally, you might want to check rotation alignment if applicable
+                 # if self.task.check_rotation_alignment(object_position, goal_position):
+                 self.task.check_goal() # Check if the overall task goal is met
+
+        # Check for episode step limits
+        self.task.check_episode_steps()
+        return self.current_network
+
 
 class AaGaMaD(Protorewards):
 
@@ -601,4 +674,274 @@ class AaGaMaDaW(Protorewards):
 
         self.task.check_episode_steps()
         # self.current_network = np.random.randint(0, self.num_networks)
+        return self.current_network
+    
+class AaGaRaDaW(Protorewards):
+
+    def reset(self):
+        super().reset()
+        # Updated network names to include "rotate" instead of "move"
+        self.network_names = ["approach", "grasp", "rotate", "drop", "withdraw"]
+
+    def compute(self, observation=None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+        owner = self.decide(observation)
+        # Updated target list for the new sequence of protorewards
+        target = [[gripper_position, object_position, gripper_states],  # approach
+                  [gripper_position, object_position, gripper_states],  # grasp
+                  [object_position, goal_position],                     # rotate (takes object, goal)
+                  [gripper_position, object_position, gripper_states],  # drop
+                  [gripper_position, goal_position, gripper_states]][owner] # withdraw
+        # Updated list of protoreward functions to call
+        reward = \
+        [self.approach_compute, self.grasp_compute, self.rotate_compute, self.drop_compute, self.withdraw_compute][owner](
+            *target)
+        if self.env.episode_terminated:
+            reward += 0.2 #Adding reward for succesful finish of episode
+        self.disp_reward(reward, owner)
+        self.last_owner = owner
+        self.rewards_history.append(reward)
+        self.rewards_num = 5 # Still 5 networks
+        return reward
+
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+        if self.env.network_switcher == "keyboard":
+            self.change_network_based_on_key()
+        else:
+            # Logic for switching networks based on predicates
+            if self.current_network == 0: # approach
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_opened(gripper_states):
+                        self.current_network = 1
+            elif self.current_network == 1: # grasp
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        self.current_network = 2
+            elif self.current_network == 2: # rotate
+                # Switch from rotate to drop when the object is near the goal
+                # (Rotation might also affect position, or this is a proxy)
+                if self.object_near_goal(object_position, goal_position):
+                    self.current_network = 3
+            elif self.current_network == 3: # drop
+                if self.gripper_approached_object(gripper_position, object_position): # Check approach to object again for dropping
+                    if self.gripper_opened(gripper_states):
+                        self.current_network = 4
+            # Network 4 (withdraw) is the last step before checking goal
+
+        # Check for task completion in the final network stage
+        if self.current_network == 4: # withdraw
+            if self.gripper_withdraw_object(gripper_position, object_position): # Check withdraw distance
+                 if self.gripper_opened(gripper_states): # Ensure gripper is open after withdrawing
+                    self.task.check_goal()
+
+        self.task.check_episode_steps()
+        return self.current_network
+
+class AaGaFaDaW(Protorewards):
+    """
+    Reward sequence: Approach -> Grasp -> Follow Trajectory -> Drop -> Withdraw
+    Uses the 'follow_compute' protoreward for the third step.
+    """
+    def reset(self):
+        super().reset()
+        # Updated network names to include "follow"
+        self.network_names = ["approach", "grasp", "follow", "drop", "withdraw"]
+
+    def compute(self, observation=None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+        owner = self.decide(observation)
+
+        # --- Get Trajectory for Follow ---
+        # NOTE: Assumes the task object has a method or attribute to get the relevant trajectory
+        # You might need to adjust this based on your specific Task implementation
+        try:
+            # Example: Get trajectory from the task object
+            trajectory = self.task.get_current_trajectory(observation)
+            if trajectory is None:
+                 print("Warning: get_current_trajectory returned None. Follow reward might be incorrect.")
+                 # Provide a default or handle appropriately if trajectory isn't available
+                 trajectory = np.array([]) # Example default
+        except AttributeError:
+            print("Warning: Task object does not have 'get_current_trajectory' method. Using empty trajectory for 'follow'.")
+            trajectory = np.array([]) # Default empty trajectory if method doesn't exist
+        except Exception as e:
+            print(f"Warning: Error getting trajectory: {e}. Using empty trajectory.")
+            trajectory = np.array([])
+
+        # Define targets for each protoreward function
+        # Note: follow_compute needs object_position, goal_position, and the trajectory
+        # Note: drop_compute target uses object_position like in AaGaMaDaW
+        target = [
+            [gripper_position, object_position, gripper_states],  # approach
+            [gripper_position, object_position, gripper_states],  # grasp
+            [object_position, goal_position, trajectory],         # follow
+            [gripper_position, object_position, gripper_states],  # drop
+            [gripper_position, goal_position, gripper_states]   # withdraw (away from goal)
+        ][owner]
+
+        # List of protoreward functions corresponding to network_names
+        reward_func_list = [
+            self.approach_compute,
+            self.grasp_compute,
+            self.follow_compute,  # Using follow_compute here
+            self.drop_compute,
+            self.withdraw_compute
+        ]
+
+        # Calculate reward using the function for the current network owner
+        reward = reward_func_list[owner](*target)
+
+        # Add bonus for successful episode termination
+        if self.env.episode_terminated:
+            reward += 0.2
+
+        # Display, log, and update history
+        self.disp_reward(reward, owner)
+        self.last_owner = owner
+        self.rewards_history.append(reward)
+        self.rewards_num = 5 # Total number of networks remains 5
+        return reward
+
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
+        if self.env.network_switcher == "keyboard":
+            self.change_network_based_on_key()
+        else:
+            # Ground truth logic for switching networks based on predicates
+            if self.current_network == 0: # approach
+                # Switch to grasp if gripper is near object and open
+                if self.gripper_approached_object(gripper_position, object_position) and self.gripper_opened(gripper_states):
+                    self.current_network = 1
+            elif self.current_network == 1: # grasp
+                # Switch to follow if gripper is near object and closed (grasped)
+                if self.gripper_approached_object(gripper_position, object_position) and self.gripper_closed(gripper_states):
+                    self.current_network = 2
+            elif self.current_network == 2: # follow
+                # Switch to drop when the object following the trajectory is near the goal
+                if self.object_near_goal(object_position, goal_position):
+                    self.current_network = 3
+            elif self.current_network == 3: # drop
+                # Switch to withdraw if gripper is near the object (or goal) and opened
+                # Using object position check consistent with AaGaMaDaW's drop->withdraw transition
+                if self.gripper_approached_object(gripper_position, object_position) and self.gripper_opened(gripper_states):
+                    self.current_network = 4
+            # Network 4 (withdraw) is the final stage before checking goal completion
+
+        # Check for task completion in the final network stage (withdraw)
+        if self.current_network == 4:
+            # Check if gripper has withdrawn sufficiently from the object and is open
+            if self.gripper_withdraw_object(gripper_position, object_position) and self.gripper_opened(gripper_states):
+                self.task.check_goal() # Check if the overall task goal is met
+
+        # Check for episode step limits
+        self.task.check_episode_steps()
+        return self.current_network
+
+class AaGaTaDaW(Protorewards):
+    """
+    Reward sequence: Approach -> Grasp -> Transform Trajectory -> Drop -> Withdraw
+    Uses the 'transform_compute' protoreward for the third step.
+    """
+    def reset(self):
+        super().reset()
+        # Updated network names to include "transform"
+        self.network_names = ["approach", "grasp", "transform", "drop", "withdraw"]
+
+    def compute(self, observation=None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+        owner = self.decide(observation)
+
+        # --- Get Trajectory for Transform ---
+        # NOTE: Assumes the task object has a method or attribute to get the relevant trajectory
+        # This logic is similar to AaGaFaDaW, adjust if needed for transform's specific trajectory requirements.
+        try:
+            # Example: Get trajectory from the task object
+            trajectory = self.task.get_current_trajectory(observation)
+            if trajectory is None:
+                 print("Warning: get_current_trajectory returned None. Transform reward might be incorrect.")
+                 trajectory = np.array([]) # Example default
+        except AttributeError:
+            print("Warning: Task object does not have 'get_current_trajectory' method. Using empty trajectory for 'transform'.")
+            trajectory = np.array([]) # Default empty trajectory
+        except Exception as e:
+            print(f"Warning: Error getting trajectory: {e}. Using empty trajectory.")
+            trajectory = np.array([])
+
+        # Define targets for each protoreward function
+        # Note: transform_compute needs object_position, goal_position, and the trajectory
+        target = [
+            [gripper_position, object_position, gripper_states],  # approach
+            [gripper_position, object_position, gripper_states],  # grasp
+            [object_position, goal_position, trajectory],         # transform
+            [gripper_position, object_position, gripper_states],  # drop
+            [gripper_position, goal_position, gripper_states]   # withdraw (away from goal)
+        ][owner]
+
+        # List of protoreward functions corresponding to network_names
+        reward_func_list = [
+            self.approach_compute,
+            self.grasp_compute,
+            self.transform_compute, # Using transform_compute here
+            self.drop_compute,
+            self.withdraw_compute
+        ]
+
+        # Calculate reward using the function for the current network owner
+        # Pass magnetization=True explicitly if needed by transform_compute, otherwise default is used
+        if owner == 2: # transform network
+             reward = reward_func_list[owner](*target) # Uses default magnetization=True
+             # Or explicitly: reward = reward_func_list[owner](*target, magnetization=True)
+        else:
+             reward = reward_func_list[owner](*target)
+
+
+        # Add bonus for successful episode termination
+        if self.env.episode_terminated:
+            reward += 0.2
+
+        # Display, log, and update history
+        self.disp_reward(reward, owner)
+        self.last_owner = owner
+        self.rewards_history.append(reward)
+        self.rewards_num = 5 # Total number of networks remains 5
+        return reward
+
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
+        if self.env.network_switcher == "keyboard":
+            self.change_network_based_on_key()
+        else:
+            # Ground truth logic for switching networks based on predicates
+            if self.current_network == 0: # approach
+                # Switch to grasp if gripper is near object and open
+                if self.gripper_approached_object(gripper_position, object_position) and self.gripper_opened(gripper_states):
+                    self.current_network = 1
+            elif self.current_network == 1: # grasp
+                # Switch to transform if gripper is near object and closed (grasped)
+                if self.gripper_approached_object(gripper_position, object_position) and self.gripper_closed(gripper_states):
+                    self.current_network = 2
+            elif self.current_network == 2: # transform
+                # Switch to drop when the object being transformed is near the goal
+                if self.object_near_goal(object_position, goal_position):
+                    self.current_network = 3
+            elif self.current_network == 3: # drop
+                # Switch to withdraw if gripper is near the object (or goal) and opened
+                if self.gripper_approached_object(gripper_position, object_position) and self.gripper_opened(gripper_states):
+                    self.current_network = 4
+            # Network 4 (withdraw) is the final stage
+
+        # Check for task completion in the final network stage (withdraw)
+        if self.current_network == 4:
+            # Check if gripper has withdrawn sufficiently from the object and is open
+            if self.gripper_withdraw_object(gripper_position, object_position) and self.gripper_opened(gripper_states):
+                self.task.check_goal() # Check if the overall task goal is met
+
+        # Check for episode step limits
+        self.task.check_episode_steps()
         return self.current_network

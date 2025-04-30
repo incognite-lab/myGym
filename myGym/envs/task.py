@@ -335,28 +335,15 @@ class TaskModule():
         """
         
         finished = None
-        if self.task_type in ['reach', 'poke', 'pnp', 'pnpbgrip', 'FMOT', 'FROM', 'FROT', 'FMOM', 'FM','F','A','AG','AGM','AGMD','AGMDW']: #all tasks ending with R (FMR) have to have distrot checker
+        if self.task_type in ['A','AG','AGM','AGMD','AGMDW','AGTDW']: #all tasks ending with R (FMR) have to have distrot checker
             finished = self.check_distance_threshold(self._observation)  
-        if self.task_type in ['pnprot','pnpswipe','FMR', 'FMOR', 'FMLFR', 'compositional']:
+        if self.task_type in ['compositional', 'AGRDW', 'AGFDW']:
             finished = self.check_distrot_threshold(self._observation)  
         if self.task_type in ["dropmag"]: #FMOT should be compositional
             self.check_distance_threshold(self._observation)
             finished = self.drop_magnetic()
-        if self.task_type in ['push', 'throw']:
-            self.check_distance_threshold(self._observation)
-            finished = self.check_points_distance_threshold()
-        if self.task_type == "switch":
-            self.check_distance_threshold(self._observation)
-            finished = abs(self.env.unwrapped.reward.get_angle()) >= 18
-        if self.task_type == "press":
-            self.check_distance_threshold(self._observation)
-            finished = self.env.unwrapped.reward.get_angle() >= 1.71
         if self.task_type == "dice_throw":
             finished = self.check_dice_moving(self._observation)
-            
-        if self.task_type == "turn":
-            self.check_distance_threshold(self._observation)
-            finished = self.check_turn_threshold()
         self.last_distance = self.current_norm_distance
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance

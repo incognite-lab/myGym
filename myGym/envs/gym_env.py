@@ -178,7 +178,11 @@ class GymEnv(CameraEnv):
             "2-network": {"AG": AaG},
             "3-network": {"AGM": AaGaM},
             "4-network": {"AGMD" : AaGaMaD},
-            "5-network": {"AGMDW" : AaGaMaDaW}}
+            "5-network": {"AGMDW" : AaGaMaDaW},
+            "5-network": {"AGRDW" : AaGaRaDaW},
+            "5-network": {"AGFDW" : AaGaFaDaW},
+            "5-network": {"AGTDW" : AaGaTaDaW}}
+        
     
         scheme = "{}-network".format(str(self.num_networks))
         assert self.unwrapped.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
