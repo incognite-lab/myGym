@@ -17,7 +17,7 @@ from myGym.stable_baselines_mygym.on_policy_algorithm import OnPolicyAlgorithm
 from stable_baselines3.common.vec_env import VecMonitor, DummyVecEnv
 from stable_baselines3.common.policies import ActorCriticCnnPolicy, ActorCriticPolicy, BasePolicy, MultiInputActorCriticPolicy
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
-from stable_baselines3.common.utils import explained_variance, get_schedule_fn
+from stable_baselines3.common.utils import explained_variance, get_schedule_fn, check_for_correct_spaces
 
 from stable_baselines3.common.vec_env.patch_gym import _convert_space, _patch_env
 
@@ -612,7 +612,22 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         model.__dict__.update(data)
         model.__dict__.update(kwargs)
         if env is not None:
-            model.env = env
+            # Wrap first if needed
+            env = cls._wrap_env(env, data["verbose"])
+            # Check if given env is valid
+            check_for_correct_spaces(env, data["observation_space"], data["action_space"])
+            # Discard `_last_obs`, this will force the env to reset before training
+            # See issue https://github.com/DLR-RM/stable-baselines3/issues/597
+            if force_reset and data is not None:
+                data["_last_obs"] = None
+            # `n_envs` must be updated. See issue https://github.com/DLR-RM/stable-baselines3/issues/1018
+            if data is not None:
+                data["n_envs"] = env.num_envs
+        else:
+            # Use stored env, if one exists. If not, continue as is (can be used for predict)
+            if "env" in data:
+                env = data["env"]
+
         model.models_num = num_models
         model._setup_model()
         i = 0

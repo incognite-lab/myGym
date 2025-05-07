@@ -441,16 +441,13 @@ def main() -> None:
                         commands.pop(key)
 
     model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
+
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
     if arg_dict["control"] == "oraculum":
         arg_dict["robot_action"] = "absolute_gripper"
-
-    if parameters:
-        print("THREADING")
-        multi_main(arg_dict, parameters, args.config, commands)
 
     if arg_dict.get("model_path") is None:
         print(
@@ -461,6 +458,7 @@ def main() -> None:
         env = configure_env(arg_dict, model_logdir, for_train=0)
         test_env(env, arg_dict)
     else:
+        arg_dict["robot_action"] = "joints_gripper" #Model has to be tested with this action type
         env = configure_env(arg_dict, model_logdir, for_train=0)
         implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
         test_model(env, None, implemented_combos, arg_dict, model_logdir, deterministic=False)
