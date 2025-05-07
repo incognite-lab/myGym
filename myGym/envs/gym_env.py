@@ -170,25 +170,60 @@ class GymEnv(CameraEnv):
 
 
     def _init_task_and_reward(self):
+        # This check uses the original self.unwrapped.reward (the 'reward' argument from __init__)
         if self.unwrapped.reward == 'distractor':
             self.has_distractor = True
             self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
-        reward_classes = {
-            "1-network": {"A": A,},
-            "2-network": {"AG": AaG},
-            "3-network": {"AGM": AaGaM},
-            "3-network": {"AGR": AaGaR},
-            "4-network": {"AGMD" : AaGaMaD},
-            "5-network": {"AGMDW" : AaGaMaDaW},
-            "5-network": {"AGRDW" : AaGaMaDaW},
-            "6-network": {"AGFDW" : AaGaFaDaW},
-            "6-network": {"AGTDW" : AaGaTaDaW}}
         
-    
-        scheme = "{}-network".format(str(self.num_networks))
-        #print (self.unwrapped.reward)\
-        print (reward_classes[scheme].keys())
-        #assert self.unwrapped.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
+        # --- New logic for reward class determination based on self.task_type ---
+        source_shorthand_for_reward = self.task_type
+
+        if not source_shorthand_for_reward:
+            raise ValueError("self.task_type cannot be empty when used for reward class derivation.")
+
+        # Count capital letters in self.task_type to determine num_networks
+        num_capitals = sum(1 for char in source_shorthand_for_reward if char.isupper())
+        
+        # Update self.num_networks based on this count
+        self.num_networks = num_capitals
+        
+        # Determine the scheme (e.g., "3-network", "1-network", "0-network")
+        scheme = f"{self.num_networks}-network"
+
+        # Construct the reward class name string from self.task_type
+        # e.g., "AGM" -> "AaGaM", "A" -> "A", "reach" -> "raeaaacah"
+        reward_class_name_str = 'a'.join(list(source_shorthand_for_reward))
+        # Ensure 'a'.join didn't produce an empty string if source_shorthand_for_reward was somehow non-empty but list(source_shorthand_for_reward) was empty (highly unlikely for strings)
+        if not reward_class_name_str and source_shorthand_for_reward: # If join resulted in empty but source wasn't, it's an issue.
+             reward_class_name_str = source_shorthand_for_reward # Fallback for single char non-alpha or unusual cases. 'a'.join handles 'A' correctly.
+
+        dynamically_constructed_reward_map = {}
+        try:
+            ActualRewardClass = globals()[reward_class_name_str]
+            dynamically_constructed_reward_map = {
+                scheme: {
+                    source_shorthand_for_reward: ActualRewardClass # Inner key is self.task_type
+                }
+            }
+        except KeyError:
+            raise ValueError(
+                f"Reward class '{reward_class_name_str}' (derived from task_type='{source_shorthand_for_reward}') "
+                f"was not found. Please ensure it is defined in 'myGym.envs.rewards.py' and imported."
+            )
+        
+        # Debug print, similar to original
+        if scheme in dynamically_constructed_reward_map:
+            print(f"Dynamically derived reward scheme: {scheme}, task_type key: {list(dynamically_constructed_reward_map[scheme].keys())}")
+            # Assertion to ensure self.task_type (source_shorthand_for_reward) is indeed the key
+            assert source_shorthand_for_reward in dynamically_constructed_reward_map[scheme].keys(), \
+                f"Internal consistency error: task_type '{source_shorthand_for_reward}' " \
+                f"not found as key in dynamically constructed map for scheme '{scheme}'."
+        else:
+            # This should not be reached if ActualRewardClass was found and map constructed
+            raise LookupError(
+                f"Failed to create reward map entry for scheme='{scheme}' and task_type='{source_shorthand_for_reward}'."
+            )
+
         self.task = t.TaskModule(task_type=self.task_type,
                                  observation=self.obs_type,
                                  vae_path=self.vae_path,
@@ -197,7 +232,19 @@ class GymEnv(CameraEnv):
                                  distance_type=self.distance_type,
                                  number_tasks=len(self.task_objects_dict),
                                  env=self)
-        self.unwrapped.reward = reward_classes[scheme][self.unwrapped.reward](env=self, task=self.task)
+        
+        # Instantiate the reward object using the dynamically constructed map
+        # self.unwrapped.reward (which was the init argument 'reward') will be overwritten here.
+        try:
+            reward_constructor = dynamically_constructed_reward_map[scheme][source_shorthand_for_reward]
+            self.unwrapped.reward = reward_constructor(env=self, task=self.task)
+        except KeyError:
+            # This should ideally be caught by earlier checks
+            raise LookupError(
+                f"Failed to instantiate reward. Could not find class for scheme='{scheme}' and "
+                f"task_type='{source_shorthand_for_reward}' in the dynamically constructed map: "
+                f"{dynamically_constructed_reward_map}"
+            )
 
     def get_wrapper_attr(self, name: str) -> Any:
         return getattr(self.unwrapped, name)
