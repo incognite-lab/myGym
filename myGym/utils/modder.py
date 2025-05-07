@@ -4,7 +4,7 @@ MuJoCo simulation. This allows for super fast scene generation.
 """
 from collections import defaultdict
 import numpy as np
-from mujoco_py import cymj
+#from mujoco_py import cymj
 
 
 class BaseModder():

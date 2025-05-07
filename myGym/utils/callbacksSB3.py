@@ -50,7 +50,7 @@ class CustomEvalCallback(EvalCallback):
                  record=False,
                  camera_id=0,
                  record_steps_limit=256,
-                 num_cpu=1):  # pybullet or mujoco
+                 num_cpu=1): 
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.algo_steps = algo_steps
@@ -161,8 +161,6 @@ class CustomEvalCallback(EvalCallback):
                         images.append(image)
                         print(f"appending image: total size: {len(images)}]")
 
-                if self.physics_engine == "mujoco" and self.gui_on:  # Rendering for mujoco engine
-                    evaluation_env.render()
                 steps += 1
             srewardsteps.put([last_network], steps - last_steps)
             if is_successful:
@@ -282,7 +280,7 @@ class MultiPPOEvalCallback(EvalCallback):
                  record=False,
                  camera_id=0,
                  record_steps_limit=256,
-                 num_cpu=1, starting_steps = 0):  # pybullet or mujoco
+                 num_cpu=1, starting_steps = 0): 
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.algo_steps = algo_steps
@@ -394,8 +392,6 @@ class MultiPPOEvalCallback(EvalCallback):
                         images.append(image)
                         print(f"appending image: total size: {len(images)}]")
 
-                if self.physics_engine == "mujoco" and self.gui_on:  # Rendering for mujoco engine
-                    self.eval_env.render()
                 steps += 1
 
             #Save all gathered eval episode values
@@ -519,7 +515,7 @@ class PPOEvalCallback(EvalCallback):
                  record=False,
                  camera_id=0,
                  record_steps_limit=256,
-                 num_cpu=1, starting_steps = 0):  # pybullet or mujoco
+                 num_cpu=1, starting_steps = 0):  
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.algo_steps = algo_steps
@@ -632,8 +628,6 @@ class PPOEvalCallback(EvalCallback):
                         images.append(image)
                         print(f"appending image: total size: {len(images)}]")
 
-                if self.physics_engine == "mujoco" and self.gui_on:  # Rendering for mujoco engine
-                    evaluation_env.render()
                 steps += 1
             if isinstance(self.eval_env, VecEnv):
                 env_reward = self.eval_env.get_attr("reward")[0]
@@ -728,12 +722,12 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
     :param verbose: (int)
     :args.engine (str) Name of our current simulation engine we are using
     :param env: (gym environment)
-    :stats_every (int) How often to create new datapoints for mujoco graph in episodes
+    :stats_every (int) How often to create new datapoints
     :save_success_graph_every_steps (int) How often to save graph plotting
-    successful episodes (mujoco)
+    successful episodes
     :save_model_every_steps (int) How often in steps to save our model
     :success_graph_mean_past_episodes (int) How many past episodes will be
-    taken into account when calculating average success rate (mujoco)
+    taken into account when calculating average success rate
     """
 
     def __init__(self, check_freq: int, logdir: str, verbose=1,
@@ -785,29 +779,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
                 if average_reward > self.best_average_reward:
                     self.best_average_reward = average_reward
                     self.model.save(self.save_path, steps = self.starting_steps + actual_calls, best = True)
-                if self.engine == "mujoco":  # Mujoco has additional prints
-                    # Temporal workaround multiprocessing
-                    if not self.num_cpu==1 and self.verbose > 0:
-                        # Current success rate over the last 'self.STATS_EVERY' episodes
-                        current_success_rate = np.mean(self.env.successfull_failed_episodes[-self.STATS_EVERY:])
-                        print(f"Best average reward: {self.best_average_reward:.2f} \
-                              - Last average reward: {average_reward:.2f} \
-                              and current success rate: {current_success_rate:.2f} \
-                              over the last {self.STATS_EVERY} episodes \
-                              - Current touch threshold: {self.env.sensor_goal_threshold:.2f} - \
-                              Current episode: {episode}")
 
-        if self.engine == "mujoco":
-            # Save graph of success rate every 'self.save_success_graph_every_steps'.
-            if actual_calls % self.save_success_graph_every_steps == 0 and self.num_cpu==1:
-                # Save graph
-                generate_and_save_mean_graph_from_1_or_2arrays(
-                    data_array_1=self.env.successfull_failed_episodes,
-                    data_array_2=None,
-                    save_dir=self.logdir,
-                    average_x_axis_span=self.success_graph_mean_past_episodes,
-                    axis_x_name="episodes",
-                    axis_y_names=["success_rate"])
         return True
 
 

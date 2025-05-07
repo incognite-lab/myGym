@@ -51,11 +51,6 @@ from myGym.stable_baselines_mygym.ppoSB3 import PPO as PPO_P
 from myGym.stable_baselines_mygym.Subproc_vec_envSB3 import SubprocVecEnv
 
 # This is a global variable for the type of engine we are working with
-AVAILABLE_SIMULATION_ENGINES = ["pybullet"]
-AVAILABLE_TRAINING_FRAMEWORKS = ["pytorch"]
-
-
-
 
 def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
     if model_logdir is None:
@@ -96,9 +91,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
         env.spec.max_episode_steps = 512
 
     if for_train:
-        if arg_dict["engine"] == "mujoco":
-            env = VecMonitor(env, model_logdir) if arg_dict["multiprocessing"] else Monitor(env, model_logdir)
-        elif arg_dict["engine"] == "pybullet" and not arg_dict["multiprocessing"]:
+        if arg_dict["engine"] == "pybullet" and not arg_dict["multiprocessing"]:
             env = Monitor(env, filename=model_logdir, info_keywords=tuple('d'))
 
     if arg_dict["algo"] == "her":
@@ -231,8 +224,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     print("Training time: {:.2f} s".format(time.time() - start_time))
     print("Training steps: {:} s".format(model.num_timesteps))
 
-    # info_keywords in monitor class above is necessary for pybullet to save_results
-    # when using the info_keywords for mujoco we get an error
+
     if arg_dict["engine"] == "pybullet":
         save_results(arg_dict, model_name, env, model_logdir)
     return model
@@ -288,7 +280,7 @@ def get_parser():
     parser.add_argument("-r", "--record", type=int, help="1: make a gif of model perfomance, 2: make a video of model performance, 0: don't record")
     #Mujoco
     parser.add_argument("-i", "--multiprocessing", type=int, help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
-    parser.add_argument("-v", "--vectorized_envs", type=int,  help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
+    parser.add_argument("-v", "--vectorized_envs", type=int,  help="The number of vectorized environments to run at once" )
     #Paths
     parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")
     parser.add_argument("-vp", "--vae_path", type=str, help="Path to a trained VAE in 2dvu reward type")
@@ -394,9 +386,6 @@ def main():
     #                     commands.pop(key)
 
     # Check if we chose one of the existing engines
-    if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
-        print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
-        return
 
     #Automatic argument assigment from task type
     arg_dict = automatic_argument_assignment(arg_dict)

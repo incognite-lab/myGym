@@ -18,9 +18,6 @@ from utils.nicomotors import NicoMotors
 
 clear = lambda: os.system('clear')
 
-AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
-AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
-
 def visualize_sampling_area(arg_dict):
     rx = (arg_dict["task_objects"][0]["goal"]["sampling_area"][0] - arg_dict["task_objects"][0]["goal"]["sampling_area"][1])/2
     ry = (arg_dict["task_objects"][0]["goal"]["sampling_area"][2] - arg_dict["task_objects"][0]["goal"]["sampling_area"][3])/2
@@ -522,9 +519,7 @@ def main():
     arg_dict = get_arguments(parser)
     model_logdir = os.path.dirname(arg_dict.get("model_path",""))
     # Check if we chose one of the existing engines
-    if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
-        print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
-        return
+
     if arg_dict.get("model_path") is None:
         print("Path to the model using --model_path argument not specified. Testing random actions in selected environment.")
         arg_dict["gui"] = 1

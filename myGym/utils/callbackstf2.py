@@ -50,7 +50,7 @@ class CustomEvalCallback(EvalCallback):
                  gui_on = True,
                  record=False,
                  camera_id=0,
-                 record_steps_limit=256): # pybullet or mujoco
+                 record_steps_limit=256): # pybullet
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.eval_freq = eval_freq
@@ -123,8 +123,6 @@ class CustomEvalCallback(EvalCallback):
                         images.append(image)
                         print(f"appending image: total size: {len(images)}]")
 
-                if self.physics_engine == "mujoco" and self.gui_on: # Rendering for mujoco engine
-                    self.eval_env.render()
 
             episode_rewards.append(episode_reward)
             success_episodes_num += is_successful
@@ -208,12 +206,12 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
     :param verbose: (int)
     :args.engine (str) Name of our current simulation engine we are using
     :param env: (gym environment)
-    :stats_every (int) How often to create new datapoints for mujoco graph in episodes
+    :stats_every (int) How often to create new datapoints 
     :save_success_graph_every_steps (int) How often to save graph plotting
-    successfull episodes (mujoco)
+    successfull episodes
     :save_model_every_steps (int) How often in steps to save our model
     :success_graph_mean_past_episodes (int) How many past episodes will be
-    taken into account when calculating average success rate (mujoco)
+    taken into account when calculating average success rate
     """
 
     def __init__(self, check_freq: int, logdir: str, verbose=1,
@@ -259,29 +257,6 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
                         print("Saving new best model to {}".format(self.save_path))
                     self.model.save(self.save_path)
 
-                if self.engine == "mujoco":  # Mujoco has additional prints
-                    # Temporal workaround multiprocessing
-                    if not self.multiprocessing and self.verbose > 0:
-                        # Current success rate over the last 'self.STATS_EVERY' episodes
-                        current_success_rate = np.mean(self.env.successfull_failed_episodes[-self.STATS_EVERY:])
-                        print(f"Best average reward: {self.best_average_reward:.2f} \
-                              - Last average reward: {average_reward:.2f} \
-                              and current success rate: {current_success_rate:.2f} \
-                              over the last {self.STATS_EVERY} episodes \
-                              - Current touch threshold: {self.env.sensor_goal_threshold:.2f} - \
-                              Current episode: {episode}")
-
-        if self.engine == "mujoco":
-            # Save graph of success rate every 'self.save_success_graph_every_steps'.
-            if self.n_calls % self.save_success_graph_every_steps == 0 and not self.multiprocessing:
-                # Save graph
-                generate_and_save_mean_graph_from_1_or_2arrays(
-                    data_array_1=self.env.successfull_failed_episodes,
-                    data_array_2=None,
-                    save_dir=self.logdir,
-                    average_x_axis_span=self.success_graph_mean_past_episodes ,
-                    axis_x_name="episodes",
-                    axis_y_names=["success_rate"])
         return True
 
 

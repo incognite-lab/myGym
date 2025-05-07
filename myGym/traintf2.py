@@ -35,10 +35,6 @@ from stable_baselines.td3.policies import MlpPolicy as MlpPolicyTD3
 # Import helper classes and functions for monitoring
 from myGym.utils.callbackstf2 import ProgressBarManager, SaveOnBestTrainingRewardCallback,  PlottingCallback, CustomEvalCallback
 
-# This is global variable for the type of engine we are working with
-AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
-AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
-
 
 def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
     if model_logdir is None:
@@ -95,15 +91,8 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
             env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
         else:
             env = gym.make(arg_dict["env_name"], **env_arguments)
-    elif arg_dict["engine"] == "mujoco":
-        if arg_dict["multiprocessing"]:
-            # ACKTR, PPO2, A2C, DDPG can use vectorized environments, but the only way to display the results (for me) is using CV2 imshow. -(TensorFlow comment)
-            env = make_vec_env(arg_dict["env_name"], n_envs=arg_dict["vectorized_envs"])
-        else:
-            env = gym.make(arg_dict["env_name"])
+
     if for_train:
-        if arg_dict["engine"] == "mujoco":
-            env = VecMonitor(env, model_logdir) if arg_dict["multiprocessing"] else Monitor(env, model_logdir)
         elif arg_dict["engine"] == "pybullet":
             env = Monitor(env, model_logdir, info_keywords=tuple('d'))
 
@@ -189,7 +178,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     print("Training time: {:.2f} s".format(time.time() - start_time))
 
     # info_keywords in monitor class above is neccessary for pybullet to save_results
-    # when using the info_keywords for mujoco we get an error
+
     if arg_dict["engine"] == "pybullet":
         save_results(arg_dict, model_name, env, model_logdir)
     return model
@@ -241,7 +230,7 @@ def get_parser():
     parser.add_argument("-r", "--record", type=int, help="1: make a gif of model perfomance, 2: make a video of model performance, 0: don't record")
     #Mujoco
     parser.add_argument("-i", "--multiprocessing", type=int,  help="True: multiprocessing on (specify also the number of vectorized environemnts), False: multiprocessing off")
-    parser.add_argument("-v", "--vectorized_envs", type=int,  help="The number of vectorized environments to run at once (mujoco multiprocessing only)")
+    parser.add_argument("-v", "--vectorized_envs", type=int,  help="The number of vectorized environments to run at once")
     #Paths
     parser.add_argument("-m", "--model_path", type=str, help="Path to the the trained model to test")
     parser.add_argument("-vp", "--vae_path", type=str, help="Path to a trained VAE in 2dvu reward type")
@@ -268,9 +257,6 @@ def main():
     arg_dict = get_arguments(parser)
 
     # Check if we chose one of the existing engines
-    if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
-        print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
-        return
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = os.path.join(pkg_resources.files("myGym"), arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
