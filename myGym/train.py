@@ -65,6 +65,8 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
 
 
 def configure_env(arg_dict, model_logdir=None, for_train=True):
+    
+
     env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                      "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
                      "robot_action": arg_dict["robot_action"], "max_velocity": arg_dict["max_velocity"],
@@ -362,6 +364,21 @@ def process_natural_language_command(cmd, env,
         msg = f"Unknown natural language command: {cmd}"
         raise Exception(msg)
 
+def automatic_argument_assignment(arg_dict):
+    
+    task_type_str = arg_dict.get("task_type")
+    if task_type_str and isinstance(task_type_str, str):
+        arg_dict["num_networks"] = len(task_type_str)
+        arg_dict["reward"] = arg_dict["task_type"]
+        print("Number of networks from task type is:", arg_dict["num_networks"])
+        print("Reward type set to:", arg_dict["reward"])
+    else:
+        arg_dict["num_networks"] = 1
+        arg_dict["reward"] = "None"
+    
+     # Default if task_type is missing, None, not a string, or empty
+    return arg_dict
+
 
 def main():
     parser = get_parser()
@@ -381,7 +398,9 @@ def main():
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
 
-
+    #Automatic argument assigment from task type
+    arg_dict = automatic_argument_assignment(arg_dict)
+ 
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)

@@ -13,7 +13,7 @@ from numpy import matrix
 from sklearn.model_selection import ParameterGrid
 
 from myGym import oraculum
-from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env
+from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env, automatic_argument_assignment
 
 clear = lambda: os.system('clear')
 
@@ -431,6 +431,8 @@ def main() -> None:
     arg_dict, commands = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
+
+    arg_dict = automatic_argument_assignment(arg_dict)
 
     for key, arg in arg_dict.items():
         if type(arg_dict[key]) == list:
