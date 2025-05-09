@@ -129,7 +129,7 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
                                              "device": "cpu"}]
     implemented_combos["sac"]["pytorch"] = [SAC_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
     implemented_combos["td3"]["pytorch"] = [TD3_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
-    implemented_combos["a2c"]["pytorch"] = [A2C_P, ('MlpPolicy', env), {"n_steps": arg_dict["algo_steps"], "verbose": 1,
+    implemented_combos["a2c"]["pytorch"] = [A2C_P, ('MlpPolicy', env), {"n_steps": arg_dict["max_episode_steps"], "verbose": 1,
                                                                         "tensorboard_log": model_logdir}]
     implemented_combos["multippo"]["pytorch"] = [MultiPPOSB3, ("MlpPolicy", env),
                                                  {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir,
@@ -204,14 +204,14 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
         if arg_dict["algo"] == "multippo":
             eval_callback = MultiPPOEvalCallback(eval_env, log_path=model_logdir,
                                                eval_freq=arg_dict["eval_freq"],
-                                               algo_steps=arg_dict["algo_steps"],
+                                               algo_steps=arg_dict["max_episode_steps"],
                                                n_eval_episodes=arg_dict["eval_episodes"],
                                                record=arg_dict["record"],
                                                camera_id=arg_dict["camera"], num_cpu=NUM_CPU, starting_steps = steps)
         else:
             eval_callback = PPOEvalCallback(eval_env, log_path=model_logdir,
                                            eval_freq=arg_dict["eval_freq"],
-                                           algo_steps=arg_dict["algo_steps"],
+                                           algo_steps=arg_dict["max_episode_steps"],
                                            n_eval_episodes=arg_dict["eval_episodes"],
                                            record=arg_dict["record"],
                                            camera_id=arg_dict["camera"], num_cpu=NUM_CPU, starting_steps = steps)

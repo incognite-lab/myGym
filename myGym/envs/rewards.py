@@ -945,3 +945,225 @@ class AaGaTaDaW(Protorewards):
         # Check for episode step limits
         self.task.check_episode_steps()
         return self.current_network
+
+# ... (all existing code in rewards.py, including Protorewards and its methods) ...
+
+# Make sure np is imported if not already at the top of the file for trajectory defaults
+# import numpy as np # Should already be at the top of rewards.py
+
+def create_dynamic_protoreward_class(sequence_str: str, base_class=Protorewards):
+    """
+    Dynamically creates a new reward class based on a sequence of protoreward characters.
+
+    For example, "AGMDW" will create a class named "AaGaMaDaW" that sequences
+    approach, grasp, move, drop, and withdraw protorewards.
+
+    Args:
+        sequence_str (str): A string of characters representing the protoreward sequence
+                            (e.g., "A", "AG", "AGM", "AGMDW", "AGR").
+                            Supported characters: A, G, M, R, D, W, F, T.
+        base_class (type): The base class to inherit from (default: Protorewards).
+
+    Returns:
+        A new class type.
+    """
+
+    if not isinstance(sequence_str, str) or not sequence_str:
+        raise ValueError("sequence_str must be a non-empty string.")
+
+    # Define the mapping from character to protoreward details
+    # This could also be a global constant in the module if preferred
+    PROTO_ACTION_MAP = {
+        'A': {'name': "approach", 'method_name': "approach_compute", 'args': ['gripper', 'object', 'gripper_states']},
+        'G': {'name': "grasp",    'method_name': "grasp_compute",    'args': ['gripper', 'object', 'gripper_states']},
+        'M': {'name': "move",     'method_name': "move_compute",     'args': ['object', 'goal', 'gripper_states']},
+        'R': {'name': "rotate",   'method_name': "rotate_compute",   'args': ['object', 'goal']},
+        'D': {'name': "drop",     'method_name': "drop_compute",     'args': ['gripper', 'object', 'gripper_states']},
+        'W': {'name': "withdraw", 'method_name': "withdraw_compute", 'args': ['gripper', 'object', 'gripper_states']},
+        'F': {'name': "follow",   'method_name': "follow_compute",   'args': ['object', 'goal', 'trajectory']},
+        'T': {'name': "transform",'method_name': "transform_compute",'args': ['object', 'goal', 'trajectory']},
+    }
+
+    # Validate sequence_str characters
+    for char_code in sequence_str.upper():
+        if char_code not in PROTO_ACTION_MAP:
+            raise ValueError(f"Unsupported character '{char_code}' in sequence_str. Supported: {list(PROTO_ACTION_MAP.keys())}")
+
+    # Generate class name (e.g., "AGM" -> "AaGaM", "A" -> "A")
+    class_name_list = []
+    upper_sequence = sequence_str.upper()
+    for char_idx, char_code in enumerate(upper_sequence):
+        class_name_list.append(char_code)
+        if char_idx < len(upper_sequence) - 1:  # Add 'a' if not the last character
+            class_name_list.append('a')
+    class_name = "".join(class_name_list)
+
+    num_networks = len(upper_sequence)
+    network_action_codes = list(upper_sequence)
+
+    # --- Define methods for the new class ---
+    def __init__(self, env, task=None):
+        """Constructor for the dynamically created class."""
+        base_class.__init__(self, env, task)
+        # self.num_networks is set by Reward.__init__ based on env.num_networks
+        # Ensure env.num_networks is consistent with len(sequence_str) when this class is used.
+        # The reset method below will set self.network_names based on sequence_str.
+
+    def reset(self):
+        """Reset method for the new reward class."""
+        base_class.reset(self)  # Call parent's reset
+        self.network_names = [PROTO_ACTION_MAP[code]['name'] for code in network_action_codes]
+        # self.num_networks should already be consistent if env was configured correctly.
+        # self.network_rewards is reset in base_class.reset using self.num_networks.
+
+    def compute(self, observation=None):
+        """Compute method for the new reward class."""
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+        owner = self.decide(observation)  # current_network index
+
+        # Prepare all possible arguments for protoreward methods
+        all_targets_definitions = {
+            'gripper': gripper_position,
+            'object': object_position,
+            'goal': goal_position,
+            'gripper_states': gripper_states,
+            'trajectory': np.array([]) # Default empty trajectory
+        }
+
+        # Fetch trajectory if 'F' (Follow) or 'T' (Transform) is part of the sequence
+        # and is the current action.
+        current_action_code_for_compute = network_action_codes[owner]
+        if current_action_code_for_compute in ['F', 'T']:
+            try:
+                trajectory = self.task.get_current_trajectory(observation)
+                if trajectory is None:
+                    print(f"Warning: get_current_trajectory returned None for '{PROTO_ACTION_MAP[current_action_code_for_compute]['name']}'. Reward might be incorrect.")
+                    trajectory = np.array([])
+                all_targets_definitions['trajectory'] = trajectory
+            except AttributeError:
+                print(f"Warning: Task object does not have 'get_current_trajectory'. Using empty trajectory for '{PROTO_ACTION_MAP[current_action_code_for_compute]['name']}'.")
+            except Exception as e:
+                print(f"Warning: Error getting trajectory for '{PROTO_ACTION_MAP[current_action_code_for_compute]['name']}': {e}. Using empty trajectory.")
+
+        # Build the list of all protoreward compute methods based on the sequence
+        protoreward_methods = [getattr(self, PROTO_ACTION_MAP[code]['method_name']) for code in network_action_codes]
+        
+        # Get the specific target arguments for the current owner's action
+        action_info = PROTO_ACTION_MAP[current_action_code_for_compute]
+        target_args_for_current_owner = [all_targets_definitions[arg_name] for arg_name in action_info['args']]
+        
+        reward_func = protoreward_methods[owner]
+        
+        # Call the protoreward function
+        # Magnetization for F/T is handled by their default arguments in Protorewards
+        reward = reward_func(*target_args_for_current_owner)
+
+        if self.env.episode_terminated:
+            reward += 0.2  # Bonus for successful episode termination
+        
+        self.disp_reward(reward, owner)
+        self.last_owner = owner
+        self.rewards_history.append(reward)
+        self.rewards_num = num_networks # Set the count of sub-tasks/networks
+        return reward
+
+    def decide(self, observation=None):
+        """Decide method for the new reward class (handles network switching)."""
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
+        if self.env.network_switcher == "keyboard":
+            self.change_network_based_on_key()
+        else:
+            # Network switching logic based on predicates
+            # Allows for cascading transitions within a single step if multiple predicates are met
+            for i in range(num_networks - 1):  # Transitions from network i to i+1
+                if self.current_network == i:
+                    current_action_code = network_action_codes[i]
+                    predicate_met = False
+                    
+                    if current_action_code == 'A':
+                        if self.gripper_approached_object(gripper_position, object_position) and \
+                           self.gripper_opened(gripper_states):
+                            predicate_met = True
+                    elif current_action_code == 'G':
+                        if self.gripper_approached_object(gripper_position, object_position) and \
+                           self.gripper_closed(gripper_states):
+                            predicate_met = True
+                    elif current_action_code in ['M', 'R', 'F', 'T']:
+                        if self.object_near_goal(object_position, goal_position):
+                            predicate_met = True
+                    elif current_action_code == 'D': # Predicate for D -> next (typically W)
+                        if self.gripper_approached_object(gripper_position, object_position) and \
+                           self.gripper_opened(gripper_states):
+                            predicate_met = True
+                    # Add more specific transition predicates if other actions have unique requirements
+                    
+                    if predicate_met:
+                        self.current_network = i + 1
+                        # Continue checking, allowing cascade: if new self.current_network (i+1)
+                        # also meets its transition predicate in the *next* iteration of this loop.
+
+            # Goal checking for the final network stage
+            if self.current_network == num_networks - 1:
+                final_action_code = network_action_codes[num_networks - 1]
+                goal_check_met = False
+
+                if final_action_code == 'W':
+                    if self.gripper_withdraw_object(gripper_position, object_position) and \
+                       self.gripper_opened(gripper_states):
+                        goal_check_met = True
+                elif final_action_code == 'D':
+                     if self.gripper_approached_object(gripper_position, object_position) and \
+                        self.gripper_opened(gripper_states):
+                        goal_check_met = True
+                elif final_action_code in ['M', 'R', 'F', 'T']:
+                    if self.object_near_goal(object_position, goal_position):
+                        goal_check_met = True
+                elif final_action_code == 'G':
+                    if self.gripper_approached_object(gripper_position, object_position) and \
+                       self.gripper_closed(gripper_states):
+                        goal_check_met = True
+                elif final_action_code == 'A': # Task ends with approach
+                    if self.gripper_approached_object(gripper_position, object_position) and \
+                       self.gripper_opened(gripper_states):
+                        goal_check_met = True
+                
+                if goal_check_met:
+                    self.task.check_goal()
+
+        self.task.check_episode_steps()
+        return self.current_network
+
+    # Assemble the class dictionary
+    class_dict = {
+        '__init__': __init__,
+        'reset': reset,
+        'compute': compute,
+        'decide': decide,
+        # Add a docstring to the generated class
+        '__doc__': f"Dynamically created Protoreward class for sequence: {sequence_str.upper()}"
+    }
+    
+    # Create and return the new class
+    NewRewardClass = type(class_name, (base_class,), class_dict)
+    return NewRewardClass
+
+# Example of how to use it (you would typically do this in your environment setup):
+# if __name__ == '__main__':
+#     # This is just for demonstration; you'd integrate it into your GymEnv setup.
+#     # Assume Protorewards and its methods are defined above.
+#     # Assume np is imported.
+#
+#     AGMDW_Reward = create_dynamic_protoreward_class("AGMDW")
+#     print(f"Created class: {AGMDW_Reward.__name__} with doc: {AGMDW_Reward.__doc__}")
+#
+#     A_Reward = create_dynamic_protoreward_class("A")
+#     print(f"Created class: {A_Reward.__name__} with doc: {A_Reward.__doc__}")
+
+#     AGR_Reward = create_dynamic_protoreward_class("AGR")
+#     print(f"Created class: {AGR_Reward.__name__} with doc: {AGR_Reward.__doc__}")
+
+    # To use in GymEnv, you would get this class and instantiate it:
+    # task_type_shorthand = "AGMDW" # This would come from your env config
+    # DynamicRewardClass = create_dynamic_protoreward_class(task_type_shorthand)
+    # self.unwrapped.reward = DynamicRewardClass(env=self, task=self.task)

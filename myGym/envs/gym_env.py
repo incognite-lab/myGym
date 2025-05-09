@@ -236,8 +236,10 @@ class GymEnv(CameraEnv):
         # Instantiate the reward object using the dynamically constructed map
         # self.unwrapped.reward (which was the init argument 'reward') will be overwritten here.
         try:
-            reward_constructor = dynamically_constructed_reward_map[scheme][source_shorthand_for_reward]
-            self.unwrapped.reward = reward_constructor(env=self, task=self.task)
+            #reward_constructor = dynamically_constructed_reward_map[scheme][source_shorthand_for_reward]
+            #self.unwrapped.reward = reward_constructor(env=self, task=self.task)
+            RewardClass = create_dynamic_protoreward_class(source_shorthand_for_reward)
+            self.unwrapped.reward = RewardClass(env=self, task=self.task)
         except KeyError:
             # This should ideally be caught by earlier checks
             raise LookupError(
