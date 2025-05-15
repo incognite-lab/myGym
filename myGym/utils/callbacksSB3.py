@@ -1,5 +1,6 @@
 import json
 import os
+import time
 import warnings
 from typing import Union, Optional
 
@@ -12,7 +13,6 @@ from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.results_plotter import load_results, ts2xy
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor, VecEnv, sync_envs_normalization
 from tqdm.auto import tqdm
-import time
 
 np.set_printoptions(suppress = True)
 
@@ -223,9 +223,10 @@ class CustomEvalCallback(EvalCallback):
             os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
 
     def _on_step(self) -> bool:
+        self.num_cpu = 1 if self.num_cpu == 0 else self.num_cpu
         actual_calls = self.n_calls * self.num_cpu
 
-        if (self.eval_freq > 0 and actual_calls > self.eval_freq*self.num_evals):
+        if self.eval_freq > 0 and actual_calls > self.eval_freq * self.num_evals:
             # Sync training and eval env if there is VecNormalize
             self.num_evals += 1
             sync_envs_normalization(self.training_env, self.eval_env)
@@ -466,9 +467,10 @@ class MultiPPOEvalCallback(EvalCallback):
             os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
 
     def _on_step(self) -> bool:
+        self.num_cpu = 1 if self.num_cpu == 0 else self.num_cpu
         actual_calls = self.n_calls * self.num_cpu
 
-        if (self.eval_freq > 0 and actual_calls >= self.eval_freq*self.num_evals):
+        if self.eval_freq > 0 and actual_calls >= self.eval_freq * self.num_evals:
             # Sync training and eval env if there is VecNormalize
             self.num_evals += 1
             sync_envs_normalization(self.training_env, self.eval_env)
@@ -698,8 +700,9 @@ class PPOEvalCallback(EvalCallback):
             os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
 
     def _on_step(self) -> bool:
+        self.num_cpu = 1 if self.num_cpu == 0 else self.num_cpu
         actual_calls = self.n_calls * self.num_cpu
-        if (self.eval_freq > 0 and actual_calls >= self.eval_freq*self.num_evals):
+        if self.eval_freq > 0 and actual_calls >= self.eval_freq * self.num_evals:
             # Sync training and eval env if there is VecNormalize
             self.num_evals += 1
             sync_envs_normalization(self.training_env, self.eval_env)
@@ -767,6 +770,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
 
     def _on_step(self) -> bool:
+        self.num_cpu = 1 if self.num_cpu == 0 else self.num_cpu
         actual_calls = self.n_calls * self.num_cpu #self.n_calls doesn't calculate with multiproc
         # DOESNT WORK WITH MULTIPROCESSING (?)
         if actual_calls >= self.save_model_every_steps*self.num_evals: #Saving model just before evaluation
@@ -965,6 +969,7 @@ class SaveOnTopRewardCallback(BaseCallback):
                         self.top_rewards[i] = actual_reward
                         if self.verbose > 0:
                             print("Saving new most rewarded model to {}".format(self.save_path))
+                        print(f"SAVING {i} STEPS")
                         submodel.save(self.save_path, i)
                     i += 1
         return True

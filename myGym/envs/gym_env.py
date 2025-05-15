@@ -1,28 +1,25 @@
 import copy
+import importlib.resources as pkg_resources
+import random
+from collections import ChainMap
+from itertools import chain
 from typing import List, Any
 
-from myGym.envs import robot, env_object
-from myGym.envs import task as t
-from myGym.envs import distractor as d
-from myGym.envs.base_env import CameraEnv
-from collections import ChainMap
-
-from myGym.envs.env_object import EnvObject
-from myGym.envs.rewards import *
 import numpy as np
-from itertools import chain
-import random
-
-from myGym.utils.helpers import get_workspace_dict
-import importlib.resources as pkg_resources
-from myGym.envs.human import Human
-import myGym.utils.colors as cs
-from myGym.envs.vision_module import get_module_type
-from myGym.envs.natural_language import NaturalLanguage
 import torch as th
 from stable_baselines3.common.utils import obs_as_tensor
 
-from stable_baselines3.common.vec_env.base_vec_env import VecEnv
+import myGym.utils.colors as cs
+from myGym.envs import distractor as d
+from myGym.envs import robot, env_object
+from myGym.envs import task as t
+from myGym.envs.base_env import CameraEnv
+from myGym.envs.env_object import EnvObject
+from myGym.envs.human import Human
+from myGym.envs.natural_language import NaturalLanguage
+from myGym.envs.rewards import *
+from myGym.envs.vision_module import get_module_type
+from myGym.utils.helpers import get_workspace_dict
 
 currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
 
@@ -63,6 +60,7 @@ class GymEnv(CameraEnv):
         :param natural_language: (bool) Whether the natural language mode should be turned on
         :param training: (bool) Whether a training or a testing is taking place
     """
+
     @property
     def unwrapped(self):
         return self
@@ -78,8 +76,8 @@ class GymEnv(CameraEnv):
                  color_dict={},
                  robot='kuka',
                  robot_action="step",
-                 max_velocity = 1,
-                 max_force = 30,
+                 max_velocity=1,
+                 max_force=30,
                  robot_init_joint_poses=[],
                  task_type='reach',
                  num_networks=1,
@@ -100,45 +98,44 @@ class GymEnv(CameraEnv):
                  training=True,
                  **kwargs
                  ):
-
-        self.workspace              = workspace
+        self.workspace = workspace
         self.obs_type = observation
-        self.robot_type             = robot
-        self.num_networks           = num_networks
-        self.network_switcher       = network_switcher
+        self.robot_type = robot
+        self.num_networks = num_networks
+        self.network_switcher = network_switcher
         self.robot_init_joint_poses = robot_init_joint_poses
-        self.robot_action           = robot_action
-        self.max_velocity           = max_velocity
-        self.max_force              = max_force
-        self.action_repeat          = action_repeat
-        self.dimension_velocity     = dimension_velocity
-        self.active_cameras         = active_cameras
-        self.used_objects           = used_objects
-        self.action_repeat          = action_repeat
-        self.color_dict             = color_dict
-        self.task_type              = task_type
-        self.task_objects_dict     = task_objects
+        self.robot_action = robot_action
+        self.max_velocity = max_velocity
+        self.max_force = max_force
+        self.action_repeat = action_repeat
+        self.dimension_velocity = dimension_velocity
+        self.active_cameras = active_cameras
+        self.used_objects = used_objects
+        self.action_repeat = action_repeat
+        self.color_dict = color_dict
+        self.task_type = task_type
+        self.task_objects_dict = task_objects
         self.framework = framework
         self.task_objects = []
         self.env_objects = []
         self.vae_path = vae_path
         self.yolact_path = yolact_path
         self.yolact_config = yolact_config
-        self.has_distractor         = distractors["list"] != None
-        self.distractors            = distractors
-        self.distance_type          = distance_type
+        self.has_distractor = distractors["list"] != None
+        self.distractors = distractors
+        self.distance_type = distance_type
         self.objects_area_borders = None
         self.unwrapped.reward = reward
         self.dist = d.DistractorModule(distractors["moveable"], distractors["movement_endpoints"],
                                        distractors["constant_speed"], distractors["movement_dims"], env=self)
-        self.dataset   = dataset
+        self.dataset = dataset
         self.obs_space = obs_space
         self.visualize = visualize
-        self.visgym    = visgym
-        self.logdir    = logdir
+        self.visgym = visgym
+        self.logdir = logdir
         self.workspace_dict = get_workspace_dict()
         if not hasattr(self, "task"):
-          self.task = None
+            self.task = None
 
         self.reach_gesture = False
         if self.task_type == "reach_gesture":
@@ -174,19 +171,17 @@ class GymEnv(CameraEnv):
             self.has_distractor = True
             self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
         reward_classes = {
-            "1-network": {"A": A,},
+            "1-network": {"A": A, },
             "2-network": {"AG": AaG},
             "3-network": {"AGM": AaGaM},
             "3-network": {"AGR": AaGaR},
             "4-network": {"AGMD" : AaGaMaD},
-            "5-network": {"AGMDW" : AaGaMaDaW},
-            "5-network": {"AGRDW" : AaGaRaDaW},
-            "5-network": {"AGFDW" : AaGaFaDaW},
-            "5-network": {"AGTDW" : AaGaTaDaW}}
-        
+            "5-network": {"AGMDW": AaGaMaDaW, "AGRDW": AaGaRaDaW, "AGFDW": AaGaFaDaW, "AGTDW": AaGaTaDaW}
+        }
     
         scheme = "{}-network".format(str(self.num_networks))
-        assert self.unwrapped.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
+        assert self.unwrapped.reward in reward_classes[
+            scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
         self.task = t.TaskModule(task_type=self.task_type,
                                  observation=self.obs_type,
                                  vae_path=self.vae_path,
@@ -211,7 +206,8 @@ class GymEnv(CameraEnv):
             [self._add_scene_object_uid(self._load_urdf(path="rooms/visual/" + self.workspace_dict[w]['urdf']), w)
              for w in self.workspace_dict if w != self.workspace]
         self._add_scene_object_uid(
-            self._load_static_scene_urdf(path="rooms/collision/" + self.workspace_dict[self.workspace]['urdf'], name=self.workspace), self.workspace)
+            self._load_static_scene_urdf(path="rooms/collision/" + self.workspace_dict[self.workspace]['urdf'],
+                                         name=self.workspace), self.workspace)
         ws_texture = self.workspace_dict[self.workspace]['texture'] if get_module_type(
             self.obs_type) != "vae" else "grey.png"
         if ws_texture: self._change_texture(self.workspace, self._load_texture(ws_texture))
@@ -225,17 +221,18 @@ class GymEnv(CameraEnv):
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
         if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
 
-
     def _load_urdf(self, path, fixedbase=True, maxcoords=True):
         transform = self.workspace_dict[self.workspace]['transform']
         return self.p.loadURDF(os.path.join(pkg_resources.files("myGym"), os.path.join("envs", path)),
-                               transform['position'],  self.p.getQuaternionFromEuler(transform['orientation']),
+                               transform['position'], self.p.getQuaternionFromEuler(transform['orientation']),
                                useFixedBase=fixedbase,
                                useMaximalCoordinates=maxcoords)
-    
+
     def _load_static_scene_urdf(self, path, name, fixedbase=True):
         transform = self.workspace_dict[self.workspace]['transform']
-        object = env_object.EnvObject(os.path.join(pkg_resources.files("myGym"), os.path.join("envs", path)), transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase)
+        object = env_object.EnvObject(os.path.join(pkg_resources.files("myGym"), os.path.join("envs", path)),
+                                      transform['position'], self.p.getQuaternionFromEuler(transform['orientation']),
+                                      pybullet_client=self.p, fixed=fixedbase)
         self.static_scene_objects[name] = object
         return object.uid
 
@@ -243,10 +240,8 @@ class GymEnv(CameraEnv):
         self.p.changeVisualShape(self.get_scene_object_uid_by_name(name), -1,
                                  rgbaColor=[1, 1, 1, 1], textureUniqueId=texture_id)
 
-
     def _load_texture(self, name):
         return self.p.loadTexture(os.path.join(pkg_resources.files("myGym"), "./envs/textures/{}".format(name)))
-
 
     def _set_observation_space(self):
         """
@@ -258,15 +253,14 @@ class GymEnv(CameraEnv):
         if self.obs_space == "dict":
             goaldim = int(self.task.obsdim / 2) if self.task.obsdim % 2 == 0 else int(self.task.obsdim / 3)
             self.observation_space = spaces.Dict(
-                {"observation": spaces.Box(-10.0, high=10., shape=(self.task.obsdim,),dtype = np.float64),
+                {"observation": spaces.Box(-10.0, high=10., shape=(self.task.obsdim,), dtype=np.float64),
                  "achieved_goal": spaces.Box(low=-10., high=10., shape=(goaldim,)),
                  "desired_goal": spaces.Box(low=-10., high=10., shape=(goaldim,))})
         else:
             observationDim = self.task.obsdim
-            observation_high = np.array([100] * observationDim, dtype = np.float64)
+            observation_high = np.array([100] * observationDim, dtype=np.float64)
             self.observation_space = spaces.Box(-observation_high,
-                                                observation_high, dtype = np.float64)
-
+                                                observation_high, dtype=np.float64)
 
     def _set_action_space(self):
         """
@@ -286,19 +280,19 @@ class GymEnv(CameraEnv):
                 self.action_low = np.array(borders_min[0:7:2])
                 self.action_high = np.array(borders_max[1:7:2])
             else:
-                self.action_low = np.array(self.objects_area_borders[0:7:2],dtype = np.float64)
-                self.action_high = np.array(self.objects_area_borders[1:7:2], dtype = np.float64)
+                self.action_low = np.array(self.objects_area_borders[0:7:2], dtype=np.float64)
+                self.action_high = np.array(self.objects_area_borders[1:7:2], dtype=np.float64)
 
 
         elif "joints" in self.robot_action:
-            self.action_low = np.array(self.robot.joints_limits[0], dtype = np.float64)
-            self.action_high = np.array(self.robot.joints_limits[1], dtype = np.float64)
+            self.action_low = np.array(self.robot.joints_limits[0], dtype=np.float64)
+            self.action_high = np.array(self.robot.joints_limits[1], dtype=np.float64)
 
         if "gripper" in self.robot_action:
             self.action_low = np.append(self.action_low, np.array(self.robot.gjoints_limits[0]))
             self.action_high = np.append(self.action_high, np.array(self.robot.gjoints_limits[1]))
 
-        self.action_space = spaces.Box(self.action_low, self.action_high, dtype = np.float64)
+        self.action_space = spaces.Box(self.action_low, self.action_high, dtype=np.float64)
 
     def _rescale_action(self, action):
         """
@@ -311,7 +305,7 @@ class GymEnv(CameraEnv):
         """
         return [(sub + 1) * (h - l) / 2 + l for sub, l, h in zip(action, self.action_low, self.action_high)]
 
-    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False, seed = None, options = None):
+    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False, seed=None, options=None):
         """
         Environment reset called at the beginning of an episode. Reset state of objects, robot, task and reward.
 
@@ -323,7 +317,6 @@ class GymEnv(CameraEnv):
         Returns:
             :return self._observation: (list) Observation data of the environment
         """
-        #super().reset(seed=seed)
         if not only_subtask:
             self.robot.reset(random_robot=random_robot)
             super().reset(hard=hard)
@@ -338,15 +331,18 @@ class GymEnv(CameraEnv):
                         goal = self.rng.choice(self.task_objects_dict["goal"])
                         objects = self.task_objects_dict["init"] + self.task_objects_dict["goal"]
                         task_objects_dict = [{"init": init, "goal": goal}]
-                        other_objects = self._randomly_place_objects({"obj_list": [o for o in objects if o != init and o != goal]})
+                        other_objects = self._randomly_place_objects(
+                            {"obj_list": [o for o in objects if o != init and o != goal]})
                     else:
                         goal = self.rng.choice(self.task_objects_dict["goal"])
-                        task_objects_dict = [{"init": {"obj_name":"null"}, "goal": goal}]
-                        other_objects = self._randomly_place_objects({"obj_list": [o for o in self.task_objects_dict["goal"] if o != goal]})
+                        task_objects_dict = [{"init": {"obj_name": "null"}, "goal": goal}]
+                        other_objects = self._randomly_place_objects(
+                            {"obj_list": [o for o in self.task_objects_dict["goal"] if o != goal]})
 
                 all_subtask_objects = [x for i, x in enumerate(task_objects_dict) if i != self.task.current_task]
                 subtasks_processed = [list(x.values()) for x in all_subtask_objects]
-                subtask_objects = self._randomly_place_objects({"obj_list": list(chain.from_iterable(subtasks_processed))})
+                subtask_objects = self._randomly_place_objects(
+                    {"obj_list": list(chain.from_iterable(subtasks_processed))})
                 self.env_objects = {"env_objects": self._randomly_place_objects(self.used_objects)}
                 if self.task_objects_were_given_as_list:
                     self.env_objects["env_objects"] += other_objects
@@ -358,10 +354,12 @@ class GymEnv(CameraEnv):
                 init_objects = []
                 if not self.reach_gesture:
                     init_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["init"]})
-                    for i, c in enumerate(cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+                    for i, c in enumerate(
+                            cs.draw_random_rgba(size=len(init_objects), excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
                         init_objects[i].set_color(c)
                 goal_objects = self._randomly_place_objects({"obj_list": self.task_objects_dict["goal"]})
-                for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=self.task_type != "reach", excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
+                for i, c in enumerate(cs.draw_random_rgba(size=len(goal_objects), transparent=self.task_type != "reach",
+                                                          excluding=COLORS_RESERVED_FOR_HIGHLIGHTING)):
                     goal_objects[i].set_color(c)
 
                 if self.training or (not self.training and self.reach_gesture) and self.nl_mode:
@@ -371,7 +369,8 @@ class GymEnv(CameraEnv):
 
                     # resetting the objects to remove the knowledge about whether an object is an init or a goal
                     self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-                    self.task_type, self.unwrapped.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
+                    self.task_type, self.unwrapped.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(
+                        self.nl.get_previously_generated_subtask_description())
                 else:
                     success = False
                     i = 0
@@ -384,13 +383,16 @@ class GymEnv(CameraEnv):
                                 print("\"reach the cyan cube\"")
                                 print("\"reach the transparent pink cube left to the gray cube\"")
                                 print("\"pick the orange cube and place it to the same position as the pink cube\"")
-                                print("Pay attention to the fact that colors, task and objects in your case can be different!")
+                                print(
+                                    "Pay attention to the fact that colors, task and objects in your case can be different!")
                                 print("To leave the program use Ctrl + Z!")
                             if self.nl:
-                                self.nl.set_current_subtask_description(input("Enter a subtask description in the natural language based on what you see:"))
+                                self.nl.set_current_subtask_description(
+                                    input("Enter a subtask description in the natural language based on what you see:"))
                                 # resetting the objects to remove the knowledge about whether an object is an init or a goal
                                 self.nl.get_venv().set_objects(all_objects=init_objects + goal_objects)
-                                self.task_type, self.unwrapped.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(self.nl.get_previously_generated_subtask_description())
+                                self.task_type, self.unwrapped.reward, self.num_networks, init, goal = self.nl.extract_subtask_info_from_description(
+                                    self.nl.get_previously_generated_subtask_description())
                             success = True
                             break
                         except:
@@ -426,7 +428,8 @@ class GymEnv(CameraEnv):
         if self.gui_on and self.nl_mode:
             if self.reach_gesture:
                 self.nl.set_current_subtask_description("reach there")
-            self.nl_text_id = self.p.addUserDebugText(self.nl.get_previously_generated_subtask_description(), [2, 0, 1], textSize=1)
+            self.nl_text_id = self.p.addUserDebugText(self.nl.get_previously_generated_subtask_description(), [2, 0, 1],
+                                                      textSize=1)
             if only_subtask and self.nl_text_id is not None:
                 self.p.removeUserDebugItem(self.nl_text_id)
         return self.flatten_obs(self._observation.copy()), info
@@ -504,7 +507,7 @@ class GymEnv(CameraEnv):
             info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
         if terminated or truncated:
-            self.successful_finish(info) #Maybe only change to 'if terminated'? Probably not
+            self.successful_finish(info)  # Maybe only change to 'if terminated'? Probably not
         if self.task.subtask_over:
             self.reset(only_subtask=True)
         return self.flatten_obs(self._observation.copy()), reward, terminated, truncated, info
@@ -539,9 +542,10 @@ class GymEnv(CameraEnv):
                 self.human.point_finger_at(position=self.task_objects["goal_state"].get_position())
             self.p.stepSimulation()
         self.episode_steps += 1
-        
+
     def choose_goal_object_by_human_with_keys(self, objects: List[EnvObject]) -> EnvObject:
-        self.text_id = self.p.addUserDebugText("Point the human's finger via arrow keys at the goal object and press enter", [1, 0, 0.5], textSize=1)
+        self.text_id = self.p.addUserDebugText(
+            "Point the human's finger via arrow keys at the goal object and press enter", [1, 0, 0.5], textSize=1)
         move_factor = 10  # times 1 cm
 
         while True:
@@ -596,11 +600,11 @@ class GymEnv(CameraEnv):
         env_objects = []
         if not "init" in object_dict.keys():  # solves used_objects
             for idx, o in enumerate(object_dict["obj_list"]):
-                  if o["obj_name"] != "null":
-                      urdf = self._get_urdf_filename(o["obj_name"])
-                      if urdf:
+                if o["obj_name"] != "null":
+                    urdf = self._get_urdf_filename(o["obj_name"])
+                    if urdf:
                         object_dict["obj_list"][idx]["urdf"] = urdf
-                      else:
+                    else:
                         del object_dict["obj_list"][idx]
             if "num_range" in object_dict.keys():
                 for x in range(random.randint(object_dict["num_range"][0], object_dict["num_range"][1])):
@@ -656,7 +660,8 @@ class GymEnv(CameraEnv):
         objects = [self.task_objects["actual_state"], self.task_objects["goal_state"]]
         if "distractor" in self.task_objects:
             objects += self.task_objects["distractor"]
-        return [o for o in objects if isinstance(o, EnvObject)] if not with_none else [o if isinstance(o, EnvObject) else None for o in objects]
+        return [o for o in objects if isinstance(o, EnvObject)] if not with_none else [
+            o if isinstance(o, EnvObject) else None for o in objects]
 
     def set_current_subtask_goal(self, goal) -> None:
         self.task_objects["actual_state"] = goal
@@ -674,6 +679,3 @@ class GymEnv(CameraEnv):
 
     def set_models(self, models):
         self.models_link = models
-
-
-

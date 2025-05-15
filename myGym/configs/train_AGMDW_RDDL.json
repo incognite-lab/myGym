@@ -38,6 +38,7 @@
     "yolact_path"   :null,
     "yolact_config" :null,
     #Train
+    "network_switcher": "decider",
     "train_framework"   :"pytorch",
     "algo"              :"multippo",
     "num_networks"      :5,
@@ -45,7 +46,7 @@
     "algo_steps"        :512,
     "steps"             :5000000,
     "pretrained_model"  :null,
-    "multiprocessing"   :false,
+    "multiprocessing":0,
     #Evaluation
     "eval_freq"     :500000,
     "eval_episodes" :50,
