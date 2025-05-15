@@ -1,25 +1,25 @@
+import io
+import os
+import pathlib
 import warnings
 from typing import Any, ClassVar, Dict, Optional, Type, TypeVar, Union, Iterable, Tuple
 
 import numpy as np
 import torch as th
 from gymnasium import spaces
-from stable_baselines_mygym.Subproc_vec_envSB3 import SubprocVecEnv
-from torch.nn import functional as F
-import os
-import sys
-import pathlib
-import io
-
-from stable_baselines3.common.save_util import save_to_zip_file, recursive_getattr, load_from_zip_file
 from stable_baselines3.common.buffers import RolloutBuffer
-from myGym.stable_baselines_mygym.on_policy_algorithm import OnPolicyAlgorithm
-from stable_baselines3.common.vec_env import VecMonitor, DummyVecEnv
-from stable_baselines3.common.policies import ActorCriticCnnPolicy, ActorCriticPolicy, BasePolicy, MultiInputActorCriticPolicy
+from stable_baselines3.common.policies import ActorCriticCnnPolicy, ActorCriticPolicy, BasePolicy, \
+    MultiInputActorCriticPolicy
+from stable_baselines3.common.save_util import save_to_zip_file, recursive_getattr, load_from_zip_file
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
 from stable_baselines3.common.utils import explained_variance, get_schedule_fn, check_for_correct_spaces
+from stable_baselines3.common.vec_env import VecMonitor, DummyVecEnv
+from stable_baselines_mygym.Subproc_vec_envSB3 import SubprocVecEnv
+from torch.nn import functional as F
 
-from stable_baselines3.common.vec_env.patch_gym import _convert_space, _patch_env
+# DECIDER HERE
+from myGym.stable_baselines_mygym.decider import DeciderPolicy
+from myGym.stable_baselines_mygym.on_policy_algorithm import OnPolicyAlgorithm
 
 SelfPPO = TypeVar("SelfPPO", bound="PPO")
 SelfBaseAlgorithm = TypeVar("SelfBaseAlgorithm", bound="BaseAlgorithm")
@@ -28,6 +28,7 @@ SelfBaseAlgorithm = TypeVar("SelfBaseAlgorithm", bound="BaseAlgorithm")
 MultiPPO algorithm based on stable_baselines3's PPO algorithm. Implements switching of networks during training when a
 subtask is finished.
 """
+
 
 class MultiPPOSB3(OnPolicyAlgorithm):
     """
@@ -82,7 +83,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
     :param seed: Seed for the pseudo random generators
     :param device: Device (cpu, cuda, ...) on which the code should be run.
         Setting it to auto, the code will be run on the GPU if possible.
-    :param _init_setup_model: Whether or not to build the network at the creation of the instance
+    :param _init_setup_model: Whether to build the network at the creation of the instance
     """
 
     policy_aliases: ClassVar[Dict[str, Type[BasePolicy]]] = {
@@ -92,34 +93,34 @@ class MultiPPOSB3(OnPolicyAlgorithm):
     }
 
     def __init__(
-        self,
-        policy: Union[str, Type[ActorCriticPolicy]],
-        env: Union[GymEnv, str],
-        learning_rate: Union[float, Schedule] = 3e-4,
-        n_steps: int = 2048,
-        n_models: int = 1,
-        batch_size: int = 64,
-        n_epochs: int = 10,
-        gamma: float = 0.99,
-        gae_lambda: float = 0.95,
-        clip_range: Union[float, Schedule] = 0.2,
-        clip_range_vf: Union[None, float, Schedule] = None,
-        normalize_advantage: bool = True,
-        ent_coef: float = 0.0,
-        vf_coef: float = 0.5,
-        max_grad_norm: float = 0.5,
-        use_sde: bool = False,
-        sde_sample_freq: int = -1,
-        rollout_buffer_class: Optional[Type[RolloutBuffer]] = None,
-        rollout_buffer_kwargs: Optional[Dict[str, Any]] = None,
-        target_kl: Optional[float] = None,
-        stats_window_size: int = 100,
-        tensorboard_log: Optional[str] = None,
-        policy_kwargs: Optional[Dict[str, Any]] = None,
-        verbose: int = 0,
-        seed: Optional[int] = None,
-        device: Union[th.device, str] = "auto",
-        _init_setup_model: bool = True,
+            self,
+            policy: Union[str, Type[ActorCriticPolicy]],
+            env: Union[GymEnv, str],
+            learning_rate: Union[float, Schedule] = 3e-4,
+            n_steps: int = 2048,
+            n_models: int = 1,
+            batch_size: int = 64,
+            n_epochs: int = 10,
+            gamma: float = 0.99,
+            gae_lambda: float = 0.95,
+            clip_range: Union[float, Schedule] = 0.2,
+            clip_range_vf: Union[None, float, Schedule] = None,
+            normalize_advantage: bool = True,
+            ent_coef: float = 0.0,
+            vf_coef: float = 0.5,
+            max_grad_norm: float = 0.5,
+            use_sde: bool = False,
+            sde_sample_freq: int = -1,
+            rollout_buffer_class: Optional[Type[RolloutBuffer]] = None,
+            rollout_buffer_kwargs: Optional[Dict[str, Any]] = None,
+            target_kl: Optional[float] = None,
+            stats_window_size: int = 100,
+            tensorboard_log: Optional[str] = None,
+            policy_kwargs: Optional[Dict[str, Any]] = None,
+            verbose: int = 0,
+            seed: Optional[int] = None,
+            device: Union[th.device, str] = "auto",
+            _init_setup_model: bool = True,
     ):
         super().__init__(
             policy,
@@ -154,9 +155,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         # because of the advantage normalization
         if normalize_advantage:
             assert (
-                batch_size > 1
+                    batch_size > 1
             ), "`batch_size` must be greater than 1. See https://github.com/DLR-RM/stable-baselines3/issues/440"
-
 
         if self.env is not None:
             # Check that `n_steps * n_envs > 1` to avoid NaN
@@ -184,11 +184,34 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         self.normalize_advantage = normalize_advantage
         self.target_kl = target_kl
         self.models = []
+        self.current_network_idx = None
+        self.lock_until_step = 0
+        self.step_counter = 0
+        self.switch_penalty_active = False
+        self.last_network_idx = None
+        self.switch_penalty_coef = 0.1  # adjust if needed
+        self.switch_to_penalty_step = 100000  # switch mode after 100k steps
+
+        # Initialize Decider if selected
+        if hasattr(env.unwrapped, 'network_switcher') and env.unwrapped.network_switcher == "decider":
+            obs_dim = self.observation_space.shape[0]
+            self.decider = DeciderPolicy(obs_dim=obs_dim, num_networks=self.models_num)
+            self.env.reset()
+            if hasattr(self.env, 'reward'):
+                print("Setting decider model")
+                self.env.reward.decider_model = self.decider
+            else:
+                env.unwrapped.reward.decider_model = self.decider
+                print("Decider model set")
+        else:
+            print("NO DECIDER SELECTED, USING DEFAULT NETWORK SWITCHING. \n")
+            self.decider = None
+
         if _init_setup_model:
             self._setup_model()
 
-
     def _setup_model(self) -> None:
+
         super()._setup_model()
         self.env.reset()
         # Initialize schedules for policy/value clipping
@@ -200,18 +223,17 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         for i in range(self.models_num):
             self.models.append(SubModel(self, i))
 
-
     def set_env(self, env) -> None:
         super().set_env(env)
         self.n_batch = self.n_envs * self.n_steps
 
-
     def save(
-        self,
-        path: Union[str, pathlib.Path, io.BufferedIOBase], steps = None,
-        best = False,
-        exclude: Optional[Iterable[str]] = None,
-        include: Optional[Iterable[str]] = None,
+            self,
+            path: Union[str, pathlib.Path, io.BufferedIOBase],
+            steps=None,
+            best=False,
+            exclude: Optional[Iterable[str]] = None,
+            include: Optional[Iterable[str]] = None,
     ) -> None:
         """
         Save all the attributes of the object and the model parameters in a zip-file.
@@ -220,10 +242,11 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         :param exclude: name of parameters that should be excluded in addition to the default ones
         :param include: name of parameters that might be excluded but should be included anyway
         """
-        # Copy parameter list so we don't mutate the original dict
+        # Copy parameter list, so we don't mutate the original dict
         data = self.__dict__.copy()
 
-        #Write down the number of steps trained
+        # Write down the number of steps trained
+        print(f"Saving model to {path} at step {steps}")
         with open(os.path.join(path, "trained_steps.txt"), "a") as f:
             f.write(f"{steps}\n")
 
@@ -257,13 +280,13 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 pytorch_variables[name] = attr
         # Build dict of state_dicts
         data.pop("models")
-        # Collect names of subtasks (i. e. approach, grasp, move..)
+        # Collect names of subtasks (i.e. approach, grasp, move..)
         if isinstance(self.env, VecMonitor) or isinstance(self.env, DummyVecEnv):
             reward_names = self.env.get_attr("reward")[0].network_names
         else:
             reward_names = self.env.unwrapped.reward.network_names
 
-        #Save every submodel in the correct folder (denoted by the corresponding reward name)
+        # Save every submodel in the correct folder (denoted by the corresponding reward name)
         for i in range(len(self.models)):
             model = self.models[i]
             params_to_save = model.get_parameters()
@@ -273,19 +296,20 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 save_path = os.path.join(path, reward_names[i] + "/best_model")
             save_to_zip_file(save_path, data=data, params=params_to_save, pytorch_variables=pytorch_variables)
 
-
     def approved(self, observation):
         # based on obs, decide which model should be used
         if isinstance(self.env, VecMonitor):
             submodel_id = self.env.unwrapped.network_control()
         elif isinstance(self.env, SubprocVecEnv):
-            submodel_id = self.env.get_attr("reward")[0].network_switch_control(self.env.get_attr("observation")[0]["task_objects"])
+            submodel_id = self.env.get_attr("reward")[0].network_switch_control(
+                self.env.get_attr("observation")[0]["task_objects"])
         elif isinstance(self.env, DummyVecEnv):
-            submodel_id = self.env.envs[0].unwrapped.reward.network_switch_control(self.env.envs[0].unwrapped.observation["task_objects"])
+            submodel_id = self.env.envs[0].unwrapped.reward.network_switch_control(
+                self.env.envs[0].unwrapped.observation["task_objects"])
         else:
-            submodel_id = self.env.unwrapped.reward.network_switch_control(self.env.unwrapped.observation["task_objects"])
+            submodel_id = self.env.unwrapped.reward.network_switch_control(
+                self.env.unwrapped.observation["task_objects"])
         return submodel_id
-
 
     def predict(
             self,
@@ -301,29 +325,75 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         :param observation: the input observation
         :param state: The last hidden states (can be None, used in recurrent policies)
         :param episode_start: The last masks (can be None, used in recurrent policies)
-            this correspond to beginning of episodes,
+            this corresponds to beginning of episodes,
             where the hidden states of the RNN must be reset.
-        :param deterministic: Whether or not to return deterministic actions.
+        :param deterministic: Whether to return deterministic actions.
         :return: the model's action and the next hidden state
             (used in recurrent policies)
         """
+        self.step_counter += 1
         owner = self.approved(observation)
-        #Multiprocessing
+        real_env = self.env.envs[0].unwrapped
+
+        # Multiprocessing
         if isinstance(owner, list):
             owner = np.array(owner)
             actions = np.zeros((self.n_envs, self.action_space.shape[0]))
 
             for i in range(np.max(owner) + 1):
+                if self.decider is not None:
+                    if self.step_counter >= self.switch_to_penalty_step:
+                        print("SWITCHING TO PENALTY MODE")
+                        self.switch_penalty_active = True
+
+                    if self.switch_penalty_active:
+                        network_idx = self.decider.predict(observation)
+                        if self.last_network_idx is not None and network_idx != self.last_network_idx:
+                            if hasattr(real_env.reward, "apply_switch_penalty"):
+                                real_env.reward.apply_switch_penalty(self.switch_penalty_coef)
+                        self.last_network_idx = network_idx
+                    else:
+                        if self.current_network_idx is None or self.step_counter >= self.lock_until_step:
+                            self.current_network_idx = self.decider.predict(observation)
+                            self.lock_until_step = self.step_counter + 200
+                            print(
+                                f"[Decider] Lock-in multi: selected network {self.current_network_idx} until {self.lock_until_step} step")
+                        network_idx = self.current_network_idx
+
+                    real_env.reward.current_network = network_idx
+                    print(f"[Decider] Selected network: {network_idx}")
                 model = self.models[i]
                 indices = np.where(owner == i)
                 action_i, state_i = model.policy.predict(observation, state, episode_start, deterministic)
                 actions[indices] = action_i[indices]
-        #Single process
-        else:
-            model = self.models[owner]
-            actions, state =model.policy.predict(observation, state, episode_start, deterministic)
-        return actions, state
 
+        # Single process
+        else:
+            if self.decider is not None:
+                if self.step_counter >= self.switch_to_penalty_step:
+                    print("SWITCHING TO PENALTY MODE")
+                    self.switch_penalty_active = True
+
+                if self.switch_penalty_active:
+                    network_idx = self.decider.predict(observation)
+                    if self.last_network_idx is not None and network_idx != self.last_network_idx:
+                        if hasattr(real_env.reward, "apply_switch_penalty"):
+                            real_env.reward.apply_switch_penalty(self.switch_penalty_coef)
+                    self.last_network_idx = network_idx
+                else:
+                    if self.current_network_idx is None or self.step_counter >= self.lock_until_step:
+                        self.current_network_idx = self.decider.predict(observation)
+                        self.lock_until_step = self.step_counter + 200
+                        print(
+                            f"[Decider] Lock-in single: selected network {self.current_network_idx} until {self.lock_until_step} step")
+                    network_idx = self.current_network_idx
+
+                real_env.reward.current_network = network_idx
+                print(f"[Decider] Selected network: {network_idx}")
+
+            model = self.models[owner]
+            actions, state = model.policy.predict(observation, state, episode_start, deterministic)
+        return actions, state
 
     def eval_predict(
             self,
@@ -340,9 +410,9 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         :param observation: the input observation
         :param state: The last hidden states (can be None, used in recurrent policies)
         :param episode_start: The last masks (can be None, used in recurrent policies)
-            this correspond to beginning of episodes,
+            this corresponds to beginning of episodes,
             where the hidden states of the RNN must be reset.
-        :param deterministic: Whether or not to return deterministic actions.
+        :param deterministic: Whether to return deterministic actions.
         :return: the model's action and the next hidden state
             (used in recurrent policies)
         """
@@ -351,7 +421,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         model = self.models[owner]
         action, state = model.policy.predict(observation, state, episode_start, deterministic)
         return action, state
-
 
     def train(self) -> None:
         """
@@ -380,6 +449,22 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             # Do a complete pass on the rollout buffer
             for rollout_data, owner in self.rollout_buffer.get(self.batch_size):
                 actions = rollout_data.actions
+                if self.decider:
+                    obs_batch = rollout_data.observations
+                    rew_batch = rollout_data.returns
+                    if obs_batch.shape[0] == 0:
+                        print("[Decider] Skipping empty batch")
+                        return
+
+                    for o, r in zip(obs_batch, rew_batch):
+                        self.decider.store(o.cpu().numpy(), owner, r.item())
+
+                    decider_stats = self.decider.update()
+                    if decider_stats:
+                        self.logger.record("trained_models/decider_loss", decider_stats["loss"])
+                        self.logger.record("trained_models/decider_entropy", decider_stats["entropy"])
+                        self.logger.record("trained_models/decider_baseline", decider_stats["baseline"])
+
                 # Choose appropriate submodel
                 model = self.models[owner]
 
@@ -458,11 +543,10 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         explained_vars = []
         owner_sizes = self.rollout_buffer.owner_sizes
         for i in range(self.models_num):
-            val_arr = self.rollout_buffer.values[sum(owner_sizes[:i]):sum(owner_sizes[:i+1])]
-            ret_arr = self.rollout_buffer.returns[sum(owner_sizes[:i]):sum(owner_sizes[:i+1])]
+            val_arr = self.rollout_buffer.values[sum(owner_sizes[:i]):sum(owner_sizes[:i + 1])]
+            ret_arr = self.rollout_buffer.returns[sum(owner_sizes[:i]):sum(owner_sizes[:i + 1])]
             if owner_sizes[i] != 0:
                 flat_val = np.array(val_arr).flatten()
-                flat_ret = np.array(ret_arr).flatten()
                 try:
                     explained_vars.append(explained_variance(flat_val, np.array(ret_arr).flatten()))
                 except Exception as e:
@@ -489,15 +573,14 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         if self.clip_range_vf is not None:
             self.logger.record("train/clip_range_vf", clip_range_vf)
 
-
     def learn(
-        self: SelfPPO,
-        total_timesteps: int,
-        callback: MaybeCallback = None,
-        log_interval: int = 1,
-        tb_log_name: str = "PPO",
-        reset_num_timesteps: bool = True,
-        progress_bar: bool = False,
+            self: SelfPPO,
+            total_timesteps: int,
+            callback: MaybeCallback = None,
+            log_interval: int = 1,
+            tb_log_name: str = "PPO",
+            reset_num_timesteps: bool = True,
+            progress_bar: bool = False,
     ) -> SelfPPO:
         return super().learn(
             total_timesteps=total_timesteps,
@@ -507,7 +590,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             reset_num_timesteps=reset_num_timesteps,
             progress_bar=progress_bar,
         )
-
 
     @classmethod
     def load(  # noqa: C901
@@ -552,14 +634,14 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         path = "/".join(load_path)
         dir_path = os.path.dirname(path)
 
-        #Load arguments from train.json config
+        # Load arguments from train.json config
         import commentjson
         with open(path + "/train.json", "r") as f:
             json = commentjson.load(f)
         num_models = json["num_networks"]
-        load = [] #data, params, pytorch_variables
+        load = []  # data, params, pytorch_variables
 
-        #Collect reward names:
+        # Collect reward names:
         if isinstance(env, VecMonitor) or isinstance(env, DummyVecEnv):
             reward_names = env.get_attr("reward")[0].network_names
         else:
@@ -575,8 +657,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             assert data is not None, "No data found in the saved file"
             assert params is not None, "No params found in the saved file"
             load.append((data, params, pytorch_variables))
-        # Remove stored device information and replace with ours
 
+        # Remove stored device information and replace with ours
         data = load[0][0]
 
         if "policy_kwargs" in data:
@@ -600,7 +682,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         # for key in {"observation_space", "action_space"}:
         #     data[key] = _convert_space(data[key])
 
-        #Commented lines below are from original load function located in SB3 BaseClass - they cause problems
+        # Commented lines below are from original load function located in SB3 BaseClass - they cause problems
         model = cls(
             policy=data["policy_class"],
             env=env,
@@ -706,11 +788,11 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         return model
 
 
-
 class SubModel(MultiPPOSB3):
     """
     Small submodel class used to store policy data for each network separately
     """
+
     def __init__(self, parent, i):
         self.model_num = i
         if isinstance(parent.env, VecMonitor) or isinstance(parent.env, DummyVecEnv):
@@ -723,9 +805,7 @@ class SubModel(MultiPPOSB3):
         except:
             pass
         self.policy = parent.policy_class(
-            parent.observation_space, parent.action_space, parent.lr_schedule, use_sde = parent.use_sde, **parent.policy_kwargs
+            parent.observation_space, parent.action_space, parent.lr_schedule, use_sde=parent.use_sde,
+            **parent.policy_kwargs
         )
         self.policy = self.policy.to(parent.device)
-
-
-

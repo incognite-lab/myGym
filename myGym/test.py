@@ -1,6 +1,4 @@
-import multiprocessing
 import os
-import subprocess
 import time
 from typing import Dict, Any
 
@@ -10,8 +8,6 @@ import numpy as np
 import pybullet as p
 import pybullet_data
 from numpy import matrix
-from sklearn.model_selection import ParameterGrid
-import pandas as pd
 
 from myGym import oraculum
 from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env, automatic_argument_assignment
@@ -278,7 +274,7 @@ def test_env(env: object, arg_dict: dict) -> None:
                         print("\rLast action difference: (shape mismatch)", end='', flush=True)
 
                     last_action = action
-                    
+
             if arg_dict["control"] == "oraculum":
                 action = oraculum_obj.perform_oraculum_task(t, env, action, info)
             elif arg_dict["control"] == "keyboard":
@@ -457,13 +453,15 @@ def test_model(
 ) -> None:
     env.reset()
     try:
-        #TODO: maybe this if else is unnecessary?
+        # TODO: maybe this if else is unnecessary?
         if "multi" in arg_dict["algo"]:
             model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["pretrained_model"], env = env)
+            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"],
+                                                                                              env=env)
             model.env = model_args[1].env
         else:
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["pretrained_model"], env = env)
+            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"],
+                                                                                              env=env)
     except:
         if (arg_dict["algo"] in implemented_combos.keys()) and (
                 arg_dict["train_framework"] not in list(implemented_combos[arg_dict["algo"]].keys())):
@@ -549,7 +547,7 @@ def print_init_info(arg_dict):
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
-    parser.add_argument("-ct", "--control",
+    parser.add_argument("-ct", "--control", default="oraculum",
                         help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
@@ -568,13 +566,13 @@ def main() -> None:
                     parameters[key] = arg
                     if key in commands:
                         commands.pop(key)
-    
+
 
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
-    
+
     # Check if results_report is used with oraculum control
     if arg_dict["results_report"] and arg_dict.get("control") != "oraculum":
         print("Results report cannot be used without oraculum.")

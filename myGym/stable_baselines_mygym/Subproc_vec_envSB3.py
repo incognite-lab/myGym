@@ -6,7 +6,6 @@ from typing import Any, Callable, Optional, Union
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
-
 from stable_baselines3.common.vec_env.base_vec_env import (
     CloudpickleWrapper,
     VecEnv,
@@ -18,9 +17,9 @@ from stable_baselines3.common.vec_env.patch_gym import _patch_env
 
 
 def _worker(  # noqa: C901
-    remote: mp.connection.Connection,
-    parent_remote: mp.connection.Connection,
-    env_fn_wrapper: CloudpickleWrapper,
+        remote: mp.connection.Connection,
+        parent_remote: mp.connection.Connection,
+        env_fn_wrapper: CloudpickleWrapper,
 ) -> None:
     # Import here to avoid a circular import
     from stable_baselines3.common.env_util import is_wrapped
@@ -41,7 +40,7 @@ def _worker(  # noqa: C901
                     info["terminal_observation"] = observation
                     observation, reset_info = env.reset()
                 remote.send((observation, reward, done, info, reset_info))
-            elif cmd == "eval_step": #Step which also returns current network (used for evaluation)
+            elif cmd == "eval_step":  # Step which also returns current network (used for evaluation)
                 observation, reward, terminated, truncated, info = env.step(data)
                 # convert to SB3 VecEnv api
                 done = terminated or truncated
@@ -118,16 +117,16 @@ class SubprocVecEnv(VecEnv):
         self.closed = False
         self.registry = gym.envs.registry
         n_envs = len(env_fns)
-
         if start_method is None:
             # Fork is not a thread safe method (see issue #217)
-            # but is more user friendly (does not require to wrap the code in
+            # but is more user-friendly (does not require to wrap the code in
             # a `if __name__ == "__main__":`)
             forkserver_available = "forkserver" in mp.get_all_start_methods()
             start_method = "forkserver" if forkserver_available else "spawn"
         ctx = mp.get_context(start_method)
 
         self.remotes, self.work_remotes = zip(*[ctx.Pipe() for _ in range(n_envs)])
+
         self.processes = []
         for work_remote, remote, env_fn in zip(self.work_remotes, self.remotes, env_fns):
             args = (work_remote, remote, CloudpickleWrapper(env_fn))
@@ -139,7 +138,6 @@ class SubprocVecEnv(VecEnv):
 
         self.remotes[0].send(("get_spaces", None))
         observation_space, action_space = self.remotes[0].recv()
-
         super().__init__(len(env_fns), observation_space, action_space)
 
     def step_async(self, actions: np.ndarray) -> None:
@@ -151,7 +149,8 @@ class SubprocVecEnv(VecEnv):
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs, rews, dones, infos, self.reset_infos = zip(*results)  # type: ignore[assignment]
-        return _stack_obs(obs, self.observation_space), np.stack(rews), np.stack(dones), infos  # type: ignore[return-value]
+        return _stack_obs(obs, self.observation_space), np.stack(rews), np.stack(
+            dones), infos  # type: ignore[return-value]
 
     def reset(self) -> VecEnvObs:
         for env_idx, remote in enumerate(self.remotes):
@@ -240,8 +239,14 @@ class SubprocVecEnv(VecEnv):
             remote.send(("network_control", None))
         return [remote.recv() for remote in target_remotes]
 
+    def set_link_to_models(self, models):
+        for remote in self.remotes:
+            remote.send(("set_link_to_models", models))
+        for remote in self.remotes:
+            remote.recv()
+
     def eval_step(self, action: np.ndarray):
-        #Special step method which only sends step method to the first environment - this is used for evaluation
+        # Special step method which only sends step method to the first environment - this is used for evaluation
         remote = self.remotes[0]
         remote.send(("eval_step", action))
         self.waiting = True
@@ -268,10 +273,12 @@ def _stack_obs(obs_list: Union[list[VecEnvObs], tuple[VecEnvObs]], space: spaces
     if isinstance(space, spaces.Dict):
         assert isinstance(space.spaces, dict), "Dict space must have ordered subspaces"
         assert isinstance(obs_list[0], dict), "non-dict observation for environment with Dict observation space"
-        return {key: np.stack([single_obs[key] for single_obs in obs_list]) for key in space.spaces.keys()}  # type: ignore[call-overload]
+        return {key: np.stack([single_obs[key] for single_obs in obs_list]) for key in
+                space.spaces.keys()}  # type: ignore[call-overload]
     elif isinstance(space, spaces.Tuple):
         assert isinstance(obs_list[0], tuple), "non-tuple observation for environment with Tuple observation space"
         obs_len = len(space.spaces)
-        return tuple(np.stack([single_obs[i] for single_obs in obs_list]) for i in range(obs_len))  # type: ignore[index]
+        return tuple(
+            np.stack([single_obs[i] for single_obs in obs_list]) for i in range(obs_len))  # type: ignore[index]
     else:
         return np.stack(obs_list)  # type: ignore[arg-type]

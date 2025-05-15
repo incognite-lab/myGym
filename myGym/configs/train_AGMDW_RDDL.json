@@ -10,7 +10,7 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"tiago_dual_rotslide",
+    "robot"         :"tiago_dual",
     "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.4],
     "max_velocity"  :3,
@@ -32,21 +32,25 @@
     "distractors"           : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
                                        "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
     #Reward
+    "reward"        :"AGMDW",
     "distance_type" :"euclidean",
     "vae_path"      :null,
     "yolact_path"   :null,
     "yolact_config" :null,
     #Train
+    "network_switcher": "decider",
     "train_framework"   :"pytorch",
     "algo"              :"multippo",
+    "num_networks"      :5,
     "max_episode_steps" :512,
     "algo_steps"        :512,
     "steps"             :30000000,
     "pretrained_model"  :null,
-    "multiprocessing"   :null,
+    "multiprocessing":0,
     #Evaluation
     "eval_freq"     :500000,
     "eval_episodes" :50,
     #Saving and logging
+    "logdir"    :"trained_models/AGMDW",
     "record"    :0
     }
