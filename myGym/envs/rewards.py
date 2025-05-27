@@ -430,11 +430,8 @@ class AaG(Protorewards):
         return reward
 
     def decide(self, observation=None):
-        if hasattr(self.env, 'network_switcher') and self.env.network_switcher == 'decider':
-            obs = self.env.observation
-            if isinstance(obs, dict):
-                obs = obs['observation'] if 'observation' in obs else list(obs.values())[0]
-            return self.env.decider_model.predict(obs)
+        if self.env.network_switcher == "decider":
+            return self.env.reward.decider_model.predict(observation)
 
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         if self.env.network_switcher == "keyboard":
@@ -472,11 +469,8 @@ class AaGaM(Protorewards):
         return reward
 
     def decide(self, observation=None):
-        if hasattr(self.env, 'network_switcher') and self.env.network_switcher == 'decider':
-            obs = self.env.observation
-            if isinstance(obs, dict):
-                obs = obs['observation'] if 'observation' in obs else list(obs.values())[0]
-            return self.env.decider_model.predict(obs)
+        if self.env.network_switcher == "decider":
+            return self.env.reward.decider_model.predict(observation)
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
@@ -543,6 +537,8 @@ class AaGaR(Protorewards):
         return reward
 
     def decide(self, observation=None):
+        if self.env.network_switcher == "decider":
+            return self.env.reward.decider_model.predict(observation)
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
         if self.env.network_switcher == "keyboard":
@@ -597,11 +593,8 @@ class AaGaMaD(Protorewards):
         return reward
 
     def decide(self, observation=None):
-        if hasattr(self.env, 'network_switcher') and self.env.network_switcher == 'decider':
-            obs = self.env.observation
-            if isinstance(obs, dict):
-                obs = obs['observation'] if 'observation' in obs else list(obs.values())[0]
-            return self.env.decider_model.predict(obs)
+        if self.env.network_switcher == "decider":
+            return self.env.reward.decider_model.predict(observation)
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
@@ -661,7 +654,6 @@ class AaGaMaDaW(Protorewards):
 
     def decide(self, observation=None):
         if self.env.network_switcher == "decider":
-            # return getattr(self, "current_network", self.decide_fallback(observation))
             return self.env.reward.decider_model.predict(observation)
 
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -722,6 +714,8 @@ class AaGaRaDaW(Protorewards):
         return reward
 
     def decide(self, observation=None):
+        if self.env.network_switcher == "decider":
+            return self.env.reward.decider_model.predict(observation)
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
@@ -827,6 +821,8 @@ class AaGaFaDaW(Protorewards):
         return reward
 
     def decide(self, observation=None):
+        if self.env.network_switcher == "decider":
+            return self.env.reward.decider_model.predict(observation)
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
         if self.env.network_switcher == "keyboard":
@@ -939,6 +935,8 @@ class AaGaTaDaW(Protorewards):
         return reward
 
     def decide(self, observation=None):
+        if self.env.network_switcher == "decider":
+            return self.env.reward.decider_model.predict(observation)
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
         if self.env.network_switcher == "keyboard":
