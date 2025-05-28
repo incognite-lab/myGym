@@ -5,7 +5,6 @@ from collections import ChainMap
 from itertools import chain
 from typing import List, Any
 
-import numpy as np
 import torch as th
 from stable_baselines3.common.utils import obs_as_tensor
 
@@ -157,7 +156,7 @@ class GymEnv(CameraEnv):
             if not isinstance(self.task_objects_dict, dict):
                 exc = f"Expected task_objects to be of type {dict} instead of {type(self.task_objects_dict)}"
                 raise Exception(exc)
-            # # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
+            # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
 
         self.rng = np.random.default_rng(seed=0)
         self.task_objects_were_given_as_list = isinstance(self.task_objects_dict, list)
