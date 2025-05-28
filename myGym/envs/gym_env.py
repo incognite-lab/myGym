@@ -5,7 +5,6 @@ from collections import ChainMap
 from itertools import chain
 from typing import List, Any
 
-import numpy as np
 import torch as th
 from stable_baselines3.common.utils import obs_as_tensor
 
@@ -155,7 +154,7 @@ class GymEnv(CameraEnv):
             if not isinstance(self.task_objects_dict, dict):
                 exc = f"Expected task_objects to be of type {dict} instead of {type(self.task_objects_dict)}"
                 raise Exception(exc)
-            # # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
+            # just some dummy settings so that _set_observation_space() doesn't throw exceptions at the beginning
 
         self.rng = np.random.default_rng(seed=0)
         self.task_objects_were_given_as_list = isinstance(self.task_objects_dict, list)
@@ -165,7 +164,6 @@ class GymEnv(CameraEnv):
 
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 
-
     def _init_task_and_reward(self):
         if self.unwrapped.reward == 'distractor':
             self.has_distractor = True
@@ -173,12 +171,11 @@ class GymEnv(CameraEnv):
         reward_classes = {
             "1-network": {"A": A, },
             "2-network": {"AG": AaG},
-            "3-network": {"AGM": AaGaM},
-            "3-network": {"AGR": AaGaR},
-            "4-network": {"AGMD" : AaGaMaD},
+            "3-network": {"AGM": AaGaM, "AGR": AaGaR},
+            "4-network": {"AGMD": AaGaMaD},
             "5-network": {"AGMDW": AaGaMaDaW, "AGRDW": AaGaRaDaW, "AGFDW": AaGaFaDaW, "AGTDW": AaGaTaDaW}
         }
-    
+
         scheme = "{}-network".format(str(self.num_networks))
         assert self.unwrapped.reward in reward_classes[
             scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
@@ -194,7 +191,6 @@ class GymEnv(CameraEnv):
 
     def get_wrapper_attr(self, name: str) -> Any:
         return getattr(self.unwrapped, name)
-
 
     def _setup_scene(self):
         """

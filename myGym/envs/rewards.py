@@ -424,10 +424,14 @@ class AaG(Protorewards):
         return reward
 
     def decide(self, observation=None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
         if self.env.network_switcher == "decider":
+            if self.gripper_closed(gripper_states):
+                self.task.check_goal()
+            self.task.check_episode_steps()
             return self.env.reward.decider_model.predict(observation)
 
-        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
         else:
@@ -463,9 +467,14 @@ class AaGaM(Protorewards):
         return reward
 
     def decide(self, observation=None):
-        if self.env.network_switcher == "decider":
-            return self.env.reward.decider_model.predict(observation)
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
+        if self.env.network_switcher == "decider":
+            if self.object_near_goal(object_position, goal_position):
+                self.task.check_goal()
+            self.task.check_episode_steps()
+            return self.env.reward.decider_model.predict(observation)
+
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
         else:
@@ -529,9 +538,13 @@ class AaGaR(Protorewards):
         return reward
 
     def decide(self, observation=None):
-        if self.env.network_switcher == "decider":
-            return self.env.reward.decider_model.predict(observation)
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
+        if self.env.network_switcher == "decider":
+            if self.object_near_goal(object_position, goal_position):
+                self.task.check_goal()
+            self.task.check_episode_steps()
+            return self.env.reward.decider_model.predict(observation)
 
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
@@ -585,9 +598,14 @@ class AaGaMaD(Protorewards):
         return reward
 
     def decide(self, observation=None):
-        if self.env.network_switcher == "decider":
-            return self.env.reward.decider_model.predict(observation)
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
+        if self.env.network_switcher == "decider":
+            if self.gripper_opened(gripper_states):
+                self.task.check_goal()
+            self.task.check_episode_steps()
+            return self.env.reward.decider_model.predict(observation)
+
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
         else:
@@ -645,10 +663,14 @@ class AaGaMaDaW(Protorewards):
         return reward
 
     def decide(self, observation=None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
         if self.env.network_switcher == "decider":
+            if self.gripper_withdraw_object(gripper_position, object_position):
+                self.task.check_goal()
+            self.task.check_episode_steps()
             return self.env.reward.decider_model.predict(observation)
 
-        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
         else:
@@ -706,9 +728,14 @@ class AaGaRaDaW(Protorewards):
         return reward
 
     def decide(self, observation=None):
-        if self.env.network_switcher == "decider":
-            return self.env.reward.decider_model.predict(observation)
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
+        if self.env.network_switcher == "decider":
+            if self.gripper_withdraw_object(gripper_position, object_position):
+                self.task.check_goal()
+            self.task.check_episode_steps()
+            return self.env.reward.decider_model.predict(observation)
+
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
         else:
@@ -811,9 +838,13 @@ class AaGaFaDaW(Protorewards):
         return reward
 
     def decide(self, observation=None):
-        if self.env.network_switcher == "decider":
-            return self.env.reward.decider_model.predict(observation)
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
+        if self.env.network_switcher == "decider":
+            if self.gripper_withdraw_object(gripper_position, object_position):
+                self.task.check_goal()
+            self.task.check_episode_steps()
+            return self.env.reward.decider_model.predict(observation)
 
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
@@ -923,9 +954,13 @@ class AaGaTaDaW(Protorewards):
         return reward
 
     def decide(self, observation=None):
-        if self.env.network_switcher == "decider":
-            return self.env.reward.decider_model.predict(observation)
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
+        if self.env.network_switcher == "decider":
+            if self.gripper_withdraw_object(gripper_position, object_position):
+                self.task.check_goal()
+            self.task.check_episode_steps()
+            return self.env.reward.decider_model.predict(observation)
 
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
