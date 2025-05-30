@@ -49,7 +49,7 @@ def _flatten_observation(obs):
 
 class DeciderPolicy(nn.Module):
     def __init__(self, obs_dim, num_networks, hidden_dim=128, lr=1e-3, buffer_size=10000, batch_size=64,
-                 entropy_coef=0.01, baseline_beta=0.9):
+                 entropy_coef=0.01, baseline_beta=0.9, temperature=1.5):
         super().__init__()
         self.model = nn.Sequential(
             nn.Linear(obs_dim, hidden_dim),
@@ -63,6 +63,7 @@ class DeciderPolicy(nn.Module):
         self.num_networks = num_networks
         self.entropy_coef = entropy_coef
         self.baseline_beta = baseline_beta
+        self.temperature = temperature
         self.register_buffer('running_reward_mean', th.tensor(0.0))
 
     def predict(self, obs, deterministic=False):
@@ -70,7 +71,9 @@ class DeciderPolicy(nn.Module):
             obs = _flatten_observation(
                 obs)  # maybe remove goal state if we want Decider to act blindly just based on the current state
             logits = self.model(th.tensor(obs, dtype=th.float32))
-            probs = F.softmax(logits,
+            self.temperature *= 0.995  # decay each update
+            self.temperature = max(self.temperature, 0.5)
+            probs = F.softmax(logits / self.temperature,
                               dim=0)  # decider can be trained using cross-entropy loss, comparing the predicted distribution with the "good choices"
             if deterministic:
                 return th.argmax(probs).item()
