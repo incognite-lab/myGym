@@ -189,7 +189,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         self.step_counter = 0
         self.switch_penalty_active = False
         self.last_network_idx = None
-        self.switch_penalty_coef = 0.1  # adjust if needed
+        self.switch_penalty_coef = 0.05  # adjust if needed
         self.switch_to_penalty_step = 100000  # switch mode after 100k steps
 
         # Initialize Decider if selected
@@ -361,7 +361,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                         network_idx = self.current_network_idx
 
                     real_env.reward.current_network = network_idx
-                    print(f"[Decider] Selected network: {network_idx}")
+                    # print(f"[Decider] Selected network: {network_idx}")
                 model = self.models[i]
                 indices = np.where(owner == i)
                 action_i, state_i = model.policy.predict(observation, state, episode_start, deterministic)
@@ -389,7 +389,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     network_idx = self.current_network_idx
 
                 real_env.reward.current_network = network_idx
-                print(f"[Decider] Selected network: {network_idx}")
+                # print(f"[Decider] Selected network: {network_idx}")
 
             model = self.models[owner]
             actions, state = model.policy.predict(observation, state, episode_start, deterministic)
