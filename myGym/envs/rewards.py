@@ -1,4 +1,3 @@
-# from stable_baselines import results_plotter
 import os
 import time
 
@@ -175,8 +174,6 @@ class Protorewards(Reward):
     def get_positions(self, observation):
         goal_position = observation["goal_state"]
         object_position = observation["actual_state"]
-        # gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
-        # gripper_position = self.env.robot.get_accurate_gripper_position()  # observation["additional_obs"][gripper_name][:3]
         gripper_position = observation["additional_obs"]["endeff_xyz"]
         gripper_states = self.env.robot.get_gjoints_states()
 
@@ -196,7 +193,7 @@ class Protorewards(Reward):
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) + ((gripdist - self.last_grip_dist) * 0.2)
+        reward = (self.last_approach_dist - dist) + ((gripdist - self.last_grip_dist) * 0.5)
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -212,8 +209,8 @@ class Protorewards(Reward):
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
         if dist >= self.withdraw_threshold:  # rewarding only up to distance which should finish the task
-            reward = 0  # This is done so that robot doesn't learn to drop object out of goal and then get the biggest reward by
-            # withdrawing without finishing the task
+            reward = 0  # This is done so that robot doesn't learn to drop object out of goal and then get the biggest
+            # reward by withdrawing without finishing the task
         else:
             reward = (dist - self.last_approach_dist) + ((gripdist - self.last_grip_dist) * 0.2)
         self.last_approach_dist = dist
@@ -230,7 +227,7 @@ class Protorewards(Reward):
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) * 0.2 + ((self.last_grip_dist - gripdist) * 10)
+        reward = (self.last_approach_dist - dist) * 0.2 + ((self.last_grip_dist - gripdist) * 2)
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -245,7 +242,7 @@ class Protorewards(Reward):
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) * 0.2 + ((gripdist - self.last_grip_dist) * 10)
+        reward = (self.last_approach_dist - dist) * 0.2 + ((gripdist - self.last_grip_dist) * 5)
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -262,9 +259,7 @@ class Protorewards(Reward):
             self.last_move_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        distance_rew = (self.last_move_dist - dist)
-        gripper_rew = (self.last_grip_dist - gripdist) * 0.1
-        reward = distance_rew + gripper_rew
+        reward = (self.last_move_dist - dist) + (self.last_grip_dist - gripdist) * 0.2
         self.last_move_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -476,8 +471,8 @@ class AaGaM(Protorewards):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
         if self.env.network_switcher == "decider":
-            if self.object_near_goal(object_position, goal_position):
-                self.task.check_goal()
+            # if self.object_near_goal(object_position, goal_position):
+            self.task.check_goal()
             self.task.check_episode_steps()
             return self.env.reward.decider_model.predict(observation)
 
@@ -609,8 +604,8 @@ class AaGaMaD(Protorewards):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
         if self.env.network_switcher == "decider":
-            if self.gripper_opened(gripper_states):
-                self.task.check_goal()
+            # if self.gripper_opened(gripper_states):
+            self.task.check_goal()
             self.task.check_episode_steps()
             return self.env.reward.decider_model.predict(observation)
 
@@ -647,6 +642,7 @@ class AaGaMaDaW(Protorewards):
         self.network_names = ["approach", "grasp", "move", "drop", "withdraw"]
 
     def compute(self, observation=None):
+
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = getattr(self, "current_network", self.decide(observation))
 
@@ -662,7 +658,11 @@ class AaGaMaDaW(Protorewards):
                 *target)
 
         if self.env.episode_terminated:
-            reward += 0.2  # Adding reward for succesful finish of episode
+            reward += 1.0  # Adding reward for successful finish of episode
+
+        if hasattr(self.env, "decider_model"):
+            self.env.reward.decider_model.store(observation, owner, reward)
+
         #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
