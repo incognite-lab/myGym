@@ -189,14 +189,16 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         self.step_counter = 0
         self.switch_penalty_active = False
         self.last_network_idx = None
-        self.switch_penalty_coef = 0.05  # adjust if needed
-        self.switch_to_penalty_step = 100000  # switch mode after 100k steps
+        self.switch_penalty_coef = 0.01  # adjust if needed
+        self.switch_to_penalty_step = 90000  # switch mode after 100k steps
 
         # Initialize Decider if selected
         if hasattr(env.unwrapped, 'network_switcher') and env.unwrapped.network_switcher == "decider":
             obs_dim = self.observation_space.shape[0]
             self.decider = DeciderPolicy(obs_dim=obs_dim, num_networks=self.models_num)
             self.env.reset()
+            # Reset decider hidden state at the start of an episode
+            self.decider.reset_hidden()
             if hasattr(self.env, 'reward'):
                 print("Setting decider model")
                 self.env.reward.decider_model = self.decider
@@ -214,6 +216,9 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
         super()._setup_model()
         self.env.reset()
+        if hasattr(self.env.unwrapped, 'network_switcher') and self.env.unwrapped.network_switcher == "decider":
+            self.decider.reset_hidden()
+
         # Initialize schedules for policy/value clipping
         self.clip_range = get_schedule_fn(self.clip_range)
         if self.clip_range_vf is not None:
@@ -343,7 +348,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             for i in range(np.max(owner) + 1):
                 if self.decider is not None:
                     if self.step_counter >= self.switch_to_penalty_step:
-                        print("SWITCHING TO PENALTY MODE")
+                        # print("SWITCHING TO PENALTY MODE")
                         self.switch_penalty_active = True
 
                     if self.switch_penalty_active:
@@ -355,7 +360,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     else:
                         if self.current_network_idx is None or self.step_counter >= self.lock_until_step:
                             self.current_network_idx = self.decider.predict(observation)
-                            self.lock_until_step = self.step_counter + 200
+                            self.lock_until_step = self.step_counter + 150
                             print(
                                 f"[Decider] Lock-in multi: selected network {self.current_network_idx} until {self.lock_until_step} step")
                         network_idx = self.current_network_idx
@@ -371,7 +376,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         else:
             if self.decider is not None:
                 if self.step_counter >= self.switch_to_penalty_step:
-                    print("SWITCHING TO PENALTY MODE")
+                    # print("SWITCHING TO PENALTY MODE")
                     self.switch_penalty_active = True
 
                 if self.switch_penalty_active:
@@ -380,16 +385,16 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                         if hasattr(real_env.reward, "apply_switch_penalty"):
                             real_env.reward.apply_switch_penalty(self.switch_penalty_coef)
                     self.last_network_idx = network_idx
+                    print(f"[Decider] Selected network: {network_idx}")
                 else:
                     if self.current_network_idx is None or self.step_counter >= self.lock_until_step:
                         self.current_network_idx = self.decider.predict(observation)
-                        self.lock_until_step = self.step_counter + 200
+                        self.lock_until_step = self.step_counter + 150
                         print(
                             f"[Decider] Lock-in single: selected network {self.current_network_idx} until {self.lock_until_step} step")
                     network_idx = self.current_network_idx
 
                 real_env.reward.current_network = network_idx
-                # print(f"[Decider] Selected network: {network_idx}")
 
             model = self.models[owner]
             actions, state = model.policy.predict(observation, state, episode_start, deterministic)
@@ -551,7 +556,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     explained_vars.append(explained_variance(flat_val, np.array(ret_arr).flatten()))
                 except Exception as e:
                     print("Exception", e)
-                    print("happened at line line 423 in multi_ppo_SB3.py")
+                    print("happened at line 423 in multi_ppo_SB3.py")
                     explained_vars.append(np.nan)
             else:
                 explained_vars.append(np.nan)
