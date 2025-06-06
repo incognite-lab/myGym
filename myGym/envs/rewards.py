@@ -188,7 +188,8 @@ class Protorewards(Reward):
 
         if self.prev_object_position is None:
             self.prev_object_position = object_position
-        goal_position += np.array(self.above_offset)
+        if self.__class__.__name__ in ["AaGaM", "AaGaMaD", "AaGaMaDaW"]:
+            goal_position += np.array(self.above_offset)
         return goal_position, object_position, gripper_position, gripper_states
 
     #### PROTOREWARDS DEFINITIONS  ####
@@ -371,7 +372,7 @@ class Protorewards(Reward):
     def gripper_closed(self, gripper_states):
         if sum(gripper_states) <= self.closegr_threshold:
             try:
-                self.env.robot.grasp_object(self.env.env_objects["actual_state"])
+                #self.env.robot.grasp_object(self.env.env_objects["actual_state"])
                 self.env.robot.set_magnetization(True)
                 return True
             except:

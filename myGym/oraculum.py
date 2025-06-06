@@ -55,6 +55,8 @@ def perform_oraculum_task(t: int, env: Any, arg_dict: Dict[str, Any],
                 action[:3] = info['o']["goal_state"][:3]
         elif reward_name == "drop":
             _set_gripper_action(action, GRIPPER_OPEN, gripper)
+        elif reward_name == "rotate":
+            action = info['o']["goal_state"] #rotate action includes both position and orientation
         elif reward_name == "withdraw":
             distance_to_goal = np.linalg.norm(
                 np.array(info['o']["goal_state"][:3]) - np.array(info['o']["actual_state"][:3]))
@@ -94,7 +96,6 @@ def _get_approach_action(env: Any, info: Dict[str, Any]) -> np.ndarray:
         action[2] += 0.05
         print("Too close to table, raising hand: {}".format(action))
     return action
-
 
 def _set_gripper_action(action: np.ndarray, state: int, gripper: bool) -> None:
     """

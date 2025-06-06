@@ -176,12 +176,12 @@ class GymEnv(CameraEnv):
         reward_classes = {
             "1-network": {"A": A,},
             "2-network": {"AG": AaG},
-            "3-network": {"AGM": AaGaM},
+            "3-network": {"AGM": AaGaM, "AGR": AaGaR},
             "4-network": {"AGMD" : AaGaMaD},
-            "5-network": {"AGMDW" : AaGaMaDaW},
-            "5-network": {"AGRDW" : AaGaRaDaW},
-            "5-network": {"AGFDW" : AaGaFaDaW},
-            "5-network": {"AGTDW" : AaGaTaDaW}}
+            "5-network": {"AGMDW" : AaGaMaDaW, "AGRDW": AaGaRaDaW}}
+            # "5-network": {"AGRDW" : AaGaRaDaW},
+            # "5-network": {"AGFDW" : AaGaFaDaW},
+            # "5-network": {"AGTDW" : AaGaTaDaW}}
         
     
         scheme = "{}-network".format(str(self.num_networks))
@@ -220,7 +220,7 @@ class GymEnv(CameraEnv):
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
                   "init_joint_poses": self.robot_init_joint_poses, "max_velocity": self.max_velocity,
                   "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
-                  "pybullet_client": self.p}
+                  "pybullet_client": self.p, "reward_type": self.unwrapped.reward} #TODO: reward type has to be changed
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
         if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
 

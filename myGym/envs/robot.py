@@ -36,12 +36,14 @@ class Robot:
                  init_joint_poses=None,
                  robot_action="step",
                  task_type="reach",
+                 use_orientation_in_inv_kinematics = False,
                  use_fixed_end_effector_orn=False,
                  end_effector_orn=[0, -math.pi, 0],
                  dimension_velocity = 0.5,
                  max_velocity = None, #1.,
                  max_force = None, #50.,
-                 pybullet_client=None):
+                 pybullet_client=None,
+                 reward_type = None):
         self.debug = False
         self.p = pybullet_client
         self.robot_dict = get_robot_dict()
@@ -55,6 +57,7 @@ class Robot:
         self.end_effector_index = end_effector_index
         self.gripper_index = gripper_index
         self.use_fixed_end_effector_orn = use_fixed_end_effector_orn
+        self.use_orientation_in_inv_kinematics = use_orientation_in_inv_kinematics
         self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(end_effector_orn)
         self.dimension_velocity = dimension_velocity
         self.use_magnet = False
@@ -81,9 +84,12 @@ class Robot:
         self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
         self.opengr_threshold = 0.07
         self.closegr_threshold = 0.001
-        #else:
-        #self.init_joint_poses = np.zeros((len(self.motor_names)))
-        #self.reset()
+        if 'R' in reward_type:
+            self.orientation_in_rew = True
+        else:
+            self.orientation_in_rew = False
+        self.iter_index = 0 #TODO: remove this before commiting (with its usages as well)
+        self.offset_quat = self.p.getQuaternionFromEuler((0, 0, 0))
         
 
     def _load_robot(self):
@@ -272,7 +278,7 @@ class Robot:
 
     def get_observation_dimension(self):
         """
-        Get dimension of robot part of observation data, based on robot task and rewatd type
+        Get dimension of robot part of observation data, based on robot task and reward type
 
         Returns:
             :return dimension: (int) The dimension of observation data
@@ -384,8 +390,7 @@ class Robot:
         #print(gjoints)
         
 
-
-    def _calculate_joint_poses(self, end_effector_pos):
+    def _calculate_joint_poses(self, end_effector_pos, endeff_orientation = None):
         """
         Calculate joint poses corresponding to desired position of end-effector. Uses inverse kinematics.
 
@@ -394,19 +399,25 @@ class Robot:
         Returns:
             :return joint_poses: (list) Calculated joint poses corresponding to desired end-effector position
         """
-        if (self.use_fixed_end_effector_orn):
-            joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
-                                                       self.end_effector_index,
-                                                       end_effector_pos,
-                                                       self.fixed_end_effector_orn,
-                                                       lowerLimits=self.joints_limits[0],
-                                                       upperLimits=self.joints_limits[1],
-                                                       jointRanges=self.joints_ranges,
-                                                       restPoses=self.joints_rest_poses)
+        if endeff_orientation is None:
+            if (self.use_fixed_end_effector_orn):
+                joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
+                                                           self.end_effector_index,
+                                                           end_effector_pos,
+                                                           self.fixed_end_effector_orn,
+                                                           lowerLimits=self.joints_limits[0],
+                                                           upperLimits=self.joints_limits[1],
+                                                           jointRanges=self.joints_ranges,
+                                                           restPoses=self.joints_rest_poses)
+            else:
+                joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
+                                                           self.end_effector_index,
+                                                           end_effector_pos)
         else:
             joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
-                                                       self.end_effector_index,
-                                                       end_effector_pos)
+                                                           self.end_effector_index,
+                                                           end_effector_pos,
+                                                           endeff_orientation)
         joint_poses = np.clip(joint_poses[:len(self.motor_indices)], self.joints_limits[0], self.joints_limits[1])
         return joint_poses
 
@@ -538,8 +549,8 @@ class Robot:
         Jt, Jr = self.p.calculateJacobian(self.robot_uid, self.end_effector_index, [0,0,0], joint_states, joint_velocities, [10]*(len(joint_states)))
         J = np.array([Jt,Jr]).reshape(-1, len(joint_states))
         tau = np.dot(J.T, F) # + robot.coriolis_comp().reshape(7,1)
-
         self._run_motors_torque(tau)
+
 
     def apply_action_step(self, action):
         """
@@ -561,10 +572,36 @@ class Robot:
         Parameters:
             :param action: (list) Desired action data
         """
+        self.iter_index += 1
         des_end_effector_pos = action[:3]
-        joint_poses = self._calculate_joint_poses(des_end_effector_pos)
+        if len(action) == 7:
+            des_endeff_orientation = self.gripper_transform(action[3:7])
+        else:
+            des_endeff_orientation = None
+        joint_poses = self._calculate_joint_poses(des_end_effector_pos, des_endeff_orientation)
         self._run_motors(joint_poses)
-        
+
+
+    def object_transform(self, quat):
+        """
+        Transforms the given quaternion with the object offset quat
+        """
+        des_object_orientation = self.p.multiplyTransforms([0, 0, 0], quat, [0, 0, 0],
+                                                           self.p.invertTransform([0, 0, 0], self.offset_quat)[1])[1]
+        return des_object_orientation
+
+
+    def set_offset_quat(self, object_orientation):
+        self.offset_quat = self.p.getDifferenceQuaternion(object_orientation, self.get_orientation())
+
+
+    def gripper_transform(self, quat):
+        """
+        Inverse of object transform
+        """
+        des_endeff_orientation = self.p.multiplyTransforms([0, 0, 0], quat, [0, 0, 0],
+                                                           self.offset_quat)[1]
+        return des_endeff_orientation
 
     def apply_action_joints(self, action):
         """
@@ -592,6 +629,13 @@ class Robot:
         Parameters:
             :param action: (list) Desired action data
         """
+        if self.iter_index%30 == 0:
+            print("---------------------------------------")
+            for key, val in self.magnetized_objects.items():
+                print("object orientation:", self.p.getConstraintInfo(val)[8])
+                print("gripper orientation:", self.get_orientation())
+                print("desired object orientation:", action[3:7])
+                print("desired gripper orientation:", self.gripper_transform(action[3:7]))
         if "step" in self.robot_action:
             self.apply_action_step(action)
         elif "absolute" in self.robot_action:
@@ -600,7 +644,7 @@ class Robot:
             self.apply_action_joints(action)
         if "gripper" in self.robot_action:
             self._move_gripper(action[-(self.gjoints_num):])
-            if self.task_type in ["compositional", "AG", "AGM", "AGMD", "AGMDW", "AGRDW", "AGFDW","AGTDW"]:
+            if self.task_type in ["compositional", "AG", "AGM", "AGR", "AGMD", "AGMDW", "AGRDW", "AGFDW","AGTDW"]:
                 if env_objects["actual_state"] != self and self.use_magnet: #if self.use_magnet and ...
                     gripper_states = self.get_gjoints_states()
                     if sum(gripper_states) < self.closegr_threshold:
@@ -610,8 +654,18 @@ class Robot:
                         self.release_all_objects()
                 if len(self.magnetized_objects):
                     for key, val in self.magnetized_objects.items():
-                        self.p.changeConstraint(val, self.get_position(), maxForce=100000)
-                    # self.p.resetBasePositionAndOrientation(val,self.end_effector_pos,self.end_effector_ori)
+                        if self.orientation_in_rew:
+                            self.p.removeConstraint(val)
+                            object_ori = self.object_transform(self.get_orientation())
+                            constraint_id = self.p.createConstraint(key.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0],
+                                                                    [0, 0, 0],
+                                                                    self.get_position(),
+                                                                    parentFrameOrientation=object_ori, childFrameOrientation=object_ori)
+                            self.magnetized_objects[key] = constraint_id
+                            self.p.resetBasePositionAndOrientation(key.uid, self.end_effector_pos, object_ori)
+                        else:
+                            self.p.changeConstraint(val, self.get_position(), self.get_orientation(),
+                                                    maxForce=self.max_force)
         else:
             if self.gjoints_num:
                 self._move_gripper(self.gjoints_limits[1])
@@ -626,18 +680,18 @@ class Robot:
                 if self.use_magnet and env_objects["actual_state"] != self:
                     self.gripper_active = True
                     self.magnetize_object(env_objects["actual_state"])
-            #    else:
-            #        self.gripper_active = False
-            #        self.release_all_objects()
-            #else:
-            #    self.apply_action_joints(action)
-        
-            if len(self.magnetized_objects):
-            #pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
-            #ori_diff = np.array(self.end_effector_ori) - np.array(self.end_effector_prev_ori)
                 for key,val in self.magnetized_objects.items():
-                    self.p.changeConstraint(val, self.get_position(),self.get_orientation(), maxForce=self.max_force)
-                #self.p.resetBasePositionAndOrientation(val,self.end_effector_pos,self.end_effector_ori)
+                    if self.orientation_in_rew:
+                        self.p.removeConstraint(val)
+                        desired_orientation = self.p.multiplyTransforms([0,0,0], self.get_orientation(), [0,0,0], self.offset_quat)
+                        constraint_id = self.p.createConstraint(val.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0],
+                                                                [0, 0, 0],
+                                                                self.get_position(), parentFrameOrientation= desired_orientation)
+                        self.magnetized_objects[val] = constraint_id
+                    else:
+                        self.p.changeConstraint(val, self.get_position(),self.get_orientation(), maxForce=self.max_force)
+                    #self.p.resetBasePositionAndOrientation(val,self.end_effector_pos,self.end_effector_ori)
+
             #self.end_effector_prev_pos = self.end_effector_pos
             #self.end_effector_prev_ori = self.end_effector_ori
         #if 'gripper' not in self.robot_action:
@@ -646,20 +700,24 @@ class Robot:
 
     def magnetize_object(self, object, distance_threshold=.1):
         if len(self.magnetized_objects) == 0 :
-            
             if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
                 self.p.changeVisualShape(object.uid, -1, rgbaColor=[.8, .1 , 0.1, 1])
-                #self.end_effector_prev_pos = self.end_effector_pos
-                #self.end_effector_prev_ori = self.end_effector_ori
-                self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())
-                constraint_id = self.p.createConstraint(object.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0],
-                                      self.get_position())
-                #self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())
+                self.set_offset_quat(object.get_orientation())
+                endeff_ori = self.get_orientation()
+                desired_orientation = self.p.multiplyTransforms([0,0,0], self.get_orientation(), [0,0,0], self.offset_quat)
+                self.p.resetBasePositionAndOrientation(object.uid, self.get_position(), self.object_transform(endeff_ori))
+                if self.orientation_in_rew:
+                    constraint_id = self.p.createConstraint(object.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0],
+                                      self.get_position(), parentFrameOrientation = desired_orientation)
+                else:
+                    constraint_id = self.p.createConstraint(object.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0],
+                                                            [0, 0, 0],
+                                                            self.get_position())
                 self.magnetized_objects[object] = constraint_id
                 self.gripper_active = True
 
     def grasp_object(self, object):
-        if len(self.magnetized_objects) == 0 :
+        if len(self.magnetized_objects) == 0:
             self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 1 , 0, 0.5])
             self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())
             constraint_id = self.p.createConstraint(
