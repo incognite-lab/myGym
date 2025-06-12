@@ -1,4 +1,5 @@
 from re import S
+import importlib.resources as pkg_resources
 from myGym.utils.vector import Vector
 import numpy as np
 import math
@@ -65,12 +66,12 @@ class Robot(EnvObject):
         self.use_magnet = False
         self.motor_names = []
         self.motor_indices = []
-        self.motor_positions=[]
+        self.rjoint_positions=[]
         self.link_names = []
         self.link_indices = []
         self.gripper_names = []
         self.gripper_indices = []
-        self.gripper_positions=[]
+        self.gjoint_positions=[]
         self.robot_action = robot_action
         self.task_type = task_type
         self.magnetized_objects = {}
@@ -262,6 +263,16 @@ class Robot(EnvObject):
         for link in range(self.joints_num):
            joints.append(self.p.getJointState(self.uid,link)[0])
         return joints
+    
+    def get_gjoints_states(self):
+        """
+        Returns the current positions of all robot's joints
+        """
+        gjoints = []
+        for link in self.gripper_indices:
+           gjoints.append(self.p.getJointState(self.robot_uid,link)[0])
+
+        return gjoints
 
     def get_observation_dimension(self):
         """
@@ -346,6 +357,7 @@ class Robot(EnvObject):
                                     maxVelocity=self.joints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3)
+            
         
         self.end_effector_pos = self.p.getLinkState(self.uid, self.end_effector_index)[0]
         self.end_effector_orn = self.p.getLinkState(self.uid, self.end_effector_index)[1]
@@ -368,6 +380,9 @@ class Robot(EnvObject):
                                     maxVelocity=self.gjoints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3)
+        
+        gjoints = self.get_gjoints_states()
+        #print(gjoints)
         
 
 
@@ -586,15 +601,29 @@ class Robot(EnvObject):
             self.apply_action_joints(action)
         if "gripper" in self.robot_action:
             self._move_gripper(action[-(self.gjoints_num):])
+            if self.task_type in ["compositional", "AG", "AGM", "AGR" "AGMD", "AGMDW", "AGRDW", "AGFDW","AGTDW"]:
+                if env_objects["actual_state"] != self and self.use_magnet: #if self.use_magnet and ...
+                    gripper_states = self.get_gjoints_states()
+                    if sum(gripper_states) < self.closegr_threshold:
+                        self.gripper_active = True
+                        self.magnetize_object(env_objects["actual_state"])
+                    elif sum(gripper_states) > self.opengr_threshold:
+                        self.release_all_objects()
+                if len(self.magnetized_objects):
+                    for key, val in self.magnetized_objects.items():
+                        self.p.changeConstraint(val, self.get_position(), maxForce=100000)
+                    # self.p.resetBasePositionAndOrientation(val,self.end_effector_pos,self.end_effector_ori)
         else:
             if self.gjoints_num:
                 self._move_gripper(self.gjoints_limits[1])
+                #self.gripper_active = True
+                #self.magnetize_object(env_objects["actual_state"])
             if "pnp" in self.task_type: 
             #"Need to provide env_objects to use gripper"
             #When gripper is not in robot action it will magnetize objects
                 self.gripper_active = True
                 self.magnetize_object(env_objects["actual_state"])
-            elif self.task_type in ["compositional", "fmot"]:
+            elif self.task_type in ["compositional"]:
                 if self.use_magnet and env_objects["actual_state"] != self:
                     self.gripper_active = True
                     self.magnetize_object(env_objects["actual_state"])
@@ -608,7 +637,7 @@ class Robot(EnvObject):
             #pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
             #ori_diff = np.array(self.end_effector_ori) - np.array(self.end_effector_prev_ori)
                 for key,val in self.magnetized_objects.items():
-                    self.p.changeConstraint(val, self.get_position(),self.get_orientation())
+                    self.p.changeConstraint(val, self.get_position(),self.get_orientation(), maxForce=self.max_force)
                 #self.p.resetBasePositionAndOrientation(val,self.end_effector_pos,self.end_effector_ori)
             #self.end_effector_prev_pos = self.end_effector_pos
             #self.end_effector_prev_ori = self.end_effector_ori
@@ -629,6 +658,25 @@ class Robot(EnvObject):
                 #self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())
                 self.magnetized_objects[object] = constraint_id
                 self.gripper_active = True
+
+    def grasp_object(self, object):
+        if len(self.magnetized_objects) == 0 :
+            self.p.changeVisualShape(object.uid, -1, rgbaColor=[0, 1 , 0, 0.5])
+            self.p.resetBasePositionAndOrientation(object.uid,self.get_position(),self.get_orientation())
+            constraint_id = self.p.createConstraint(
+                                parentBodyUniqueId=object.uid,
+                                parentLinkIndex=-1,
+                                childBodyUniqueId=-1,
+                                childLinkIndex=-1,
+                                jointType=self.p.JOINT_FIXED,
+                                jointAxis=[0, 0, 0],
+                                parentFramePosition=[0, 0, 0],
+                                childFramePosition=self.get_position(),
+                                parentFrameOrientation=[0, 0, 0, 1],
+                                childFrameOrientation=self.get_orientation(),
+                                )
+            self.magnetized_objects[object] = constraint_id
+            self.gripper_active = True
 
     def release_object(self, object):
         if object in self.magnetized_objects.keys():

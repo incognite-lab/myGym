@@ -16,11 +16,10 @@ from pycocotools import mask
 import pybullet as p
 from bbox import BBox3D
 from myGym.envs.wrappers import RandomizedEnvWrapper
-import importlib.resources as resources
-
+import importlib.resources as pkg_resources
 
 # config, specify here or pass as an input argument
-CONFIG_DEFAULT = resources.files("myGym").joinpath("configs/dataset_coco.json")
+CONFIG_DEFAULT = os.path.join(pkg_resources.files("myGym"), 'configs/dataset_coco.json')
 
 # helper functions:
 def color_names_to_rgb():

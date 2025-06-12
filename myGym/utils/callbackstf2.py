@@ -10,7 +10,7 @@ import imageio
 from typing import Union, List, Dict, Any, Optional
 from tqdm.auto import tqdm
 import numpy as np
-#import tensorflow as tf
+import tensorflow as tf
 import gymnasium as gym
 
 import warnings
