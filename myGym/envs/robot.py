@@ -66,12 +66,12 @@ class Robot(EnvObject):
         self.use_magnet = False
         self.motor_names = []
         self.motor_indices = []
-        self.rjoint_positions=[]
+        self.motor_positions=[]
         self.link_names = []
         self.link_indices = []
         self.gripper_names = []
         self.gripper_indices = []
-        self.gjoint_positions=[]
+        self.gripper_positions=[]
         self.robot_action = robot_action
         self.task_type = task_type
         self.magnetized_objects = {}

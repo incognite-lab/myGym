@@ -33,16 +33,16 @@ class BaseEnv(gym.Env):
 
     def __init__(self,
                  gui_on=True,
-                 objects_dir_path=resources.files("myGym").joinpath("envs"),
+                 objects_dir_path=pkg_resources.files("myGym").joinpath("envs"),
                  max_steps=1024,
                  show_bounding_boxes_gui=False,
                  changing_light_gui=False,
                  shadows_on_gui=True
                  ):
         self.gui_on = gui_on
-        self.max_episode_steps = max_ep_steps
+        self.max_episode_steps = max_steps
         self.spec = envs.spec('Gym-v0')
-        self.spec.max_episode_steps = max_ep_steps
+        self.spec.max_episode_steps = max_steps
         self.show_bounding_boxes_gui = show_bounding_boxes_gui
         self.changing_light_gui = changing_light_gui
         self.shadows_on_gui = shadows_on_gui
@@ -50,8 +50,7 @@ class BaseEnv(gym.Env):
 
         # Set episode information
         self.episode_start_time = None
-        self.episode_terminated = False
-        self.episode_truncated = False
+        self.episode_over = False
         self.episode_failed = False
         self.episode_reward = 0.0
         self.episode_final_reward = []

@@ -1,6 +1,6 @@
 import copy
 from typing import List, Any
-
+import warnings
 from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
@@ -19,6 +19,7 @@ from myGym.envs.human import Human
 import myGym.utils.colors as cs
 from myGym.utils.helpers import get_module_type
 from myGym.envs.natural_language import NaturalLanguage
+from myGym.envs.task import TaskModule
 import torch as th
 from stable_baselines3.common.utils import obs_as_tensor
 
@@ -125,7 +126,6 @@ class GymEnv(CameraEnv):
         self.distractors            = distractors
         self.objects_area_borders = None
         self.reachable_borders = None
-        self.unwrapped.reward = reward
         self.dist = d.DistractorModule(distractors["moveable"], distractors["movement_endpoints"],
                                        distractors["constant_speed"], distractors["movement_dims"], env=self)
         self.dataset   = dataset
@@ -212,14 +212,14 @@ class GymEnv(CameraEnv):
 
     def _load_urdf(self, path, fixedbase=True, maxcoords=True):
         transform = self.workspace_dict[self.workspace]['transform']
-        return self.p.loadURDF(resources.files("myGym").joinpath("envs",path),
+        return self.p.loadURDF(pkg_resources.files("myGym").joinpath("envs",path),
                                transform['position'],  self.p.getQuaternionFromEuler(transform['orientation']),
                                useFixedBase=fixedbase,
                                useMaximalCoordinates=maxcoords)
 
     def _load_static_scene_urdf(self, path, name, fixedbase=True):
         transform = self.workspace_dict[self.workspace]['transform']
-        object = env_object.EnvObject(resources.files("myGym").joinpath("envs",path), self, transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase, observation=self.vision_source, vae_path=self.vae_path, yolact_path=self.yolact_path, yolact_config=self.yolact_config)
+        object = env_object.EnvObject(pkg_resources.files("myGym").joinpath("envs",path), self, transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase, observation=self.vision_source, vae_path=self.vae_path, yolact_path=self.yolact_path, yolact_config=self.yolact_config)
         self.static_scene_objects[name] = object
         return object.uid
 
@@ -229,7 +229,7 @@ class GymEnv(CameraEnv):
 
 
     def _load_texture(self, name):
-        return self.p.loadTexture(str(resources.files("myGym").joinpath("envs/textures/",name)))
+        return self.p.loadTexture(str(pkg_resources.files("myGym").joinpath("envs/textures/",name)))
 
 
     def _set_observation_space(self):
@@ -314,7 +314,7 @@ class GymEnv(CameraEnv):
         #super().reset(seed=seed)
         if not only_subtask:
             self.task.rddl_robot.reset(random_robot=random_robot)
-            super().reset(hard=hard, options=options)
+            super().reset(hard=hard, seed=seed)
         # @TODO I removed support of nl_mode, which is dependent on the old structure. We need to add nl_support again in later phases
         self.task.reset_task()
         #self.reward.reset()
@@ -359,6 +359,9 @@ class GymEnv(CameraEnv):
         ## Now we just take the position and orientation for every object in the scene including gripper, but that is legit in very few cases
         obs = []
         relevant_entities = self.reward.get_relevant_entities()
+        if len(relevant_entities) == 0:
+            warnings.warn(f"PRAG action {self.reward} is missing implementation of get_relevant_entities()! I am setting the gripper 6D and random object 6D as inputs to neural network.", category=UserWarning)
+            relevant_entities = self.task.scene_objects[:2]
         for e in relevant_entities:
             obs += list(e.get_position())
             obs += list(e.get_orientation())
@@ -383,14 +386,14 @@ class GymEnv(CameraEnv):
             :return info: (dict) Additional information about step
         """
         self._apply_action_robot(action)
-        print("robot action: {}".format(action), end="\r")
+        #print("robot action: {}".format(action), end="\r")
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
         if self.dataset:
             reward, terminated, truncated, info = 0, False, False, {}
         else:
             reward = self.compute_reward()  # this uses rddl protoaction, no arguments needed
-            print("Reward by RDDL: {}".format(reward),end="\r")
+            #print("Reward by RDDL: {}".format(reward),end="\r")
             self.episode_reward += reward
             done = self.episode_over #@TODO replace with actual is_done value from RDDL
             info = {'d': 0.9, 'f': int(self.episode_failed),
