@@ -123,10 +123,10 @@ class TaskModule():
               "observation":observation, "vae_path":vae_path, "yolact_path":yolact_path, "yolact_config":yolact_config}
         o = rddl_entity.type(**kw) # initialize EnvObject and add to scene
         rddl_entity.bind(o) # bind spawned object to the symbolic one
-        if o.rgba is None: # if no colour bound to object, assign random rgb
-            o.set_color(self.env.get_random_color())
-        else:
-            o.set_color(o.get_color_rgba()) # assign correct colour to object as defined in scene_objects.py
+        #if o.rgba is None: # if no colour bound to object, assign random rgb
+        #    o.set_color(self.env.get_random_color())
+        #else:
+        #    o.set_color(o.get_color_rgba()) # assign correct colour to object as defined in scene_objects.py
         self.scene_objects.append(o)
         self.scene_entities.append(rddl_entity)
         

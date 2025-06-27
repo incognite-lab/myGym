@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<robot name="00_apple_red">
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0. 0. 0." />
+      <mass value="30.0" />
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001" />
+    </inertial>
+    <visual name="00_apple_red">
+      <origin xyz="0. 0. 0."/>
+      <geometry>
+        <mesh filename="shape/visual/00_apple_red.obj"/>
+      </geometry>
+    </visual>
+<collision>
+      <origin xyz="0. 0. 0."/>
+      <geometry>
+        <mesh filename="shape/collision/00_apple_red_cm.obj"/>
+      </geometry>
+    </collision>
+
+  </link>
+</robot>
