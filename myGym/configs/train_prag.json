@@ -9,7 +9,7 @@
     "visualize" :1,
     "visgym"    :0,
     #Robot
-    "robot"         :"kuka_gripper",
+    "robot"         :"tiago_dual_rotslide2",
     "robot_action"  :"joints_gripper",
     "robot_init"    :[0.0, 0.4, 0.4],
     "max_velocity"  :1,
@@ -17,7 +17,7 @@
     "action_repeat" :1,
     #Task
     "natural_language"      :0,
-    "rddl": {"protoactions":["Approach", "Grasp", "Move", "Drop"], "num_task_range":[3,4], "allowed_objects":["Apple","Tuna","Crackerbox","Mustard","Meatcan","Banana","Strawberry","Lemon","Peach","Orange","Bowl","Mug","Plate","Fork","Spoon","Knife"], "allowed_predicates":["Near"]},
+    "rddl": {"protoactions":["Approach", "Grasp", "Move", "Drop"], "num_task_range":[3,4], "allowed_objects":["Apple","Crackerbox","Mustard","Meatcan","Banana","Strawberry","Lemon","Peach","Orange","Bowl","Mug","Plate","Fork","Spoon","Knife"], "allowed_predicates":["Near"]},
     "observation"           : {"actual_state":"obj_xyz", "goal_state":"obj_xyz"}, # this is ignored
     #Distractor
     "distractors"           : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
@@ -30,8 +30,8 @@
     "train_framework"   :"pytorch",
     "algo"              :"ppo",
     "num_networks" : 1,
-    "max_episode_steps" :124,
-    "algo_steps"        :124,
+    "max_episode_steps" :1024,
+    "algo_steps"        :1024,
     "steps"             :200000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,

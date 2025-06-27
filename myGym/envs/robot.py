@@ -270,7 +270,7 @@ class Robot(EnvObject):
         """
         gjoints = []
         for link in self.gripper_indices:
-           gjoints.append(self.p.getJointState(self.robot_uid,link)[0])
+           gjoints.append(self.p.getJointState(self.uid, link)[0])
 
         return gjoints
 

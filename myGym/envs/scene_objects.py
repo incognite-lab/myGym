@@ -117,48 +117,16 @@ class Observer:  # This class serves merely as a container & memory for current 
 Entity.set_observation_getter(lambda self: self)
 Location.monkey_patch(Location._get_location, lambda self: self.get_position())
 
+### YCB OBJECTS ###
 
 class Apple(GraspableObject, EnvObject):
-
-    def __init__(self, reference: Optional[str] = None, kind: str = "RedDelicious", **kw):
-        self.urdf = "objects/household/urdf/apple.urdf"
-        self.rgba = (0.54, 0.0, 0.0, 1.0)
-        kw["rgba"] = self.rgba
-        kw["urdf_path"] = resources.files("myGym").joinpath("envs",self.urdf)
-        super().__init__(self._get_generic_reference() if reference is None else reference, "apple", **kw)
-        self._kind = kind
-
-
-#class Banana(GraspableObject, EnvObject):
-
-#    def __init__(self, reference: Optional[str] = None, kind: str = "", **kw):
-#        self.urdf = "objects/household/urdf/banana.urdf"
-#        self.rgba = (1.0, 0.94, 0.0, 1.0)
-#        kw["urdf_path"] = resources.files("myGym").joinpath("envs",self.urdf)
-#        kw["rgba"] = self.rgba
-#        super().__init__(self._get_generic_reference() if reference is None else reference, "banana", **kw)
-#        self._kind = kind
-
-
-
-class Tuna(GraspableObject, EnvObject):
-
-    def __init__(self, reference: Optional[str] = None, kind: str = "", **kw):
-        self.urdf = "objects/household/urdf/tuna_can.urdf"
-        self.rgba = None
-        kw["urdf_path"] = resources.files("myGym").joinpath("envs",self.urdf)
-        kw["rgba"] = self.rgba
-        super().__init__(self._get_generic_reference() if reference is None else reference, "tuna_can", **kw)
-        self._kind = kind
-
-class Applered(GraspableObject, EnvObject):
 
     def __init__(self, reference: Optional[str] = None, kind: str = "", **kw):
         self.urdf = "objects/ycb/00_apple_red/00_apple_red.urdf"
         self.rgba = None
         kw["urdf_path"] = resources.files("myGym").joinpath("envs",self.urdf)
         kw["rgba"] = self.rgba
-        super().__init__(self._get_generic_reference() if reference is None else reference, "apple_red", **kw)
+        super().__init__(self._get_generic_reference() if reference is None else reference, "apple", **kw)
         self._kind = kind
 
 

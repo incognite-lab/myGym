@@ -366,7 +366,7 @@ class GymEnv(CameraEnv):
             obs += list(e.get_position())
             obs += list(e.get_orientation())
         if "gripper" in self.robot_action:
-            obs += int(self.robot.gripper_active)
+            obs += [int(self.robot.gripper_active)]
         self.observation = obs
         if self.dataset:
             raise NotImplemented # @TODO one day
