@@ -1,16 +1,62 @@
-from re import S
+from importlib.resources import files
 import importlib.resources as pkg_resources
 from myGym.utils.vector import Vector
 import numpy as np
 import math
 from myGym.utils.helpers import get_robot_dict
 import os
+from warnings import warn
+import yaml
+
+try:
+    from zmq_comm.pub_sub import ParamPublisher
+except ImportError:
+    warn("Package zmq_comm not found, ROSRobot will not be available.")
+    ParamPublisher = None
 
 currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
 repodir = pkg_resources.files("myGym")
 
 
-class Robot:
+class ZMQCommMeta(type):
+    def __init__(cls, name, bases, dct):
+        super().__init__(name, bases, dct)
+        cls._zmq_config: dict[str, Any] = {}
+
+    def __call__(cls, *args, **kwargs):
+        if not cls._zmq_config:
+            try:
+                yaml_path = files("myGym").joinpath("ros/zmq_config.yaml")
+            except ModuleNotFoundError:
+                yaml_path = files("mygym_ros").joinpath("../zmq_config.yaml")
+            if not yaml_path.exists():
+                raise FileNotFoundError(f"ZMQ config file not found at {yaml_path}")
+            with yaml_path.open("r") as f:
+                cls._zmq_config = yaml.safe_load(f)
+        setattr(cls, '_zmq_config', cls._zmq_config)
+
+        constr = super().__call__(*args, **kwargs)
+        return constr
+
+
+class RobotClassShim(ZMQCommMeta):
+    _shim_target = None
+
+    def __call__(cls, *args, **kwargs):
+        shim_target = RobotClassShim._shim_target
+        if shim_target is not None and shim_target != cls:
+            if ParamPublisher is None:
+                raise ImportError("ROSRobot is not available. Please install zmq_comm.")
+            warn(f"Using shim class {shim_target} instead of {cls}")
+            return shim_target(*args, **kwargs)
+        return super().__call__(*args, **kwargs)
+
+    @classmethod
+    def shim_to(mcs, other):
+        mcs._shim_target = other
+
+
+class Robot(metaclass=RobotClassShim):
     """
     Robot class for control of robot environment interaction
 
@@ -18,7 +64,7 @@ class Robot:
         :param robot: (string) Type of robot to train in the environment (kuka, panda, ur3, ...)
         :param position: (list) Position of the robot's base link in the coordinate frame of the environment ([x,y,z])
         :param orientation: (list) Orientation of the robot's base link in the coordinate frame of the environment (Euler angles [x,y,z])
-        :param end_effector_index: (int) Index of the robot's end-effector link. For myGym prepared robots this is assigned automatically.  
+        :param end_effector_index: (int) Index of the robot's end-effector link. For myGym prepared robots this is assigned automatically.
         :param gripper_index: (int) Index of the robot's gripper link. For myGym prepared robots this is assigned automatically.
         :param init_joint_poses: (list) Configuration in which robot will be initialized in the environment. Specified either in joint space as list of joint poses or in the end-effector space as [x,y,z] coordinates.
         :param robot_action: (string) Mechanism of robot control (absolute, step, joints)
@@ -32,7 +78,7 @@ class Robot:
     def __init__(self,
                  robot='kuka',
                  position=[-0.1, 0.0, 0.07], orientation=[0, 0, 0],
-                 end_effector_index=None, gripper_index=None, 
+                 end_effector_index=None, gripper_index=None,
                  init_joint_poses=None,
                  robot_action="step",
                  task_type="reach",
@@ -60,12 +106,12 @@ class Robot:
         self.use_magnet = False
         self.motor_names = []
         self.motor_indices = []
-        self.rjoint_positions=[]
+        self.rjoint_positions = []
         self.link_names = []
         self.link_indices = []
         self.gripper_names = []
         self.gripper_indices = []
-        self.gjoint_positions=[]
+        self.gjoint_positions = []
         self.robot_action = robot_action
         self.task_type = task_type
         self.magnetized_objects = {}
@@ -73,7 +119,7 @@ class Robot:
         self._load_robot()
         self.num_joints = self.p.getNumJoints(self.robot_uid)
         self._set_motors()
-        self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)       
+        self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
         #TODO Clean code (test and gym_env) to initialize just from coordinates
@@ -84,7 +130,7 @@ class Robot:
         #else:
         #self.init_joint_poses = np.zeros((len(self.motor_names)))
         #self.reset()
-        
+
 
     def _load_robot(self):
         """
@@ -146,21 +192,20 @@ class Robot:
         self.joints_num = len(self.motor_names)
         self.gjoints_num = len(self.gripper_names)
 
-
         if self.end_effector_index == None:
             print("No end effector detected. Please add endeffector joint and link to the URDF file (see panda.urdf for example)")
             exit()
         if self.gripper_index == None:
             print("No gripper detected. Please add gripper joint and link to the URDF file (see panda.urdf for example)")
             exit()
-        
+
         if 'gripper' in self.robot_action and not self.gripper_indices:
             print("Gripper control active but no gripped joints detected. Please add gjoints to the URDF file (see panda.urdf for example)")
             exit()
-        
+
         if 'gripper' not in self.robot_action and self.gripper_indices:
             print("Gripper joints detected but not active gripper control. Setting gripper joints to fixed values")
-        
+
         #    self.motor_indices = [x for x in self.motor_indices if x < self.gripper_index]
         #print(f"Gripper active:{self.gripper_active}")
 
@@ -169,7 +214,7 @@ class Robot:
         if len(contact_points)> 0:
             return True
         return False
-    
+
 
     def reset(self, random_robot=False):
         """
@@ -259,7 +304,7 @@ class Robot:
         for link in self.motor_indices:
            joints.append(self.p.getJointState(self.robot_uid,link)[0])
         return joints
-    
+
     def get_gjoints_states(self):
         """
         Returns the current positions of all robot's joints
@@ -283,7 +328,7 @@ class Robot:
         """
         Get position and orientation of the robot end effector
 
-        Returns: 
+        Returns:
             :return observation: (list) Position of end-effector link (center of mass)
         """
         observation = []
@@ -299,13 +344,13 @@ class Robot:
         """
         Get robot part of observation data
 
-        Returns: 
+        Returns:
             :return observation: (list) Position of all links (center of mass)
         """
         observation = []
         if "kuka" in self.name:
-            for link in range(self.gripper_index-num, self.gripper_index):  
-            # for link in range(4, self.gripper_index):  
+            for link in range(self.gripper_index-num, self.gripper_index):
+            # for link in range(4, self.gripper_index):
                 state = self.p.getLinkState(self.robot_uid, link)
                 pos = state[0]
                 observation.extend(list(pos))
@@ -319,13 +364,13 @@ class Robot:
         """
         Get position of robot's end-effector link
 
-        Returns: 
+        Returns:
             :return position: (list) Position of end-effector link (center of mass)
         """
         #return self.get_accurate_gripper_position()
         #print(self.p.getLinkState(self.robot_uid, self.end_effector_index)[0])
         return self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
-        
+
     def get_orientation(self):
         """
         Get orientation of robot's end-effector link
@@ -353,16 +398,16 @@ class Robot:
                                     maxVelocity=self.joints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3)
-            
-        
+
+
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
         self.end_effector_orn = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
-        self.gripper_pos = self.p.getLinkState(self.robot_uid, self.gripper_index)[0]  
+        self.gripper_pos = self.p.getLinkState(self.robot_uid, self.gripper_index)[0]
         self.gripper_orn = self.p.getLinkState(self.robot_uid, self.gripper_index)[1]
 
         joints = self.get_joints_states()
         #print(joints)
-    
+
     def _move_gripper(self, action):
         """
         Move gripper motors towards desired joint poses respecting robot's dynamics
@@ -379,10 +424,10 @@ class Robot:
                                     maxVelocity=self.gjoints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3)
-        
+
         gjoints = self.get_gjoints_states()
         #print(gjoints)
-        
+
 
 
     def _calculate_joint_poses(self, end_effector_pos):
@@ -443,7 +488,7 @@ class Robot:
             #reset the joint state (ignoring all dynamics, not recommended to use during simulation)
             for jid in range(len(self.motor_indices)):
                 self.p.resetJointState(self.robot_uid, self.motor_indices[jid], joint_poses[jid])
-                   
+
             ls = self.p.getLinkState(self.robot_uid, self.end_effector_index)
             newPos = ls[4] #world position of the URDF link frame
             newOrn = ls[5] #world orientation of the URDF link frame
@@ -452,7 +497,7 @@ class Robot:
                 diffOrn = np.linalg.norm(np.asarray(self.fixed_end_effector_orn)-np.asarray(newOrn))
             else:
                 diffOrn = 0
-            closeEnough = ((diffPos < thresholdPos) and (diffOrn < thresholdOrn)) 
+            closeEnough = ((diffPos < thresholdPos) and (diffOrn < thresholdOrn))
             iter = iter + 1
         if not closeEnough:
             print(f"WARNING - Intitalization error: pos:{diffPos}, orr:{diffOrn}")
@@ -552,7 +597,7 @@ class Robot:
         des_end_effector_pos = np.add(self.end_effector_pos, action)
         joint_poses = self._calculate_joint_poses(des_end_effector_pos)
         self._run_motors(joint_poses)
-    
+
 
     def apply_action_absolute(self, action):
         """
@@ -564,7 +609,7 @@ class Robot:
         des_end_effector_pos = action[:3]
         joint_poses = self._calculate_joint_poses(des_end_effector_pos)
         self._run_motors(joint_poses)
-        
+
 
     def apply_action_joints(self, action):
         """
@@ -574,7 +619,7 @@ class Robot:
             :param action: (list) Desired action data
         """
         self._run_motors(action[:(self.joints_num)])
-        
+
     def apply_action_joints_step(self, action):
         """
         Apply action command to robot using joint-step control mechanism
@@ -617,7 +662,7 @@ class Robot:
                 self._move_gripper(self.gjoints_limits[1])
                 #self.gripper_active = True
                 #self.magnetize_object(env_objects["actual_state"])
-            if "pnp" in self.task_type: 
+            if "pnp" in self.task_type:
             #"Need to provide env_objects to use gripper"
             #When gripper is not in robot action it will magnetize objects
                 self.gripper_active = True
@@ -631,7 +676,7 @@ class Robot:
             #        self.release_all_objects()
             #else:
             #    self.apply_action_joints(action)
-        
+
             if len(self.magnetized_objects):
             #pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
             #ori_diff = np.array(self.end_effector_ori) - np.array(self.end_effector_prev_ori)
@@ -646,7 +691,7 @@ class Robot:
 
     def magnetize_object(self, object, distance_threshold=.1):
         if len(self.magnetized_objects) == 0 :
-            
+
             if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
                 self.p.changeVisualShape(object.uid, -1, rgbaColor=[.8, .1 , 0.1, 1])
                 #self.end_effector_prev_pos = self.end_effector_pos
@@ -727,3 +772,27 @@ class Robot:
         """
         return self.robot_uid
 
+
+class ROSRobot(Robot, metaclass=ZMQCommMeta):
+
+    def __init__(self, robot='kuka', position=[-0.1, 0, 0.07], orientation=[0, 0, 0], end_effector_index=None, gripper_index=None, init_joint_poses=None, robot_action="step", task_type="reach", use_fixed_end_effector_orn=False, end_effector_orn=[0, -math.pi, 0], dimension_velocity=0.5, max_velocity=None, max_force=None, pybullet_client=None):
+        super().__init__(robot, position, orientation, end_effector_index, gripper_index, init_joint_poses, robot_action, task_type, use_fixed_end_effector_orn, end_effector_orn, dimension_velocity, max_velocity, max_force, pybullet_client)
+        if ParamPublisher is None:
+            raise ImportError("ROSRobot is not available. Please install zmq_comm.")
+        self.zmq_publisher = ParamPublisher(
+            **self._zmq_config
+        )
+
+    def apply_action(self, action, env_objects=None):
+        if "joints" in self.robot_action:
+            self.zmq_publisher.publish("robot_action", action[:(self.joints_num)])
+        else:
+            raise ValueError(f"ROS robot cannot deal with action type {self.robot_action}! Only joint control is possible.")
+
+        if "gripper" in self.robot_action:
+            self.zmq_publisher.publish("robot_grip", action[-(self.gjoints_num):])
+            # raise NotImplementedError("Gripper control does not work, yet!")
+        else:
+            warn("Robot has no gripper, no gripper information published")
+
+        return super().apply_action(action, env_objects)

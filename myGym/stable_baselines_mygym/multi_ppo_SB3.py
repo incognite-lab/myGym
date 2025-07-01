@@ -554,7 +554,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
         #Load arguments from train.json config
         import commentjson
-        with open(path + "/train.json", "r") as f:
+        with open(dir_path + "/train.json", "r") as f:
             json = commentjson.load(f)
         num_models = json["num_networks"]
         load = [] #data, params, pytorch_variables
@@ -565,7 +565,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         else:
             reward_names = env.unwrapped.reward.network_names
         for i in range(num_models):
-            load_path = path + "/" + reward_names[i] + "/best_model"
+            load_path = dir_path + "/" + reward_names[i] + "/best_model"
             data, params, pytorch_variables = load_from_zip_file(
                 load_path,
                 device=device,
@@ -597,8 +597,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             raise KeyError("The observation_space and action_space were not given, can't verify new environments")
 
         # Gym -> Gymnasium space conversion
-        # for key in {"observation_space", "action_space"}:
-        #     data[key] = _convert_space(data[key])
+        for key in {"observation_space", "action_space"}:
+            data[key] = _convert_space(data[key])
 
         #Commented lines below are from original load function located in SB3 BaseClass - they cause problems
         model = cls(
