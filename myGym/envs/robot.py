@@ -785,7 +785,8 @@ class ROSRobot(Robot, metaclass=ZMQCommMeta):
 
     def apply_action(self, action, env_objects=None):
         if "joints" in self.robot_action:
-            self.zmq_publisher.publish("robot_action", action[:(self.joints_num)])
+            action_dict = {k: v for k, v in zip(self.motor_names, action[:(self.joints_num)])}
+            self.zmq_publisher.publish("robot_action", action_dict)
         else:
             raise ValueError(f"ROS robot cannot deal with action type {self.robot_action}! Only joint control is possible.")
 

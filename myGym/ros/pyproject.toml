@@ -1,0 +1,21 @@
+[project]
+name = "mygym_ros"
+version = "0.1.0"
+description = "Small extension to capture and transmit trajectories from myGym to ROS."
+authors = [
+    {name = "radoskov", email = "radoslav.skoviera@cvut.cz"},
+]
+dependencies = ["streamlit>=1.40", "streamlit-autorefresh>=1.0.1", "pyarrow>=17.0"]
+requires-python = ">=3.8"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm.build]
+package-dir = "."
+
+[tool.pdm]
+distribution = true

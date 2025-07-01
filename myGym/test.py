@@ -432,6 +432,9 @@ def main() -> None:
     parameters = {}
     args = parser.parse_args()
 
+    from myGym.envs.robot import ROSRobot, Robot
+    Robot.shim_to(ROSRobot)  # swap Robot for ROSRobot class
+
     for key, arg in arg_dict.items():
         if type(arg_dict[key]) == list:
             if len(arg_dict[key]) > 1 and key != "robot_init" and key != "end_effector_orn":
