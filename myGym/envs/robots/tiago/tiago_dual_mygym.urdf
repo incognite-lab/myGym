@@ -38,13 +38,13 @@
   </material>
   <material name="Black">
     <color rgba="0.0 0.0 0.0 1.0"/>
-  </material>  
+  </material>
   <material name="White">
     <color rgba="1.0 1.0 1.0 1.0"/>
   </material>
   <material name="Yellow">
     <color rgba="0.96 0.88 0.14 1.0"/>
-  </material>  
+  </material>
   <!-- World link -->
   <link name="world"/>
   <!-- Base footprint -->
@@ -113,9 +113,9 @@
       <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
     </inertial>
     <visual>
-      <origin rpy="0 0 0" xyz="0 0 0.275"/>
+      <origin rpy="0 0 0" xyz="0 0 0.45"/>
       <geometry>
-        <box size="0.18 0.2 0.55"/>
+        <box size="0.18 0.2 0.9"/>
       </geometry>
       <material name="DarkGrey"/>
     </visual>
@@ -141,12 +141,12 @@
       <material name="White"/>
     </visual>
   </link>
-  <joint name="torso_lift_joint" type="fixed">
+  <joint name="torso_lift_pjoint" type="prismatic">
     <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.95"/>
     <parent link="torso_fixed_link"/>
     <child link="torso_lift_link"/>
     <axis xyz="0 0 1"/>
-    <limit effort="2000" lower="0.349" upper="0.35" velocity="5"/>
+    <limit effort="2000" lower="0.0" upper="0.35" velocity="5"/>
     <calibration rising="0.0"/>
     <dynamics damping="1000"/>
     <safety_controller k_position="20" k_velocity="20" soft_lower_limit="0.0" soft_upper_limit="0.35"/>
@@ -856,7 +856,7 @@
   <joint name="endeffector_gjoint" type="fixed">
     <parent link="gripper"/>
     <child link="endeffector"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 -0.20"/>
+    <origin rpy="0 0 -3.1415" xyz="0.0 0.0 -0.20"/>
   </joint>
   <link name="endeffector">
     <inertial>
