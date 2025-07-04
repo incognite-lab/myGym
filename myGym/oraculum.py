@@ -56,7 +56,9 @@ def perform_oraculum_task(t: int, env: Any, arg_dict: Dict[str, Any],
         elif reward_name == "drop":
             _set_gripper_action(action, GRIPPER_OPEN, gripper)
         elif reward_name == "rotate":
-            action = info['o']["goal_state"] #rotate action includes both position and orientation
+            action =np.zeros(9)
+            action[:7] = info['o']["goal_state"] #rotate action includes both position and orientation
+            _set_gripper_action(action, GRIPPER_CLOSED, gripper)
         elif reward_name == "withdraw":
             distance_to_goal = np.linalg.norm(
                 np.array(info['o']["goal_state"][:3]) - np.array(info['o']["actual_state"][:3]))
@@ -87,14 +89,16 @@ def _get_approach_action(env: Any, info: Dict[str, Any]) -> np.ndarray:
     """
     if env.env.unwrapped.reward.rewards_num <= 2:
         action = info['o']["goal_state"][:3]
-        if info['o']["actual_state"][2] < -0.25:
-            action[2] += 0.05
-            print("Too close to table, raising hand: {}".format(action))
+        # if info['o']["actual_state"][2] < -0.25:
+        #     #action[2] += 0.05
+        #     action[0] -= 0.05
+        #     print("Too close to table, raising hand: {}".format(action))
         return action
     action = info['o']["actual_state"][:3]
-    if info['o']["actual_state"][2] < -0.25:
-        action[2] += 0.05
-        print("Too close to table, raising hand: {}".format(action))
+    # if info['o']["actual_state"][2] < -0.25:
+    #     #action[2] += 0.05
+    #     # action[0] -= 0.05
+    #     # print("Too close to table, raising hand: {}".format(action))
     return action
 
 def _set_gripper_action(action: np.ndarray, state: int, gripper: bool) -> None:
@@ -106,7 +110,9 @@ def _set_gripper_action(action: np.ndarray, state: int, gripper: bool) -> None:
         state (int): The state of the gripper (0 for closed, 1 for open).
     """
     if gripper:
-        action[3] = state
-        action[4] = state
+        if len(action) == 9:
+            action[7:9] = (state, state)
+        else:
+            action[3:5] = (state, state)
     else:
         print("No gripper to control, change 'robot_action' to contain 'gripper'.")

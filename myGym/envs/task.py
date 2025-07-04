@@ -235,7 +235,6 @@ class TaskModule():
         """
         self.current_norm_distance = self.calc_distance(observation["goal_state"], observation["actual_state"])
         self.current_norm_rotation = self.calc_rot_quat(observation["goal_state"], observation["actual_state"])
-        print("rotation", self.current_norm_rotation)
         if self.current_norm_distance < threshold and self.current_norm_rotation < threshold:
             return True
         return False

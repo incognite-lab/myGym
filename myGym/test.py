@@ -110,7 +110,8 @@ def detect_key(keypress: dict, arg_dict: dict, action: list) -> list:
         65296: (0, -0.03),  # ARROW RIGHT
         120: [(3, -0.03), (4, -0.03)],  # X
         99: [(3, 0.03), (4, 0.03)],  # C
-        113: [(0, 0)]  # Q
+        113: [(0, 0)],  # Q
+        110: [(0, 0)]  # N - next task (useful when the robot gets stuck, no need to wait for episode end)
     }
 
     for key, value in key_action_mapping.items():
@@ -135,6 +136,20 @@ def detect_key(keypress: dict, arg_dict: dict, action: list) -> list:
     return action
 
 
+def n_pressed(last_call_time):
+    """Function which detects, whether the key n was pressed and new episode should be launched"""
+    keypress = p.getKeyboardEvents()
+    now = time.time()
+    if now - last_call_time > 0.25:
+        for key in keypress.keys():
+            if key == 110:
+                print("N pressed, switching to next subtask")
+                return True, now
+        return False, last_call_time
+    else:
+        return False, last_call_time
+
+
 def test_env(env: object, arg_dict: dict) -> None:
     env.reset()
     env.render()
@@ -150,7 +165,7 @@ def test_env(env: object, arg_dict: dict) -> None:
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
-
+    last_call_time = time.time()
     if arg_dict["control"] == "slider":
         p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
         if "joints" in arg_dict["robot_action"]:
@@ -240,10 +255,12 @@ def test_env(env: object, arg_dict: dict) -> None:
                 action = env.action_space.sample()
 
             observation, reward, done, _, info = env.step(action)
-            # if done:
-            #     print("reward:", reward)
-            #     import sys
-            #     sys.exit()
+
+            n_p, last_call_time = n_pressed(last_call_time)
+            if n_p: #If key 'n' is pressed, switch to next task - useful if robot gets stuck
+                env.unwrapped.task.end_episode_fail("manual_switch")
+                done = True
+
             if arg_dict["vtrajectory"]:
                 visualize_trajectories(info, action)
             if arg_dict["vinfo"]:

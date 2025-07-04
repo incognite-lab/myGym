@@ -281,11 +281,13 @@ class Protorewards(Reward):
         self.reward_name = "move"
         return reward
 
-    def rotate_compute(self, object, goal):
+    def rotate_compute(self, object, goal, gripper_states):
         self.env.robot.set_magnetization(False)
         dist = self.task.calc_distance(object, goal)
         if self.last_place_dist is None:
             self.last_place_dist = dist
+        gripdist = sum(gripper_states)
+        gripper_rew = (self.last_grip_dist - gripdist) * 0.1
         reward = self.last_place_dist - dist
         rot = self.task.calc_rot_quat(object, goal)
         if self.last_rot_dist is None:
@@ -372,7 +374,7 @@ class Protorewards(Reward):
     def gripper_closed(self, gripper_states):
         if sum(gripper_states) <= self.closegr_threshold:
             try:
-                #self.env.robot.grasp_object(self.env.env_objects["actual_state"])
+                #self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
                 self.env.robot.set_magnetization(True)
                 return True
             except:
@@ -521,7 +523,7 @@ class AaGaR(Protorewards):
         target = [
             [gripper_position, object_position, gripper_states],  # approach
             [gripper_position, object_position, gripper_states],  # grasp
-            [object_position, goal_position]                      # rotate
+            [object_position, goal_position, gripper_states]                      # rotate
         ][owner]
 
         # List of protoreward functions corresponding to network_names
@@ -690,7 +692,7 @@ class AaGaRaDaW(Protorewards):
         # Updated target list for the new sequence of protorewards
         target = [[gripper_position, object_position, gripper_states],  # approach
                   [gripper_position, object_position, gripper_states],  # grasp
-                  [object_position, goal_position],                     # rotate (takes object, goal)
+                  [object_position, goal_position, gripper_states],                     # rotate (takes object, goal)
                   [gripper_position, object_position, gripper_states],  # drop
                   [gripper_position, goal_position, gripper_states]][owner] # withdraw
         # Updated list of protoreward functions to call

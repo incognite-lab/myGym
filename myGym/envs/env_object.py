@@ -351,7 +351,7 @@ class EnvObject:
 
     @staticmethod
     def get_random_z_rotation():
-        angleX = np.pi
+        angleX = 0 #np.pi
         angleY = 0
-        angleZ = np.pi + (np.pi * random.random())
+        angleZ = 0 + (np.pi * random.random()) #np.pi + ...
         return pybullet.getQuaternionFromEuler([angleX, angleY, angleZ])

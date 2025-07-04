@@ -38,7 +38,7 @@ class Robot:
                  task_type="reach",
                  use_orientation_in_inv_kinematics = False,
                  use_fixed_end_effector_orn=False,
-                 end_effector_orn=[0, -math.pi, 0],
+                 end_effector_orn=[0, 0, 0],
                  dimension_velocity = 0.5,
                  max_velocity = None, #1.,
                  max_force = None, #50.,
@@ -79,8 +79,6 @@ class Robot:
         self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)       
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
-        #TODO Clean code (test and gym_env) to initialize just from coordinates
-        #if self.robot_action != "joints":
         self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
         self.opengr_threshold = 0.07
         self.closegr_threshold = 0.001
@@ -88,7 +86,6 @@ class Robot:
             self.orientation_in_rew = True
         else:
             self.orientation_in_rew = False
-        self.iter_index = 0 #TODO: remove this before commiting (with its usages as well)
         self.offset_quat = self.p.getQuaternionFromEuler((0, 0, 0))
         
 
@@ -129,7 +126,7 @@ class Robot:
                 self.gripper_index = i
             if link_name.decode("utf-8") == 'endeffector':
                 self.end_effector_index = i
-            if q_index > -1 and "rjoint" in joint_name.decode("utf-8"): # Fixed joints have q_index -1
+            if q_index > -1 and ("rjoint" in joint_name.decode("utf-8") or "pjoint" in joint_name.decode("utf-8")): # Fixed joints have q_index -1
                 self.motor_names.append(str(joint_name))
                 self.motor_indices.append(i)
                 self.rjoint_positions.append(self.p.getJointState(self.robot_uid,i)[0])
@@ -137,6 +134,7 @@ class Robot:
                 self.gripper_names.append(str(joint_name))
                 self.gripper_indices.append(i)
                 self.gjoint_positions.append(self.p.getJointState(self.robot_uid,i)[0])
+
 
         if self.debug:
             print("Robot summary")
@@ -166,9 +164,7 @@ class Robot:
         
         if 'gripper' not in self.robot_action and self.gripper_indices:
             print("Gripper joints detected but not active gripper control. Setting gripper joints to fixed values")
-        
-        #    self.motor_indices = [x for x in self.motor_indices if x < self.gripper_index]
-        #print(f"Gripper active:{self.gripper_active}")
+
 
     def touch_sensors_active(self, target_object):
         contact_points = self.p.getContactPoints(self.robot_uid, target_object.uid)
@@ -234,7 +230,7 @@ class Robot:
             joints_limits_u.append(joint_info[9])
             joints_ranges.append(joint_info[9] - joint_info[8])
             joints_rest_poses.append((joint_info[9] + joint_info[8])/2)
-            joints_max_force.append(joint_info[10] if "gjoint" in joint_info[1].decode("utf-8") else self.max_force)
+            joints_max_force.append(joint_info[10] if ("gjoint" in joint_info[1].decode("utf-8") or "pjoint" in joint_info[1].decode("utf-8")) else self.max_force)
             joints_max_velo.append(joint_info[11] if "gjoint" in joint_info[1].decode("utf-8") else self.max_velocity)
         return [joints_limits_l, joints_limits_u], joints_ranges, joints_rest_poses, joints_max_force, joints_max_velo
 
@@ -328,8 +324,6 @@ class Robot:
         Returns: 
             :return position: (list) Position of end-effector link (center of mass)
         """
-        #return self.get_accurate_gripper_position()
-        #print(self.p.getLinkState(self.robot_uid, self.end_effector_index)[0])
         return self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
         
     def get_orientation(self):
@@ -351,14 +345,27 @@ class Robot:
         joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
         self.joints_state = []
         for i in range(len(self.motor_indices)):
+            joint_info = self.p.getJointInfo(self.robot_uid, self.motor_indices[i])
+            joint_type = joint_info[2]
+            joint_name = joint_info[1]
+            lower_limit, upper_limit = joint_info[8:10]
+            joint_idx = self.motor_indices[i]
             self.p.setJointMotorControl2(bodyUniqueId=self.robot_uid,
                                     jointIndex=self.motor_indices[i],
                                     controlMode=self.p.POSITION_CONTROL,
-                                    targetPosition=joint_poses[i],
+                                    targetPosition=np.clip(joint_poses[i], self.joints_limits[0][i], self.joints_limits[1][i]),
                                     force=self.joints_max_force[i],
                                     maxVelocity=self.joints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3)
+            if joint_type == self.p.JOINT_PRISMATIC:
+                pos = self.p.getJointState(self.robot_uid, joint_idx)[0]
+                # if pos < lower_limit or pos > upper_limit:
+                #     print(f"Warning: {joint_name}out of bounds! Value: {pos}")
+                if pos < lower_limit:
+                    self.p.resetJointState(self.robot_uid, joint_idx, lower_limit)
+                elif pos > upper_limit:
+                    self.p.resetJointState(self.robot_uid, joint_idx, upper_limit)
             
         
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
@@ -572,19 +579,22 @@ class Robot:
         Parameters:
             :param action: (list) Desired action data
         """
-        self.iter_index += 1
         des_end_effector_pos = action[:3]
-        if len(action) == 7:
+        # action[2] += 0.1 #OFFSET
+        if len(action) == 9:
             des_endeff_orientation = self.gripper_transform(action[3:7])
         else:
             des_endeff_orientation = None
         joint_poses = self._calculate_joint_poses(des_end_effector_pos, des_endeff_orientation)
+
         self._run_motors(joint_poses)
 
 
     def object_transform(self, quat):
         """
-        Transforms the given quaternion with the object offset quat
+        Transforms the given quaternion with the object offset quat.
+        When robot picks up object, the orientation of the gripper is stored inside self.offset_quat.
+        The orientation of the gripper relative to the picked up object then stays the same.
         """
         des_object_orientation = self.p.multiplyTransforms([0, 0, 0], quat, [0, 0, 0],
                                                            self.p.invertTransform([0, 0, 0], self.offset_quat)[1])[1]
@@ -597,10 +607,10 @@ class Robot:
 
     def gripper_transform(self, quat):
         """
-        Inverse of object transform
+        Inverse of object transform.
+        Used to compute back how the gripper should be oriented when the object has to be oriented to goal position.
         """
-        des_endeff_orientation = self.p.multiplyTransforms([0, 0, 0], quat, [0, 0, 0],
-                                                           self.offset_quat)[1]
+        des_endeff_orientation = self.p.multiplyTransforms([0, 0, 0], quat, [0, 0, 0], self.offset_quat)[1]
         return des_endeff_orientation
 
     def apply_action_joints(self, action):
@@ -629,13 +639,6 @@ class Robot:
         Parameters:
             :param action: (list) Desired action data
         """
-        if self.iter_index%30 == 0:
-            print("---------------------------------------")
-            for key, val in self.magnetized_objects.items():
-                print("object orientation:", self.p.getConstraintInfo(val)[8])
-                print("gripper orientation:", self.get_orientation())
-                print("desired object orientation:", action[3:7])
-                print("desired gripper orientation:", self.gripper_transform(action[3:7]))
         if "step" in self.robot_action:
             self.apply_action_step(action)
         elif "absolute" in self.robot_action:
@@ -645,7 +648,7 @@ class Robot:
         if "gripper" in self.robot_action:
             self._move_gripper(action[-(self.gjoints_num):])
             if self.task_type in ["compositional", "AG", "AGM", "AGR", "AGMD", "AGMDW", "AGRDW", "AGFDW","AGTDW"]:
-                if env_objects["actual_state"] != self and self.use_magnet: #if self.use_magnet and ...
+                if env_objects["actual_state"] != self: #if self.use_magnet and ...
                     gripper_states = self.get_gjoints_states()
                     if sum(gripper_states) < self.closegr_threshold:
                         self.gripper_active = True

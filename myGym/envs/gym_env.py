@@ -214,13 +214,14 @@ class GymEnv(CameraEnv):
         ws_texture = self.workspace_dict[self.workspace]['texture'] if get_module_type(
             self.obs_type) != "vae" else "grey.png"
         if ws_texture: self._change_texture(self.workspace, self._load_texture(ws_texture))
+
         self._change_texture("floor", self._load_texture("parquet1.jpg"))
         self.objects_area_borders = self.workspace_dict[self.workspace]['borders']
         kwargs = {"position": self.workspace_dict[self.workspace]['robot']['position'],
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
-                  "init_joint_poses": self.robot_init_joint_poses, "max_velocity": self.max_velocity,
-                  "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
-                  "pybullet_client": self.p, "reward_type": self.unwrapped.reward} #TODO: reward type has to be changed
+                  "init_joint_poses": self.robot_init_joint_poses, "use_fixed_end_effector_orn": [0, 0, 0],
+                  "max_velocity": self.max_velocity, "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
+                  "pybullet_client": self.p, "reward_type": self.unwrapped.reward}
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
         if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
 
