@@ -47,8 +47,8 @@
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
-    "eval_freq"     :30000,
-    "eval_episodes" :3,
+    "eval_freq"     :500000,
+    "eval_episodes" :50,
     #Saving and logging
     "logdir"    :"trained_models/AGMDW",
     "record"    :0

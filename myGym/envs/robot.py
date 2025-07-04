@@ -36,7 +36,6 @@ class Robot:
                  init_joint_poses=None,
                  robot_action="step",
                  task_type="reach",
-                 use_orientation_in_inv_kinematics = False,
                  use_fixed_end_effector_orn=False,
                  end_effector_orn=[0, 0, 0],
                  dimension_velocity = 0.5,
@@ -57,7 +56,6 @@ class Robot:
         self.end_effector_index = end_effector_index
         self.gripper_index = gripper_index
         self.use_fixed_end_effector_orn = use_fixed_end_effector_orn
-        self.use_orientation_in_inv_kinematics = use_orientation_in_inv_kinematics
         self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(end_effector_orn)
         self.dimension_velocity = dimension_velocity
         self.use_magnet = False
@@ -134,7 +132,6 @@ class Robot:
                 self.gripper_names.append(str(joint_name))
                 self.gripper_indices.append(i)
                 self.gjoint_positions.append(self.p.getJointState(self.robot_uid,i)[0])
-
 
         if self.debug:
             print("Robot summary")
@@ -353,7 +350,7 @@ class Robot:
             self.p.setJointMotorControl2(bodyUniqueId=self.robot_uid,
                                     jointIndex=self.motor_indices[i],
                                     controlMode=self.p.POSITION_CONTROL,
-                                    targetPosition=np.clip(joint_poses[i], self.joints_limits[0][i], self.joints_limits[1][i]),
+                                    targetPosition=joint_poses[i],
                                     force=self.joints_max_force[i],
                                     maxVelocity=self.joints_max_velo[i],
                                     positionGain=0.7,
@@ -366,7 +363,7 @@ class Robot:
                     self.p.resetJointState(self.robot_uid, joint_idx, lower_limit)
                 elif pos > upper_limit:
                     self.p.resetJointState(self.robot_uid, joint_idx, upper_limit)
-            
+
         
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
         self.end_effector_orn = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]

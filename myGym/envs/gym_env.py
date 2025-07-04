@@ -214,7 +214,6 @@ class GymEnv(CameraEnv):
         ws_texture = self.workspace_dict[self.workspace]['texture'] if get_module_type(
             self.obs_type) != "vae" else "grey.png"
         if ws_texture: self._change_texture(self.workspace, self._load_texture(ws_texture))
-
         self._change_texture("floor", self._load_texture("parquet1.jpg"))
         self.objects_area_borders = self.workspace_dict[self.workspace]['borders']
         kwargs = {"position": self.workspace_dict[self.workspace]['robot']['position'],
@@ -577,7 +576,7 @@ class GymEnv(CameraEnv):
     def _place_object(self, obj_info):
         fixed = True if obj_info["fixed"] == 1 else False
         pos = env_object.EnvObject.get_random_object_position(obj_info["sampling_area"])
-        orn = env_object.EnvObject.get_random_z_rotation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
+        orn = env_object.EnvObject.get_random_object_orientation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
         object = env_object.EnvObject(obj_info["urdf"], pos, orn, pybullet_client=self.p, fixed=fixed)
         if self.color_dict: object.set_color(self.color_of_object(object))
         return object
