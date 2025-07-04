@@ -74,7 +74,7 @@
     <parent link="base_footprint"/>
     <child link="base_footprint2"/>
     <axis xyz="1 0 0"/>
-    <limit effort="16" lower="-0.5" upper="0.2" velocity="0.05"/>
+    <limit effort="16" lower="-0.5" upper="0.275" velocity="0.05"/>
   </joint>
   <!-- Base -->
   <link name="base_link">

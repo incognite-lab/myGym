@@ -10,7 +10,7 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot;
-    "robot"         :"tiago_dual",
+    "robot"         :"tiago_dual_rotslide2",
     "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.4],
     "max_velocity"  :5,
@@ -20,8 +20,8 @@
     "task_type"             :"AGR",
     "natural_language"      :0,
     "task_objects"          :[{"init":{"obj_name":"spatula","fixed":0,"rand_rot":0, "sampling_area":[0.3,0.5, 0.4, 0.6, -0.225, -0.225]},
-                            "goal":{"obj_name":"spatula","fixed":1,"rand_rot":1, "sampling_area":[-0.1,0.1,0.4,0.6,-0.15,-0.15]}}],
-    "color_dict"            : {"apple":["green"], "target":["gray"]},
+                            "goal":{"obj_name":"spatula_dummy","fixed":1,"rand_rot":1, "sampling_area":[-0.1,0.1,0.4,0.6,-0.15,-0.15]}}],
+    "color_dict"            : {"spatula":["green"], "target":["gray"]},
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
     // Observation
     // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
