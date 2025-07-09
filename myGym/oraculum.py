@@ -33,16 +33,17 @@ def perform_oraculum_task(t: int, env: Any, arg_dict: Dict[str, Any],
 
     # Check for 'absolute' control mode in robot action
     if "absolute" in arg_dict["robot_action"]:
-        reward_name = env.env.unwrapped.reward.reward_name
+        reward_name = env.env.unwrapped.reward.__class__.__name__
         gripper = "gripper" in arg_dict["robot_action"]
-        if reward_name == "approach":
+        if reward_name == "ApproachReward":
             _set_gripper_action(action, GRIPPER_OPEN, gripper)
             action[:3] = _get_approach_action(env, info)
-        elif reward_name == "grasp":
+        elif reward_name == "GraspReward":
             _set_gripper_action(action, GRIPPER_CLOSED, gripper)
-        elif reward_name == "move":
+        elif reward_name == "MoveReward":
             _set_gripper_action(action, GRIPPER_CLOSED, gripper)
             # Check if the robot is close enough to the goal
+
             distance_to_goal = np.linalg.norm(np.array(info['o']["goal_state"][:2]) - np.array(info['o']["actual_state"][:2]))
             if info['o']["actual_state"][2] < -0.272:
                 info['o']["goal_state"][2] += 0.1
@@ -53,9 +54,9 @@ def perform_oraculum_task(t: int, env: Any, arg_dict: Dict[str, Any],
                 print(f"Close to goal, raising hand: {action[:3]}")
             else:
                 action[:3] = info['o']["goal_state"][:3]
-        elif reward_name == "drop":
+        elif reward_name == "DropReward":
             _set_gripper_action(action, GRIPPER_OPEN, gripper)
-        elif reward_name == "withdraw":
+        elif reward_name == "WithdrawReward":
             distance_to_goal = np.linalg.norm(
                 np.array(info['o']["goal_state"][:3]) - np.array(info['o']["actual_state"][:3]))
             if distance_to_goal > 0.2:
@@ -83,7 +84,8 @@ def _get_approach_action(env: Any, info: Dict[str, Any]) -> np.ndarray:
     Returns:
         np.ndarray: Updated approach action.
     """
-    if env.env.unwrapped.reward.rewards_num <= 2:
+    if env.unwrapped.task.current_task_length <= 2:
+        #TODO: figure out what exactly is in observation and change how actual or goal states get retrieved
         action = info['o']["goal_state"][:3]
         if info['o']["actual_state"][2] < -0.25:
             action[2] += 0.05

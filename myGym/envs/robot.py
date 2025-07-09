@@ -38,7 +38,7 @@ class Robot(EnvObject):
                  robot_action="step",
                  task_type="reach",
                  use_fixed_end_effector_orn=False,
-                 end_effector_orn=[0, -math.pi, 0],
+                 end_effector_orn=[0, 0, 0],
                  dimension_velocity = 0.5,
                  max_velocity = None, #1.,
                  max_force = None, #50.,
@@ -86,6 +86,7 @@ class Robot(EnvObject):
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
         self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
+
 
     def _load_robot(self):
         """
@@ -383,10 +384,8 @@ class Robot(EnvObject):
         
         gjoints = self.get_gjoints_states()
         #print(gjoints)
-        
 
-
-    def _calculate_joint_poses(self, end_effector_pos):
+    def _calculate_joint_poses(self, end_effector_pos, endeff_orientation=None):
         """
         Calculate joint poses corresponding to desired position of end-effector. Uses inverse kinematics.
 
@@ -395,19 +394,25 @@ class Robot(EnvObject):
         Returns:
             :return joint_poses: (list) Calculated joint poses corresponding to desired end-effector position
         """
-        if (self.use_fixed_end_effector_orn):
-            joint_poses = self.p.calculateInverseKinematics(self.uid,
-                                                       self.end_effector_index,
-                                                       end_effector_pos,
-                                                       self.fixed_end_effector_orn,
-                                                       lowerLimits=self.joints_limits[0],
-                                                       upperLimits=self.joints_limits[1],
-                                                       jointRanges=self.joints_ranges,
-                                                       restPoses=self.joints_rest_poses)
+        if endeff_orientation is None:
+            if (self.use_fixed_end_effector_orn):
+                joint_poses = self.p.calculateInverseKinematics(self.uid,
+                                                                self.end_effector_index,
+                                                                end_effector_pos,
+                                                                self.fixed_end_effector_orn,
+                                                                lowerLimits=self.joints_limits[0],
+                                                                upperLimits=self.joints_limits[1],
+                                                                jointRanges=self.joints_ranges,
+                                                                restPoses=self.joints_rest_poses)
+            else:
+                joint_poses = self.p.calculateInverseKinematics(self.uid,
+                                                                self.end_effector_index,
+                                                                end_effector_pos)
         else:
             joint_poses = self.p.calculateInverseKinematics(self.uid,
-                                                       self.end_effector_index,
-                                                       end_effector_pos)
+                                                            self.end_effector_index,
+                                                            end_effector_pos,
+                                                            endeff_orientation)
         joint_poses = np.clip(joint_poses[:len(self.motor_indices)], self.joints_limits[0], self.joints_limits[1])
         return joint_poses
 
@@ -553,7 +558,7 @@ class Robot(EnvObject):
         des_end_effector_pos = np.add(self.end_effector_pos, action)
         joint_poses = self._calculate_joint_poses(des_end_effector_pos)
         self._run_motors(joint_poses)
-    
+
 
     def apply_action_absolute(self, action):
         """
@@ -563,9 +568,39 @@ class Robot(EnvObject):
             :param action: (list) Desired action data
         """
         des_end_effector_pos = action[:3]
-        joint_poses = self._calculate_joint_poses(des_end_effector_pos)
+        # action[2] += 0.1 #OFFSET
+        if len(action) == 9:
+            des_endeff_orientation = self.gripper_transform(action[3:7])
+        else:
+            des_endeff_orientation = None
+        joint_poses = self._calculate_joint_poses(des_end_effector_pos, des_endeff_orientation)
+
         self._run_motors(joint_poses)
-        
+
+
+    def object_transform(self, quat):
+        """
+        Transforms the given quaternion with the object offset quat.
+        When robot picks up object, the orientation of the gripper is stored inside self.offset_quat.
+        The orientation of the gripper relative to the picked up object then stays the same.
+        """
+        des_object_orientation = self.p.multiplyTransforms([0, 0, 0], quat, [0, 0, 0],
+                                                           self.p.invertTransform([0, 0, 0], self.offset_quat)[1])[1]
+        return des_object_orientation
+
+
+    def set_offset_quat(self, object_orientation):
+        self.offset_quat = self.p.getDifferenceQuaternion(object_orientation, self.get_orientation())
+
+
+    def gripper_transform(self, quat):
+        """
+        Inverse of object transform.
+        Used to compute back how the gripper should be oriented when the object has to be oriented to goal position.
+        """
+        des_endeff_orientation = self.p.multiplyTransforms([0, 0, 0], quat, [0, 0, 0], self.offset_quat)[1]
+        return des_endeff_orientation
+
 
     def apply_action_joints(self, action):
         """
@@ -601,7 +636,7 @@ class Robot(EnvObject):
             self.apply_action_joints(action)
         if "gripper" in self.robot_action:
             self._move_gripper(action[-(self.gjoints_num):])
-            if self.task_type in ["compositional", "AG", "AGM", "AGR" "AGMD", "AGMDW", "AGRDW", "AGFDW","AGTDW"]:
+            if self.task_type in ["compositional", "AG", "AGM", "AGR" "AGMD", "AGMDW", "AGRDW", "AGFDW","AGTDW"]: #TODO: this has to be changed
                 if env_objects["actual_state"] != self and self.use_magnet: #if self.use_magnet and ...
                     gripper_states = self.get_gjoints_states()
                     if sum(gripper_states) < self.closegr_threshold:
@@ -616,34 +651,32 @@ class Robot(EnvObject):
         else:
             if self.gjoints_num:
                 self._move_gripper(self.gjoints_limits[1])
-                #self.gripper_active = True
-                #self.magnetize_object(env_objects["actual_state"])
-            if "pnp" in self.task_type: 
-            #"Need to provide env_objects to use gripper"
-            #When gripper is not in robot action it will magnetize objects
+                # self.gripper_active = True
+                # self.magnetize_object(env_objects["actual_state"])
+            if "pnp" in self.task_type:
+                # "Need to provide env_objects to use gripper"
+                # When gripper is not in robot action it will magnetize objects
                 self.gripper_active = True
                 self.magnetize_object(env_objects["actual_state"])
             elif self.task_type in ["compositional"]:
                 if self.use_magnet and env_objects["actual_state"] != self:
                     self.gripper_active = True
                     self.magnetize_object(env_objects["actual_state"])
-            #    else:
-            #        self.gripper_active = False
-            #        self.release_all_objects()
-            #else:
-            #    self.apply_action_joints(action)
-        
-            if len(self.magnetized_objects):
-            #pos_diff = np.array(self.end_effector_pos) - np.array(self.end_effector_prev_pos)
-            #ori_diff = np.array(self.end_effector_ori) - np.array(self.end_effector_prev_ori)
-                for key,val in self.magnetized_objects.items():
-                    self.p.changeConstraint(val, self.get_position(),self.get_orientation(), maxForce=self.max_force)
-                #self.p.resetBasePositionAndOrientation(val,self.end_effector_pos,self.end_effector_ori)
-            #self.end_effector_prev_pos = self.end_effector_pos
-            #self.end_effector_prev_ori = self.end_effector_ori
-        #if 'gripper' not in self.robot_action:
-        #    for joint_index in range(self.gripper_index, self.end_effector_index + 1):
-        #        self.p.resetJointState(self.uid, joint_index, self.p.getJointInfo(self.uid, joint_index)[9])
+                for key, val in self.magnetized_objects.items():
+                    subtask_name = self.env.unwrapped.task.current_action.__class__.__name__
+                    if subtask_name == "Rotate":
+                        self.p.removeConstraint(val)
+                        desired_orientation = self.p.multiplyTransforms([0, 0, 0], self.get_orientation(), [0, 0, 0],
+                                                                        self.offset_quat)
+                        constraint_id = self.p.createConstraint(val.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0],
+                                                                [0, 0, 0],
+                                                                self.get_position(),
+                                                                parentFrameOrientation=desired_orientation)
+                        self.magnetized_objects[val] = constraint_id
+                    else:
+                        self.p.changeConstraint(val, self.get_position(), self.get_orientation(),
+                                                maxForce=self.max_force)
+
 
     def magnetize_object(self, object, distance_threshold=.1):
         if len(self.magnetized_objects) == 0 :

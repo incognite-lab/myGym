@@ -142,7 +142,7 @@ class GymEnv(CameraEnv):
         self.reach_gesture = False
         if self.task_type == "reach_gesture":
             if self.workspace != "collabtable":
-                exc = f"Expected collabtable workspace when the reach_gesture task is passed, got {self.workspace} instead"
+                exc = f"Expected collabtable workspace R the reach_gesture task is passed, got {self.workspace} instead"
                 raise Exception(exc)
 
             self.reach_gesture = True
@@ -386,14 +386,12 @@ class GymEnv(CameraEnv):
             :return info: (dict) Additional information about step
         """
         self._apply_action_robot(action)
-        #print("robot action: {}".format(action), end="\r")
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
         if self.dataset:
             reward, terminated, truncated, info = 0, False, False, {}
         else:
             reward = self.compute_reward()  # this uses rddl protoaction, no arguments needed
-            #print("Reward by RDDL: {}".format(reward),end="\r")
             self.episode_reward += reward
             done = self.episode_over #@TODO replace with actual is_done value from RDDL
             info = {'d': 0.9, 'f': int(self.episode_failed),

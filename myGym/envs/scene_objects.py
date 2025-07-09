@@ -43,8 +43,8 @@ mapping = {
 Operand.set_mapping(mapping)
 
 from rddl import AtomicAction, Entity, Reward
-from rddl.actions import Approach, Grasp, Drop, Move, Follow
-from rddl.entities import GraspableObject, Gripper, Location, ObjectEntity
+from rddl.actions import Approach, Grasp, Drop, Move, Follow, Rotate, Withdraw
+from rddl.entities import GraspableObject, Gripper, Location, ObjectEntity, AbstractRotation
 from rddl.operators import NotOp
 from rddl.predicates import IsHolding, Near, OnTop
 
@@ -270,8 +270,6 @@ class Knife(GraspableObject, EnvObject):
         kw["rgba"] = self.rgba
         super().__init__(self._get_generic_reference() if reference is None else reference, "knife", **kw)
         self._kind = kind
-
-
 
 
 
