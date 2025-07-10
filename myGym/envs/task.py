@@ -4,6 +4,7 @@ from myGym.envs.scene_objects import TiagoGripper
 from rddl.rddl_sampler import RDDLWorld
 from rddl.task import RDDLTask
 from rddl.entities import Gripper, ObjectEntity
+from myGym.envs.predicates import *
 
 class TaskModule():
     """
@@ -94,7 +95,8 @@ class TaskModule():
                 self.rddl_robot = entity
                 self.scene_objects.append(robot)
             elif not entity.is_bound():
-                pos = entity.type.get_random_object_position(self.env.reachable_borders) # @TODO needs to be constrained by predicates
+                spawning_area = self.find_spawning_area()
+                pos = entity.type.get_random_object_position([i for sublist in spawning_area for i in sublist])
                 orn =  entity.type.get_random_z_rotation() #@TODO needs to be constrained by predicates
 
                 kw = {"env": self.env, "position":pos, "orientation":orn, "pybullet_client":self.p, "fixed":False, "observation":self.env.vision_source,
@@ -102,6 +104,14 @@ class TaskModule():
                 self.spawn_object_for_rddl(entity, **kw)
 
                 
+    def find_spawning_area(self):
+        assert self.rddl_robot is not None, "Must not be called before the robot is spawned!"
+        is_reachable = IsReachable()
+        robot_area = is_reachable.set_value(self.rddl_robot)
+        env_borders = [self.env.reachable_borders[:2],self.env.reachable_borders[2:4],self.env.reachable_borders[4:6]]
+        intersection = get_range_intersection(robot_area, env_borders)
+        assert len(intersection) > 0, "The robot reachable area and workspace areas do not intersect!"
+        return intersection
 
     def spawn_object_for_rddl(self, rddl_entity, env, position, orientation, pybullet_client, 
                               fixed=False, observation="ground_truth", vae_path=None, yolact_path=None, yolact_config=None):

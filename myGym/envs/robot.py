@@ -56,6 +56,7 @@ class Robot(EnvObject):
         self.orientation = self.p.getQuaternionFromEuler(np.array(orientation) +
                                                        self.robot_dict[robot].get('orientation',np.zeros(len(orientation))))
         self.name = robot
+        self.is_humanoid = self.check_is_humanoid()
         self.max_velocity = max_velocity
         self.max_force = max_force
         self.end_effector_index = end_effector_index
@@ -63,6 +64,7 @@ class Robot(EnvObject):
         self.use_fixed_end_effector_orn = use_fixed_end_effector_orn
         self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(end_effector_orn)
         self.dimension_velocity = dimension_velocity
+        self.reachable_range_from_base = self.get_reachable_range()
         self.use_magnet = False
         self.motor_names = []
         self.motor_indices = []
@@ -87,6 +89,18 @@ class Robot(EnvObject):
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
         self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
 
+    def get_reachable_range(self): 
+        # this should be updated. either check via simulation or define for each robot separately
+        if self.is_humanoid:
+            return [[-0.1, 0.5], [0.15, 0.8], [0.6, 1.5]]
+        else:
+            return [[-0.7, 0.7], [0.1, 0.8], [-0.1, 1.2]]
+
+    def check_is_humanoid(self):
+        for humanoid in ["tiago", "nico"]:
+            if humanoid in self.name:
+                return True
+        return False
 
     def _load_robot(self):
         """

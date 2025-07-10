@@ -9,6 +9,7 @@ from rddl import Operand, Variable
 from myGym.envs.env_object import EnvObject
 from myGym.envs.robot import Robot
 import importlib.resources as resources
+from myGym.envs.predicates import *
 currentdir = resources.files("myGym").joinpath("envs")
 
 def time_function(f: Callable, *args, **kwargs):
@@ -23,21 +24,28 @@ def euclidean_distance(point_A: np.ndarray, point_B: np.ndarray) -> float:
 
 
 def is_holding(gripper, obj) -> bool:
-    return bool(np.linalg.norm(gripper.location - obj.location) < NEAR_THRESHOLD)
+    return bool((np.linalg.norm(gripper.location - obj.location) < NEAR_THRESHOLD))
 
+def is_on_top(obj1, obj2)  -> bool:
+    ontop = OnTop()
+    return ontop.get_value(obj1, obj2)
+
+def is_reachable(gripper, obj) -> bool:
+    reachable = IsReachable()
+    return reachable.get_value(gripper, obj)
 
 NEAR_THRESHOLD = 0.1
 
 mapping = {
     "is_holding": is_holding,
     "euclidean_distance": euclidean_distance,
-    "is_reachable": lambda g, o: True,
+    "is_reachable": is_reachable,
     "near_threshold": NEAR_THRESHOLD,
     "gripper_at": lambda g, o: all(g.location == o.location),
     "gripper_open": lambda g: np.random.random() < 0.5,
     "object_at": lambda g, o: g.location == o.location,
     "exists": lambda e: True,
-    "on_top" : lambda e: True
+    "on_top" : is_on_top
 }
 
 Operand.set_mapping(mapping)
@@ -279,7 +287,7 @@ class TiagoGripper(Gripper, Robot):
 
     def __init__(self, reference: Optional[str] = None, **kw):
         super().__init__("gripper_tiago" if reference is None else reference, **kw)
-        # self._is_holding_predicate = IsHolding(self)
+
 
 
 
