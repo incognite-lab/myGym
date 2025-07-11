@@ -11,6 +11,7 @@ import pybullet as p
 import pybullet_data
 from numpy import matrix
 from sklearn.model_selection import ParameterGrid
+import pandas as pd
 
 from myGym import oraculum
 from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env
@@ -152,6 +153,8 @@ def n_pressed(last_call_time):
 
 def test_env(env: object, arg_dict: dict) -> None:
     env.reset()
+    results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Robot init", "Gripper init", "Object init", "Object goal", "Success"])
+    current_result = None
     env.render()
     global done
     # Prepare names for sliders
@@ -227,7 +230,21 @@ def test_env(env: object, arg_dict: dict) -> None:
 
     eval_episodes = arg_dict.get("eval_episodes", 50)
     for e in range(eval_episodes):
-        env.reset()
+        obs, info = env.reset()
+        # Store oraculum results if selected:
+        if arg_dict["results_report"]:
+            if len(arg_dict["task_type"]) <=2: #A or AG task
+                positions = [info['o']['actual_state'],  None,
+                              info['o']['goal_state']]
+            else:
+                positions = [info['o']["additional_obs"]["endeff_xyz"],
+                             info['o']['actual_state'],
+                             info['o']['goal_state']]
+            current_result = [arg_dict["task_type"], arg_dict["workspace"],
+                            arg_dict["robot"], arg_dict["robot_init"],
+                            np.round(np.array(positions[0]), 2) if positions[0] is not None else None,
+                            np.round(np.array(positions[1]), 2) if positions[1] is not None else None,
+                            np.round(np.array(positions[2]), 2) if positions[2] is not None else None]
         for t in range(arg_dict["max_episode_steps"]):
             if arg_dict["control"] == "slider":
                 action = []
@@ -254,7 +271,15 @@ def test_env(env: object, arg_dict: dict) -> None:
             elif arg_dict["control"] == "random":
                 action = env.action_space.sample()
 
-            observation, reward, done, _, info = env.step(action)
+            observation, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated
+
+            if arg_dict["results_report"] and done:
+                if terminated:
+                    current_result.append(True)
+                elif truncated:
+                    current_result.append(False)
+                results.loc[len(results)] = current_result #Append result to pd dataframe
 
             n_p, last_call_time = n_pressed(last_call_time)
             if n_p: #If key 'n' is pressed, switch to next task - useful if robot gets stuck
@@ -306,6 +331,19 @@ def test_env(env: object, arg_dict: dict) -> None:
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
                 break
+    if arg_dict["results_report"]:
+        # results = results.round(2)
+        i=1
+        print(results.dtypes)
+        print(results)
+        print(type(results))
+        while True:
+            filename = f"./oraculum_results/results{i}.csv"
+            if not(os.path.exists(filename)):
+                break
+            i+=1
+        results.to_csv(filename, index = False)
+
 
 
 def record_video(images: list, arg_dict: dict, env: object, path: str) -> None:
@@ -434,6 +472,20 @@ def test_model(
     file.write("#Mean number of steps {}\n".format(mean_steps_num))
     file.close()
 
+def print_init_info(arg_dict):
+    control = arg_dict.get("control")
+    print("Path to the model using --model_path argument not specified. ")
+    if control == "keyboard":
+        print("Testing robot using keyboard control in selected environment.")
+    elif control == "oraculum":
+        print("Testing scenario feasibility using oraculum control in selected environment.")
+    elif control == "slider":
+        print("Testing robot joint control in selected environment using slider.")
+    elif control == "observation":
+        print("Testing robot control in selected environment using observation.")
+    else:
+        print("Testing random actions in selected environment.")
+
 
 def main() -> None:
     """Main entry point for the testing script."""
@@ -444,6 +496,8 @@ def main() -> None:
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
+    parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
+    parser.add_argument("-tp", "--top_grasp", default = True, help="Use top grasp when reaching objects with oraculum.")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
     arg_dict, commands = get_arguments(parser)
     parameters = {}
@@ -465,12 +519,12 @@ def main() -> None:
         return
     if arg_dict["control"] == "oraculum":
         arg_dict["robot_action"] = "absolute_gripper"
-
+    else:
+        if arg_dict["results_report"]:
+            print("Results report cannot be used without oraculum.")
+            arg_dict["results_report"] = False
     if arg_dict.get("model_path") is None:
-        print(
-            "Path to the model using --model_path argument not specified. "
-            "Testing random actions in selected environment."
-        )
+        print_init_info(arg_dict)
         arg_dict["gui"] = 1
         env = configure_env(arg_dict, model_logdir, for_train=0)
         test_env(env, arg_dict)

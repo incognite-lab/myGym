@@ -98,6 +98,7 @@ class GymEnv(CameraEnv):
                  yolact_config=None,
                  natural_language=False,
                  training=True,
+                 top_grasp = False,
                  **kwargs
                  ):
 
@@ -136,6 +137,7 @@ class GymEnv(CameraEnv):
         self.visualize = visualize
         self.visgym    = visgym
         self.logdir    = logdir
+        self.top_grasp = top_grasp
         self.workspace_dict = get_workspace_dict()
         if not hasattr(self, "task"):
           self.task = None
@@ -216,9 +218,10 @@ class GymEnv(CameraEnv):
         if ws_texture: self._change_texture(self.workspace, self._load_texture(ws_texture))
         self._change_texture("floor", self._load_texture("parquet1.jpg"))
         self.objects_area_borders = self.workspace_dict[self.workspace]['borders']
+        endeff_orn = [0, 0, 0] if self.top_grasp else None
         kwargs = {"position": self.workspace_dict[self.workspace]['robot']['position'],
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
-                  "init_joint_poses": self.robot_init_joint_poses, "use_fixed_end_effector_orn": [0, 0, 0],
+                  "init_joint_poses": self.robot_init_joint_poses, "use_fixed_end_effector_orn": endeff_orn,
                   "max_velocity": self.max_velocity, "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
                   "pybullet_client": self.p, "reward_type": self.unwrapped.reward}
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)

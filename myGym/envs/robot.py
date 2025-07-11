@@ -405,6 +405,7 @@ class Robot:
         """
         if endeff_orientation is None:
             if (self.use_fixed_end_effector_orn):
+                print("using fixed endeff orientation")
                 joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                            self.end_effector_index,
                                                            end_effector_pos,

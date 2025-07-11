@@ -14,7 +14,7 @@
     "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.4],
     "max_velocity"  :5,
-    "max_force"     :300,
+    "max_force"     :20000,
     "action_repeat" :1,
     #Task
     "task_type"             :"AGMD",
