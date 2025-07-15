@@ -405,7 +405,6 @@ class Robot:
         """
         if endeff_orientation is None:
             if (self.use_fixed_end_effector_orn):
-                print("using fixed endeff orientation")
                 joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                            self.end_effector_index,
                                                            end_effector_pos,
@@ -581,6 +580,7 @@ class Robot:
         # action[2] += 0.1 #OFFSET
         if len(action) == 9:
             des_endeff_orientation = self.gripper_transform(action[3:7])
+
         else:
             des_endeff_orientation = None
         joint_poses = self._calculate_joint_poses(des_end_effector_pos, des_endeff_orientation)
@@ -655,8 +655,8 @@ class Robot:
                         self.release_all_objects()
                 if len(self.magnetized_objects):
                     for key, val in self.magnetized_objects.items():
+                        self.p.removeConstraint(val)
                         if self.orientation_in_rew:
-                            self.p.removeConstraint(val)
                             object_ori = self.object_transform(self.get_orientation())
                             constraint_id = self.p.createConstraint(key.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0],
                                                                     [0, 0, 0],
@@ -665,8 +665,12 @@ class Robot:
                             self.magnetized_objects[key] = constraint_id
                             self.p.resetBasePositionAndOrientation(key.uid, self.end_effector_pos, object_ori)
                         else:
-                            self.p.changeConstraint(val, self.get_position(), self.get_orientation(),
-                                                    maxForce=self.max_force)
+                            constraint_id = self.p.createConstraint(key.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0],
+                                                                    [0, 0, 0],
+                                                                    self.get_position())
+                            self.magnetized_objects[key] = constraint_id
+                            self.p.resetBasePositionAndOrientation(key.uid, self.end_effector_pos, key.get_orientation())
+
         else:
             if self.gjoints_num:
                 self._move_gripper(self.gjoints_limits[1])
@@ -753,6 +757,20 @@ class Robot:
 
     def set_magnetization(self, value):
         self.use_magnet = value
+
+    def set_endeff_orn(self, orientation):
+        """
+        This method is accessed from rewards.py and is used to set how gripper should be oriented
+        in the current task.
+        Parameters:
+            :param orientation: (list/array) Desired orientation in euler angles
+        """
+        if orientation is not None:
+            self.end_effector_orn = self.p.getQuaternionFromEuler(orientation)
+            self.use_fixed_end_effector_orn = True
+        else:
+            self.end_effector_orn = None
+            self.use_fixed_end_effector_orn = False
 
     def get_accurate_gripper_position(self):
         """

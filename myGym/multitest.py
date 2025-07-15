@@ -12,14 +12,18 @@ import pybullet_data
 from numpy import matrix
 from sklearn.model_selection import ParameterGrid
 import pandas as pd
+import commentjson
 
 from myGym import oraculum
-from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env
+from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env, task_objects_replacement
 
 clear = lambda: os.system('clear')
 
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
+
+TASK_TYPE_MAPPING = {"A": "train_A_RDDL.json", "AG": "train_AG_RDDL.json", "AGM": "train_AGM_RDDL.json",
+                     "AGR": "train_AGR_RDDL.json", "AGMD": "train_AGMD_RDDL.json", "AGMDW": "train_AGMDW_RDDL.json"}
 
 
 def visualize_sampling_area(arg_dict: dict) -> None:
@@ -151,11 +155,9 @@ def n_pressed(last_call_time):
         return False, last_call_time
 
 
-def test_env(env: object, arg_dict: dict) -> None:
+def test_env(env: object, arg_dict: dict) -> list:
     env.reset()
-    results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Success"])
     current_result = None
-    env.render()
     global done
     # Prepare names for sliders
     joints = [f"Joint{i}" for i in range(1, 20)]
@@ -271,7 +273,7 @@ def test_env(env: object, arg_dict: dict) -> None:
 
             observation, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
-
+            # print("Done step:", env.unwrapped.episode_steps, "for task type:", arg_dict["task_type"], "with robot", arg_dict["robot"])
             n_p, last_call_time = n_pressed(last_call_time)
             if n_p:  # If key 'n' is pressed, switch to next task - useful if robot gets stuck
                 env.unwrapped.task.end_episode_fail("manual_switch")
@@ -284,7 +286,6 @@ def test_env(env: object, arg_dict: dict) -> None:
                     current_result.append(False)
                 else:
                     current_result.append(False)
-                results.loc[len(results)] = current_result #Append result to pd dataframe
 
             if arg_dict["vtrajectory"]:
                 visualize_trajectories(info, action)
@@ -331,18 +332,12 @@ def test_env(env: object, arg_dict: dict) -> None:
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
                 break
-    if arg_dict["results_report"]:
-        # results = results.round(2)
-        i=1
-        print(results.dtypes)
-        print(results)
-        print(type(results))
-        while True:
-            filename = f"./oraculum_results/results{i}.csv"
-            if not(os.path.exists(filename)):
-                break
-            i+=1
-        results.to_csv(filename, index = False)
+
+    env_p = env.unwrapped.p
+    env_p.disconnect()
+    while env_p.isConnected():
+        continue
+    return current_result
 
 
 
@@ -389,150 +384,139 @@ def make_path(arg_dict: dict, record_format: str, model: bool):
 
     return video_path
 
-
-def test_model(
-        env: Any,
-        model=None,
-        implemented_combos: Dict[str, Any] = None,
-        arg_dict: Dict[str, Any] = None,
-        model_logdir: str = None,
-        deterministic: bool = False
-) -> None:
-    env.reset()
+def multiconfig_checker(multiconfig):
+    """
+    Tests whether given multiconfig is valid - checks for format and whether all the arrays have the same length.
+    Parameters:
+        "multiconfig" (str): location of multiconfig file
+    """
     try:
-        #TODO: maybe this if else is unnecessary?
-        if "multi" in arg_dict["algo"]:
-            model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env = env)
-            model.env = model_args[1].env
-        else:
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env = env)
-    except:
-        if (arg_dict["algo"] in implemented_combos.keys()) and (
-                arg_dict["train_framework"] not in list(implemented_combos[arg_dict["algo"]].keys())):
-            err = "{} is only implemented with {}".format(arg_dict["algo"],
-                                                          list(implemented_combos[arg_dict["algo"]].keys())[0])
-        elif arg_dict["algo"] not in implemented_combos.keys():
-            err = "{} algorithm is not implemented.".format(arg_dict["algo"])
-        else:
-            err = "invalid model_path argument"
-        raise Exception(err)
+        with open(multiconfig, "r") as f:
+            multi_args = commentjson.load(f)
+            arr_length = None
+            for key, value in multi_args.items():
+                if arr_length is not None:
+                    if len(value) != arr_length:
+                        print("Arrays in multiconfig do not have the same length, please change the config.")
+                        raise ValueError
+                else:
+                    arr_length = len(value)
+        return multi_args, arr_length
+    except Exception as e:
+        print("Error, failed to check multiconfig, error:", e)
+        return None, None
 
-    images = []  # Empty list for GIF images
-    success_episodes_num = 0
-    distance_error_sum = 0
-    steps_sum = 0
-    global done
 
-    p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
-    model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
-    for e in range(arg_dict["eval_episodes"]):
-        done = False
-        obs, info = env.reset()
-        is_successful = 0
-        distance_error = 0
+def get_multitest_args(multiconfig, base_arg_dict, config, i):
+    #2)Replace the base layer of arguments with arguments from retrieved config
+    new_arg_dict = base_arg_dict.copy()
+    with open(config, "r") as f:
+        arg_dict = commentjson.load(f)
+    for key, value in arg_dict.items():
+        if value is not None and key != "config":
+            if key in ["robot_init"] or key in ["end_effector_orn"]:
+                new_arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
+            elif type(value) is list and len(value) <= 1 and key != "task_objects":
+                new_arg_dict[key] = value[0]
+        if value is not None:
+                new_arg_dict[key] = value
+    #print("Arg dict task objects after config replacement:", new_arg_dict)
+    #3)Last layer of replacement - replace current args with the last args from multiconfig (i.e. Robot, Gripper init..)
+    for key, value in multiconfig.items():
+        if value is not None and key != "Task type":
+            new_arg_dict[key] = value[i]
+    # print("-------------------------------------------------------------------")
+    # print("Arg dict task objects after multiconfig replacement:", new_arg_dict["task_objects"])
+    # print("-------------------------------------------------------------------")
+    return new_arg_dict
 
-        while not done:
-            steps_sum += 1
-            action, _state = model.predict(obs, deterministic=deterministic)
-            obs, reward, terminated, truncated, info = env.step(action)
-            done = terminated or truncated
-            is_successful = not info['f']
-            distance_error = info['d']
-            if arg_dict["vinfo"]:
-                visualize_infotext(action, env, info)
+def print_task_info(arg_dict):
+    print("-----------------------------------")
+    print("Task type:", arg_dict["task_type"])
+    print("Robot type:", arg_dict["robot"])
+    print("----------------------------------")
 
-            if arg_dict["record"] > 0 and len(images) < 8000:
-                if len(images) < 1:
-                    avi_path = make_path(arg_dict, ".avi", True)
-                    gif_path = make_path(arg_dict, ".gif", True)
-                if arg_dict["record"] == 1:
-                    record_video(images, arg_dict, env, gif_path)
-                elif arg_dict["record"] == 2:
-                    record_video(images, arg_dict, env, avi_path)
-
-        success_episodes_num += is_successful
-        distance_error_sum += distance_error
-
-    mean_distance_error = distance_error_sum / arg_dict["eval_episodes"]
-    mean_steps_num = steps_sum // arg_dict["eval_episodes"]
-
-    print("#---------Evaluation-Summary---------#")
-    print("{} of {} episodes ({} %) were successful".format(success_episodes_num, arg_dict["eval_episodes"],
-                                                            success_episodes_num / arg_dict["eval_episodes"] * 100))
-    print("Mean distance error is {:.2f}%".format(mean_distance_error * 100))
-    print("Mean number of steps {}".format(mean_steps_num))
-    print("#------------------------------------#")
-
-    file = open(os.path.join(model_logdir, "train_" + model_name + ".txt"), 'a')
-    file.write("\n")
-    file.write("#Evaluation results: \n")
-    file.write("#{} of {} episodes were successful \n".format(success_episodes_num, arg_dict["eval_episodes"]))
-    file.write("#Mean distance error is {:.2f}% \n".format(mean_distance_error * 100))
-    file.write("#Mean number of steps {}\n".format(mean_steps_num))
-    file.close()
-
-def print_init_info(arg_dict):
-    control = arg_dict.get("control")
-    print("Path to the model using --model_path argument not specified. ")
-    if control == "keyboard":
-        print("Testing robot using keyboard control in selected environment.")
-    elif control == "oraculum":
-        print("Testing scenario feasibility using oraculum control in selected environment.")
-    elif control == "slider":
-        print("Testing robot joint control in selected environment using slider.")
-    elif control == "observation":
-        print("Testing robot control in selected environment using observation.")
-    else:
-        print("Testing random actions in selected environment.")
 
 
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
     parser.add_argument("-ct", "--control", default="oraculum",
-                        help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
+                        help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider.")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
     parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
     parser.add_argument("-tp", "--top_grasp", default = True, help="Use top grasp when reaching objects with oraculum.")
+    #The most important argument for multitest:
+    parser.add_argument("-mcfg", "--multiconfig", default = "./configs/multiconfig1.json", help="Config with a list of configs for all the tested tasks.")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
-    arg_dict, commands = get_arguments(parser)
+    #1) Get the first layer of arguments from parser
+    base_arg_dict, commands = get_arguments(parser)
     parameters = {}
-    args = parser.parse_args()
-
-    for key, arg in arg_dict.items():
-        if type(arg_dict[key]) == list:
-            if len(arg_dict[key]) > 1 and key != "robot_init" and key != "end_effector_orn":
-                if key != "task_objects":
-                    parameters[key] = arg
-                    if key in commands:
-                        commands.pop(key)
-
-    model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
-
-    # Check if we chose one of the existing engines
-    if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
-        print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
-        return
-    if arg_dict["control"] == "oraculum":
-        arg_dict["robot_action"] = "absolute_gripper"
+    # args = parser.parse_args()
+    multiconfig, num_tasks = multiconfig_checker(base_arg_dict["multiconfig"])
+    if multiconfig is not None:
+        print("Multiconfig check passed!")
     else:
-        if arg_dict["results_report"]:
-            print("Results report cannot be used without oraculum.")
-            arg_dict["results_report"] = False
-    if arg_dict.get("model_path") is None:
-        print_init_info(arg_dict)
-        arg_dict["gui"] = 1
-        env = configure_env(arg_dict, model_logdir, for_train=0)
-        test_env(env, arg_dict)
-    else:
-        arg_dict["robot_action"] = "joints_gripper" #Model has to be tested with this action type
-        env = configure_env(arg_dict, model_logdir, for_train=0)
-        implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
-        test_model(env, None, implemented_combos, arg_dict, model_logdir, deterministic=False)
+        print("Multiconfig check failed!")
+        quit()
+    print("Base arg dict task objects:", base_arg_dict)
+    results = pd.DataFrame(
+        columns=["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Success"])
+
+    for i in range(num_tasks):
+        current_task_type = multiconfig["Task type"][i]
+        current_config = os.path.join("./configs/", TASK_TYPE_MAPPING[current_task_type])
+        arg_dict = get_multitest_args(multiconfig, base_arg_dict, current_config, i)
+        arg_dict["eval_episodes"] = 1#Maybe could put this into multiconfig
+        if arg_dict["control"] == "oraculum":
+            arg_dict["robot_action"] = "absolute_gripper"
+        else:
+            if arg_dict["results_report"]:
+                print("Results report cannot be used without oraculum.")
+                arg_dict["results_report"] = False
+        print_task_info(arg_dict)
+        model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
+        env = configure_env(arg_dict, model_logdir, for_train=False)
+
+        current_result = test_env(env, arg_dict)
+        results.loc[len(results)] = current_result  # Append result to pd dataframe
+    if base_arg_dict["results_report"]:
+        # results = results.round(2)
+        i=1
+        print(results.dtypes)
+        print(results)
+        print(type(results))
+        while True:
+            filename = f"./oraculum_results/results{i}.csv"
+            if not(os.path.exists(filename)):
+                break
+            i+=1
+        results.to_csv(filename, index = False)
+
+    # for key, arg in arg_dict.items():
+    #     if type(arg_dict[key]) == list:
+    #         if len(arg_dict[key]) > 1 and key != "robot_init" and key != "end_effector_orn":
+    #             if key != "task_objects":
+    #                 parameters[key] = arg
+    #                 if key in commands:
+    #                     commands.pop(key)
+    #
+    # model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
+    #
+    # # Check if we chose one of the existing engines
+    # if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
+    #     print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
+    #     return
+    # if arg_dict["control"] == "oraculum":
+    #     arg_dict["robot_action"] = "absolute_gripper"
+
+    # arg_dict["gui"] = 1
+    # env = configure_env(arg_dict, model_logdir, for_train=0)
+    # test_env(env, arg_dict)
+
 
 
 if __name__ == "__main__":

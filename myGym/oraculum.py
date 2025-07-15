@@ -5,7 +5,7 @@ import numpy as np
 # Constants
 GRIPPER_OPEN = 1
 GRIPPER_CLOSED = 0
-DEFAULT_WITHDRAW_OFFSET = np.array([0.0, 0, 0.4])
+DEFAULT_WITHDRAW_OFFSET = 0.4
 
 
 def perform_oraculum_task(t: int, env: Any, arg_dict: Dict[str, Any],
@@ -47,10 +47,10 @@ def perform_oraculum_task(t: int, env: Any, arg_dict: Dict[str, Any],
             if info['o']["actual_state"][2] < -0.272:
                 info['o']["goal_state"][2] += 0.1
                 action[:3] = info['o']["goal_state"][:3]
-            elif 0.20 > distance_to_goal > 0.09:  # Threshold for being "close enough"
-                info['o']["goal_state"][2] += 0.23
+            elif 0.20 > distance_to_goal > 0.1:  # Threshold for being "close enough"
+                info['o']["goal_state"][2] += 0.13
                 action[:3] = info['o']["goal_state"][:3]
-                print(f"Close to goal, raising hand: {action[:3]}")
+                # print(f"Close to goal, raising hand: {action[:3]}")
             else:
                 action[:3] = info['o']["goal_state"][:3]
         elif reward_name == "drop":
@@ -61,12 +61,14 @@ def perform_oraculum_task(t: int, env: Any, arg_dict: Dict[str, Any],
             _set_gripper_action(action, GRIPPER_CLOSED, gripper)
         elif reward_name == "withdraw":
             distance_to_goal = np.linalg.norm(
-                np.array(info['o']["goal_state"][:3]) - np.array(info['o']["actual_state"][:3]))
-            if distance_to_goal > 0.2:
+                np.array(info['o']["additional_obs"]["endeff_xyz"][:3]) - np.array(info['o']["goal_state"][:3]))
+            if distance_to_goal > 0.15:
                 _set_gripper_action(action, GRIPPER_OPEN, gripper)
-                action[:3] = info['o']["actual_state"][:3] + DEFAULT_WITHDRAW_OFFSET
+                action[:3] = info['o']["goal_state"][:3]
+                action[0] += DEFAULT_WITHDRAW_OFFSET
             else:
-                action[:3] = info['o']["goal_state"][2] + 0.1
+                action[:3] = info['o']["goal_state"][:3]
+                action[2] += 0.2
         elif "reach" in arg_dict["task_type"]:
             action[:3] = _get_approach_action(env, info)
         else:
@@ -89,16 +91,16 @@ def _get_approach_action(env: Any, info: Dict[str, Any]) -> np.ndarray:
     """
     if env.env.unwrapped.reward.rewards_num <= 2:
         action = info['o']["goal_state"][:3]
-        # if info['o']["actual_state"][2] < -0.25:
-        #     #action[2] += 0.05
-        #     action[0] -= 0.05
-        #     print("Too close to table, raising hand: {}".format(action))
+        if info['o']["actual_state"][2] < -0.25:
+            action[2] += 0.05
+            # action[0] -= 0.05
+            # print("Too close to table, raising hand: {}".format(action))
         return action
     action = info['o']["actual_state"][:3]
-    # if info['o']["actual_state"][2] < -0.25:
-    #     #action[2] += 0.05
-    #     # action[0] -= 0.05
-    #     # print("Too close to table, raising hand: {}".format(action))
+    if info['o']["actual_state"][2] < -0.25:
+        action[2] += 0.05
+        # action[0] -= 0.05
+        # print("Too close to table, raising hand: {}".format(action))
     return action
 
 def _set_gripper_action(action: np.ndarray, state: int, gripper: bool) -> None:

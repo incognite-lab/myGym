@@ -4,13 +4,13 @@
     "workspace" :"table_tiago",
     "engine"    :"pybullet",
     "render"    :"opengl",
-    "seed"      :1,d
+    "seed"      :1,
     "camera"    :0,
     "gui"       :0,
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"tiago_dual",
+    "robot"         :"tiago_dual_rotslide",
     "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.4],
     "max_velocity"  :5,
