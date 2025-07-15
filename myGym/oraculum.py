@@ -66,7 +66,8 @@ def perform_oraculum_task(t: int, env: Any, arg_dict: Dict[str, Any],
                 _set_gripper_action(action, GRIPPER_OPEN, gripper)
                 action[:3] = info['o']["goal_state"][:3]
                 action[0] += DEFAULT_WITHDRAW_OFFSET
-            else:
+            elif distance_to_goal < 0.1:
+                _set_gripper_action(action, GRIPPER_OPEN, gripper)
                 action[:3] = info['o']["goal_state"][:3]
                 action[2] += 0.2
         elif "reach" in arg_dict["task_type"]:

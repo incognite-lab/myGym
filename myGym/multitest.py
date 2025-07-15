@@ -462,7 +462,7 @@ def main() -> None:
     else:
         print("Multiconfig check failed!")
         quit()
-    print("Base arg dict task objects:", base_arg_dict)
+
     results = pd.DataFrame(
         columns=["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Success"])
 
@@ -471,6 +471,8 @@ def main() -> None:
         current_config = os.path.join("./configs/", TASK_TYPE_MAPPING[current_task_type])
         arg_dict = get_multitest_args(multiconfig, base_arg_dict, current_config, i)
         arg_dict["eval_episodes"] = 1#Maybe could put this into multiconfig
+        #TODO: putting gui to 1 manually for now, but has to be fixed
+        arg_dict["gui"] = 1
         if arg_dict["control"] == "oraculum":
             arg_dict["robot_action"] = "absolute_gripper"
         else:
@@ -495,27 +497,6 @@ def main() -> None:
                 break
             i+=1
         results.to_csv(filename, index = False)
-
-    # for key, arg in arg_dict.items():
-    #     if type(arg_dict[key]) == list:
-    #         if len(arg_dict[key]) > 1 and key != "robot_init" and key != "end_effector_orn":
-    #             if key != "task_objects":
-    #                 parameters[key] = arg
-    #                 if key in commands:
-    #                     commands.pop(key)
-    #
-    # model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
-    #
-    # # Check if we chose one of the existing engines
-    # if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
-    #     print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
-    #     return
-    # if arg_dict["control"] == "oraculum":
-    #     arg_dict["robot_action"] = "absolute_gripper"
-
-    # arg_dict["gui"] = 1
-    # env = configure_env(arg_dict, model_logdir, for_train=0)
-    # test_env(env, arg_dict)
 
 
 
