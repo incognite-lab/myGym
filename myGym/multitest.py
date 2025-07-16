@@ -235,6 +235,8 @@ def test_env(env: object, arg_dict: dict) -> list:
         obs, info = env.reset()
         # Store oraculum results if selected:
         if arg_dict["results_report"]:
+            obj_names = [arg_dict["task_objects"][0]["init"]["obj_name"],
+                         arg_dict["task_objects"][0]["goal"]["obj_name"]]
             if len(arg_dict["task_type"]) <=2: #A or AG task
                 positions = [info['o']['actual_state'],  None,
                               info['o']['goal_state']]
@@ -242,7 +244,10 @@ def test_env(env: object, arg_dict: dict) -> list:
                 positions = [info['o']["additional_obs"]["endeff_xyz"],
                              info['o']['actual_state'],
                              info['o']['goal_state']]
+
             current_result = [arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"],
+                            obj_names[0] if obj_names[0] != "null" else "gripper",
+                            obj_names[1] if obj_names[1] != "null" else "gripper",
                             np.round(np.array(positions[0]), 2) if positions[0] is not None else None,
                             np.round(np.array(positions[1]), 2) if positions[1] is not None else None,
                             np.round(np.array(positions[2]), 2) if positions[2] is not None else None]
@@ -271,6 +276,7 @@ def test_env(env: object, arg_dict: dict) -> list:
             elif arg_dict["control"] == "random":
                 action = env.action_space.sample()
 
+            subtask_name = env.unwrapped.reward.reward_name
             observation, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
             # print("Done step:", env.unwrapped.episode_steps, "for task type:", arg_dict["task_type"], "with robot", arg_dict["robot"])
@@ -282,10 +288,13 @@ def test_env(env: object, arg_dict: dict) -> list:
             if arg_dict["results_report"] and done:
                 if terminated:
                     current_result.append(True)
+                    current_result.append(None)
                 elif truncated:
                     current_result.append(False)
+                    current_result.append(subtask_name)
                 else:
                     current_result.append(False)
+                    current_result.append(subtask_name)
 
             if arg_dict["vtrajectory"]:
                 visualize_trajectories(info, action)
@@ -384,12 +393,13 @@ def make_path(arg_dict: dict, record_format: str, model: bool):
 
     return video_path
 
-def multiconfig_checker(multiconfig):
+def multiconfig_checker(parser_args):
     """
     Tests whether given multiconfig is valid - checks for format and whether all the arrays have the same length.
     Parameters:
         "multiconfig" (str): location of multiconfig file
     """
+    multiconfig = parser_args.multiconfig
     try:
         with open(multiconfig, "r") as f:
             multi_args = commentjson.load(f)
@@ -407,28 +417,38 @@ def multiconfig_checker(multiconfig):
         return None, None
 
 
-def get_multitest_args(multiconfig, base_arg_dict, config, i):
-    #2)Replace the base layer of arguments with arguments from retrieved config
-    new_arg_dict = base_arg_dict.copy()
+def get_multitest_args(multiconfig, parser, config, i):
+    #1)Create the base layer of arguments from retrieved config
+    args = parser.parse_args()
     with open(config, "r") as f:
         arg_dict = commentjson.load(f)
     for key, value in arg_dict.items():
         if value is not None and key != "config":
             if key in ["robot_init"] or key in ["end_effector_orn"]:
-                new_arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
+                arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
             elif type(value) is list and len(value) <= 1 and key != "task_objects":
-                new_arg_dict[key] = value[0]
-        if value is not None:
-                new_arg_dict[key] = value
-    #print("Arg dict task objects after config replacement:", new_arg_dict)
+                arg_dict[key] = value[0]
+
+    #2) Replace config arguments with arguments from parser (user input arguments)
+    for key, value in vars(args).items():
+        if value is not None and key != "config":
+            if key not in arg_dict or arg_dict[key] is None:
+                arg_dict[key] = value
+            if value != parser.get_default(key):
+                if key in ["task_objects"]:
+                    arg_dict[key] = task_objects_replacement(value, arg_dict[key], arg_dict["task_type"])
+                elif type(value) is list and len(value) <= 1:
+                    arg_dict[key] = value[0]
+                else:
+                    arg_dict[key] = value
     #3)Last layer of replacement - replace current args with the last args from multiconfig (i.e. Robot, Gripper init..)
     for key, value in multiconfig.items():
         if value is not None and key != "Task type":
-            new_arg_dict[key] = value[i]
+            arg_dict[key] = value[i]
     # print("-------------------------------------------------------------------")
     # print("Arg dict task objects after multiconfig replacement:", new_arg_dict["task_objects"])
     # print("-------------------------------------------------------------------")
-    return new_arg_dict
+    return arg_dict
 
 def print_task_info(arg_dict):
     print("-----------------------------------")
@@ -452,11 +472,11 @@ def main() -> None:
     #The most important argument for multitest:
     parser.add_argument("-mcfg", "--multiconfig", default = "./configs/multiconfig1.json", help="Config with a list of configs for all the tested tasks.")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
-    #1) Get the first layer of arguments from parser
-    base_arg_dict, commands = get_arguments(parser)
+    # #1) Get the first layer of arguments from parser
+    # base_arg_dict, commands = get_arguments(parser)
     parameters = {}
-    # args = parser.parse_args()
-    multiconfig, num_tasks = multiconfig_checker(base_arg_dict["multiconfig"])
+    args = parser.parse_args()
+    multiconfig, num_tasks = multiconfig_checker(args)
     if multiconfig is not None:
         print("Multiconfig check passed!")
     else:
@@ -464,15 +484,15 @@ def main() -> None:
         quit()
 
     results = pd.DataFrame(
-        columns=["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Success"])
+        columns=["Task type", "Workspace", "Robot", "Init object", "Goal object", "Gripper init", "Object init", "Object goal", "Success", "Failed at subtask"])
 
     for i in range(num_tasks):
         current_task_type = multiconfig["Task type"][i]
         current_config = os.path.join("./configs/", TASK_TYPE_MAPPING[current_task_type])
-        arg_dict = get_multitest_args(multiconfig, base_arg_dict, current_config, i)
+        arg_dict = get_multitest_args(multiconfig, parser, current_config, i)
         arg_dict["eval_episodes"] = 1#Maybe could put this into multiconfig
         #TODO: putting gui to 1 manually for now, but has to be fixed
-        arg_dict["gui"] = 1
+        #arg_dict["gui"] = 1
         if arg_dict["control"] == "oraculum":
             arg_dict["robot_action"] = "absolute_gripper"
         else:
@@ -485,7 +505,7 @@ def main() -> None:
 
         current_result = test_env(env, arg_dict)
         results.loc[len(results)] = current_result  # Append result to pd dataframe
-    if base_arg_dict["results_report"]:
+    if args.results_report:
         # results = results.round(2)
         i=1
         print(results.dtypes)
