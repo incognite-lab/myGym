@@ -413,7 +413,7 @@ class A(Protorewards):
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
         self.last_owner = owner
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.rewards_history.append(reward)
         self.rewards_num = 1
         return reward
@@ -441,7 +441,7 @@ class AaG(Protorewards):
         reward = [self.approach_compute, self.grasp_compute][owner](*target)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 2
@@ -477,7 +477,7 @@ class AaGaM(Protorewards):
         reward = [self.approach_compute, self.grasp_compute, self.move_compute][owner](*target)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 3
@@ -550,7 +550,7 @@ class AaGaR(Protorewards):
             reward += 0.2
 
         # Display, log, and update history
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 3 # Total number of networks is 3
@@ -603,7 +603,7 @@ class AaGaMaD(Protorewards):
         reward = [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute][owner](*target)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 4
@@ -652,7 +652,7 @@ class AaGaMaDaW(Protorewards):
             *target)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5
@@ -710,7 +710,7 @@ class AaGaRaDaW(Protorewards):
             *target)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5 # Still 5 networks
@@ -810,7 +810,7 @@ class AaGaFaDaW(Protorewards):
             reward += 0.2
 
         # Display, log, and update history
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5 # Total number of networks remains 5
@@ -916,7 +916,7 @@ class AaGaTaDaW(Protorewards):
             reward += 0.2
 
         # Display, log, and update history
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5 # Total number of networks remains 5
