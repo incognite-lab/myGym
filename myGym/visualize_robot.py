@@ -6,7 +6,7 @@ import numpy as np
 
 def main():
     parser = argparse.ArgumentParser(description='URDF Visualizer with Joint Sliders')
-    parser.add_argument('--urdf', type=str, default='./envs/robots/nico/nico_grasper.urdf',
+    parser.add_argument('--urdf', type=str, default='./envs/robots/tiago/tiago_dual_mygym_rotslide2.urdf',
                        help='Path to URDF file')
     args = parser.parse_args()
 
@@ -103,7 +103,7 @@ def main():
     # Main simulation loop
     p.setRealTimeSimulation(1)
     p.resetDebugVisualizerCamera(
-        cameraDistance=0.95,
+        cameraDistance=1.95,
         cameraYaw=90,
         cameraPitch=-15,
         cameraTargetPosition=[0, 0, 0.3]

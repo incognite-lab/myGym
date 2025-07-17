@@ -45,34 +45,28 @@
   <material name="Yellow">
     <color rgba="0.96 0.88 0.14 1.0"/>
   </material>
-   <!-- World link -->
+  <!-- World link -->
   <link name="world"/>
   <!-- Base footprint -->
   <link name="base_footprint">
+    <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
   </link>
-  <link name="base_footprint2">
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-  </link>
-  <joint name="baseslide_rjoint" type="prismatic">
+  <joint name="baseslide_rjoint" type="fixed">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
     <parent link="world"/>
     <child link="base_footprint"/>
     <axis xyz="0 1 0"/>
-    <limit effort="500" lower="-0.7" upper="0.35" velocity="1"/>
-  </joint>
-  <joint name="baseslide2_rjoint" type="fixed">
-    <origin rpy="0 0 0" xyz="0. 0 0"/>
-    <parent link="base_footprint"/>
-    <child link="base_footprint2"/>
-    <axis xyz="1 0 0"/>
-    <limit effort="500" lower="-0.5" upper="0.4" velocity="1"/>
+    <limit effort="16" lower="-0.5" upper="0.5" velocity="0.05"/>
   </joint>
   <!-- Base -->
   <link name="base_link">
     <inertial>
       <origin rpy="0 0 0" xyz="-0.00000106 0.00000109 0.0000387"/>
-      <mass value="20.26649"/>
+      <mass value="28.26649"/>
       <inertia ixx="0.465408937" ixy="0.002160024" ixz="-0.001760255" iyy="0.483193291" iyz="-0.000655952" izz="0.550939703"/>
     </inertial>
     <visual>
@@ -88,7 +82,7 @@
     <child link="base_link"/>
     <parent link="base_footprint"/>
     <axis xyz="0 0 1"/>
-    <limit effort="200" lower="-3.140972451" upper="3.140972451" velocity="20"/>
+    <limit effort="16" lower="-1.1780972451" upper="1.57079632679" velocity="1.95"/>
   </joint>
   <!-- Bottom fixed part of column -->
   <link name="torso_fixed_link">
@@ -119,9 +113,9 @@
       <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
     </inertial>
     <visual>
-      <origin rpy="0 0 0" xyz="0 0 0.25"/>
+      <origin rpy="0 0 0" xyz="0 0 0.45"/>
       <geometry>
-        <box size="0.18 0.2 0.60"/>
+        <box size="0.18 0.2 0.9"/>
       </geometry>
       <material name="DarkGrey"/>
     </visual>
@@ -146,16 +140,9 @@
       </geometry>
       <material name="White"/>
     </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://tiago_dual_description/meshes/torso/torso_lift_dual_arm.stl" scale="1 1 1"/>
-      </geometry>
-      <material name="White"/>
-    </collision>
   </link>
-  <joint name="torso_lift_joint" type="prismatic">
-    <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.61"/>
+  <joint name="torso_lift_pjoint" type="prismatic">
+    <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.95"/>
     <parent link="torso_fixed_link"/>
     <child link="torso_lift_link"/>
     <axis xyz="0 0 1"/>
@@ -177,7 +164,13 @@
       </geometry>
       <material name="White"/>
     </visual>
-
+    <collision>
+      <origin rpy="0 0 0.0" xyz="0.0 0 0"/>
+      <geometry>
+        <mesh filename="package://tiago_description/meshes/head/head_1_collision.dae" scale="1 1 1"/>
+      </geometry>
+      <material name="White"/>
+    </collision>
   </link>
   <joint name="head_1_joint" type="fixed">
     <parent link="torso_lift_link"/>
@@ -201,6 +194,12 @@
       </geometry>
       <material name="White"/>
     </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://tiago_description/meshes/head/head_2_collision.dae" scale="1 1 1"/>
+      </geometry>
+    </collision>
   </link>
   <joint name="head_2_joint" type="fixed">
     <parent link="head_1_link"/>
@@ -228,13 +227,19 @@
       </geometry>
       <material name="White"/>
     </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://tiago_description/meshes/arm/arm_1_collision.dae" scale="1 -1 -1"/>
+      </geometry>
+    </collision>
   </link>
   <joint name="arm_left_1_joint" type="fixed">
     <parent link="torso_lift_link"/>
     <child link="arm_left_1_link"/>
     <origin rpy="3.14159265359 0 2.9" xyz="0.02556 0.19 -0.171"/>
     <axis xyz="0 0 1"/>
-    <limit effort="43.0" lower="-1.1780972451" upper="1.57079632679" velocity="10"/>
+    <limit effort="43.0" lower="-1.1780972451" upper="1.57079632679" velocity="1.95"/>
   </joint>
   <link name="arm_left_2_link">
     <inertial>
@@ -614,13 +619,20 @@
       </geometry>
       <material name="DarkGrey"/>
     </visual>
+    <collision>
+      <!-- <origin xyz="0 0 0" rpy="${180 * deg_to_rad} ${0 * deg_to_rad} ${-90 * deg_to_rad}" /> -->
+      <origin rpy="0.0 0.0 0.0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://tiago_description/meshes/arm/arm_2_collision.dae" scale="1 1 1"/>
+      </geometry>
+    </collision>
   </link>
   <joint name="arm_right_2_rjoint" type="revolute">
     <parent link="arm_right_1_link"/>
     <child link="arm_right_2_link"/>
-    <origin rpy="-1.5707963267948966 0.0 0.0" xyz="0.125 -0.0195 -0.031"/>
+    <origin rpy="-1.57079632679 1.57 0.0" xyz="0.125 -0.0195 -0.031"/>
     <axis xyz="0 0 1"/>
-    <limit effort="43.0" lower="-1.1780972450961724" upper="1.5707963267948966" velocity="1.95"/>
+    <limit effort="43.0" lower="-3.14" upper="0" velocity="1.95"/>
   </joint>
   <link name="arm_right_3_link">
     <inertial>
@@ -635,13 +647,19 @@
       </geometry>
       <material name="DarkGrey"/>
     </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://tiago_description/meshes/arm/arm_3_collision.dae" scale="1 1 1"/>
+      </geometry>
+    </collision>
   </link>
   <joint name="arm_right_3_rjoint" type="revolute">
     <parent link="arm_right_2_link"/>
     <child link="arm_right_3_link"/>
-    <origin rpy="-1.5707963267948966 0.0 1.5707963267948966" xyz="0.0895 0.0 -0.0015"/>
+    <origin rpy="-1.57079632679 1.5707 1.57079632679" xyz="0.0895 0.0 -0.0015"/>
     <axis xyz="0 0 1"/>
-    <limit effort="26" lower="-0.7853981633974483" upper="3.9269908169872414" velocity="2.35"/>
+    <limit effort="26" lower="-0.785398163397" upper="3.92699081699" velocity="2.35"/>
   </joint>
   <!--************************-->
   <!--        ELBOW           -->
@@ -659,6 +677,12 @@
       </geometry>
       <material name="DarkGrey"/>
     </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://tiago_description/meshes/arm/arm_4_collision.dae" scale="1 1 1"/>
+      </geometry>
+    </collision>
   </link>
   <joint name="arm_right_4_rjoint" type="revolute">
     <parent link="arm_right_3_link"/>
@@ -686,6 +710,12 @@
       </geometry>
       <material name="LightGrey"/>
     </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://tiago_description/meshes/arm/arm_5_collision-wrist-2017.dae" scale="1 1 1"/>
+      </geometry>
+    </collision>
   </link>
   <joint name="arm_right_5_rjoint" type="revolute">
     <parent link="arm_right_4_link"/>
@@ -707,6 +737,12 @@
       </geometry>
       <material name="LightGrey"/>
     </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://tiago_description/meshes/arm/arm_6_collision-wrist-2017.dae" scale="1 1 1"/>
+      </geometry>
+    </collision>
   </link>
   <joint name="arm_right_6_rjoint" type="revolute">
     <parent link="arm_right_5_link"/>
@@ -744,6 +780,12 @@
       </geometry>
       <material name="LightGrey"/>
     </visual>
+    <collision>
+      <origin rpy="0 1.57079632679 0" xyz="0.001 0 0"/>
+      <geometry>
+        <cylinder length="0.005" radius="0.005"/>
+      </geometry>
+    </collision>
   </link>
   <joint name="arm_right_tool_joint" type="fixed">
     <parent link="arm_right_7_link"/>
@@ -765,6 +807,12 @@
       </geometry>
       <material name="LightGrey"/>
     </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.0157" radius="0.0225"/>
+      </geometry>
+    </collision>
   </link>
   <joint name="wrist_right_ft_joint" type="fixed">
     <parent link="arm_right_tool_link"/>
@@ -786,6 +834,12 @@
       </geometry>
       <material name="FlatBlack"/>
     </visual>
+    <collision>
+      <origin rpy="0 1.57079632679 0" xyz="0.0 0 0"/>
+      <geometry>
+        <cylinder length="0.00975" radius="0.025"/>
+      </geometry>
+    </collision>
   </link>
   <joint name="wrist_right_tool_joint" type="fixed">
     <parent link="wrist_right_ft_link"/>
@@ -802,9 +856,14 @@
   <joint name="endeffector_gjoint" type="fixed">
     <parent link="gripper"/>
     <child link="endeffector"/>
-    <origin rpy="0 0 -1.57079632679" xyz="0.0 0.0 -0.20"/>
+    <origin rpy="0 0 -3.14" xyz="0.0 0.0 -0.20"/>
   </joint>
   <link name="endeffector">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.00"/>
+      <inertia ixx="0.0000" ixy="0.0" ixz="0.0" iyy="0.0000" iyz="0.0" izz="0.0000"/>
+    </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="-0.0 0.0 0.0"/>
       <geometry>
@@ -832,6 +891,12 @@
       </geometry>
       <material name="White"/>
     </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://pal_gripper_description/meshes/gripper_link_collision.stl"/>
+      </geometry>
+    </collision>
   </link>
   <joint name="gripper_right_joint" type="fixed">
     <origin rpy="1.57079632679 1.57079632679 -1.57079632679" xyz="0.01 0 0"/>
@@ -852,13 +917,6 @@
       </geometry>
       <material name="Black"/>
     </visual>
-    <collision>
-      <origin rpy="0 0 3.1415" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://pal_gripper_description/meshes/gripper_finger_link.stl" scale="-1 -1 1"/>
-      </geometry>
-      <material name="Black"/>
-    </collision>
   </link>
   <joint name="gripper_right_right_finger_gjoint" type="prismatic">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
@@ -880,13 +938,6 @@
       </geometry>
       <material name="Black"/>
     </visual>
-    <collision>
-      <origin rpy="0 0 3.1415" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://pal_gripper_description/meshes/gripper_finger_link.stl"/>
-      </geometry>
-      <material name="Black"/>
-    </collision>
   </link>
   <joint name="gripper_right_left_finger_gjoint" type="prismatic">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
