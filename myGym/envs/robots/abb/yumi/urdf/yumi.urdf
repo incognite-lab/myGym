@@ -661,6 +661,26 @@
       <material name="Light_Grey"/>
     </collision>
   </link>
+  <link name="endeffector">
+    	<visual>
+      		<origin rpy="0 0 0" xyz="0 0.0 -0.025"/> <!-- Updated position -->
+      		<geometry>
+        		<cylinder length="0.05" radius="0.002"/>
+      		</geometry>
+			<material name="blue">
+      			<color rgba="0 0 1 0.5"/> <!-- RGBA: Red Green Blue Alpha (opacity) -->
+    		</material>
+    	</visual>
+        <inertial>
+		    <mass value="0.0000332"/>
+		    <inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
+		</inertial>
+  	</link>
+	<joint name="endeffector_joint" type="fixed">
+    	<parent link="gripper_r_base"/>
+    	<child link="endeffector"/>
+    	<origin rpy="3.14 0 0" xyz="0.0 0.0 0.1"/>
+	</joint>
   <!-- joint between base and right finger -->
   <joint name="gripper_r_gjoint" type="prismatic">
     <parent link="gripper_r_base"/>
@@ -806,14 +826,14 @@
   <!-- joint between base and left finger -->
   <joint name="gripper_l_gjoint_m" type="prismatic">
     <parent link="gripper"/>
-    <child link="endeffector"/>
+    <child link="gripper_l_finger_l"/>
     <origin rpy="0 0 3.14159265359" xyz="0 0.0065 0.0837"/>
     <axis xyz="-1 0 0"/>
     <limit effort="20" lower="0" upper="0.025" velocity="2"/>
     <dynamics damping="1.0"/>
     <mimic joint="gripper_l_joint"/>
   </joint>
-  <link name="endeffector"> <!--gripper_l_finger_l-->
+  <link name="gripper_l_finger_l"> <!--gripper_l_finger_l-->
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="0.01"/>
