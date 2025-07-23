@@ -208,20 +208,26 @@
       <material name="panda_white"/>
     </collision>
   </link>
-    <joint name="endeffector_joint" type="fixed">
-    <parent link="gripper"/>
-    <child link="endeffector"/>
-    <origin rpy="0 0 0" xyz="0 0.0 0.152"/>
-  </joint>
   <link name="endeffector">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.01"/>
-      </geometry>
-      <material name="panda_white"/>
-    </visual>
-  </link>
+  <visual>
+      		<origin rpy="0 0 0" xyz="0 0.0 0"/> <!-- Updated position -->
+      		<geometry>
+        		<cylinder length="0.05" radius="0.002"/>
+      		</geometry>
+			<material name="blue">
+      			<color rgba="0 0 1 0.5"/> <!-- RGBA: Red Green Blue Alpha (opacity) -->
+    		</material>
+    	</visual>
+        <inertial>
+		    <mass value="0.0000332"/>
+		    <inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
+		</inertial>
+  	</link>
+	<joint name="endeffector_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="endeffector"/>
+    	<origin rpy="3.14 0 0" xyz="0.0 0.0 0.12"/>
+	</joint>
   <link name="panda_leftfinger">
     <contact>
             <restitution value="0" />
