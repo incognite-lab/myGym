@@ -5,6 +5,7 @@ from myGym.envs import robot, env_object
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
+from myGym import oraculum
 from collections import ChainMap
 
 from myGym.envs.env_object import EnvObject
@@ -136,6 +137,7 @@ class GymEnv(CameraEnv):
         self.logdir    = logdir
         self.workspace_dict = get_workspace_dict()
         self.robot = None
+        self.task_checker = oraculum.Oraculum(self, arg_dict)
         if not hasattr(self, "task"):
           self.task = None
 
@@ -320,8 +322,17 @@ class GymEnv(CameraEnv):
         #self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
+        #TODO: after oraculum works successfully, implement saving of task descriptions which work
+        env_copy = copy.deepcopy(self)
         info = {'d': 1, 'f': int(self.episode_failed),
                 'o': self._observation}
+        task_checker = oraculum.Oraculum(env_copy, info, self.max_episode_steps, self.robot_action)
+        task_feasible = task_checker.check_task_feasibility()
+        if task_feasible:
+            print("Task is feasible, checked with IK control.")
+        else:
+            print("Task is NOT feasible, checked with IK control, generating next task.")
+            #TODO: generate the next task
         if self.gui_on and self.nl_mode:
             if self.reach_gesture:
                 self.nl.set_current_subtask_description("reach there")
@@ -329,15 +340,21 @@ class GymEnv(CameraEnv):
             if only_subtask and self.nl_text_id is not None:
                 self.p.removeUserDebugItem(self.nl_text_id)
         info = {'d': 0.9, 'f': 0, 'o': self._observation} 
-        return (np.asarray(self._observation.copy(), dtype="float32"), info)
+        return (np.asarray(self.flatten_obs(self._observation.copy()), dtype="float32"), info)
 
-    def flatten_obs(self, obs):
+    def flatten_obs(self, obs_dict):
         """ Returns the input obs dict as flattened list """
-        if len(obs["additional_obs"].keys()) != 0 and not self.dataset:
-            obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
-        if not self.dataset:
-            obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])
-        return obs
+        # if len(obs["additional_obs"].keys()) != 0 and not self.dataset:
+        #     obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
+        # if not self.dataset:
+        #     obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])
+        flattened_obs = np.zeros(22)
+        for i, (key, value) in enumerate(obs_dict.items()):
+            if key == "gripper_state":
+                flattened_obs[i*7] = value
+            else:
+                flattened_obs[i*7:(i+1)*7] = value
+        return flattened_obs
 
     def _set_cameras(self):
         """
@@ -357,17 +374,19 @@ class GymEnv(CameraEnv):
         """
         ## !!!! This is a provisory solution until self.task.current_task.reward.get_relevant_entities() returns the relevant objects.
         ## Now we just take the position and orientation for every object in the scene including gripper, but that is legit in very few cases
-        obs = []
+        obs = dict()
         relevant_entities = self.reward.get_relevant_entities()
         if len(relevant_entities) == 0:
             warnings.warn(f"PRAG action {self.reward} is missing implementation of get_relevant_entities()! I am setting the gripper 6D and random object 6D as inputs to neural network.", category=UserWarning)
             relevant_entities = self.task.scene_objects[:2]
-        for e in relevant_entities:
-            obs += list(e.get_position())
-            obs += list(e.get_orientation())
+        #TODO: After retrieving relevant entities, decide which position is "actual_state" and which "goal_state"
+        for name, obj in relevant_entities:
+            obs[name] = list(obj.get_position()) + list(obj.get_orientation())
         if "gripper" in self.robot_action:
-            obs += [int(self.robot.gripper_active)]
+            obs["gripper_state"] = int(self.robot.gripper_active)
         self.observation = obs
+        print("observation", self.observation)
+        print("Observation dimension:", self.obsdim)
         if self.dataset:
             raise NotImplemented # @TODO one day
         return self.observation
@@ -401,7 +420,7 @@ class GymEnv(CameraEnv):
             self.reset(only_subtask=True)
         # return self._observation, reward, done, truncated, info
         truncated = False #not sure when to use this
-        return np.asarray(self._observation.copy(), dtype="float32"), reward, done, truncated,info
+        return np.asarray(self.flatten_obs(self._observation.copy()), dtype="float32"), reward, done, truncated,info
 
 
     def get_linkstates_unpacked(self):
@@ -417,7 +436,7 @@ class GymEnv(CameraEnv):
         Returns:
             :return obsdim: (int) Dimensionality of observation
         """
-        obsdim = 14 # 7 values for actual state (object or gripper pose and orientation) and same for goal state
+        obsdim = 21 # 7 values for each potential relevant entity - gripper, object, goal. Some tasks only use 2 of those
         if "gripper" in self.robot_action:
             obsdim += 1 # binary value for gripper close or open
         return obsdim
