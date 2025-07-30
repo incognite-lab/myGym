@@ -488,152 +488,7 @@
       <material name="Grey"/>
     </collision>
   </link>
-  <!-- Gazebo reference frame -->
-  <gazebo reference="yumi_body">
-    <material>Gazebo/Ivory</material>
-    <mu1>0.2</mu1>
-    <mu2>0.2</mu2>
-  </gazebo>
-  <transmission name="yumi_tran_1_r">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_1_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_1_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="yumi_tran_2_r">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_2_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_2_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="yumi_tran_3_r">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_3_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_3_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="yumi_tran_4_r">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_4_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_4_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="yumi_tran_5_r">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_5_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_5_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="yumi_tran_6_r">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_6_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_6_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="yumi_tran_7_r">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_7_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_7_r">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="yumi_tran_1_l">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_1_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_1_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="yumi_tran_2_l">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_2_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_2_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="yumi_tran_3_l">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_3_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_3_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="yumi_tran_4_l">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_4_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_4_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="yumi_tran_5_l">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_5_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_5_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="yumi_tran_6_l">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_6_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_6_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="yumi_tran_7_l">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="yumi_joint_7_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="yumi_motor_7_l">
-      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
+
   <!--joint between {parent} and base-->
   <joint name="yumi_link_7_r_joint" type="fixed">
     <origin rpy="0 0 3.14159265359" xyz="0 0 0.007"/>
@@ -661,6 +516,26 @@
       <material name="Light_Grey"/>
     </collision>
   </link>
+  <link name="endeffector">
+    	<visual>
+      		<origin rpy="0 0 0" xyz="0 0.0 0"/> <!-- Updated position -->
+      		<geometry>
+        		<cylinder length="0.05" radius="0.002"/>
+      		</geometry>
+			<material name="blue">
+      			<color rgba="0 0 1 0.5"/> <!-- RGBA: Red Green Blue Alpha (opacity) -->
+    		</material>
+    	</visual>
+        <inertial>
+		    <mass value="0.0000332"/>
+		    <inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
+		</inertial>
+  	</link>
+	<joint name="endeffector_joint" type="fixed">
+    	<parent link="gripper_r_base"/>
+    	<child link="endeffector"/>
+    	<origin rpy="3.14 0 0" xyz="0.0 0.0 0.12"/>
+	</joint>
   <!-- joint between base and right finger -->
   <joint name="gripper_r_gjoint" type="prismatic">
     <parent link="gripper_r_base"/>
@@ -774,7 +649,7 @@
     </collision>
   </link>
   <!-- joint between base and right finger -->
-  <joint name="gripper_l_gjoint" type="prismatic">
+  <joint name="gripper_l_gjoint" type="fixed">
     <parent link="gripper"/>
     <child link="gripper_l_finger_r"/>
     <origin rpy="0 0 0" xyz="0 -0.0065 0.0837"/>
@@ -804,16 +679,16 @@
     </collision>
   </link>
   <!-- joint between base and left finger -->
-  <joint name="gripper_l_gjoint_m" type="prismatic">
+  <joint name="gripper_l_gjoint_m" type="fixed">
     <parent link="gripper"/>
-    <child link="endeffector"/>
+    <child link="gripper_l_finger_l"/>
     <origin rpy="0 0 3.14159265359" xyz="0 0.0065 0.0837"/>
     <axis xyz="-1 0 0"/>
     <limit effort="20" lower="0" upper="0.025" velocity="2"/>
     <dynamics damping="1.0"/>
     <mimic joint="gripper_l_joint"/>
   </joint>
-  <link name="endeffector"> <!--gripper_l_finger_l-->
+  <link name="gripper_l_finger_l"> <!--gripper_l_finger_l-->
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="0.01"/>
@@ -834,34 +709,4 @@
       <material name="Blue"/>
     </collision>
   </link>
-  <!-- Plugin for the mimic o/c joint - AFAIK, that shouldn't be necessary any more starting with Gazebo 3.0 -->
-  <gazebo>
-    <plugin filename="libgazebo_mimic_plugin.so" name="mimic_plugin">
-      <joint>gripper_l_joint</joint>
-      <mimicJoint>gripper_l_joint_m</mimicJoint>
-      <multiplier>1.0</multiplier>
-    </plugin>
-  </gazebo>
-  <!-- body -->
-  <gazebo reference="gripper">
-    <material>Gazebo/Light_Grey</material>
-    <mu1>0.2</mu1>
-    <mu2>0.2</mu2>
-  </gazebo>
-  <transmission name="gripper_l_tran">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="gripper_l_joint">
-      <hardwareInterface>hardware_interface/EffortJoinInterface</hardwareInterface>
-    </joint>
-    <actuator name="gripper_l_motor">
-      <hardwareInterface>hardware_interface/EffortJoinInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <link name="world"/>
-  <joint name="world_joint" type="fixed">
-    <parent link="world"/>
-    <child link="yumi_base_link"/>
-    <origin rpy="0 0 0" xyz="0 0 0.1"/>
-  </joint>
 </robot>

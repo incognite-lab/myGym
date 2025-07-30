@@ -6,49 +6,49 @@ def get_workspace_dict():
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[0.56, -1.71, 0.6], [-1.3, 3.99, 0.6], [-3.43, 0.67, 1.0], [2.76, 2.68, 1.0], [-0.54, 1.19, 3.4]],
                                                         'target': [[0.53, -1.62, 0.59], [-1.24, 3.8, 0.55], [-2.95, 0.83, 0.8], [2.28, 2.53, 0.8], [-0.53, 1.2, 3.2]]},
-                                            'borders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]},
+                                            'borders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9], 'reachable_borders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]},
                                 'collabtable': {'urdf': 'collabtable.urdf', 'texture': 'collabtable.jpg',
                                             'transform': {'position':[0.45, -5.1, -1.05], 'orientation':[0.0, 0.0, -0.35*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[-0.25, 3.24, 1.2], [-0.44, -1.34, 1.0], [-1.5, 2.6, 1.0], [1.35, -1.0, 1.0], [-0.1, 1.32, 1.4]],
                                                         'target': [[-0.0, 0.56, 0.6], [-0.27, 0.42, 0.7], [-1, 2.21, 0.8], [-0.42, 2.03, 0.2], [-0.1, 1.2, 0.7]]},
-                                            'borders':[-0.7, 0.7, 0.5, 1.2, 0.2, 0.2]},
+                                            'borders':[-0.7, 0.7, 0.5, 1.2, 0.2, 0.2], 'reachable_borders':[-0.7, 0.7, 0.5, 1.2, 0.2, 0.2]},
                                 'darts':    {'urdf': 'darts.urdf', 'texture': 'darts.jpg',
                                             'transform': {'position':[-1.4, -6.7, -1.05], 'orientation':[0.0, 0.0, -1.0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[-0.0, 2.1, 1.0], [0.0, -1.5, 1.2], [2.3, 0.5, 1.0], [-2.6, 0.5, 1.0], [-0.0, 1.1, 4.9]],
                                                         'target': [[0.0, 0.0, 0.7], [-0.0, 1.3, 0.6], [1.0, 0.9, 0.9], [-1.6, 0.9, 0.9], [-0.0, 1.2, 3.1]]},
-                                            'borders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]},
+                                            'borders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9], 'reachable_borders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]},
                                 'drawer':   {'urdf': 'drawer.urdf', 'texture': 'drawer.jpg',
                                             'transform': {'position':[-4.81, 1.75, -1.05], 'orientation':[0.0, 0.0, 0.0*np.pi]},
                                             'robot': {'position': [0.0, 0.2, 0.0], 'orientation': [0, 0, 0.5*np.pi]},
                                             'camera': {'position': [[-0.14, -1.63, 1.0], [-0.14, 3.04, 1.0], [-1.56, -0.92, 1.0], [1.2, -1.41, 1.0], [-0.18, 0.88, 2.5]],
                                                         'target': [[-0.14, -0.92, 0.8], [-0.14, 2.33, 0.8], [-0.71, -0.35, 0.7], [0.28, -0.07, 0.6], [-0.18, 0.84, 2.1]]},
-                                            'borders':[-0.7, 0.7, 0.4, 1.3, 0.8, 0.1]},
+                                            'borders':[-0.7, 0.7, 0.4, 1.3, 0.8, 0.1], 'reachable_borders':[-0.7, 0.7, 0.4, 1.3, 0.8, 0.1]},
                                 'football': {'urdf': 'football.urdf', 'texture': 'football.jpg',
                                             'transform': {'position':[4.2, -5.4, -1.05], 'orientation':[0.0, 0.0, -1.0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[-0.0, 2.1, 1.0], [0.0, -1.7, 1.2], [3.5, -0.6, 1.0], [-3.5, -0.7, 1.0], [-0.0, 2.0, 4.9]],
                                                         'target': [[0.0, 0.0, 0.7], [-0.0, 1.3, 0.2], [3.05, -0.2, 0.9], [-2.9, -0.2, 0.9], [-0.0, 2.1, 3.6]]},
-                                            'borders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]},
+                                            'borders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9], 'reachable_borders':[-0.7, 0.7, 0.3, 1.3, -0.9, -0.9]},
                                 'fridge':   {'urdf': 'fridge.urdf', 'texture': 'fridge.jpg',
                                             'transform': {'position':[1.6, -5.95, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[0.0, -1.3, 1.0], [0.0, 2.35, 1.2], [-1.5, 0.85, 1.0], [1.4, 0.85, 1.0], [0.0, 0.55, 2.5]],
                                                         'target': [[0.0, 0.9, 0.7], [0.0, 0.9, 0.6], [0.0, 0.55, 0.5], [0.4, 0.55, 0.7], [0.0, 0.45, 1.8]]},
-                                            'borders':[-0.7, 0.7, 0.3, 0.5, -0.9, -0.9]},
+                                            'borders':[-0.7, 0.7, 0.3, 0.5, -0.9, -0.9], 'reachable_borders':[-0.7, 0.7, 0.3, 0.5, -0.9, -0.9]},
                                 'maze':     {'urdf': 'maze.urdf', 'texture': 'maze.jpg',
                                             'transform': {'position':[6.7, -3.1, 0.0], 'orientation':[0.0, 0.0, -0.5*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.1], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[0.0, -1.4, 2.3], [-0.0, 5.9, 1.9], [4.7, 2.7, 2.0], [-3.2, 2.7, 2.0], [-0.0, 3.7, 5.0]],
                                                         'target': [[0.0, -1.0, 1.9], [-0.0, 5.6, 1.7], [3.0, 2.7, 1.5], [-2.9, 2.7, 1.7], [-0.0, 3.65, 4.8]]},
-                                            'borders':[-2.5, 2.2, 0.7, 4.7, 0.05, 0.05]},
+                                            'borders':[-2.5, 2.2, 0.7, 4.7, 0.05, 0.05], 'reachable_borders':[-2.5, 2.2, 0.7, 4.7, 0.05, 0.05]},
                                 'stairs':   {'urdf': 'stairs.urdf', 'texture': 'stairs.jpg',
                                             'transform': {'position':[-5.5, -0.08, -1.05], 'orientation':[0.0, 0.0, -0.20*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[0.04, -1.64, 1.0], [0.81, 3.49, 1.0], [-2.93, 1.76, 1.0], [4.14, 0.33, 1.0], [2.2, 1.24, 3.2]],
                                                         'target': [[0.18, -1.12, 0.85], [0.81, 2.99, 0.8], [-1.82, 1.57, 0.7], [3.15, 0.43, 0.55], [2.17, 1.25, 3.1]]},
-                                            'borders':[-0.5, 2.5, 0.8, 1.6, 0.1, 0.1]},
+                                            'borders':[-0.5, 2.5, 0.8, 1.6, 0.1, 0.1], 'reachable_borders':[-0.5, 2.5, 0.8, 1.6, 0.1, 0.1]},
                                 'table':    {'urdf': 'table.urdf', 'texture': 'table.jpg',
                                             'transform': {'position':[-0.0, -0.0, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
@@ -56,7 +56,7 @@ def get_workspace_dict():
                                                                     [0.0, 1.6, 0.8], [-0.0, -0.5, 0.8], [0.8, 0.9, 0.6], [-0.8, 0.9, 0.8], [0.0, 0.9, 1.]],
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.80, 1.],
                                                                    [0.0, 1.3, 0.5], [-0.0, -0.0, 0.6], [0.6, 0.9, 0.4], [-0.6, 0.9, 0.5], [0.0, 0.898, 0.8]]},
-                                            'borders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1]},
+                                            'borders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1], 'reachable_borders':[-0.5, 0.5, 0.5, 0.9, 0.05, 0.4]},
                                 'table_tiago': {'urdf': 'table_tiago.urdf', 'texture': 'table.jpg',
                                             'transform': {'position':[-0.0, -0.0, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
                                             'robot': {'position': [0.0, 0.3, -0.85], 'orientation': [0.0, 0.0, 0.5*np.pi]},
@@ -64,7 +64,7 @@ def get_workspace_dict():
                                                                     [0.0, 1.6, 0.8], [-0.0, -0.5, 0.8], [0.8, 0.9, 0.6], [-0.8, 0.9, 0.8], [0.0, 0.9, 1.]],
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.80, 1.],
                                                                    [0.0, 1.3, 0.5], [-0.0, -0.0, 0.6], [0.6, 0.9, 0.4], [-0.6, 0.9, 0.5], [0.0, 0.898, 0.8]]},
-                                            'borders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1]},
+                                            'borders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1], 'reachable_borders':[-0.5, 0.5, 0.3, 0.8, 0.05, 0.4]},
                                 'table_nico': {'urdf': 'table_nico.urdf', 'texture': 'table.jpg',
                                             'transform': {'position':[-0.0, -0.0, -1.05], 'orientation':[0.0, 0.0, 0*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
@@ -72,19 +72,19 @@ def get_workspace_dict():
                                                                     [0.0, 1.6, 0.8], [-0.0, -0.5, 0.8], [0.8, 0.9, 0.6], [-0.8, 0.9, 0.8], [0.0, 0.9, 1.]],
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.80, 1.],
                                                                    [0.0, 1.3, 0.5], [-0.0, -0.0, 0.6], [0.6, 0.9, 0.4], [-0.6, 0.9, 0.5], [0.0, 0.898, 0.8]]},
-                                            'borders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1]},
+                                            'borders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1], 'reachable_borders':[-0.5, 0.5, 0.5, 0.9, 0.05, 0.4]},
                                 'verticalmaze': {'urdf': 'verticalmaze.urdf', 'texture': 'verticalmaze.jpg',
                                             'transform': {'position':[-5.7, -7.55, -1.05], 'orientation':[0.0, 0.0, 0.5*np.pi]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.05, 2.5]],
                                                         'target': [[-0.0, -1.05, 1.0], [0.0, 0.55, 1.3], [1.4, -0.75, 0.9], [-1.3, -0.75, 0.9], [0.0, 0.15, 2.1]]},
-                                            'borders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]},
+                                            'borders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4], 'reachable_borders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]},
                                 'modularmaze': {'urdf': 'modularmaze.urdf', 'texture': 'verticalmaze.jpg',
                                             'transform': {'position':[-7, 8, 0.0], 'orientation':[0.0, 0.0, 0.0]},
                                             'robot': {'position': [0.0, -0.5, 0.05], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.7, 2.1], [-0.0, -0.3, 0.2]],
                                                         'target': [[-0.0, -1.05, 0.9], [0.0, 0.55, 1.3], [1.4, -0.75, 0.9], [-1.3, -0.75, 0.9], [0.0, 0.71, 1.8], [-0.0, -0.25, 0.199]]},
-                                            'borders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]}}
+                                            'borders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4], 'reachable_borders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]}}
     return ws_dict
 
 
@@ -127,3 +127,17 @@ def get_robot_dict():
                               'hsr': {'path': '/envs/robots/hsr/hsrb4s.urdf', 'position': np.array([0.0, -0.15, -0.4]), 'orientation': [0.0, 0.0, 0 * np.pi]},
                              }
     return r_dict
+
+
+def get_module_type(observation):
+    """
+    Get source of the information from environment (ground_truth, yolact, vae)
+
+    Returns:
+        :return source: (string) Source of information
+    """
+    if observation["actual_state"] not in ["vae", "yolact", "voxel", "dope"]:
+        src = "ground_truth_6D" if "6D" in observation["actual_state"] else "ground_truth"
+    else:
+        src = observation["actual_state"]
+    return src

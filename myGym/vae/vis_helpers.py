@@ -7,7 +7,6 @@ import torch
 import imageio, os
 import cv2
 from myGym.vae.model import VAE
-from torchvision.utils import make_grid
 
 FPS_GIF = 12
 
