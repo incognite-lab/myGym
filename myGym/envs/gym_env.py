@@ -262,9 +262,9 @@ class GymEnv(CameraEnv):
                  "desired_goal": spaces.Box(low=-10., high=10., shape=(goaldim,))})
         else:
             observationDim = self.task.obsdim
-            observation_high = np.array([100] * observationDim)
+            observation_high = np.array([100] * observationDim, dtype=np.float64)
             self.observation_space = spaces.Box(-observation_high,
-                                                observation_high)
+                                                observation_high, dtype=np.float64)
 
 
     def _set_action_space(self):
