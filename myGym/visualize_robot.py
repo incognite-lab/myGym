@@ -38,6 +38,16 @@ def main():
     
     # Find end effector link
     num_joints = p.getNumJoints(robot_id)
+    end_effector_index = -1
+    for joint_idx in range(num_joints):
+        joint_info = p.getJointInfo(robot_id, joint_idx)
+        link_name = joint_info[12].decode("utf-8")
+        if link_name == 'endeffector':
+            end_effector_index = joint_idx
+            break
+    if end_effector_index == -1:
+        print("Error: Could not find end effector link in URDF")
+        return
 
     # Get joint information
     sliders = []

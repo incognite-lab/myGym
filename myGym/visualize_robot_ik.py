@@ -73,7 +73,7 @@ def get_controllable_arm_joints(robot_id, num_joints):
 
 def main():
     parser = argparse.ArgumentParser(description="Nico Robot Grasping Control")
-    parser.add_argument("--urdf", type=str, default="./envs/robots/nico/nico_grasper.urdf", help="Path to the robot URDF file.")
+    parser.add_argument("--urdf", type=str, default="./envs/robots/tiago/tiago_dual_mygym_rotslide2.urdf", help="Path to the robot URDF file.")
     args = parser.parse_args()
 
 
@@ -102,6 +102,7 @@ def main():
     # Box control variables
     box_size = 0.03
     box_initial_pos = p.getLinkState(robot_id, end_effector_index)
+
     print(f"Initial end effector position: {box_initial_pos[0]}")
     box_id = p.createMultiBody(
         baseMass=0, # Set mass to 0 if it's only visual
@@ -110,9 +111,9 @@ def main():
         basePosition=box_initial_pos)
 
     # Create sliders for  box position control
-    x_slider = p.addUserDebugParameter("Box X", -1, 1.0, box_initial_pos[0][0])
-    y_slider = p.addUserDebugParameter("Box Y", -1, 1, box_initial_pos[0][1])
-    z_slider = p.addUserDebugParameter("Box Z", 0, 2, box_initial_pos[0][2])
+    x_slider = p.addUserDebugParameter("Box X", -1, 1.0, 0.4)
+    y_slider = p.addUserDebugParameter("Box Y", -1, 1, -0.6)
+    z_slider = p.addUserDebugParameter("Box Z", 0, 2, 0.4)
 
     # Create additional init sliders for Yaw, Pitch, Roll
     roll_slider = p.addUserDebugParameter("Box Roll", -np.pi, np.pi, 0)

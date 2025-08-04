@@ -799,20 +799,26 @@
       <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00001" iyz="0.0" izz="0.00001"/>
     </inertial>
   </link>
-  <joint name="endeffector_gjoint" type="fixed">
-    <parent link="gripper"/>
-    <child link="endeffector"/>
-    <origin rpy="0 0 -1.57079632679" xyz="0.0 0.0 -0.20"/>
-  </joint>
-  <link name="endeffector">
-    <visual>
-      <origin rpy="0 0 0" xyz="-0.0 0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.01"/>
-      </geometry>
-      <material name="LightGrey"/>
-    </visual>
-  </link>
+    <link name="endeffector">
+    	<visual>
+      		<origin rpy="0 0 0" xyz="0 0.0 0"/> <!-- Updated position -->
+      		<geometry>
+        		<cylinder length="0.05" radius="0.002"/>
+      		</geometry>
+			<material name="blue">
+      			<color rgba="0 0 1 0.5"/> <!-- RGBA: Red Green Blue Alpha (opacity) -->
+    		</material>
+    	</visual>
+        <inertial>
+		    <mass value="0.0000332"/>
+		    <inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
+		</inertial>
+  	</link>
+	<joint name="endeffector_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="endeffector"/>
+    	<origin rpy="0 0 -1.57" xyz="0.0 0.0 -0.20"/>
+	</joint>
   <joint name="gripper_right_tool_joint" type="fixed">
     <origin rpy="1.57079632679 1.57079632679 -1.57079632679" xyz="0.01 0 0"/>
     <parent link="wrist_right_ft_tool_link"/>
