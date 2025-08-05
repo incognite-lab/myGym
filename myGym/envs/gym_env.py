@@ -290,14 +290,14 @@ class GymEnv(CameraEnv):
 
 
         elif "joints" in self.robot_action:
-            self.action_low = np.array(self.robot.joints_limits[0], dtype = np.float64)
-            self.action_high = np.array(self.robot.joints_limits[1], dtype = np.float64)
+            self.action_low = np.array(self.robot.joints_limits[0], dtype=np.float64)
+            self.action_high = np.array(self.robot.joints_limits[1], dtype=np.float64)
 
         if "gripper" in self.robot_action:
             self.action_low = np.append(self.action_low, np.array(self.robot.gjoints_limits[0]))
             self.action_high = np.append(self.action_high, np.array(self.robot.gjoints_limits[1]))
 
-        self.action_space = spaces.Box(self.action_low, self.action_high)
+        self.action_space = spaces.Box(self.action_low, self.action_high, dtype=np.float64)
 
     def _rescale_action(self, action):
         """
