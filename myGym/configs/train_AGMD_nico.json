@@ -9,12 +9,12 @@
     "gui"       :0,
     "visualize" :0,
     "visgym"    :0,
-    #Robot
+    #Robot;
     "robot"         :"nico_grasp",
     "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.4],
-    "max_velocity"  :5,
-    "max_force"     :300,
+    "max_velocity"  :3,
+    "max_force"     :20000,
     "action_repeat" :1,
     #Task
     "task_type"             :"AGMD",
@@ -39,16 +39,16 @@
     "yolact_config" :null,
     #Train
     "train_framework"   :"pytorch",
-    "algo"              :"ppo",
+    "algo"              :"multippo",
     "num_networks"      :4,
     "max_episode_steps" :512,
     "algo_steps"        :512,
-    "steps"             :20000000,
+    "steps"             :5000000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
     "eval_freq"     :500000,
-    "eval_episodes" :50,
+    "eval_episodes" :5,
     #Saving and logging
     "logdir"    :"trained_models/AGMD",
     "record"    :0

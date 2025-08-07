@@ -31,7 +31,7 @@ class Reward:
 
     def network_switch_control(self, observation):
         if self.env.num_networks <= 1:
-            print("Cannot switch networks in a single-network scenario")
+            print("Cannot switch networks in a single-network scenario. Turn algo to ppo, multippo doesn not make sense.")
         else:
             if self.env.network_switcher == "gt":
                 self.current_network = self.decide(observation)

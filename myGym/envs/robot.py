@@ -43,7 +43,7 @@ class Robot:
                  max_force = None, #50.,
                  pybullet_client=None,
                  reward_type = None):
-        self.debug = False
+        self.debug = True
         self.p = pybullet_client
         self.robot_dict = get_robot_dict()
         self.robot_path = self.robot_dict[robot]['path']

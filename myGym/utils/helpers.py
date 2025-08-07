@@ -103,7 +103,7 @@ def get_robot_dict():
                              'nico': {'path': '/envs/robots/nico/nico_alljoints.urdf', 'position': np.array([0.0, 0.0, 0.05])},
                              'nico_upper': {'path': '/envs/robots/nico/nico_upper.urdf', 'position': np.array([-0.0, 0.1, -0.475])},
                              'nico_upper_rh6d': {'path': '/envs/robots/nico/nico_upper_rh6d.urdf', 'position': np.array([-0.0, 0.1, 0.05])},
-                             'nico_grasp': {'path': '/envs/robots/nico/nico_grasp.urdf', 'position': np.array([-0.0, 0.1, 0.05])},
+                             'nico_grasp': {'path': '/envs/robots/nico/nico_grasper.urdf', 'position': np.array([-0.0, 0.1, 0.05])},
                              'reachy': {'path': '/envs/robots/pollen/reachy/urdf/reachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
                              'leachy': {'path': '/envs/robots/pollen/reachy/urdf/leachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
                              'reachy_and_leachy': {'path': '/envs/robots/pollen/reachy/urdf/reachy_and_leachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
