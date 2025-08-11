@@ -339,6 +339,7 @@ class MultiPPOEvalCallback(EvalCallback):
             env_task = self.eval_env.unwrapped.task
 
         for e in range(n_eval_episodes): #Iterate through eval episodes
+            debug = False
             obs = self.eval_env.reset()
             obs = obs[0] #Use only first env for evaluation
             done, state = False, None
@@ -350,6 +351,7 @@ class MultiPPOEvalCallback(EvalCallback):
             last_steps = 0
             srewardsteps = np.zeros(env_reward.num_networks)
             srewardsuccess = np.zeros(env_reward.num_networks)
+            print("Episode:", e)
             while not done: #Carry out episode steps until the episode is done
                 steps_sum += 1
                 if isinstance(self.eval_env, VecEnv):
@@ -361,7 +363,7 @@ class MultiPPOEvalCallback(EvalCallback):
                     done = terminated or truncated
                     current_network = self.eval_env.unwrapped.reward.current_network
                  #Special eval step (uses first env of vec env only)
-                if env_p.getConnectionInfo()["isConnected"] != 0:
+                if debug:
                     env_p.addUserDebugText(
                         f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']), 5))}",
                         [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
@@ -369,13 +371,13 @@ class MultiPPOEvalCallback(EvalCallback):
                         f"Object:{matrix(np.around(np.array(info['o']['actual_state']), 5))}",
                         [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
                     env_p.addUserDebugText(f"Network:{env_reward.current_network}",
-                                                      [.8, .5, 0.25], textSize=1.0, lifeTime=0.5,
+                                                      [.8, .5, 0.25], textSize=1.0, lifeTime=0.05,
                                                       textColorRGB=[0.0, 0.0, 1])
                     env_p.addUserDebugText(f"Subtask:{env_task.current_task}",
-                                                      [.8, .5, 0.35], textSize=1.0, lifeTime=0.5,
+                                                      [.8, .5, 0.35], textSize=1.0, lifeTime=0.05,
                                                       textColorRGB=[0.4, 0.2, 1])
                     env_p.addUserDebugText(f"Episode:{e}",
-                                                      [.8, .5, 0.45], textSize=1.0, lifeTime=0.5,
+                                                      [.8, .5, 0.45], textSize=1.0, lifeTime=0.05,
                                                       textColorRGB=[0.4, 0.2, .3])
                     env_p.addUserDebugText(f"Step:{steps}",
                                                       [.8, .5, 0.55], textSize=1.0, lifeTime=0.5,
