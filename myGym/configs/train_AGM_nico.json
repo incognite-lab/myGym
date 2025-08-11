@@ -32,7 +32,6 @@
     "distractors"           : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
                                        "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
     #Reward
-    "reward"        :"AGM",
     "distance_type" :"euclidean",
     "vae_path"      :null,
     "yolact_path"   :null,
@@ -40,7 +39,6 @@
     #Train
     "train_framework"   :"pytorch",
     "algo"              :"multippo",
-    "num_networks"      :3,
     "max_episode_steps" :512,
     "algo_steps"        :512,
     "steps"             :5000000,
