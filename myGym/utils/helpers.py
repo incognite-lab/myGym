@@ -1,5 +1,18 @@
 import numpy as np
 
+class PrintEveryNCalls:
+    def __init__(self, msg, n):
+        self.default_msg = msg
+        self.n = n
+        self.call_count = 0
+
+    def __call__(self, additional_msg = ""):
+        self.call_count += 1
+        if self.call_count % self.n == 0:
+            print(self.default_msg + str(additional_msg))
+
+
+
 def get_workspace_dict():
     ws_dict = {'baskets':  {'urdf': 'baskets.urdf', 'texture': 'baskets.jpg',
                                             'transform': {'position':[3.18, -3.49, -1.05], 'orientation':[0.0, 0.0, -0.4*np.pi]},

@@ -405,7 +405,7 @@ def main():
         #and train.json are located in the directory where pretrained model is stored
         model_logdir = os.path.dirname(os.path.dirname(arg_dict["pretrained_model"]))
     if arg_dict["multiprocessing"]:
-        NUM_CPU = int(arg_dict["multiprocessing"])
+        NUM_CPU = max(int(arg_dict["multiprocessing"]), 1)
         env = SubprocVecEnv([make_env(arg_dict, i, model_logdir=model_logdir) for i in range(NUM_CPU)])
         env = VecMonitor(env, model_logdir)
     else:
