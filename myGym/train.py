@@ -368,8 +368,12 @@ def automatic_argument_assignment(arg_dict):
     if task_type_str and isinstance(task_type_str, str):
         arg_dict["num_networks"] = len(task_type_str)
         arg_dict["reward"] = arg_dict["task_type"]
+        arg_dict["logdir"] = "./trained_models/" + arg_dict["task_type"]
+        arg_dict["algo_steps"] = arg_dict["max_episode_steps"]
         print("Number of networks from task type is:", arg_dict["num_networks"])
         print("Reward type set to:", arg_dict["reward"])
+        print("Log directory set to:", arg_dict["logdir"])
+        print("Algorithm steps set to:", arg_dict["algo_steps"])
     else:
         arg_dict["num_networks"] = 1
         arg_dict["reward"] = "None"

@@ -14,7 +14,7 @@
     "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.4],
     "max_velocity"  :3,
-    "max_force"     :20000,
+    "max_force"     :200,
     "action_repeat" :1,
     #Task
     "task_type"             :"AGMD",
@@ -32,7 +32,6 @@
     "distractors"           : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
                                        "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
     #Reward
-    "reward"        :"AGMD",
     "distance_type" :"euclidean",
     "vae_path"      :null,
     "yolact_path"   :null,
@@ -40,16 +39,13 @@
     #Train
     "train_framework"   :"pytorch",
     "algo"              :"multippo",
-    "num_networks"      :4,
     "max_episode_steps" :512,
-    "algo_steps"        :512,
-    "steps"             :5000000,
+    "steps"             :30000000,
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
     "eval_freq"     :500000,
-    "eval_episodes" :5,
+    "eval_episodes" :50,
     #Saving and logging
-    "logdir"    :"trained_models/AGMD",
     "record"    :0
     }
