@@ -12,11 +12,15 @@ from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.results_plotter import load_results, ts2xy
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor, VecEnv, sync_envs_normalization
 from tqdm.auto import tqdm
+from myGym.utils.helpers import PrintEveryNCalls
 import time
 
 np.set_printoptions(suppress = True)
 
 #TODO: CustomEvalCallback might not be used - maybe delete
+
+
+
 class CustomEvalCallback(EvalCallback):
     """
     Callback for evaluating an agent.
@@ -73,6 +77,8 @@ class CustomEvalCallback(EvalCallback):
         self.evaluations_length = []
         self.num_cpu = num_cpu
         self.num_evals = 0
+        self.printer = None
+
 
     def evaluate_policy(
             self,
@@ -224,7 +230,6 @@ class CustomEvalCallback(EvalCallback):
 
     def _on_step(self) -> bool:
         actual_calls = self.n_calls * self.num_cpu
-
         if (self.eval_freq > 0 and actual_calls > self.eval_freq*self.num_evals):
             # Sync training and eval env if there is VecNormalize
             self.num_evals += 1
@@ -571,8 +576,8 @@ class PPOEvalCallback(EvalCallback):
             env_task = self.eval_env.get_attr("task")[0]
         else:
             env_reward = self.eval_env.unwrapped.reward
-            env_p = self.eval_env.p
-            env_task = self.eval_env.task
+            env_p = self.eval_env.unwrapped.p
+            env_task = self.eval_env.unwrapped.task
 
         for e in range(n_eval_episodes):
             obs = self.eval_env.reset()
@@ -629,13 +634,13 @@ class PPOEvalCallback(EvalCallback):
 
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
-                        render_info = evaluation_env.render(mode="rgb_array", camera_id=self.camera_id)
+                        render_info = self.eval_env.render(mode="rgb_array", camera_id=self.camera_id)
                         image = render_info[self.camera_id]["image"]
                         images.append(image)
                         print(f"appending image: total size: {len(images)}]")
 
                 if self.physics_engine == "mujoco" and self.gui_on:  # Rendering for mujoco engine
-                    evaluation_env.render()
+                    self.eval_env.render()
                 steps += 1
             if isinstance(self.eval_env, VecEnv):
                 env_reward = self.eval_env.get_attr("reward")[0]
@@ -700,7 +705,18 @@ class PPOEvalCallback(EvalCallback):
             os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
 
     def _on_step(self) -> bool:
+
         actual_calls = self.n_calls * self.num_cpu
+        if not hasattr(self, "printer"):
+            self.printer = PrintEveryNCalls("Actual_calls: ", 20)
+        self.printer(actual_calls)
+        if not hasattr(self, "printer2"):
+            self.printer2 = PrintEveryNCalls("self.num_cpu: ", 20)
+        if not hasattr(self, "printer3"):
+            self.printer3 = PrintEveryNCalls("self.n_calls: ", 20)
+        self.printer2(self.num_cpu)
+        self.printer3(self.n_calls)
+
         if (self.eval_freq > 0 and actual_calls >= self.eval_freq*self.num_evals):
             # Sync training and eval env if there is VecNormalize
             self.num_evals += 1

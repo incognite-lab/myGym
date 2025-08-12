@@ -45,7 +45,7 @@
     "algo_steps"        :2048,
     "steps"             :100000,
     "pretrained_model"  :null,
-    "multiprocessing"   :false,
+    "multiprocessing"   :null,
     #Evaluation
     "eval_freq"     :100000,
     "eval_episodes" :10,

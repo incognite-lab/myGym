@@ -42,7 +42,7 @@
     "max_episode_steps" :512,
     "steps"             :30000000,
     "pretrained_model"  :null,
-    "multiprocessing"   :false,
+    "multiprocessing"   :null,
     #Evaluation
     "eval_freq"     :500000,
     "eval_episodes" :50,
