@@ -188,6 +188,16 @@ def main():
         st.session_state.playbacks = []
 
     # Sidebar controls
+    st.markdown(
+        """
+        <style>
+            section[data-testid="stSidebar"] {
+                width: 40% !important; # Set the width to your desired value
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     with st.sidebar:
         st.header("Controls")
         new_name = st.text_input("Recording name")
@@ -215,12 +225,14 @@ def main():
                 new_pb.start_recording()
                 st.session_state.playbacks.append(new_pb)
 
+        st.divider()
         # File uploader for loading
         loaded_file = st.file_uploader("Load Playback", type=['pkl'])
         if loaded_file:
             loaded_pb = StZMQPlayback.load(loaded_file)
             st.session_state.playbacks.append(loaded_pb)
 
+        st.divider()
         if "transmitter" not in st.session_state:
             # Transmit plugin dropdown & selection
             if "transmit_plugins_list" not in st.session_state:
