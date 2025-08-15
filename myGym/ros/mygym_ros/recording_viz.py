@@ -47,7 +47,7 @@ class StZMQPlayback(ZMQPlayback):
                             # Stop all other playbacks
                             for other_pb in st.session_state.playbacks:
                                 if other_pb != self:
-                                    other_pb.stop()
+                                    other_pb.stop_recording()
                             self.start_recording()
                             st.rerun(scope="fragment")
 
@@ -174,7 +174,10 @@ def isolate_transmit_plugins():
     # clean_plugs = [
     #     str(plug) + str(type(plug)) for plug in plugs
     # ]
-    return clean_plugs
+    # convert to dict
+    plugin_dict = {str(plug): plug for plug in clean_plugs}
+    # return clean_plugs
+    return plugin_dict
 
 
 def main():
@@ -194,7 +197,7 @@ def main():
             else:
                 # Ensure only one active playback
                 for pb in st.session_state.playbacks:
-                    pb.stop()
+                    pb.stop_recording()
 
                 new_pb = StZMQPlayback(new_name or f"Recording_{len(st.session_state.playbacks) + 1}")
                 new_pb.start_recording()
@@ -206,7 +209,7 @@ def main():
             else:
                 # Ensure only one active playback
                 for pb in st.session_state.playbacks:
-                    pb.stop()
+                    pb.stop_recording()
 
                 new_pb = StZMQInstantPlayback(new_name or f"Recording_{len(st.session_state.playbacks) + 1}")
                 new_pb.start_recording()
@@ -224,14 +227,16 @@ def main():
                 st.session_state.transmit_plugins_list = isolate_transmit_plugins()
             transmit_plugin = st.selectbox(
                 "Transmit plugin",
-                st.session_state.transmit_plugins_list,
+                list(st.session_state.transmit_plugins_list.keys()),
                 placeholder="Select a transmit plugin",
                 index=None,
             )
             if transmit_plugin:
-                st.session_state.transmitter = transmit_plugin()
+                st.session_state.transmitter = st.session_state.transmit_plugins_list[transmit_plugin]()
         else:
             st.write(f"Using transmit plugin: {st.session_state.transmitter}")
+            if st.button("Change Transmit Plugin"):
+                del st.session_state.transmitter
 
     # Main display area
     for idx, pb in enumerate(st.session_state.playbacks[:]):
