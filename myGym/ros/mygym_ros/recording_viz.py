@@ -98,7 +98,7 @@ class StZMQPlayback(ZMQPlayback):
                 with ctrl_cols[3]:
                     # Save button
                     if st.button("💾 Save", key=f"save_{self.name}"):
-                        save_path = Path(f"{self.name}.pkl")
+                        save_path = Path(f"{self.name}.json")
                         self.save(save_path)
                         st.success(f"Saved to {save_path}")
 
@@ -180,6 +180,17 @@ def isolate_transmit_plugins():
     return plugin_dict
 
 
+def load_playback():
+    loader = st.session_state["load_playback"]
+    if loader is None:
+        return
+    loaded_file = loader.name
+    # st.write(loader.__dict__)
+    loaded_pb = StZMQInstantPlayback.load(loaded_file)
+    st.session_state.playbacks.append(loaded_pb)
+    # loaded_file.close()
+
+
 def main():
     st.title("ZMQ Data Recorder/Playback")
 
@@ -193,25 +204,26 @@ def main():
         <style>
             section[data-testid="stSidebar"] {
                 width: 40% !important; # Set the width to your desired value
+                vertical-align: top;
             }
         </style>
         """,
         unsafe_allow_html=True,
     )
+    st.sidebar.title("Controls")
     with st.sidebar:
-        st.header("Controls")
         new_name = st.text_input("Recording name")
-        if st.button("Create New Playback"):
-            if any(pb.name == new_name for pb in st.session_state.playbacks):
-                st.warning(f"A playback with name '{new_name}' already exists.")
-            else:
-                # Ensure only one active playback
-                for pb in st.session_state.playbacks:
-                    pb.stop_recording()
+        # if st.button("Create New Playback"):
+        #     if any(pb.name == new_name for pb in st.session_state.playbacks):
+        #         st.warning(f"A playback with name '{new_name}' already exists.")
+        #     else:
+        #         # Ensure only one active playback
+        #         for pb in st.session_state.playbacks:
+        #             pb.stop_recording()
 
-                new_pb = StZMQPlayback(new_name or f"Recording_{len(st.session_state.playbacks) + 1}")
-                new_pb.start_recording()
-                st.session_state.playbacks.append(new_pb)
+        #         new_pb = StZMQPlayback(new_name or f"Recording_{len(st.session_state.playbacks) + 1}")
+        #         new_pb.start_recording()
+        #         st.session_state.playbacks.append(new_pb)
 
         if st.button("Create New Instant Playback"):
             if any(pb.name == new_name for pb in st.session_state.playbacks):
@@ -227,10 +239,13 @@ def main():
 
         st.divider()
         # File uploader for loading
-        loaded_file = st.file_uploader("Load Playback", type=['pkl'])
-        if loaded_file:
-            loaded_pb = StZMQPlayback.load(loaded_file)
-            st.session_state.playbacks.append(loaded_pb)
+        loaded_file = st.file_uploader(
+            "Load Playback",
+            type=['json'],
+            key="load_playback",
+            on_change=load_playback,
+            accept_multiple_files=False
+        )
 
         st.divider()
         if "transmitter" not in st.session_state:
@@ -252,6 +267,7 @@ def main():
 
     # Main display area
     for idx, pb in enumerate(st.session_state.playbacks[:]):
+        # st.write(f"## {idx + 1}. {pb.name}")
         pb.render()
 
     st_autorefresh(interval=1000, key="fizzbuzzcounter")

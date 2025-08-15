@@ -9,6 +9,7 @@ import yaml
 from importlib.resources import files
 import streamlit as st
 from functools import lru_cache
+import json
 
 
 class ZMQCommMeta(type):
@@ -35,6 +36,12 @@ class ZMQCommMeta(type):
 class ZMQPlayback(metaclass=ZMQCommMeta):
     MIN_SPEED = 0.1
     MAX_SPEED = 10
+
+    # Only persist plain data
+    _PERSIST_KEYS = (
+        '_name', '_speed', '_created_at', '_actions', '_grips'
+    )
+    _STATE_VERSION = 1
 
     def __init__(self, name: str):
         self._name = name
@@ -101,11 +108,6 @@ class ZMQPlayback(metaclass=ZMQCommMeta):
     def __str__(self):
         return f"{self._name}: {len(self)} items ({'Active' if self._is_recording_active else 'Inactive'})"
 
-    def save(self, path: Path):
-        """Save playback to file"""
-        with open(path, 'wb') as f:
-            cp.dump(self, f)
-
     def seek(self, pos):
         if pos < 0:
             pos = 0
@@ -113,21 +115,66 @@ class ZMQPlayback(metaclass=ZMQCommMeta):
             pos = len(self)
         self._current_pos = pos
 
+    def save(self, path: Path):
+        """Save playback to file"""
+        with open(path, 'w') as f:
+            json.dump(self.__getstate__(), f)
+
     @classmethod
     def load(cls, path_or_buff: Path | BytesIO) -> 'ZMQPlayback':
         """Load playback from file"""
         if isinstance(path_or_buff, BytesIO):
             # TODO: make this work
-            path_or_buff.seek(0)
-            return cp.load(path_or_buff)
+            data = json.load(path_or_buff)
+            return cls._reconstruct(data)
         elif isinstance(path_or_buff, str):
             path_or_buff = Path(path_or_buff)
 
         if isinstance(path_or_buff, Path):
-            with open(path_or_buff, 'rb') as f:
-                return cp.load(f)
+            with open(path_or_buff, 'r') as f:
+                data = json.load(f)
+            return cls._reconstruct(data)
         else:
             raise ValueError(f"Invalid path type {type(path_or_buff)}")
+
+    def __getstate__(self):
+        """
+        Return only serializable state.
+        """
+        state = {'__version__': self._STATE_VERSION}
+        for k in self._PERSIST_KEYS:
+            state[k] = getattr(self, k)
+        # DO NOT include callbacks or bound methods; we’ll rebind to self on load.
+        return state
+
+    def __setstate__(self, state):
+        """
+        Rebuild the object from serialized state and recreate unserializable members.
+        """
+        # Basic fields
+        for k in self._PERSIST_KEYS:
+            setattr(self, k, state[k])
+        self._created_at = state.get('_created_at', time.time())
+
+        self._is_recording_active = False
+        self._is_playing = False
+        self._can_play = True
+        self._can_record = False
+        self._current_pos = 0
+
+        # Recreate subscriber
+        self._subscriber = ParamSubscriber(
+            **self._zmq_config,
+            callback=self._handle_data
+        )
+        self._subscriber.subscribe("robot_action")
+        self._subscriber.subscribe("robot_grip")
+
+    @classmethod
+    def _reconstruct(cls, state):
+        obj = cls(state['_name'])
+        obj.__setstate__(state)
+        return obj
 
     @property
     @lru_cache
