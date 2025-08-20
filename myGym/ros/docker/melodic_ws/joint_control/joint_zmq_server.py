@@ -27,11 +27,11 @@ from sensor_msgs.msg import JointState
 from urdf_parser_py.urdf import URDF
 import PyKDL as kdl
 try:
-    from kdl_parser_py.urdf import treeFromParam
+    from kdl_parser_py.urdf import treeFromParam, treeFromFile, treeFromUrdfModel
 except ImportError:
     treeFromParam = None
     from urdf_parser_py.urdf import URDF
-    from .kdl_parser_py.urdf import treeFromUrdfModel
+    from kdl_parser_py import treeFromUrdfModel, treeFromFile
 # from tf_conversions import kdl_parser_py
 import zmq
 from threading import Thread
@@ -214,32 +214,13 @@ class TiagoTrajectoryController(object):
                  duration=2.0,
                  max_length=0,
                  start_offset=0,
-                 execution_delay=3.0
+                 execution_delay=3.0,
+                 urdf_path=None
                  ):
         # Initialize ROS node
         rospy.init_node('arm_trajectory_controller', anonymous=True)
+
         self.arm_side = arm_side
-        # Define joint names for TIAGo arm
-        # TIAGo arms have 7 joints: arm_left_1_joint ... arm_left_7_joint
-        self.joint_names = ['arm_{}_{}_joint'.format(self.arm_side, i) for i in range(1, 8)]
-
-        # Storage for current joint states
-        self.joint_state = None
-        rospy.Subscriber('/joint_states', JointState, self.joint_state_cb)
-
-        # Action client for follow_joint_trajectory
-        action_server = '/{}arm_{}_controller/follow_joint_trajectory'.format('safe_' if not unsafe else '', self.arm_side)
-        self.client = actionlib.ActionClient(action_server, FollowJointTrajectoryAction)
-        rospy.loginfo("Waiting for action server: {}".format(action_server))
-        if not self.client.wait_for_server(rospy.Duration(10.0)):
-            rospy.logerr("Action server not available")
-            rospy.signal_shutdown('No action server')
-        rospy.loginfo("Connected to {}".format(action_server))
-
-        # Ensure safe shutdown: cancel goal on exit
-        rospy.on_shutdown(self.shutdown_hook)
-
-        self.zmq_service_server = ServiceServer(self._data_callback)
 
         self.goal = None
         self.goal_handle = None
@@ -251,15 +232,30 @@ class TiagoTrajectoryController(object):
         self.start_offset = start_offset
         self.execution_delay = execution_delay
 
+        # Define joint names for TIAGo arm
+        # TIAGo arms have 7 joints: arm_left_1_joint ... arm_left_7_joint
+        self.joint_names = ['arm_{}_{}_joint'.format(self.arm_side, i) for i in range(1, 8)]
+
+        # Storage for current joint states
+        self.joint_state = None
+        rospy.Subscriber('/joint_states', JointState, self.joint_state_cb)
+
+        # Ensure safe shutdown: cancel goal on exit
+        rospy.on_shutdown(self.shutdown_hook)
+
         # Forward kinematics setup
-        if treeFromParam is not None:  # Melodic
-            ok, tree = treeFromParam('/robot_description')
-        else:  # Noetic
-            try:
-                robot = URDF.from_parameter_server()
-            except BaseException as e:
-                rospy.logerr("Failed to retrieve URDF from parameter server: %s" % e)
-                rospy.signal_shutdown('URDF parse failed')
+        if urdf_path is None:
+            if treeFromParam is not None:  # Melodic
+                ok, tree = treeFromParam('/robot_description')
+            else:  # Noetic
+                try:
+                    robot = URDF.from_parameter_server()
+                except BaseException as e:
+                    rospy.logerr("Failed to retrieve URDF from parameter server: %s" % e)
+                    rospy.signal_shutdown('URDF parse failed')
+                ok, tree = treeFromUrdfModel(robot)
+        else:
+            robot = URDF.from_xml_file(urdf_path)
             ok, tree = treeFromUrdfModel(robot)
 
         if not ok:
@@ -274,8 +270,19 @@ class TiagoTrajectoryController(object):
         # print(self.chain.getSegment(0))
         self.fk_solver = kdl.ChainFkSolverPos_recursive(self.chain)
 
+        # Action client for follow_joint_trajectory
+        action_server = '/{}arm_{}_controller/follow_joint_trajectory'.format('safe_' if not unsafe else '', self.arm_side)
+        self.client = actionlib.ActionClient(action_server, FollowJointTrajectoryAction)
+        rospy.loginfo("Waiting for action server: {}".format(action_server))
+        if not self.client.wait_for_server(rospy.Duration(10.0)):
+            rospy.logerr("Action server not available")
+            rospy.signal_shutdown('No action server')
+        rospy.loginfo("Connected to {}".format(action_server))
+
         self.disp_pub = rospy.Publisher('/move_group/display_planned_path', DisplayTrajectory, queue_size=1)
         self.marker_pub = rospy.Publisher('/visualization_marker_array', MarkerArray, queue_size=1)
+
+        self.zmq_service_server = ServiceServer(self._data_callback)
 
     def _data_callback(self, data):
         joint_names = data['joint_names']
@@ -598,6 +605,7 @@ def main():
     parser.add_argument('--smooth', '-s', action='store_true', help='Smooth the trajectory')
     parser.add_argument('--merge', '-m', type=float, default=0.0, help='Merge trajectory points closer than this value (in meters)')
     parser.add_argument('--duration', '-d', type=float, default=2.0, help='Duration of each trajectory point (in seconds)')
+    parser.add_argument( '--urdf-path', '--urdf', '-u', type=str, default=None, help='URDF path to load from, instead of using ROS param.')
     args = parser.parse_args()
 
     arm_side = args.side
@@ -626,7 +634,8 @@ def main():
         merge=merge,
         duration=duration,
         max_length=max_length,
-        start_offset=start_offset
+        start_offset=start_offset,
+        urdf_path=args.urdf_path
     )
 
     if args.test:
