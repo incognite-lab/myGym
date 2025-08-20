@@ -26,7 +26,12 @@ from std_msgs.msg import ColorRGBA
 from sensor_msgs.msg import JointState
 from urdf_parser_py.urdf import URDF
 import PyKDL as kdl
-from kdl_parser_py.urdf import treeFromParam
+try:
+    from kdl_parser_py.urdf import treeFromParam
+except ImportError:
+    treeFromParam = None
+    from urdf_parser_py.urdf import URDF
+    from .kdl_parser_py.urdf import treeFromUrdfModel
 # from tf_conversions import kdl_parser_py
 import zmq
 from threading import Thread
@@ -121,7 +126,6 @@ class ServiceServer():
                 self._zmq_socket.send(response)
             except zmq.Again:
                 self._reconnect()
-
 
 
 def merge_joint_positions(joint_positions, merge_distance=0.01):
@@ -248,7 +252,16 @@ class TiagoTrajectoryController(object):
         self.execution_delay = execution_delay
 
         # Forward kinematics setup
-        ok, tree = treeFromParam('/robot_description')
+        if treeFromParam is not None:  # Melodic
+            ok, tree = treeFromParam('/robot_description')
+        else:  # Noetic
+            try:
+                robot = URDF.from_parameter_server()
+            except BaseException as e:
+                rospy.logerr("Failed to retrieve URDF from parameter server: %s" % e)
+                rospy.signal_shutdown('URDF parse failed')
+            ok, tree = treeFromUrdfModel(robot)
+
         if not ok:
             rospy.logerr("Failed to parse URDF to KDL tree")
             rospy.signal_shutdown('URDF parse failed')
@@ -256,7 +269,7 @@ class TiagoTrajectoryController(object):
         self.base = 'torso_lift_link'  # one link before the arm
         self.end = 'arm_{0}_7_link'.format(self.arm_side)
         # print(tree.getNrOfJoints())
-        print(str(tree))
+        # print(str(tree))
         self.chain = tree.getChain(self.base, self.end)
         # print(self.chain.getSegment(0))
         self.fk_solver = kdl.ChainFkSolverPos_recursive(self.chain)
@@ -290,6 +303,7 @@ class TiagoTrajectoryController(object):
         # print(joint_names)
 
         self.send_joint_action(joint_names, joint_positions, self.duration)
+        return {'code': 200, 'message': 'success'}
 
     def joint_state_cb(self, msg):
         # Store the latest joint state
