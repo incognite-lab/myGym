@@ -153,7 +153,7 @@ class Robot:
             exit()
         if self.gripper_index == None:
             print("No gripper detected. Please add gripper joint and link to the URDF file (see panda.urdf for example)")
-            exit()
+            #exit()
         
         if 'gripper' in self.robot_action and not self.gripper_indices:
             print("Gripper control active but no gripped joints detected. Please add gjoints to the URDF file (see panda.urdf for example)")
@@ -367,8 +367,8 @@ class Robot:
         
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
         self.end_effector_orn = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
-        self.gripper_pos = self.p.getLinkState(self.robot_uid, self.gripper_index)[0]  
-        self.gripper_orn = self.p.getLinkState(self.robot_uid, self.gripper_index)[1]
+        #self.gripper_pos = self.p.getLinkState(self.robot_uid, self.gripper_index)[0]  
+        #self.gripper_orn = self.p.getLinkState(self.robot_uid, self.gripper_index)[1]
 
         joints = self.get_joints_states()
         #print(joints)

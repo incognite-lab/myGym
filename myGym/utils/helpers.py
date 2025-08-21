@@ -138,5 +138,6 @@ def get_robot_dict():
                              'tiago_simple': {'path': '/envs/robots/tiago/tiago_simple.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual_fingers': {'path': '/envs/robots/tiago_dualhand/tiago_dual_hey5.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0 * np.pi]},
                               'hsr': {'path': '/envs/robots/hsr/hsrb4s.urdf', 'position': np.array([0.0, -0.15, -0.4]), 'orientation': [0.0, 0.0, 0 * np.pi]},
+                              'g1': {'path': '/envs/robots/unitree/g1_mygym.urdf', 'position': np.array([0, -0.2, 0.6]), 'orientation': [0.0, 0.0, 0 * np.pi]},
                              }
     return r_dict
