@@ -137,7 +137,8 @@ class GymEnv(CameraEnv):
         self.logdir    = logdir
         self.workspace_dict = get_workspace_dict()
         self.robot = None
-        self.task_checker = oraculum.Oraculum(self, arg_dict)
+        self.task_checker = oraculum.Oraculum(self, kwargs["arg_dict"], max_steps=kwargs["max_steps"], robot_action=robot_action)
+        kwargs.pop("arg_dict")
         if not hasattr(self, "task"):
           self.task = None
 

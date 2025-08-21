@@ -64,6 +64,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "training": bool(for_train)
                      }
     env_arguments["gui_on"] = arg_dict["gui"]
+    env_arguments["arg_dict"] = arg_dict
 
     if arg_dict["algo"] == "her":
         env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
