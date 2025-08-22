@@ -154,7 +154,7 @@
       <material name="White"/>
     </collision>
   </link>
-  <joint name="torso_lift_joint" type="prismatic">
+  <joint name="torso_lift_rjoint" type="prismatic">
     <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.61"/>
     <parent link="torso_fixed_link"/>
     <child link="torso_lift_link"/>
