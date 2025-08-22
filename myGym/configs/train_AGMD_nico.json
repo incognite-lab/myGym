@@ -13,8 +13,8 @@
     "robot"         :"nico_grasp",
     "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.4],
-    "max_velocity"  :3,
-    "max_force"     :200,
+    "max_velocity"  :30,
+    "max_force"     :20000,
     "action_repeat" :1,
     #Task
     "task_type"             :"AGMD",

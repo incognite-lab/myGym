@@ -271,7 +271,7 @@ def test_env(env: object, arg_dict: dict) -> None:
 
             observation, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
-            print("observation shape:", len(obs))
+            #print("observation shape:", len(obs))
 
             n_p, last_call_time = n_pressed(last_call_time)
             if n_p:  # If key 'n' is pressed, switch to next task - useful if robot gets stuck
