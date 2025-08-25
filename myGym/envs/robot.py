@@ -445,7 +445,7 @@ class Robot:
                                                             self.end_effector_index,
                                                             end_effector_pos,
                                                             self.fixed_end_effector_orn)
-                print("IK with fixed orn")
+                #print("IK with fixed orn")
             else:
                 joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                             self.end_effector_index,
@@ -454,7 +454,7 @@ class Robot:
                                                             upperLimits=self.joints_limits[1],
                                                             jointRanges=self.joints_ranges,
                                                             restPoses=self.joints_rest_poses)
-                print("IK without fixed orn")
+                #print("IK without fixed orn")
             joint_poses = joint_poses[:len(self.motor_indices)]
             joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
             #reset the joint state (ignoring all dynamics, not recommended to use during simulation)

@@ -374,7 +374,7 @@ def record_video(images: list, arg_dict: dict, env: object, path: str) -> None:
 def make_path(arg_dict: dict, record_format: str, model: bool):
     counter = 0
     if model:
-        model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
+        model_logdir = os.path.dirname(arg_dict.get("logdir", ""))
         model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
         logdir = os.path.join(model_logdir, "train_record_" + model_name)
         print("Saving to " + logdir)
@@ -404,10 +404,10 @@ def test_model(
         #TODO: maybe this if else is unnecessary?
         if "multi" in arg_dict["algo"]:
             model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env = env)
+            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["pretrained_model"], env = env)
             model.env = model_args[1].env
         else:
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env = env)
+            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["pretrained_model"], env = env)
     except:
         if (arg_dict["algo"] in implemented_combos.keys()) and (
                 arg_dict["train_framework"] not in list(implemented_combos[arg_dict["algo"]].keys())):
@@ -491,21 +491,20 @@ def print_init_info(arg_dict):
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
-    parser.add_argument("-ct", "--control", default="oraculum",
+    parser.add_argument("-ct", "--control", default="none",
                         help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
     parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
-    parser.add_argument("-tp", "--top_grasp", default = True, help="Use top grasp when reaching objects with oraculum.")
+    parser.add_argument("-tp", "--top_grasp", default = False, help="Use top grasp when reaching objects with oraculum.")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
     arg_dict, commands = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
 
-    arg_dict = automatic_argument_assignment(arg_dict)
-    
+        
     for key, arg in arg_dict.items():
         if type(arg_dict[key]) == list:
             if len(arg_dict[key]) > 1 and key != "robot_init" and key != "end_effector_orn":
@@ -513,8 +512,7 @@ def main() -> None:
                     parameters[key] = arg
                     if key in commands:
                         commands.pop(key)
-
-    model_logdir = os.path.dirname(arg_dict.get("model_path", ""))
+    model_logdir = os.path.dirname(arg_dict.get("pretrained_model", ""))
 
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
@@ -526,15 +524,17 @@ def main() -> None:
         if arg_dict["results_report"]:
             print("Results report cannot be used without oraculum.")
             arg_dict["results_report"] = False
-    if arg_dict.get("model_path") is None:
+    if arg_dict.get("pretrained_model") is None:
         print_init_info(arg_dict)
         arg_dict["gui"] = 1
+        arg_dict = automatic_argument_assignment(arg_dict)
         env = configure_env(arg_dict, model_logdir, for_train=0)
         test_env(env, arg_dict)
     else:
-        arg_dict["robot_action"] = "joints_gripper" #Model has to be tested with this action type
+        #arg_dict["robot_action"] = "joints_gripper" #Model has to be tested with this action type
         env = configure_env(arg_dict, model_logdir, for_train=0)
         implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
+        print (model_logdir)
         test_model(env, None, implemented_combos, arg_dict, model_logdir, deterministic=False)
 
 
