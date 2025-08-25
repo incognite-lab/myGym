@@ -512,7 +512,7 @@ def main() -> None:
                     parameters[key] = arg
                     if key in commands:
                         commands.pop(key)
-    model_logdir = os.path.dirname(arg_dict.get("pretrained_model", ""))
+    
 
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
@@ -528,10 +528,11 @@ def main() -> None:
         print_init_info(arg_dict)
         arg_dict["gui"] = 1
         arg_dict = automatic_argument_assignment(arg_dict)
-        env = configure_env(arg_dict, model_logdir, for_train=0)
+        env = configure_env(arg_dict, model_logdir=None, for_train=0)
         test_env(env, arg_dict)
     else:
         #arg_dict["robot_action"] = "joints_gripper" #Model has to be tested with this action type
+        model_logdir = os.path.dirname(arg_dict.get("pretrained_model", ""))
         env = configure_env(arg_dict, model_logdir, for_train=0)
         implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
         print (model_logdir)
