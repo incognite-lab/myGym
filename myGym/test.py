@@ -354,7 +354,7 @@ def record_video(images: list, arg_dict: dict, env: object, path: str) -> None:
     render_info = env.render()
     image = render_info[arg_dict["camera"] - 1]["image"]
     images.append(image)
-    print(f"appending image; total size: {len(images)}")
+    print(f"Frame: {len(images)}")
     if len(images) >= 80000:
         print(f"too many images; total size: {len(images)}")
     if ".gif" in path and done:
