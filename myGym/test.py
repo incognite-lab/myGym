@@ -322,12 +322,12 @@ def test_env(env: object, arg_dict: dict) -> None:
 
             if arg_dict["record"] > 0 and len(images) < 80000:
                 if len(images) < 1:
-                    avi_path = make_path(arg_dict, ".avi", False)
+                    mp4_path = make_path(arg_dict, ".mp4", False)
                     gif_path = make_path(arg_dict, ".gif", False)
                 if arg_dict["record"] == 1:
                     record_video(images, arg_dict, env, gif_path)
                 elif arg_dict["record"] == 2:
-                    record_video(images, arg_dict, env, avi_path)
+                    record_video(images, arg_dict, env, mp4_path)
 
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
@@ -351,6 +351,36 @@ def record_video(images: list, arg_dict: dict, env: object, path: str) -> None:
     if arg_dict["camera"] < 1:
         raise ValueError("Camera parameter must be set to > 0 to record!")
 
+    def select_fourcc(path_ext: str):
+        # Return first working FOURCC based on desired container
+        test_size = (16, 16)
+        dummy_frame = np.zeros((test_size[1], test_size[0], 3), dtype=np.uint8)
+        candidates = []
+        if path_ext == '.mp4':
+            # Order of preference for broad web playback
+            candidates = ['avc1', 'H264', 'X264', 'mp4v']
+        elif path_ext == '.webm':
+            candidates = ['VP90', 'VP80', 'avc1']  # VP9, VP8, fallback avc1
+        else:
+            candidates = ['mp4v']
+        for c in candidates:
+            try:
+                fourcc = cv2.VideoWriter_fourcc(*c)
+                vw = cv2.VideoWriter('_codec_test.tmp', fourcc, 1, test_size)
+                ok = vw.isOpened()
+                if ok:
+                    vw.write(dummy_frame)
+                    vw.release()
+                    if os.path.exists('_codec_test.tmp'):
+                        os.remove('_codec_test.tmp')
+                    print(f"[INFO] Using codec {c} for {path_ext}")
+                    return fourcc, c
+                vw.release()
+            except Exception:
+                pass
+        print("[WARN] No preferred codec available; falling back to mp4v")
+        return cv2.VideoWriter_fourcc(*'mp4v'), 'mp4v'
+
     render_info = env.render()
     image = render_info[arg_dict["camera"] - 1]["image"]
     images.append(image)
@@ -362,13 +392,18 @@ def record_video(images: list, arg_dict: dict, env: object, path: str) -> None:
         os.system(
             './utils/gifopt -O3 --lossy=5 --colors 256 -o {dest} {source}'.format(source=path, dest=path))
         print("Record saved to " + path)
-    elif ".avi" in path and done:
+    elif (path.endswith('.mp4') or path.endswith('.webm')) and done:
         height, width, layers = image.shape
-        out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'XVID'), 30, (width, height))
+        ext = '.mp4' if path.endswith('.mp4') else '.webm'
+        fourcc, used = select_fourcc(ext)
+        out = cv2.VideoWriter(path, fourcc, 30, (width, height))
+        if not out.isOpened():
+            print(f"[ERROR] Failed to open VideoWriter with codec {used}; aborting video save.")
+            return
         for img in images:
             out.write(cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
         out.release()
-        print("Record saved to " + path)
+        print(f"Record saved to {path} (codec {used})")
 
 
 def make_path(arg_dict: dict, record_format: str, model: bool):
@@ -445,12 +480,12 @@ def test_model(
 
             if arg_dict["record"] > 0 and len(images) < 8000:
                 if len(images) < 1:
-                    avi_path = make_path(arg_dict, ".avi", True)
+                    mp4_path = make_path(arg_dict, ".mp4", True)
                     gif_path = make_path(arg_dict, ".gif", True)
                 if arg_dict["record"] == 1:
                     record_video(images, arg_dict, env, gif_path)
                 elif arg_dict["record"] == 2:
-                    record_video(images, arg_dict, env, avi_path)
+                    record_video(images, arg_dict, env, mp4_path)
 
         success_episodes_num += is_successful
         distance_error_sum += distance_error
