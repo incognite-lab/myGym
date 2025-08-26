@@ -1246,9 +1246,9 @@
   <joint name="right_hand_palm_joint" type="fixed">
     <origin xyz="0.0415 -0.003 0" rpy="0 0 0"/>
     <parent link="right_wrist_yaw_link"/>
-    <child link="right_hand_palm_link"/>
+    <child link="gripper"/>
   </joint>
-  <link name="right_hand_palm_link">
+  <link name="gripper">
     <inertial>
       <origin xyz="0.06214634836 0.00050869656 -0.00058171093" rpy="0 0 0"/>
       <mass value="0.37283854"/>
@@ -1286,7 +1286,7 @@
 		</inertial>
   	</link>
 	<joint name="endeffector_joint" type="fixed">
-    	<parent link="right_hand_palm_link"/>
+    	<parent link="gripper"/>
     	<child link="endeffector"/>
     	<origin rpy="1.57 0 0" xyz="0.07 0.07 0.0"/>
 	</joint>
@@ -1294,7 +1294,7 @@
   <joint name="right_hand_thumb_0_joint" type="revolute">
     <origin xyz="0.0255 0 0" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
-    <parent link="right_hand_palm_link"/>
+    <parent link="gripper"/>
     <child link="right_hand_thumb_0_link"/>
     <limit effort="2.45" velocity="6.857" lower="-1.04719755" upper="1.04719755"/>
   </joint>
@@ -1381,7 +1381,7 @@
   <joint name="right_hand_middle_0_gjoint" type="revolute">
     <origin xyz="0.0777 -0.0016 -0.0285" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
-    <parent link="right_hand_palm_link"/>
+    <parent link="gripper"/>
     <child link="right_hand_middle_0_link"/>
     <limit effort="1.4" velocity="12" lower="0" upper="1.57079632"/>
   </joint>
@@ -1439,7 +1439,7 @@
   <joint name="right_hand_index_0_gjoint" type="revolute">
     <origin xyz="0.0777 -0.0016 0.0285" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
-    <parent link="right_hand_palm_link"/>
+    <parent link="gripper"/>
     <child link="right_hand_index_0_link"/>
     <limit effort="1.4" velocity="12" lower="0" upper="1.57079632"/>
   </joint>

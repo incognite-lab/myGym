@@ -1,7 +1,7 @@
 {
     #Environment
     "env_name"  :"Gym-v0",
-    "workspace" :"table_nico",
+    "workspace" :"table_tiago",
     "engine"    :"pybullet",
     "render"    :"opengl",
     "seed"      :1,
@@ -9,10 +9,10 @@
     "gui"       :0,
     "visualize" :0,
     "visgym"    :0,
-    #Robot;
-    "robot"         :"nico_grasp",
-    "robot_action"  :"joints_gripper",
-    "robot_init"    :[0.3, 0.0, 0.4],
+    #Robot
+    "robot"         :"g1",
+    "robot_action"  :"joints",
+    "robot_init"    :[0.5, 0.2, 0.4],
     "max_velocity"  :3,
     "max_force"     :200,
     "action_repeat" :1,
@@ -20,7 +20,7 @@
     "task_type"             :"AG",
     "natural_language"      :0,
     "task_objects"          :[{"init":{"obj_name":"null"},
-                            "goal":{"obj_name":"towertarget","fixed":1,"rand_rot":0, "sampling_area":[0.1,0.4,0.25,0.45,0.1,0.3]}}],
+                            "goal":{"obj_name":"apple50","fixed":1,"rand_rot":0, "sampling_area":[[-0.4,0.4,0.3,0.7,-0.3,0.0]]}}],
     "color_dict"            : {"apple":["green"], "target":["gray"]},
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
     // Observation
@@ -38,8 +38,10 @@
     "yolact_config" :null,
     #Train
     "train_framework"   :"pytorch",
-    "algo"              :"multippo",
+    "algo"              :"ppo",
+    "num_networks"      :1,
     "max_episode_steps" :512,
+    "algo_steps"        :512,
     "steps"             :15000000,
     "pretrained_model"  :null,
     "multiprocessing"   :null,
