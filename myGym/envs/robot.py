@@ -6,8 +6,8 @@ import math
 from myGym.utils.helpers import get_robot_dict
 import os
 
-currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
-repodir = pkg_resources.files("myGym")
+currentdir = os.path.join(str(pkg_resources.files("myGym")), "envs")
+repodir = str(pkg_resources.files("myGym"))
 
 
 class Robot:
@@ -29,7 +29,7 @@ class Robot:
         :param max_force: (float) Maximum allowed force reached by individual joint motor. Should be adjusted in case of sim2real scenario.
         :param pybullet_client: Which pybullet client the environment should refere to in case of parallel existence of multiple instances of this environment
     """
-    def __init__(self,
+    def __init__(self, 
                  robot='kuka',
                  position=[-0.1, 0.0, 0.07], orientation=[0, 0, 0],
                  end_effector_index=None, gripper_index=None, 
@@ -99,10 +99,35 @@ class Robot:
             self.p.resetBasePositionAndOrientation(self.robot_uid, self.position,
                                               self.orientation)
         else:
-            self.robot_uid = self.p.loadURDF(
-                os.path.join(pkg_resources.files("myGym"),
-                                                self.robot_path),
-                self.position, self.orientation, useFixedBase=True, flags=(self.p.URDF_USE_SELF_COLLISION))
+            # Build a proper filesystem path from importlib.resources Traversable
+            pkg_root = pkg_resources.files("myGym")
+            # split the relative path into components and join with Traversable to avoid absolute-root issues
+            parts = self.robot_path.split("/")
+            robot_res = pkg_root.joinpath(*parts)
+            urdf_path = str(robot_res)
+            # normalize slashes for pybullet on Windows
+            urdf_path = urdf_path.replace("\\", "/")
+
+            # Debug: print resolved path and check file existence
+            if self.debug:
+                print("Resolved URDF path:", urdf_path)
+            if not os.path.exists(urdf_path):
+                raise FileNotFoundError(f"URDF not found: {urdf_path}")
+
+            try:
+                # pass plain Python lists to pybullet (numpy arrays usually OK too)
+                self.robot_uid = self.p.loadURDF(
+                    urdf_path,
+                    self.position.tolist() if hasattr(self.position, "tolist") else self.position,
+                    self.orientation.tolist() if hasattr(self.orientation, "tolist") else self.orientation,
+                    useFixedBase=True,
+                    flags=self.p.URDF_USE_SELF_COLLISION
+                )
+            except Exception as e:
+                # helpful diagnostic on Windows
+                print(f"Failed to load URDF: {urdf_path}")
+                print("Exception from pybullet:", e)
+                raise
         for jid in range(self.p.getNumJoints(self.robot_uid)):
                 self.p.changeDynamics(self.robot_uid, jid,  collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
         # if 'jaco' in self.name: #@TODO jaco gripper has closed loop between finger and finger_tip that is not respected by the simulator
