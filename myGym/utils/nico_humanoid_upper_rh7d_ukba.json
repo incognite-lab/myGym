@@ -1,0 +1,229 @@
+{
+  "controllers": {
+    "all_controller": {
+      "sync_read": false,
+      "attached_motors": [
+        "head",
+        "arms",
+        "hands"
+      ],
+      "port": "auto"
+    }
+  },
+  "motorgroups": {
+    "head": [
+      "head_z",
+      "head_y"
+    ],
+
+    "r_arm": [
+      "r_shoulder_z",
+      "r_shoulder_y",
+      "r_arm_x",
+      "r_elbow_y"
+    ],
+
+    "l_arm": [
+      "l_shoulder_z",
+      "l_shoulder_y",
+      "l_arm_x",
+      "l_elbow_y"
+    ],
+    "arms": [
+      "l_arm",
+      "r_arm"
+    ],
+    "l_hand": [
+      "l_wrist_z",
+      "l_wrist_x",
+      "l_thumb_z",
+      "l_thumb_x",
+      "l_indexfinger_x",
+      "l_middlefingers_x",
+      "l_virtualhand_x"
+    ],
+    "r_hand": [
+      "r_wrist_z",
+      "r_wrist_x",
+      "r_thumb_z",
+      "r_thumb_x",
+      "r_indexfinger_x",
+      "r_middlefingers_x",
+      "r_virtualhand_x"
+    ],
+    "hands": [
+      "r_hand",
+      "l_hand"
+    ]
+  },
+  "motors": {
+    "head_z": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 19,
+      "angle_limit": [-90,90],
+      "orientation": "direct"
+    },
+    "head_y": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 20,
+      "angle_limit": [-50,25],
+      "orientation": "direct"
+    },
+    "r_shoulder_z": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 21,
+      "angle_limit": [-25,80],
+      "orientation": "direct"
+    },
+    "r_shoulder_y": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 1,
+      "angle_limit": [-30,180],
+      "orientation": "direct"
+    },
+    "r_arm_x": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 3,
+      "angle_limit": [-5,70],
+      "orientation": "direct"
+    },
+    "r_elbow_y": {
+      "offset": -136,
+      "type": "MX-64",
+      "id": 5,
+      "angle_limit": [-86,45],
+      "orientation": "direct"
+    },
+    "l_shoulder_z": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 22,
+      "angle_limit": [-80,25],
+      "orientation": "indirect"
+    },
+    "l_shoulder_y": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 2,
+      "angle_limit": [-180,30],
+      "orientation": "indirect"
+    },
+    "l_arm_x": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 4,
+      "angle_limit": [-70,5],
+      "orientation": "indirect"
+    },
+    "l_elbow_y": {
+      "offset": -136,
+      "type": "MX-64",
+      "id": 6,
+      "angle_limit": [-45,86],
+      "orientation": "indirect"
+    },
+    "l_virtualhand_x": {
+      "offset": 0.0,
+      "type": "SR-EROSBRD-",
+      "id": 40,
+      "angle_limit": [-180,180],
+      "orientation": "direct"
+    },
+    "l_wrist_z": {
+      "offset": 0.0,
+      "type": "SR-SEED28",
+      "id": 41,
+      "angle_limit": [-180,180],
+      "orientation": "direct"
+    },
+    "l_wrist_x": {
+      "offset": 0.0,
+      "type": "SR-SEED28",
+      "id": 43,
+      "angle_limit": [-180,180],
+      "orientation": "direct"
+    },
+    "l_thumb_z": {
+      "offset": 0.0,
+      "type": "SR-SEED28",
+      "id": 44,
+      "angle_limit": [-180,180],
+      "orientation": "direct"
+    },
+    "l_thumb_x": {
+      "offset": 0.0,
+      "type": "SR-SEED28",
+      "id": 45,
+      "angle_limit": [-180,180],
+      "orientation": "direct"
+    },
+    "l_indexfinger_x": {
+      "offset": 0.0,
+      "type": "SR-SEED28",
+      "id": 46,
+      "angle_limit": [-180,180],
+      "orientation": "direct"
+    },
+    "l_middlefingers_x": {
+      "offset": 0.0,
+      "type": "SR-SEED28",
+      "id": 47,
+      "angle_limit": [-180,180],
+      "orientation": "direct"
+    },
+    "r_virtualhand_x": {
+      "offset": 0.0,
+      "type": "SR-EROSBRD-",
+      "id": 30,
+      "angle_limit": [-180,180],
+      "orientation": "direct"
+    },
+    "r_wrist_z": {
+      "offset": 0.0,
+      "type": "SR-SEED28",
+      "id": 31,
+      "angle_limit": [-180,180],
+      "orientation": "indirect"
+    },
+    "r_wrist_x": {
+      "offset": 0.0,
+      "type": "SR-SEED28",
+      "id": 33,
+      "angle_limit": [-180,180],
+      "orientation": "direct"
+    },
+    "r_thumb_z": {
+      "offset": 0.0,
+      "type": "SR-SEED28",
+      "id": 34,
+      "angle_limit": [-180,180],
+      "orientation": "direct"
+    },
+    "r_thumb_x": {
+      "offset": 0.0,
+      "type": "SR-SEED28",
+      "id": 35,
+      "angle_limit": [-180,180],
+      "orientation": "direct"
+    },
+    "r_indexfinger_x": {
+      "offset": 0.0,
+      "type": "SR-SEED28",
+      "id": 36,
+      "angle_limit": [-180,180],
+      "orientation": "direct"
+    },
+    "r_middlefingers_x": {
+      "offset": 0.0,
+      "type": "SR-SEED28",
+      "id": 37,
+      "angle_limit": [-180,180],
+      "orientation": "direct"
+    }
+  }
+}
