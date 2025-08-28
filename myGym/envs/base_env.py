@@ -382,7 +382,7 @@ class CameraEnv(BaseEnv):
         :param active_cameras: (list) Set 1 at a position(=camera number) to save images from this camera
     """
 
-    def __init__(self, camera_resolution=[640, 480], shadows_on=True,
+    def __init__(self, camera_resolution=[1920, 1080], shadows_on=True,
                  render_on=True, renderer=pybullet.ER_BULLET_HARDWARE_OPENGL,
                  active_cameras=None, **kwargs):
 

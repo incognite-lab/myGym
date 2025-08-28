@@ -406,7 +406,7 @@ def main():
         arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
     model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join(
-        (arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"], arg_dict["robot_action"], arg_dict["algo"])))
+        (arg_dict["robot_action"], arg_dict["algo"])))
 
     model_logdir = model_logdir_ori
     add = 1

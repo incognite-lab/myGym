@@ -38,7 +38,7 @@
     "yolact_config" :null,
     #Train
     "train_framework"   :"pytorch",
-    "algo"              :"multippo",
+    "algo"              :"ppo",
     "max_episode_steps" :512,
     "steps"             :15000000,
     "pretrained_model"  :null,

@@ -10,8 +10,10 @@ import os
 import sys
 import subprocess
 import json
+import shutil
 from dataclasses import dataclass
 from typing import List, Optional, Any
+from datetime import datetime
 
 @dataclass
 class Entry:
@@ -23,6 +25,93 @@ class Entry:
 
 DEFAULT_TARGET_NAME = "train.json"
 EVAL_RESULTS_FILENAME = "evaluation_results.json"
+
+
+def _filter_episode_success(eval_path: str) -> list[str]:
+    lines_out = []
+    try:
+        with open(eval_path, 'r') as f:
+            raw = f.read().strip()
+        # Try whole-file JSON first
+        parsed = None
+        try:
+            parsed = json.loads(raw)
+        except Exception:
+            # fallback: newline separated JSON objects
+            for ln in raw.splitlines():
+                ln = ln.strip()
+                if not ln:
+                    continue
+                try:
+                    obj = json.loads(ln)
+                except Exception:
+                    continue
+                ep = obj.get('episode') or obj.get('id') or obj.get('iter')
+                sr = obj.get('success_rate') or obj.get('successRate') or obj.get('success') or obj.get('sr')
+                if ep is not None and sr is not None:
+                    lines_out.append(f"episode={ep} success_rate={sr}")
+            return lines_out if lines_out else ["[INFO] No episode/success_rate pairs found."]
+        def handle_container(container):
+            if isinstance(container, list):
+                for item in container:
+                    if isinstance(item, dict):
+                        ep = item.get('episode') or item.get('id') or item.get('iter')
+                        sr = item.get('success_rate') or item.get('successRate') or item.get('success') or item.get('sr')
+                        if ep is not None and sr is not None:
+                            lines_out.append(f"episode={ep} success_rate={sr}")
+            elif isinstance(container, dict):
+                # Direct episode/success pair
+                ep = container.get('episode') or container.get('last_episode') or container.get('id') or container.get('iter')
+                sr = container.get('success_rate') or container.get('successRate') or container.get('success') or container.get('sr')
+                if ep is not None and sr is not None:
+                    lines_out.append(f"episode={ep} success_rate={sr}")
+                # Nested lists
+                for key in ('episodes','history','evaluations'):
+                    if key in container and isinstance(container[key], list):
+                        handle_container(container[key])
+                # Dict-of-evaluations pattern
+                for v in container.values():
+                    if isinstance(v, dict):
+                        vv_ep = v.get('episode') or v.get('id') or v.get('iter')
+                        vv_sr = v.get('success_rate') or v.get('successRate') or v.get('success') or v.get('sr')
+                        if vv_ep is not None and vv_sr is not None:
+                            lines_out.append(f"episode={vv_ep} success_rate={vv_sr}")
+        handle_container(parsed)
+        return lines_out if lines_out else ["[INFO] No episode/success_rate pairs found."]
+    except Exception as ex:
+        return [f"[ERROR] {ex}"]
+
+
+def _format_mtime(path: str) -> str:
+    try:
+        ts = os.path.getmtime(path)
+        return datetime.fromtimestamp(ts).strftime("%d/%m/%Y")
+    except Exception:
+        return "?"
+
+
+def run_visualize(train_json_path: str):
+    file_dir = os.path.dirname(os.path.abspath(train_json_path))
+    parent_dir = os.path.dirname(file_dir)
+    target_path = parent_dir if parent_dir else file_dir
+    try:
+        print(f"\n[VIS] Running visualization for base path {target_path} (from {train_json_path})")
+        subprocess.run([sys.executable, 'visualize_results.py', '--pth', target_path], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"[VIS][ERROR] visualize_results.py exited with {e.returncode}")
+    except FileNotFoundError:
+        print("[VIS][ERROR] visualize_results.py not found.")
+
+
+def run_visualize_current(train_json_path: str):
+    file_dir = os.path.dirname(os.path.abspath(train_json_path))
+    try:
+        print(f"\n[VIS] Running visualization for path {file_dir} (no parent exclusion)")
+        subprocess.run([sys.executable, 'visualize_results.py', '--pth', file_dir], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"[VIS][ERROR] visualize_results.py exited with {e.returncode}")
+    except FileNotFoundError:
+        print("[VIS][ERROR] visualize_results.py not found.")
 
 
 def _extract_eval_metrics(eval_path: str) -> tuple[Optional[int], Optional[float]]:
@@ -158,8 +247,12 @@ def scan(root: str, target_name: str, recursive: bool) -> List[Entry]:
     return entries
 
 
-def run_test(config_path: str, dry: bool, extra: List[str]):
-    cmd = [sys.executable, 'test.py', '--config', config_path, '-g', '1'] + extra
+def run_test(config_path: str, dry: bool, extra: List[str], g_value: Optional[str]):
+    cmd = [sys.executable, 'test.py', '--config', config_path]
+    # Only add -g if not already provided in extra
+    if all(arg != '-g' for arg in extra) and g_value is not None:
+        cmd += ['-g', g_value]
+    cmd += extra
     print(f"\nRunning: {' '.join(cmd)}")
     if dry:
         print("(dry-run) Not executing.")
@@ -179,12 +272,88 @@ def cli_select(entries: List[Entry]) -> Optional[Entry]:
         ep = _format_steps(e.last_episode)
         sr = _format_success(e.success_rate)
         dir_path = os.path.dirname(e.rel)
-        print(f"[{e.idx}] {dir_path}  ({ep} {sr})")
+        dt = _format_mtime(e.path)
+        print(f"[{e.idx}] {dir_path}  ({dt} {ep} {sr})")
+    print("Type index to run, 's <index>' to show that evaluation_results.json, 'v <index>' to visualize, 'c <index>' to visualize (no parent), 'd <index>' to delete directory, or q to quit.")
     while True:
-        raw = input("Select index (or q to quit): ").strip().lower()
+        raw = input("Select index / command: ").strip().lower()
+        if not raw:
+            continue
         if raw in ('q','quit','exit'):
             print("Exiting.")
             sys.exit(0)
+        if raw.startswith('s'):
+            parts = raw.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                idx = int(parts[1])
+                if 0 <= idx < len(entries):
+                    entry = entries[idx]
+                    eval_path = os.path.join(os.path.dirname(entry.path), EVAL_RESULTS_FILENAME)
+                    if os.path.isfile(eval_path):
+                        print(f"--- {eval_path} (episode & success_rate) ---")
+                        for line in _filter_episode_success(eval_path):
+                            print(line)
+                        print("--- end ---")
+                    else:
+                        print("[INFO] evaluation_results.json not found for this entry.")
+                else:
+                    print("Invalid index for show command.")
+            else:
+                print("Usage: s <index>")
+            continue
+        if raw.startswith('v'):
+            parts = raw.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                idx = int(parts[1])
+                if 0 <= idx < len(entries):
+                    run_visualize(entries[idx].path)
+                else:
+                    print("Invalid index for visualize command.")
+            else:
+                print("Usage: v <index>")
+            continue
+        if raw.startswith('c'):
+            parts = raw.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                idx = int(parts[1])
+                if 0 <= idx < len(entries):
+                    run_visualize_current(entries[idx].path)
+                else:
+                    print("Invalid index for visualize command.")
+            else:
+                print("Usage: c <index>")
+            continue
+        if raw.startswith('d'):
+            parts = raw.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                idx = int(parts[1])
+                if 0 <= idx < len(entries):
+                    entry = entries[idx]
+                    target_dir = os.path.dirname(entry.path)
+                    confirm = input(f"Delete directory '{target_dir}'? This cannot be undone! (y/N): ").strip().lower()
+                    if confirm == 'y':
+                        try:
+                            shutil.rmtree(target_dir)
+                            print(f"Deleted {target_dir}")
+                            # remove from list and reindex
+                            entries[:] = [e for e in entries if os.path.exists(e.path)]
+                            for i, e in enumerate(entries):
+                                e.idx = i
+                            # reprint list
+                            print("Updated configurations:")
+                            for e in entries:
+                                ep = _format_steps(e.last_episode)
+                                sr = _format_success(e.success_rate)
+                                dir_path = os.path.dirname(e.rel)
+                                dt = _format_mtime(e.path) if os.path.exists(e.path) else 'DELETED'
+                                print(f"[{e.idx}] {dir_path}  ({dt} {ep} {sr})")
+                        except Exception as ex:
+                            print(f"[ERROR] Failed to delete: {ex}")
+                else:
+                    print("Invalid index for delete command.")
+            else:
+                print("Usage: d <index>")
+            continue
         if raw.isdigit():
             idx = int(raw)
             if 0 <= idx < len(entries):
@@ -219,7 +388,7 @@ def curses_select(entries: List[Entry]) -> Optional[Entry]:
         stdscr.clear()
         h, w = stdscr.getmaxyx()
         stdscr.addstr(0,0, f"Config selector - {len(filtered)}/{len(entries)} (filter: '{filter_text}')")
-        stdscr.addstr(1,0, "Arrows: navigate  Enter: run  r: run+record  /: start filter  BKSP: delete  ESC: clear filter  q: quit")
+        stdscr.addstr(1,0, "Arrows: navigate  Enter: run  r: run+record  s: show eval  v: visualize  c: visualize(cur)  d: delete  /: start filter  BKSP: delete  ESC: clear filter  q: quit")
         max_visible = h - 3
         start = 0
         if pos >= max_visible:
@@ -230,7 +399,8 @@ def curses_select(entries: List[Entry]) -> Optional[Entry]:
             ep = _format_steps(e.last_episode)
             sr = _format_success(e.success_rate)
             dir_path = os.path.dirname(e.rel)
-            display = f"{prefix} [{e.idx}] {dir_path}  ({ep} {sr})"
+            dt = _format_mtime(e.path)
+            display = f"{prefix} [{e.idx}] {dir_path}  ({dt} {ep} {sr})"
             if line_idx == pos:
                 stdscr.attron(curses.A_REVERSE)
                 stdscr.addstr(i+3, 0, display[:w-1])
@@ -239,8 +409,27 @@ def curses_select(entries: List[Entry]) -> Optional[Entry]:
                 stdscr.addstr(i+3, 0, display[:w-1])
         stdscr.refresh()
 
+    def show_eval(stdscr, entry):
+        stdscr.clear()
+        eval_path = os.path.join(os.path.dirname(entry.path), EVAL_RESULTS_FILENAME)
+        h, w = stdscr.getmaxyx()
+        stdscr.addstr(0,0, f"Eval file: {eval_path}"[:w-1])
+        if os.path.isfile(eval_path):
+            lines = _filter_episode_success(eval_path)
+        else:
+            lines = ["[INFO] evaluation_results.json not found."]
+        max_body = h - 2
+        for i, line in enumerate(lines[:max_body]):
+            stdscr.addstr(1+i, 0, line[:w-1])
+        if len(lines) > max_body:
+            stdscr.addstr(h-1, 0, f"-- truncated {len(lines)-max_body} more lines -- press any key --"[:w-1])
+        else:
+            stdscr.addstr(h-1, 0, "Press any key to return"[:w-1])
+        stdscr.refresh()
+        stdscr.getch()
+
     def loop(stdscr):
-        nonlocal pos, filter_text
+        nonlocal pos, filter_text, entries
         curses.curs_set(0)
         while True:
             apply_filter()
@@ -263,6 +452,45 @@ def curses_select(entries: List[Entry]) -> Optional[Entry]:
             elif ch == ord('r'):
                 if filtered:
                     return filtered[pos], True
+            elif ch == ord('s'):
+                if filtered:
+                    show_eval(stdscr, filtered[pos])
+            elif ch == ord('v'):
+                if filtered:
+                    curses.endwin()
+                    run_visualize(filtered[pos].path)
+                    stdscr = curses.initscr()
+                    curses.curs_set(0)
+            elif ch == ord('c'):
+                if filtered:
+                    curses.endwin()
+                    run_visualize_current(filtered[pos].path)
+                    stdscr = curses.initscr()
+                    curses.curs_set(0)
+            elif ch == ord('d'):
+                if filtered:
+                    entry = filtered[pos]
+                    target_dir = os.path.dirname(entry.path)
+                    stdscr.clear()
+                    stdscr.addstr(0,0, f"Delete '{target_dir}'? y/N: ")
+                    stdscr.refresh()
+                    c2 = stdscr.getch()
+                    if c2 in (ord('y'), ord('Y')):
+                        try:
+                            curses.endwin()
+                            shutil.rmtree(target_dir)
+                            print(f"Deleted {target_dir}")
+                        except Exception as ex:
+                            print(f"[ERROR] Failed to delete: {ex}")
+                        # rebuild entries list excluding deleted ones
+                        entries = [e for e in entries if os.path.exists(e.path)]
+                        for i, e2 in enumerate(entries):
+                            e2.idx = i
+                        # reset filtered & pos
+                        filter_text = ""
+                        pos = 0
+                        stdscr = curses.initscr()
+                        curses.curs_set(0)
             elif ch == ord('/'):
                 filter_text = ""
             elif ch in (curses.KEY_BACKSPACE, 127, 8):
@@ -302,6 +530,7 @@ def main():
     parser.add_argument('--once', action='store_true', help='Select & run first entry automatically (useful for scripting)')
     parser.add_argument('--print-only', action='store_true', help='Print discovered paths and exit')
     parser.add_argument('--order', choices=['alpha','date'], default='alpha', help='Order listing: alpha or date (newest first)')
+    parser.add_argument('--no-gui', action='store_true', help='Run commands with GUI disabled (adds -g 0)')
     parser.add_argument('extra', nargs=argparse.REMAINDER, help='Extra args passed to test.py after --')
     args = parser.parse_args()
 
@@ -327,7 +556,8 @@ def main():
     if args.once:
         sel = entries[0]
         print(f"Auto-selecting first: {sel.rel}")
-        run_test(sel.path, args.dry_run, args.extra)
+        g_value = '0' if args.no_gui else '1'
+        run_test(sel.path, args.dry_run, args.extra, g_value)
         return
 
     while True:
@@ -342,7 +572,8 @@ def main():
         record_mode = getattr(selected, 'record_mode', False)
         ep = _format_steps(selected.last_episode)
         sr = _format_success(selected.success_rate)
-        print(f"Selected: [{selected.idx}] {os.path.dirname(selected.rel)}  ({ep} {sr})")
+        dt = _format_mtime(selected.path)
+        print(f"Selected: [{selected.idx}] {os.path.dirname(selected.rel)}  ({dt} {ep} {sr})")
         extra_args = list(args.extra)
         if record_mode:
             if '--record' not in extra_args:
@@ -351,7 +582,8 @@ def main():
                 extra_args += ['--eval_episodes', '5']
             if '--camera' not in extra_args:
                 extra_args += ['--camera', '1']
-        run_test(selected.path, args.dry_run, extra_args)
+        g_value = '0' if args.no_gui else '1'
+        run_test(selected.path, args.dry_run, extra_args, g_value)
         if args.no_loop:
             break
 

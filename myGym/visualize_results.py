@@ -108,7 +108,7 @@ def multi_dict_diff_by_key(dict_list: List[Dict[str, Any]]) -> Tuple[Dict[str, A
 
 def get_arguments() -> argparse.Namespace:
     """Parse and return command-line arguments."""
-    # '/home/student/mygym/myGym/trained_models/AGM_table_tiago_tiago_dual_joints_gripper_ppo_'
+    # '/home/student/mygym/myGym/trained_models/AGM_table_tiago_tiago_dual_joints_gripper_'
     parser = argparse.ArgumentParser()
     parser.add_argument("--pth",
                         default='/home/sofia/mygym/myGym/trained_models/AGMD',
@@ -150,15 +150,38 @@ def ax_fill(ax: plt.Axes, steps: np.ndarray, meanvalue: np.ndarray, data: List[n
 def main() -> None:
     global color_map_acts
     args = get_arguments()
-    root, dirs, _ = next(os.walk(str(args.pth)))
-    dirs.append(args.pth)
-    dirs.sort(key=natural_keys)
+
+    # Collect experiment directories:
+    # - All immediate subdirectories of args.pth that contain train.json
+    # - Plus args.pth itself if it directly contains train.json (single-folder case)
+    try:
+        walk_root, subdirs, _ = next(os.walk(str(args.pth)))
+    except StopIteration:
+        print(f"No such path: {args.pth}")
+        return
+
+    def has_required_files(path: str) -> bool:
+        return os.path.isfile(os.path.join(path, "train.json")) and \
+               os.path.isfile(os.path.join(path, "evaluation_results.json"))
+
+    experiment_dirs = []
+    for d in sorted(subdirs, key=natural_keys):
+        full = os.path.join(walk_root, d)
+        if has_required_files(full):
+            experiment_dirs.append(full)
+
+    # Single-folder mode
+    if has_required_files(args.pth) and args.pth not in experiment_dirs:
+        experiment_dirs.append(args.pth)
+
+    if not experiment_dirs:
+        print("No experiments found (need train.json + evaluation_results.json).")
+        return
 
     plt.rcParams.update({'font.size': 12})
     colors: List[str] = ['red', 'green', 'blue', 'yellow', 'magenta', 'cyan', 'black', 'grey', 'brown', 'gold',
                          'limegreen', 'silver', 'aquamarine', 'olive', 'hotpink', 'salmon']
 
-    # Initialize data storage
     configs: List[Dict[str, Any]] = []
     success, mean_steps, mean_reward = [], [], []
     std_reward, mean_distance_error = [], []
@@ -168,16 +191,15 @@ def main() -> None:
     min_steps = 100
     steps = []
     x = []
-    # Process data from directories
-    for idx, file in enumerate(dirs):
+
+    for exp_dir in experiment_dirs:
+        folder_name = os.path.basename(exp_dir.rstrip("/"))
         try:
-            # Load evaluation results
-            with open(os.path.join(args.pth, file, "evaluation_results.json")) as f:
+            with open(os.path.join(exp_dir, "evaluation_results.json")) as f:
                 data = json.load(f)
             df = pd.DataFrame(data)
             x = df.to_numpy()
 
-            # Process multi-step reward data
             try:
                 x = np.delete(x, [11], axis=0)
                 temp = []
@@ -186,13 +208,12 @@ def main() -> None:
                     temp.append([str_list])
                 mean_subgoals_steps.append(temp)
                 x = np.delete(x, [11], axis=0)
-            except FileNotFoundError:
-                print("No multistep reward data")
+            except Exception:
+                pass
 
             x = x.astype(float)
 
-            # Load individual configs
-            with open(os.path.join(args.pth, file, "train.json"), "r") as f:
+            with open(os.path.join(exp_dir, "train.json"), "r") as f:
                 cfg_raw = yaml.full_load(f)
                 task = cfg_raw['task_type']
                 alg = cfg_raw['algo']
@@ -200,7 +221,6 @@ def main() -> None:
                 logdir = cfg_raw['logdir']
                 max_steps = cfg_raw['max_episode_steps']
 
-            # Get trained actions
             acts = []
             for l in task:
                 if l in dict_acts.keys():
@@ -217,9 +237,17 @@ def main() -> None:
             configs.append(cfg_raw)
             min_steps = min(min_steps, len(x[0]))
             steps = x[0][:min_steps]
-            print(f"{len(x[3])} datapoints in folder: {file}")
+            print(f"{len(x[3])} datapoints in folder: {folder_name}")
         except FileNotFoundError:
-            print(f"0 datapoints in folder: {file}")
+            print(f"0 datapoints in folder (missing files): {folder_name}")
+        except IndexError:
+            print(f"Incomplete data arrays in: {folder_name}, skipping.")
+        except Exception as e:
+            print(f"Error processing {folder_name}: {e}")
+
+    if not success:
+        print("No valid data extracted.")
+        return
 
     for i in range(len(mean_subgoals_steps)):
         mean_subgoals_steps[i] = [item for sublist in mean_subgoals_steps[i] for item in sublist]
