@@ -64,7 +64,6 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "training": bool(for_train)
                      }
     env_arguments["gui_on"] = arg_dict["gui"]
-    env_arguments["arg_dict"] = arg_dict
 
     if arg_dict["algo"] == "her":
         env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
@@ -150,7 +149,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     #Envinronment
-    parser.add_argument("-cfg", "--config", default="configs/train_prag.json", help="Can be passed instead of all arguments")
+    parser.add_argument("-cfg", "--config", default="configs/prag_reach_kuka.json", help="Can be passed instead of all arguments")
     parser.add_argument("-n", "--env_name", type=str, help="The name of environment")
     parser.add_argument("-ws", "--workspace", type=str, help="The name of workspace")
     parser.add_argument("-p", "--engine", type=str,  help="Name of the simulation engine you want to use")

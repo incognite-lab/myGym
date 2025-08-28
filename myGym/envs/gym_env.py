@@ -120,6 +120,7 @@ class GymEnv(CameraEnv):
         self.vision_source = get_module_type(self.obs_type)
         self.task_objects = []
         self.env_objects = []
+        self.reward_history = []
         self.vae_path = vae_path
         self.yolact_path = yolact_path
         self.yolact_config = yolact_config
@@ -137,8 +138,8 @@ class GymEnv(CameraEnv):
         self.logdir    = logdir
         self.workspace_dict = get_workspace_dict()
         self.robot = None
-        self.task_checker = oraculum.Oraculum(self, kwargs["arg_dict"], max_steps=kwargs["max_steps"], robot_action=robot_action)
-        kwargs.pop("arg_dict")
+        #self.task_checker = oraculum.Oraculum(self, kwargs["arg_dict"], max_steps=kwargs["max_steps"], robot_action=robot_action)
+        #kwargs.pop("arg_dict")
         if not hasattr(self, "task"):
           self.task = None
 
@@ -173,10 +174,10 @@ class GymEnv(CameraEnv):
     def _init_task_and_reward(self):
         """Main communicator with rddl. Passes arguments from config to RDDLWorld, tells rddl to make a task sequence and to build
         a scene accordingly, including robot. Work in progress"""
-        self.task = TaskModule(self, self.rddl_config["num_task_range"], self.rddl_config["protoactions"], self.rddl_config["allowed_objects"], self.rddl_config["allowed_predicates"], self.p)
         # generates task sequence and initializes scene with objects accordingly. The first action is set as self.task.current_task
         self.task.build_scene_for_task_sequence() # it also loads the robot. must be done his way so that rddl knows about the robot
         self.reward = self.task.current_action.reward # reward class
+
 
         print(f"Initial condition is: {self.task.rddl_task.current_action.initial.decide()}")
         print(f"Goal condition is: {self.task.rddl_task.current_action.goal.decide()}")
@@ -260,6 +261,7 @@ class GymEnv(CameraEnv):
         """
         Set action space dimensions and range
         """
+        self.task = TaskModule(self, self.rddl_config["num_task_range"], self.rddl_config["protoactions"], self.rddl_config["allowed_objects"], self.rddl_config["allowed_predicates"], self.p)
         self._init_task_and_reward() # we first need rddl to make a robot
         if self.framework == "ray":
             from gymnasium import spaces
@@ -318,22 +320,22 @@ class GymEnv(CameraEnv):
         if not only_subtask:
             self.task.rddl_robot.reset(random_robot=random_robot)
             super().reset(hard=hard, seed=seed)
-        # @TODO I removed support of nl_mode, which is dependent on the old structure. We need to add nl_support again in later phases
-        self.task.reset_task()
+        self.task.reset_task_sequence()
+        self._init_task_and_reward()
         #self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
         #TODO: after oraculum works successfully, implement saving of task descriptions which work
-        env_copy = copy.deepcopy(self)
+        #env_copy = copy.deepcopy(self)
         info = {'d': 1, 'f': int(self.episode_failed),
                 'o': self._observation}
-        task_checker = oraculum.Oraculum(env_copy, info, self.max_episode_steps, self.robot_action)
-        task_feasible = task_checker.check_task_feasibility()
-        if task_feasible:
-            print("Task is feasible, checked with IK control.")
-        else:
-            print("Task is NOT feasible, checked with IK control, generating next task.")
-            #TODO: generate the next task
+        #task_checker = oraculum.Oraculum(env_copy, info, self.max_episode_steps, self.robot_action)
+        #task_feasible = task_checker.check_task_feasibility()
+        #if task_feasible:
+        #    print("Task is feasible, checked with IK control.")
+        #else:
+        #    print("Task is NOT feasible, checked with IK control, generating next task.")
+        #    #TODO: generate the next task
         if self.gui_on and self.nl_mode:
             if self.reach_gesture:
                 self.nl.set_current_subtask_description("reach there")
@@ -341,21 +343,7 @@ class GymEnv(CameraEnv):
             if only_subtask and self.nl_text_id is not None:
                 self.p.removeUserDebugItem(self.nl_text_id)
         info = {'d': 0.9, 'f': 0, 'o': self._observation} 
-        return (np.asarray(self.flatten_obs(self._observation.copy()), dtype="float32"), info)
-
-    def flatten_obs(self, obs_dict):
-        """ Returns the input obs dict as flattened list """
-        # if len(obs["additional_obs"].keys()) != 0 and not self.dataset:
-        #     obs["additional_obs"] = [p for sublist in list(obs["additional_obs"].values()) for p in sublist]
-        # if not self.dataset:
-        #     obs = np.asarray([p for sublist in list(obs.values()) for p in sublist])
-        flattened_obs = np.zeros(22)
-        for i, (key, value) in enumerate(obs_dict.items()):
-            if key == "gripper_state":
-                flattened_obs[i*7] = value
-            else:
-                flattened_obs[i*7:(i+1)*7] = value
-        return flattened_obs
+        return (np.asarray(self._observation.copy(), dtype="float32"), info)
 
     def _set_cameras(self):
         """
@@ -375,19 +363,20 @@ class GymEnv(CameraEnv):
         """
         ## !!!! This is a provisory solution until self.task.current_task.reward.get_relevant_entities() returns the relevant objects.
         ## Now we just take the position and orientation for every object in the scene including gripper, but that is legit in very few cases
-        obs = dict()
+        obs = [0] * self.obsdim # making sure the length of observation is correct
         relevant_entities = self.reward.get_relevant_entities()
         if len(relevant_entities) == 0:
-            warnings.warn(f"PRAG action {self.reward} is missing implementation of get_relevant_entities()! I am setting the gripper 6D and random object 6D as inputs to neural network.", category=UserWarning)
-            relevant_entities = self.task.scene_objects[:2]
-        #TODO: After retrieving relevant entities, decide which position is "actual_state" and which "goal_state"
-        for name, obj in relevant_entities:
-            obs[name] = list(obj.get_position()) + list(obj.get_orientation())
+            warnings.warn(f"PRAG action {self.reward} is missing implementation of get_relevant_entities()! I am setting the gripper 6D and positions of 2 random objects as inputs to neural network.", category=UserWarning)
+            relevant_entities = self.task.scene_objects[:3]
+        start = 0
+        for e in relevant_entities:
+            for chunk in (e.get_position(), e.get_orientation()):
+                size = len(chunk)
+                obs[start:start + size] = chunk
+                start += size
         if "gripper" in self.robot_action:
-            obs["gripper_state"] = int(self.robot.gripper_active)
+            obs[-1] = int(self.robot.gripper_active)
         self.observation = obs
-        print("observation", self.observation)
-        print("Observation dimension:", self.obsdim)
         if self.dataset:
             raise NotImplemented # @TODO one day
         return self.observation
@@ -411,7 +400,9 @@ class GymEnv(CameraEnv):
         if self.dataset:
             reward, terminated, truncated, info = 0, False, False, {}
         else:
-            reward = self.compute_reward()  # this uses rddl protoaction, no arguments needed
+            rew = self.compute_reward()  # this uses rddl protoaction, no arguments needed
+            reward = self.normalize_reward(rew)
+            self.reward_history.append(rew)
             self.episode_reward += reward
             done = self.episode_over #@TODO replace with actual is_done value from RDDL
             info = {'d': 0.9, 'f': int(self.episode_failed),
@@ -421,8 +412,20 @@ class GymEnv(CameraEnv):
             self.reset(only_subtask=True)
         # return self._observation, reward, done, truncated, info
         truncated = False #not sure when to use this
-        return np.asarray(self.flatten_obs(self._observation.copy()), dtype="float32"), reward, done, truncated,info
+        return np.asarray(self._observation.copy(), dtype="float32"), reward, done, truncated,info
+    
+    def normalize_reward(self, current_reward):
+        """Normalize the current reward with respect to previous rewards
 
+        :param current_reward: current reward as received by RDDL
+        :type current_reward: float
+        """
+        if len(self.reward_history) == 0:
+            past_reward = current_reward
+        else:
+            past_reward = self.reward_history[-1]
+        norm_diff = (past_reward - current_reward) / past_reward
+        return norm_diff
 
     def get_linkstates_unpacked(self):
         o = []

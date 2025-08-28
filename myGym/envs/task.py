@@ -1,6 +1,6 @@
 import random
 import myGym.envs.scene_objects # allows binding with rddl
-from myGym.envs.scene_objects import TiagoGripper
+from myGym.envs.scene_objects import RobotGripper
 from rddl.rddl_sampler import RDDLWorld
 from rddl.task import RDDLTask
 from rddl.entities import Gripper, ObjectEntity
@@ -33,7 +33,7 @@ class TaskModule():
         self.scene_entities = []
         self.scene_objects = []
         self.rddl_world = RDDLWorld(allowed_actions=self.cfg_strings_to_classes(self.allowed_protoactions), 
-                                    allowed_entities=self.cfg_strings_to_classes(self.allowed_objects) + [TiagoGripper], 
+                                    allowed_entities=self.cfg_strings_to_classes(self.allowed_objects) + [RobotGripper], 
                                     allowed_initial_actions=self.cfg_strings_to_classes(self.allowed_protoactions))
         #self.rddl_task = RDDLTask()
 
@@ -86,14 +86,16 @@ class TaskModule():
         if self.current_action is None:
             # if there is no action sequence, first make a new one
             self.get_next_task()
-        # scene_entities = self.rddl_world.get_created_variables()
         scene_entities = self.rddl_task.gather_objects()
         for entity in scene_entities:
-            if issubclass(entity.type, Gripper) and not entity.is_bound():
-                robot = entity.type(robot=self.env.robot_type, robot_action=self.env.robot_action, task_type=self.env.task_type, **self.env.robot_kwargs)
-                entity.bind(robot)
-                self.rddl_robot = entity
-                self.scene_objects.append(robot)
+            if issubclass(entity.type, Gripper):
+                if entity not in self.scene_objects:
+                    robot = entity.type(robot=self.env.robot_type, robot_action=self.env.robot_action, task_type=self.env.task_type, **self.env.robot_kwargs)
+                    entity.bind(robot)
+                    self.rddl_robot = entity
+                    self.scene_objects.append(robot)
+                else:
+                    pass
             elif not entity.is_bound():
                 spawning_area = self.find_spawning_area()
                 pos = entity.type.get_random_object_position([i for sublist in spawning_area for i in sublist])
@@ -163,13 +165,24 @@ class TaskModule():
         """
         pass
 
-
-
-    def reset_task(self):
+    def reset_current_task(self):
         """
-        Start a new episode with a new setup
+        Start a new episode with the same task sequence but a new scene
         """
-        self.current_task_length = None
-        self.current_task_sequence = None
         self.subtask_over = False
         self.current_action = None
+        self.env.reward_history = []
+    
+    def reset_task_sequence(self):
+        """
+        Start a new episode with a new task sequence - should be called after the previous sequence is learned successfully
+        """
+        self.subtask_over = False
+        self.current_action = None
+        self.env.reward_history = []
+        for e in self.scene_entities:
+           if not issubclass(e.type, Gripper):
+            e.unbind()
+        self.env._remove_all_objects()
+        self.scene_objects = [p for p in self.scene_objects if hasattr(p, "robot_dict")]
+

@@ -324,15 +324,11 @@ class BaseEnv(gym.Env):
         """
         Remove all objects from simulation (not scene objects or robots)
         """
-        env_objects_copy = self.env_objects.copy()
-        for key, o in env_objects_copy.items():
-            if isinstance(o, list):
-                for i in o:
-                    if o not in [self.robot, []]:
-                        self._remove_object(i)
-            else:
-                if o != self.robot:
-                    self._remove_object(o)
+        env_objects_copy = self.task.scene_objects.copy()
+        for o in env_objects_copy:
+            if not hasattr(o, "robot_path"):
+                self._remove_object(o)
+
 
     def get_texturizable_objects_uids(self):
         """

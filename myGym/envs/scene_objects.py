@@ -337,10 +337,10 @@ class Knife(GraspableObject, EnvObject):
 
 
 
-class TiagoGripper(Gripper, Robot):
+class RobotGripper(Gripper, Robot):
 
     def __init__(self, reference: Optional[str] = None, **kw):
-        super().__init__("gripper_tiago" if reference is None else reference, **kw)
+        super().__init__("gripper_robot" if reference is None else reference, **kw)
 
 
 
