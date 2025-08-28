@@ -361,7 +361,7 @@ def cli_select(entries: List[Entry]) -> Optional[Entry]:
         print("Invalid selection.")
 
 
-def curses_select(entries: List[Entry]) -> Optional[Entry]:
+def curses_select(entries: List[Entry], start_idx: int = 0) -> Optional[Entry]:
     try:
         import curses  # type: ignore
     except Exception:
@@ -372,7 +372,7 @@ def curses_select(entries: List[Entry]) -> Optional[Entry]:
 
     filter_text = ""
     filtered = entries
-    pos = 0
+    pos = min(start_idx, max(0, len(entries)-1))
 
     def apply_filter():
         nonlocal filtered, pos
@@ -560,16 +560,18 @@ def main():
         run_test(sel.path, args.dry_run, args.extra, g_value)
         return
 
+    last_index = 0
     while True:
         record_mode = False
         if args.no_curses:
             selected = cli_select(entries)
         else:
-            selected = curses_select(entries)
+            selected = curses_select(entries, start_idx=last_index)
         if not selected:
             print("No selection made. Exiting.")
             return
         record_mode = getattr(selected, 'record_mode', False)
+        last_index = selected.idx  # remember selection for next iteration
         ep = _format_steps(selected.last_episode)
         sr = _format_success(selected.success_rate)
         dt = _format_mtime(selected.path)
