@@ -254,14 +254,26 @@ def test_env(env: object, arg_dict: dict) -> None:
 
             if arg_dict["control"] == "observation":
                 if t == 0:
-                    action = env.action_space.sample()
+                    action = env.env.unwrapped.robot.init_joint_poses
+                    last_action = action
                 else:
                     if "joints" in arg_dict["robot_action"]:
-                        action = info['o']["additional_obs"]["joints_angles"]
+                        action = env.env.unwrapped.robot.get_joints_states()
                     elif "absolute" in arg_dict["robot_action"]:
                         action = info['o']["actual_state"]
                     else:
                         action = [0, 0, 0]
+
+                    # Compute element-wise difference safely using numpy
+                    try:
+                        diff = np.array(last_action, dtype=float) - np.array(action, dtype=float)
+                        print(f"\rLast action difference: {np.round(diff, 4)}", end='', flush=True)
+                    except Exception:
+                        # Fallback if shapes mismatch
+                        print("\rLast action difference: (shape mismatch)", end='', flush=True)
+
+                    last_action = action
+                    
             if arg_dict["control"] == "oraculum":
                 action = oraculum.perform_oraculum_task(t, env, arg_dict, action, info)
             elif arg_dict["control"] == "keyboard":
@@ -532,7 +544,7 @@ def print_init_info(arg_dict):
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
-    parser.add_argument("-ct", "--control", default="none",
+    parser.add_argument("-ct", "--control", default="observation",
                         help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")

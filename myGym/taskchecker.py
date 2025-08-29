@@ -26,6 +26,7 @@ import shutil
 from dataclasses import dataclass
 from typing import List, Optional
 from datetime import datetime
+from myGym.utils.helpers import get_robot_dict
 
 @dataclass
 class Entry:
@@ -38,6 +39,7 @@ class Entry:
     keyboard: bool = False
     slider: bool = False
     random_mode: bool = False
+    selected_robot: Optional[str] = None
 
 def scan_configs(root: str) -> List[Entry]:
     entries: List[Entry] = []
@@ -73,7 +75,7 @@ def cli_select(entries: List[Entry]) -> Optional[Entry]:
     print("Discovered JSON configs:")
     for e in entries:
         print(f"[{e.idx}] {e.rel}  ({fmt_date(e.mtime)})")
-    print("Commands: <index>=run, o <index>=run with -ct oraculum, k <index>=run with -ct keyboard, s <index>=run with -ct slider, r <index>=run with -ct random, v <index>=view file, e <index>=edit file, q=quit.")
+    print("Commands: <index>=run, o <index>=run with -ct oraculum, k <index>=run with -ct keyboard, s <index>=run with -ct slider, r <index>=run with -ct random, v <index>=view file, e <index>=edit file, c <index>=choose robot, q=quit.")
     while True:
         raw = input("Select: ").strip()
         lower = raw.lower()
@@ -135,6 +137,25 @@ def cli_select(entries: List[Entry]) -> Optional[Entry]:
                 except Exception as ex:
                     print(f"[ERROR] Editing failed: {ex}")
             continue
+        if len(parts) == 2 and parts[0].lower() == 'c' and parts[1].isdigit():
+            idx = int(parts[1])
+            if 0 <= idx < len(entries):
+                entry = entries[idx]
+                robots = sorted(get_robot_dict().keys())
+                print("Select robot:")
+                for i, rk in enumerate(robots):
+                    print(f"[{i}] {rk}")
+                while True:
+                    choice = input("Robot index (or q to cancel): ").strip().lower()
+                    if choice in ('q','quit','exit',''):
+                        break
+                    if choice.isdigit():
+                        r_i = int(choice)
+                        if 0 <= r_i < len(robots):
+                            entry.selected_robot = robots[r_i]
+                            return entry
+                    print("Invalid robot selection.")
+            continue
         if raw.isdigit():
             idx = int(raw)
             if 0 <= idx < len(entries):
@@ -152,7 +173,7 @@ def curses_select(entries: List[Entry], start_idx: int = 0) -> Optional[Entry]:
         while True:
             stdscr.clear()
             h, w = stdscr.getmaxyx()
-            stdscr.addstr(0, 0, f"Configs ({len(entries)}) - Enter: run  o: oraculum  k: keyboard  s: slider  r: random  v: view  e: edit  q: quit")
+            stdscr.addstr(0, 0, f"Configs ({len(entries)}) - Enter: run  o: oraculum  k: keyboard  s: slider  r: random  v: view  e: edit  c: choose robot  q: quit")
             max_visible = h - 2
             start = 0
             if pos >= max_visible:
@@ -235,6 +256,39 @@ def curses_select(entries: List[Entry], start_idx: int = 0) -> Optional[Entry]:
                 input("Press Enter to return...")
                 stdscr = curses.initscr()
                 curses.curs_set(0)
+            elif ch in (ord('c'), ord('C')):
+                # robot selection sub-view
+                robot_keys = sorted(get_robot_dict().keys())
+                rpos = 0
+                while True:
+                    stdscr.clear()
+                    h, w = stdscr.getmaxyx()
+                    stdscr.addstr(0,0, "Select Robot (Enter=choose, q/Esc=cancel)")
+                    max_vis = h - 2
+                    start_r = 0
+                    if rpos >= max_vis:
+                        start_r = rpos - max_vis + 1
+                    for i, rk in enumerate(robot_keys[start_r:start_r+max_vis]):
+                        li = start_r + i
+                        pref = '>' if li == rpos else ' '
+                        line = f"{pref} {rk}"
+                        if li == rpos:
+                            stdscr.attron(curses.A_REVERSE)
+                            stdscr.addstr(i+1,0,line[:w-1])
+                            stdscr.attroff(curses.A_REVERSE)
+                        else:
+                            stdscr.addstr(i+1,0,line[:w-1])
+                    stdscr.refresh()
+                    rc = stdscr.getch()
+                    if rc in (ord('q'), 27):
+                        break
+                    elif rc in (curses.KEY_DOWN, ord('j')) and rpos < len(robot_keys)-1:
+                        rpos += 1
+                    elif rc in (curses.KEY_UP, ord('k')) and rpos > 0:
+                        rpos -= 1
+                    elif rc in (10,13):
+                        entries[pos].selected_robot = robot_keys[rpos]
+                        return entries[pos]
 
     return curses.wrapper(loop)
 
@@ -291,6 +345,10 @@ def main():
         if selected.random_mode:
             if '-ct' not in extra_args and '--ct' not in extra_args:
                 extra_args += ['-ct', 'random']
+        if selected.selected_robot:
+            if '-b' not in extra_args and '--b' not in extra_args:
+                extra_args += ['-b', selected.selected_robot]
+            selected.selected_robot = None  # reset after run
         run_test(selected.path, args.dry_run, g_val, extra_args)
 
 if __name__ == "__main__":

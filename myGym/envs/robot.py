@@ -78,6 +78,7 @@ class Robot:
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
         self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
+        self.joint_poses = self.init_joint_poses
         self.opengr_threshold = 0.07
         self.closegr_threshold = 0.001
         if 'R' in reward_type:
