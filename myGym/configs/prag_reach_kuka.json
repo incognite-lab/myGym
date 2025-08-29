@@ -36,7 +36,7 @@
     "pretrained_model"  :null,
     "multiprocessing"   :false,
     #Evaluation
-    "eval_freq"     :10000,
+    "eval_freq"     :80000,
     "eval_episodes" :10,
     #Saving and logging
     "logdir"    :"trained_models/test",

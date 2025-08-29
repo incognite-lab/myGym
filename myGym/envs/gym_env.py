@@ -404,7 +404,7 @@ class GymEnv(CameraEnv):
             reward = self.normalize_reward(rew)
             self.reward_history.append(rew)
             self.episode_reward += reward
-            done = self.episode_over #@TODO replace with actual is_done value from RDDL
+            done = self.task.rddl_task.current_action.goal.decide() #@TODO replace with actual is_done value from RDDL
             info = {'d': 0.9, 'f': int(self.episode_failed),
                     'o': self._observation} # @TODOreplace 'd' with actual distance values obtained from rddl or make own implementation
         if done is True: self.successful_finish(info)

@@ -35,7 +35,6 @@ class TaskModule():
         self.rddl_world = RDDLWorld(allowed_actions=self.cfg_strings_to_classes(self.allowed_protoactions), 
                                     allowed_entities=self.cfg_strings_to_classes(self.allowed_objects) + [RobotGripper], 
                                     allowed_initial_actions=self.cfg_strings_to_classes(self.allowed_protoactions))
-        #self.rddl_task = RDDLTask()
 
     def sample_num_subtasks(self):
         '''Whenever a new sequence of actions is desired, this function chooses a random
@@ -65,16 +64,15 @@ class TaskModule():
     def create_new_task_sequence(self):
         '''Calls rddl to make a new sequence of actions (subtasks).'''
         n_samples = self.sample_num_subtasks()
-        # task_sequence = self.rddl_world.sample_generator(n_samples)
         self.rddl_task = self.rddl_world.sample_world(n_samples)
         self.current_task_sequence = self.rddl_task.get_generator()
         print("Generated a new action sequence")
 
     def get_next_task(self):
         '''When the previous action (subtask) is finished, this function will jump to the next one.'''
-        if self.current_task_sequence is None:
+        #if self.current_task_sequence is None: TODO - can be reimplemented after we can go back in a sequence
             # if there is no action sequence to follow, first make a new one
-            self.create_new_task_sequence()
+        self.create_new_task_sequence()
         self.current_action = next(self.current_task_sequence)
         print(f"Current task: {self.current_action}")
         print("Desired world state after action:")
@@ -89,13 +87,14 @@ class TaskModule():
         scene_entities = self.rddl_task.gather_objects()
         for entity in scene_entities:
             if issubclass(entity.type, Gripper):
-                if entity not in self.scene_objects:
+                if len([p for p in self.scene_objects if hasattr(p, "robot_dict")])==0:
                     robot = entity.type(robot=self.env.robot_type, robot_action=self.env.robot_action, task_type=self.env.task_type, **self.env.robot_kwargs)
                     entity.bind(robot)
                     self.rddl_robot = entity
                     self.scene_objects.append(robot)
                 else:
-                    pass
+                    entity.bind([p for p in self.scene_objects if hasattr(p, "robot_dict")][0])
+                    self.rddl_robot = entity
             elif not entity.is_bound():
                 spawning_area = self.find_spawning_area()
                 pos = entity.type.get_random_object_position([i for sublist in spawning_area for i in sublist])
@@ -172,6 +171,12 @@ class TaskModule():
         self.subtask_over = False
         self.current_action = None
         self.env.reward_history = []
+        for e in self.scene_entities:
+           if not issubclass(e.type, Gripper):
+              e.unbind()
+        self.env._remove_all_objects()
+        self.scene_objects = [p for p in self.scene_objects if hasattr(p, "robot_dict")]
+        self.scene_entities = []
     
     def reset_task_sequence(self):
         """
@@ -182,7 +187,8 @@ class TaskModule():
         self.env.reward_history = []
         for e in self.scene_entities:
            if not issubclass(e.type, Gripper):
-            e.unbind()
+              e.unbind()
         self.env._remove_all_objects()
         self.scene_objects = [p for p in self.scene_objects if hasattr(p, "robot_dict")]
+        self.scene_entities = []
 
