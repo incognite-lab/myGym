@@ -174,14 +174,9 @@ class GymEnv(CameraEnv):
     def _init_task_and_reward(self):
         """Main communicator with rddl. Passes arguments from config to RDDLWorld, tells rddl to make a task sequence and to build
         a scene accordingly, including robot. Work in progress"""
-        # generates task sequence and initializes scene with objects accordingly. The first action is set as self.task.current_task
-        self.task.build_scene_for_task_sequence() # it also loads the robot. must be done his way so that rddl knows about the robot
         self.reward = self.task.current_action.reward # reward class
-
-
         print(f"Initial condition is: {self.task.rddl_task.current_action.initial.decide()}")
         print(f"Goal condition is: {self.task.rddl_task.current_action.goal.decide()}")
-
         self.compute_reward = self.task.current_action.reward # function that computes reward (no inputs needed, already bound to the objects)
         obs_entities = self.reward.get_relevant_entities() # does not work yet, must be done in rddl
         self.robot = self.task.rddl_robot # robot class as we know it
@@ -262,6 +257,7 @@ class GymEnv(CameraEnv):
         Set action space dimensions and range
         """
         self.task = TaskModule(self, self.rddl_config["num_task_range"], self.rddl_config["protoactions"], self.rddl_config["allowed_objects"], self.rddl_config["allowed_predicates"], self.p)
+        self.task.build_scene_for_task_sequence() # this loads the robot. must be done his way so that rddl knows about the robot
         self._init_task_and_reward() # we first need rddl to make a robot
         if self.framework == "ray":
             from gymnasium import spaces
@@ -304,7 +300,7 @@ class GymEnv(CameraEnv):
         """
         return [(sub + 1) * (h - l) / 2 + l for sub, l, h in zip(action, self.action_low, self.action_high)]
 
-    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False, options=None, seed=None):
+    def reset(self, random_pos=True, hard=False, random_robot=False, only_subtask=False, options=None, seed=None, new_sequence=False):
         """
         Environment reset called at the beginning of an episode. Reset state of objects, robot, task and reward.
 
@@ -316,13 +312,18 @@ class GymEnv(CameraEnv):
         Returns:
             :return self._observation: (list) Observation data of the environment
         """
-        #super().reset(seed=seed)
-        if not only_subtask:
+        if new_sequence: # Specific for RDDL - this will move to a new, different task sequence. Functional but not used at the moment, we need to discuss conditions @TODO
             self.task.rddl_robot.reset(random_robot=random_robot)
             super().reset(hard=hard, seed=seed)
-        self.task.reset_task_sequence()
+            self.task.reset_to_new_task_sequence()
+        else:
+            if only_subtask: # moves to another subgoal within the same sequence (e.g., Approach -> Grasp) @TODO
+                pass
+            else: # goes to the beginning of the same sequence (equals to classic reset used in master)
+                self.task.rddl_robot.reset(random_robot=random_robot)
+                super().reset(hard=hard, seed=seed)
+                self.task.reset_current_task_sequence()
         self._init_task_and_reward()
-        #self.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
         #TODO: after oraculum works successfully, implement saving of task descriptions which work
@@ -368,6 +369,8 @@ class GymEnv(CameraEnv):
         if len(relevant_entities) == 0:
             warnings.warn(f"PRAG action {self.reward} is missing implementation of get_relevant_entities()! I am setting the gripper 6D and positions of 2 random objects as inputs to neural network.", category=UserWarning)
             relevant_entities = self.task.scene_objects[:3]
+        else:
+            relevant_entities = [e[1] for e in relevant_entities]
         start = 0
         for e in relevant_entities:
             for chunk in (e.get_position(), e.get_orientation()):

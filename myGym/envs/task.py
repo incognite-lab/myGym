@@ -68,11 +68,20 @@ class TaskModule():
         self.current_task_sequence = self.rddl_task.get_generator()
         print("Generated a new action sequence")
 
+    def recreate_previous_sequence(self):
+        '''Goes to the beginning of the already existing sequence (typically at "small" reset), regenerate objects'''
+        self.current_task_sequence = self.rddl_task.get_generator()
+        self.current_action = next(self.current_task_sequence)
+        print(f"Resetting the existing action sequence. Current task: {self.current_action}")
+        self.rddl_task.regenerate_objects()
+        self.build_scene_for_task_sequence()
+
+
     def get_next_task(self):
         '''When the previous action (subtask) is finished, this function will jump to the next one.'''
-        #if self.current_task_sequence is None: TODO - can be reimplemented after we can go back in a sequence
+        if self.current_task_sequence is None:
             # if there is no action sequence to follow, first make a new one
-        self.create_new_task_sequence()
+            self.create_new_task_sequence()
         self.current_action = next(self.current_task_sequence)
         print(f"Current task: {self.current_action}")
         print("Desired world state after action:")
@@ -95,6 +104,9 @@ class TaskModule():
                 else:
                     entity.bind([p for p in self.scene_objects if hasattr(p, "robot_dict")][0])
                     self.rddl_robot = entity
+                    # if not entity in self.scene_objects:
+                    #     self.scene_objects = [p for p in self.scene_objects if not hasattr(p, "robot_dict")]
+                    #     self.scene_objects.insert(0, entity)
             elif not entity.is_bound():
                 spawning_area = self.find_spawning_area()
                 pos = entity.type.get_random_object_position([i for sublist in spawning_area for i in sublist])
@@ -164,7 +176,7 @@ class TaskModule():
         """
         pass
 
-    def reset_current_task(self):
+    def reset_current_task_sequence(self):
         """
         Start a new episode with the same task sequence but a new scene
         """
@@ -172,13 +184,15 @@ class TaskModule():
         self.current_action = None
         self.env.reward_history = []
         for e in self.scene_entities:
-           if not issubclass(e.type, Gripper):
               e.unbind()
+        self.rddl_robot.unbind()
         self.env._remove_all_objects()
         self.scene_objects = [p for p in self.scene_objects if hasattr(p, "robot_dict")]
         self.scene_entities = []
+        self.recreate_previous_sequence()
+
     
-    def reset_task_sequence(self):
+    def reset_to_new_task_sequence(self):
         """
         Start a new episode with a new task sequence - should be called after the previous sequence is learned successfully
         """
@@ -186,9 +200,10 @@ class TaskModule():
         self.current_action = None
         self.env.reward_history = []
         for e in self.scene_entities:
-           if not issubclass(e.type, Gripper):
               e.unbind()
         self.env._remove_all_objects()
         self.scene_objects = [p for p in self.scene_objects if hasattr(p, "robot_dict")]
         self.scene_entities = []
+        self.create_new_task_sequence()
+        self.build_scene_for_task_sequence()
 
