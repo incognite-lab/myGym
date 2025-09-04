@@ -97,7 +97,7 @@ setup(
     },
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.7",
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Education",
         "Intended Audience :: Information Technology",
@@ -106,3 +106,4 @@ setup(
         "Topic :: Scientific/Engineering :: Human Machine Interfaces"
     ]
 )
+
