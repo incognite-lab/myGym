@@ -436,8 +436,8 @@ class MultiPPOEvalCallback(EvalCallback):
             "mean_steps_num": "{}".format(steps_sum // n_eval_episodes),
             "mean_reward": "{:.2f}".format(np.mean(episode_rewards)),
             "std_reward": "{:.2f}".format(np.std(episode_rewards)),
-            "number of tasks": "{}".format(env_task.number_tasks),
-            "number of networks": "{}".format(env_reward.num_networks),
+            "number of tasks": "{}".format(env_task.current_task_length),
+            "number of networks": "{}".format(self.eval_env.unwrapped.num_networks),
             "mean subgoals finished": "{}".format(str(meansgoals)),
             "mean subgoal reward": "{}".format(str(meansr)),
             "mean subgoal steps": "{}".format(str(meansrs)),
@@ -569,8 +569,8 @@ class PPOEvalCallback(EvalCallback):
             env_task = self.eval_env.get_attr("task")[0]
         else:
             env_reward = self.eval_env.unwrapped.reward
-            env_p = self.eval_env.p
-            env_task = self.eval_env.task
+            env_p = self.eval_env.unwrapped.p
+            env_task = self.eval_env.unwrapped.task
 
         for e in range(n_eval_episodes):
             obs = self.eval_env.reset()
@@ -583,8 +583,8 @@ class PPOEvalCallback(EvalCallback):
             last_network = 0
             last_steps = 0
 
-            srewardsteps = np.zeros(env_reward.num_networks)
-            srewardsuccess = np.zeros(env_reward.num_networks)
+            srewardsteps = np.zeros(self.eval_env.unwrapped.num_networks)
+            srewardsuccess = np.zeros(self.eval_env.unwrapped.num_networks)
             while not done:
                 steps_sum += 1
                 action, state = model.predict(obs, deterministic=deterministic)
@@ -594,27 +594,21 @@ class PPOEvalCallback(EvalCallback):
                 else:
                     obs, reward, terminated, truncated, info = self.eval_env.step(action)
                     done = terminated or truncated
-                    current_network = self.eval_env.unwrapped.reward.current_network
+                    current_network = 0 # @TODO for PRAG
 
-                if env_p.getConnectionInfo()["isConnected"] != 0:
-                    env_p.addUserDebugText(
-                        f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']), 5))}",
-                        [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
-                    env_p.addUserDebugText(
-                        f"Object:{matrix(np.around(np.array(info['o']['actual_state']), 5))}",
-                        [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-                    env_p.addUserDebugText(f"Network:{current_network}",
-                                                      [.8, .5, 0.25], textSize=1.0, lifeTime=0.5,
-                                                      textColorRGB=[0.0, 0.0, 1])
-                    env_p.addUserDebugText(f"Subtask:{env_task.current_task}",
-                                                      [.8, .5, 0.35], textSize=1.0, lifeTime=0.5,
-                                                      textColorRGB=[0.4, 0.2, 1])
-                    env_p.addUserDebugText(f"Episode:{e}",
-                                                      [.8, .5, 0.45], textSize=1.0, lifeTime=0.5,
-                                                      textColorRGB=[0.4, 0.2, .3])
-                    env_p.addUserDebugText(f"Step:{steps}",
-                                                      [.8, .5, 0.55], textSize=1.0, lifeTime=0.5,
-                                                      textColorRGB=[0.2, 0.8, 1])
+                #if env_p.getConnectionInfo()["isConnected"] != 0:
+                    # env_p.addUserDebugText(
+                    #     f"Endeff:{matrix(np.around(self.eval_env.unwrapped.robot.get_accurate_gripper_position(), 5))}",
+                    #     [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
+                    # env_p.addUserDebugText(
+                    #     f"Object:{matrix(np.around(self.eval_env.unwrapped.task.scene_objects[-1].get_position(), 5))}",
+                    #     [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
+                    # env_p.addUserDebugText(f"Episode:{e}",
+                    #                                   [.8, .5, 0.45], textSize=1.0, lifeTime=0.5,
+                    #                                   textColorRGB=[0.4, 0.2, .3])
+                    # env_p.addUserDebugText(f"Step:{steps}",
+                    #                                   [.8, .5, 0.55], textSize=1.0, lifeTime=0.5,
+                    #                                   textColorRGB=[0.2, 0.8, 1])
                 episode_reward += reward
                 is_successful = not info['f']
                 if current_network != last_network:
@@ -623,7 +617,7 @@ class PPOEvalCallback(EvalCallback):
                         srewardsuccess.put([last_network], 1)
                         last_network = current_network
                         last_steps = steps
-                distance_error = env_reward.get_distance_error(info['o'])
+                distance_error = abs(np.round(self.eval_env.unwrapped.compute_reward(), 4))
 
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
@@ -643,9 +637,9 @@ class PPOEvalCallback(EvalCallback):
             if is_successful:
                 srewardsuccess.put([last_network], 1)
 
-            subrewards.append(env_reward.eval_network_rewards)
-            subrewsteps.append(srewardsteps)
-            subrewsuccess.append(srewardsuccess)
+            # subrewards.append(env_reward.eval_network_rewards)
+            # subrewsteps.append(srewardsteps)
+            # subrewsuccess.append(srewardsuccess)
             episode_rewards.append(episode_reward)
             success_episodes_num += is_successful
             distance_error_sum += distance_error
@@ -659,7 +653,7 @@ class PPOEvalCallback(EvalCallback):
         meansr = np.mean(subrewards, axis=0)
         meansrs = np.mean(subrewsteps, axis=0)
         srsu = np.array(subrewsuccess)
-        meansgoals = np.count_nonzero(srsu) / env_reward.num_networks / n_eval_episodes * 100
+        meansgoals = np.count_nonzero(srsu) / self.eval_env.unwrapped.num_networks / n_eval_episodes * 100
         results = {
             "episode": "{}".format(self.n_calls * self.num_cpu),
             "n_eval_episodes": "{}".format(n_eval_episodes),
@@ -669,8 +663,8 @@ class PPOEvalCallback(EvalCallback):
             "mean_steps_num": "{}".format(steps_sum // n_eval_episodes),
             "mean_reward": "{:.2f}".format(np.mean(episode_rewards)),
             "std_reward": "{:.2f}".format(np.std(episode_rewards)),
-            "number of tasks": "{}".format(env_task.number_tasks),
-            "number of networks": "{}".format(env_reward.num_networks),
+            "number of tasks": "{}".format(env_task.current_task_length),
+            "number of networks": "{}".format(self.eval_env.unwrapped.num_networks),
             "mean subgoals finished": "{}".format(str(meansgoals)),
             "mean subgoal reward": "{}".format(str(meansr)),
             "mean subgoal steps": "{}".format(str(meansrs)),
@@ -968,7 +962,3 @@ class SaveOnTopRewardCallback(BaseCallback):
                         submodel.save(self.save_path, i)
                     i += 1
         return True
-
-
-
-

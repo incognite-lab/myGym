@@ -328,7 +328,7 @@ class GymEnv(CameraEnv):
         self._observation = self.get_observation()
         #TODO: after oraculum works successfully, implement saving of task descriptions which work
         #env_copy = copy.deepcopy(self)
-        info = {'d': 1, 'f': int(self.episode_failed),
+        info = {'d': 1, 'f': self.episode_failed,
                 'o': self._observation}
         #task_checker = oraculum.Oraculum(env_copy, info, self.max_episode_steps, self.robot_action)
         #task_feasible = task_checker.check_task_feasibility()
