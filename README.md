@@ -1,26 +1,12 @@
 
 ![alt text](myGym/images/mygymlogo310.png "myGym")
 
-
-We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks with increasing complexity and test your network on them. 
-
-From version 3.10 there is SB3 and Gymnasium implemented and there is a basic set of protorewards to create any manipulation task from their combination. Their composition is semi automated and will be fully automated in next realese. It is possible to train multiple networks within one task and switch between them based on reward or adaptively. The number of networks is specified in config file.
+This branch combines myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation, and PRAG (Procedural Action Sequence Symbolic Generator for Robotic Manipulation Tasks). PRAG is currently an internal project, you thus need to write us to obtain the package. Without it, this branch will not work. 
 
 
-[![Generic badge](https://img.shields.io/badge/OS-Linux-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Computation-CPU,GPU-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Language-Python:3.7-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Physics-Bullet-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Env-Gym-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Learning-TF,Torch-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Docs-Yes-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://shields.io/)
+## Installation
 
-## Install myGym 3.10
-
-From myGym 3.10 there is Stable Baseline 3 and Gymnasium. 
-If you want to use old myGym 3.7. with Stable Baselines1 and Gym, switch to branch mygym-3.7
-
+### myGym 3.10
 
 Clone the repository:
 
@@ -28,11 +14,13 @@ Clone the repository:
 
 `cd mygym`
 
+`git checkout PRAG`
+
 Create Python 3.10 conda env:
 
-`conda create -n  mygym Python=3.10`
+`conda create -n  mygymprag Python=3.10`
 
-`conda activate mygym`
+`conda activate mygymprag`
 
 Install myGym:
 
@@ -42,6 +30,10 @@ If you face troubles with mpi4py dependency install the lib:
 
 `sudo apt install libopenmpi-dev`
 
+
+### PRAG
+
+Write us to get the PRAG package. Then install the package according to README within the mygymprag conda environment.
 
 
 ## myGym 3.10 presents
