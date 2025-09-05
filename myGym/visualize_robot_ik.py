@@ -17,35 +17,41 @@ def apply_ik_solution(robot_id, ik_solution, joint_idxs):
             bodyIndex=robot_id,
             jointIndex=joint_idx,
             controlMode=p.POSITION_CONTROL,
-            targetPosition=joint_pos
+            targetPosition=joint_pos,
+            force= 500
         )
         joint_values.append(f"{p.getJointInfo(robot_id, joint_idx)[1].decode('utf-8')}: {joint_pos:.4f} rad ({joint_pos*57.2958:.2f}°)")
     return joint_values
 
 def find_gripper_joints(robot_id):
-    """Find all joints related to the right fingers and return their indices.
+    """Find gripper joints and return (indices, lower_limits, upper_limits).
 
-    Also prints joint limits (lower, upper) for each detected gripper joint."""
+    Prints limits; if invalid, substitutes +/- pi in returned lists."""
     num_joints = p.getNumJoints(robot_id)
-    gripper_idxs = []
+    gripper_idxs: list[int] = []
+    lower_limits: list[float] = []
+    upper_limits: list[float] = []
     print("\n--- Gripper Joint Scan ---")
     for joint_idx in range(num_joints):
         joint_info = p.getJointInfo(robot_id, joint_idx)
         joint_name = joint_info[1].decode("utf-8")
         if 'gjoint' in joint_name:
-            lower = joint_info[8]
-            upper = joint_info[9]
-            gripper_idxs.append(joint_idx)
-            if lower >= upper:
-                print(f"  {joint_name} (idx {joint_idx}) limits invalid ({lower:.4f}, {upper:.4f}) -> treating as free")
+            lower = float(joint_info[8])
+            upper = float(joint_info[9])
+            if lower >= upper:  # invalid / fixed
+                print(f"  {joint_name} (idx {joint_idx}) limits invalid ({lower:.4f}, {upper:.4f}) -> using [-pi, pi]")
+                lower, upper = -np.pi, np.pi
             else:
                 print(f"  {joint_name} (idx {joint_idx}) limits: [{lower:.4f}, {upper:.4f}]")
+            gripper_idxs.append(joint_idx)
+            lower_limits.append(lower)
+            upper_limits.append(upper)
     if not gripper_idxs:
         print("  No gripper joints found matching pattern 'gjoint'.")
     else:
         print(f"Found gripper joints: {gripper_idxs}")
     print("---------------------------\n")
-    return gripper_idxs
+    return gripper_idxs, lower_limits, upper_limits
 
 def get_controllable_arm_joints(robot_id, num_joints):
     """Get joint information for arm control (non-fixed joints), excluding gripper joints."""
@@ -146,7 +152,7 @@ def main():
     joint_idxs, joint_names = get_controllable_arm_joints(robot_id, num_joints)
 
     # Find gripper joint indices
-    gripper_idxs = find_gripper_joints(robot_id)
+    gripper_idxs, gripper_low_limits, gripper_up_limits = find_gripper_joints(robot_id)
 
 
     # Box control variables
@@ -192,16 +198,18 @@ def main():
             
             # Check if 'c' key is pressed to close the gripper (set gripper joints to 0)
             if ord('c') in keys and keys[ord('c')] & p.KEY_WAS_TRIGGERED:
-                print("Closing gripper (setting finger joints to -2)")
-                gripper_zero_solution = [-2.0] * len(gripper_idxs) # Create a list of zeros
-                apply_ik_solution(robot_id, gripper_zero_solution, gripper_idxs) # Apply to gripper joints
-                #grasper.perform_grasp()
+                # Move gripper joints to their individual lower limits
+                print("Closing gripper (moving to lower joint limits)")
+                apply_ik_solution(robot_id, gripper_low_limits, gripper_idxs)
+                print(gripper_low_limits)
+                # grasper.perform_grasp()
 
             if ord('d') in keys and keys[ord('d')] & p.KEY_WAS_TRIGGERED:
-                print("Opening gripper (setting finger joints to 0)")
-                gripper_zero_solution = [0.0] * len(gripper_idxs) # Create a list of zeros
-                apply_ik_solution(robot_id, gripper_zero_solution, gripper_idxs) # Apply to gripper joints
-                #grasper.perform_drop()
+                # Move gripper joints to their individual upper limits
+                print("Opening gripper (moving to upper joint limits)")
+                apply_ik_solution(robot_id, gripper_up_limits, gripper_idxs)
+                print(gripper_up_limits)
+                # grasper.perform_drop()
             
             if ord('m') in keys and keys[ord('m')] & p.KEY_WAS_TRIGGERED:
                 grasper.move_arm([0.35,-0.4,0.2], args.ori, args.side)
