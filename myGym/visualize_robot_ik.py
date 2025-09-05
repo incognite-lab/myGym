@@ -4,6 +4,8 @@ import argparse
 import time
 import numpy as np
 from numpy import rad2deg, deg2rad, set_printoptions, array, linalg, round, any, mean
+from myGym.utils.helpers import get_robot_dict
+import os
 
 
 def apply_ik_solution(robot_id, ik_solution, joint_idxs):
@@ -21,17 +23,28 @@ def apply_ik_solution(robot_id, ik_solution, joint_idxs):
     return joint_values
 
 def find_gripper_joints(robot_id):
-    """Find all joints related to the right fingers and return their indices."""
+    """Find all joints related to the right fingers and return their indices.
+
+    Also prints joint limits (lower, upper) for each detected gripper joint."""
     num_joints = p.getNumJoints(robot_id)
     gripper_idxs = []
+    print("\n--- Gripper Joint Scan ---")
     for joint_idx in range(num_joints):
         joint_info = p.getJointInfo(robot_id, joint_idx)
         joint_name = joint_info[1].decode("utf-8")
-        # Check if the joint name contains 'r_' and 'finger'
         if 'gjoint' in joint_name:
+            lower = joint_info[8]
+            upper = joint_info[9]
             gripper_idxs.append(joint_idx)
-            print(joint_name)
-    print(f"Found gripper joints: {gripper_idxs}") # Optional: print found joints
+            if lower >= upper:
+                print(f"  {joint_name} (idx {joint_idx}) limits invalid ({lower:.4f}, {upper:.4f}) -> treating as free")
+            else:
+                print(f"  {joint_name} (idx {joint_idx}) limits: [{lower:.4f}, {upper:.4f}]")
+    if not gripper_idxs:
+        print("  No gripper joints found matching pattern 'gjoint'.")
+    else:
+        print(f"Found gripper joints: {gripper_idxs}")
+    print("---------------------------\n")
     return gripper_idxs
 
 def get_controllable_arm_joints(robot_id, num_joints):
@@ -74,9 +87,36 @@ def get_controllable_arm_joints(robot_id, num_joints):
 def main():
     parser = argparse.ArgumentParser(description="Nico Robot Grasping Control")
     parser.add_argument("--urdf", type=str, default="./envs/robots/nico/nico_grasper.urdf", help="Path to the robot URDF file.")
+    parser.add_argument("--interactive", action="store_true", help="Interactive selection of robot from registry (overrides --urdf)")
     args = parser.parse_args()
 
-
+    if args.interactive:
+        robots = sorted(get_robot_dict().keys())
+        if not robots:
+            print("No robots available.")
+            return
+        print("Available robots:")
+        for i, rk in enumerate(robots):
+            print(f"[{i}] {rk}")
+        while True:
+            sel = input("Select robot index (q to quit): ").strip().lower()
+            if sel in ("q","quit","exit"):
+                return
+            if sel.isdigit():
+                idx = int(sel)
+                if 0 <= idx < len(robots):
+                    key = robots[idx]
+                    info = get_robot_dict()[key]
+                    rel_path = info['path'].lstrip('/')  # stored paths are project-relative
+                    base_dir = os.path.dirname(os.path.abspath(__file__))
+                    candidate = os.path.join(base_dir, rel_path)
+                    if os.path.exists(candidate):
+                        args.urdf = candidate
+                    else:
+                        args.urdf = rel_path
+                    print(f"Selected robot '{key}' -> {args.urdf}")
+                    break
+            print("Invalid selection.")
     # Initialize PyBullet
     physicsClient = p.connect(p.GUI)
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
