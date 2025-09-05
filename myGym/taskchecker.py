@@ -336,7 +336,7 @@ def main():
             if '-ct' not in extra_args and '--ct' not in extra_args:
                 extra_args += ['-ct', 'keyboard']
             if '-ba' not in extra_args and '--ba' not in extra_args:
-                extra_args += ['-ba', 'absolute_gripper']
+                extra_args += ['-ba', 'step_gripper']
         if selected.slider:
             if '-ct' not in extra_args and '--ct' not in extra_args:
                 extra_args += ['-ct', 'slider']
