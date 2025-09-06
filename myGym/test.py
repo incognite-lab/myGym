@@ -175,17 +175,17 @@ def test_env(env: object, arg_dict: dict) -> None:
         if "joints" in arg_dict["robot_action"]:
             if 'gripper' in arg_dict["robot_action"]:
                 print("gripper is present")
-                for i in range(env.action_space.shape[0]):
-                    if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
-                        joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i],
-                                                            env.action_space.high[i], env.env.robot.init_joint_poses[i])
+                for i in range(env.unwrapped.action_space.shape[0]):
+                    if i < (env.unwrapped.action_space.shape[0] - len(env.unwrapped.robot.gjoints_rest_poses)):
+                        joints[i] = p.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i],
+                                                            env.unwrapped.action_space.high[i], env.unwrapped.robot.init_joint_poses[i])
                     else:
-                        joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i],
-                                                            env.action_space.high[i], .02)
+                        joints[i] = p.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i],
+                                                            env.unwrapped.action_space.high[i], .02)
             else:
-                for i in range(env.action_space.shape[0]):
-                    joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i],
-                                                        env.env.robot.init_joint_poses[i])
+                for i in range(env.unwrapped.action_space.shape[0]):
+                    joints[i] = p.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i], env.unwrapped.action_space.high[i],
+                                                        env.unwrapped.robot.init_joint_poses[i])
         elif "absolute" in arg_dict["robot_action"]:
             if 'gripper' in arg_dict["robot_action"]:
                 print("gripper is present")
@@ -266,7 +266,7 @@ def test_env(env: object, arg_dict: dict) -> None:
 
                     # Compute element-wise difference safely using numpy
                     try:
-                        diff = np.array(last_action, dtype=float) - np.array(action, dtype=float)
+                        diff = np.array(last_actiperform_oraon, dtype=float) - np.array(action, dtype=float)
                         print(f"\rLast action difference: {np.round(diff, 4)}", end='', flush=True)
                     except Exception:
                         # Fallback if shapes mismatch
@@ -544,14 +544,14 @@ def print_init_info(arg_dict):
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
-    parser.add_argument("-ct", "--control", default="observation",
+    parser.add_argument("-ct", "--control", default="oraculum",
                         help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
     parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
-    parser.add_argument("-tp", "--top_grasp", default = True, help="Use top grasp when reaching objects with oraculum.")
+    parser.add_argument("-tp", "--top_grasp", default = False, help="Use top grasp when reaching objects with oraculum.")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
     arg_dict, commands = get_arguments(parser)
     parameters = {}

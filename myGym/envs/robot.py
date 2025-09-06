@@ -48,6 +48,8 @@ class Robot:
         self.robot_dict = get_robot_dict()
         self.robot_path = self.robot_dict[robot]['path']
         self.position = np.array(position) + self.robot_dict[robot].get('position',np.zeros(len(position)))
+        # TODO: delete addition to base position - only used for debugging
+        self.position[2] += 0.2
         self.orientation = self.p.getQuaternionFromEuler(np.array(orientation) +
                                                        self.robot_dict[robot].get('orientation',np.zeros(len(orientation))))
         self.name = robot

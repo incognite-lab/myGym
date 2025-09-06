@@ -7,7 +7,6 @@ from numpy import rad2deg, deg2rad, set_printoptions, array, linalg, round, any,
 from myGym.utils.helpers import get_robot_dict
 import os
 
-
 def apply_ik_solution(robot_id, ik_solution, joint_idxs):
     """Apply the IK solution to the robot joints."""
     joint_values = []
@@ -93,7 +92,7 @@ def get_controllable_arm_joints(robot_id, num_joints):
 def main():
     parser = argparse.ArgumentParser(description="Nico Robot Grasping Control")
     parser.add_argument("--urdf", type=str, default="./envs/robots/nico/nico_grasper.urdf", help="Path to the robot URDF file.")
-    parser.add_argument("--interactive", action="store_true", help="Interactive selection of robot from registry (overrides --urdf)")
+    parser.add_argument("--interactive", action="store_true", default = 1, help="Interactive selection of robot from registry (overrides --urdf)")
     args = parser.parse_args()
 
     if args.interactive:
@@ -129,7 +128,7 @@ def main():
 
     # Load URDF
     try:
-        robot_id = p.loadURDF(args.urdf, useFixedBase=True,flags=p.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT)
+        robot_id = p.loadURDF(args.urdf, useFixedBase=True, basePosition=[0.558, -0.558, 0.701], flags=p.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT)
     except:
         print(f"Error: Failed to load URDF file '{args.urdf}'")
         return
