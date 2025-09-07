@@ -274,9 +274,9 @@ class GymEnv(CameraEnv):
                   "max_velocity": self.max_velocity, "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
                   "pybullet_client": self.p, "reward_type": self.unwrapped.reward}
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
-        if "tiago" in self.robot_type:
-            #TODO: set a proper init state value for tiago joints, so that IK works well
-            self.p.resetJointState(self.robot.robot_uid, self.robot.motor_indices[2], 1.7)
+        # if "tiago" in self.robot_type:
+        #     #TODO: set a proper init state value for tiago joints, so that IK works well
+        #     self.p.resetJointState(self.robot.robot_uid, self.robot.motor_indices[2], 1.7)
         if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
 
 

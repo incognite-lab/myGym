@@ -190,7 +190,7 @@ def test_env(env: object, arg_dict: dict) -> None:
             if 'gripper' in arg_dict["robot_action"]:
                 print("gripper is present")
                 for i in range(env.action_space.shape[0]):
-                    if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
+                    if i < (env.action_space.shape[0] - len(env.unwrapped.robot.gjoints_rest_poses)):
                         joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
                     else:
                         joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
@@ -201,7 +201,7 @@ def test_env(env: object, arg_dict: dict) -> None:
             if 'gripper' in arg_dict["robot_action"]:
                 print("gripper is present")
                 for i in range(env.action_space.shape[0]):
-                    if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
+                    if i < (env.action_space.shape[0] - len(env.unwrapped.robot.gjoints_rest_poses)):
                         joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
                     else:
                         joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
@@ -254,11 +254,11 @@ def test_env(env: object, arg_dict: dict) -> None:
 
             if arg_dict["control"] == "observation":
                 if t == 0:
-                    action = env.env.unwrapped.robot.init_joint_poses
+                    action = env.unwrapped.robot.init_joint_poses
                     last_action = action
                 else:
                     if "joints" in arg_dict["robot_action"]:
-                        action = env.env.unwrapped.robot.get_joints_states()
+                        action = env.unwrapped.robot.get_joints_states()
                     elif "absolute" in arg_dict["robot_action"]:
                         action = info['o']["actual_state"]
                     else:
@@ -266,7 +266,7 @@ def test_env(env: object, arg_dict: dict) -> None:
 
                     # Compute element-wise difference safely using numpy
                     try:
-                        diff = np.array(last_actiperform_oraon, dtype=float) - np.array(action, dtype=float)
+                        diff = np.array(last_action, dtype=float) - np.array(action, dtype=float)
                         print(f"\rLast action difference: {np.round(diff, 4)}", end='', flush=True)
                     except Exception:
                         # Fallback if shapes mismatch
@@ -544,7 +544,7 @@ def print_init_info(arg_dict):
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
-    parser.add_argument("-ct", "--control", default="oraculum",
+    parser.add_argument("-ct", "--control", default="slider",
                         help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")

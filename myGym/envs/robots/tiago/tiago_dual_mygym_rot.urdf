@@ -52,7 +52,9 @@
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="1"/>
-      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+      <inertia ixx="0.005" ixy="0" ixz="0"
+           iyy="0.005" iyz="0"
+           izz="0.005"/>
     </inertial>
   </link>
   <joint name="baseslide_rjoint" type="fixed">

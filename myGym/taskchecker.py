@@ -289,7 +289,6 @@ def curses_select(entries: List[Entry], start_idx: int = 0) -> Optional[Entry]:
                     elif rc in (10,13):
                         entries[pos].selected_robot = robot_keys[rpos]
                         return entries[pos]
-
     return curses.wrapper(loop)
 
 def main():
@@ -341,7 +340,7 @@ def main():
             if '-ct' not in extra_args and '--ct' not in extra_args:
                 extra_args += ['-ct', 'slider']
             if '-ba' not in extra_args and '--ba' not in extra_args:
-                extra_args += ['-ba', 'absolute_gripper']
+                extra_args += ['-ba', 'joints_gripper']
         if selected.random_mode:
             if '-ct' not in extra_args and '--ct' not in extra_args:
                 extra_args += ['-ct', 'random']

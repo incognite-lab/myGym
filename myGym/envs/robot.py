@@ -49,7 +49,8 @@ class Robot:
         self.robot_path = self.robot_dict[robot]['path']
         self.position = np.array(position) + self.robot_dict[robot].get('position',np.zeros(len(position)))
         # TODO: delete addition to base position - only used for debugging
-        self.position[2] += 0.2
+        self.p.setPhysicsEngineParameter(enableFileCaching=0)
+        #self.position[2] += 0.2
         self.orientation = self.p.getQuaternionFromEuler(np.array(orientation) +
                                                        self.robot_dict[robot].get('orientation',np.zeros(len(orientation))))
         self.name = robot
@@ -76,9 +77,14 @@ class Robot:
         self._load_robot()
         self.num_joints = self.p.getNumJoints(self.robot_uid)
         self._set_motors()
-        self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)       
+        self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
+        # # if "tiago" in self.name:
+        #     self.set_tiago_joints()
+        # else:
+        #     self.joint_poses = self.init_joint_poses
+        #     self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
         self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
         self.joint_poses = self.init_joint_poses
         self.opengr_threshold = 0.07
@@ -96,15 +102,14 @@ class Robot:
         """
         if self.robot_path[-3:] == 'sdf':
             objects = self.p.loadSDF(
-               os.path.join(pkg_resources.files("myGym"),
-                                                self.robot_path))
+               os.path.join(pkg_resources.files("myGym"), self.robot_path))
             self.robot_uid = objects[0]
             self.p.resetBasePositionAndOrientation(self.robot_uid, self.position,
                                               self.orientation)
         else:
+
             self.robot_uid = self.p.loadURDF(
-                os.path.join(pkg_resources.files("myGym"),
-                                                self.robot_path),
+                os.path.join(pkg_resources.files("myGym"), self.robot_path),
                 self.position, self.orientation, useFixedBase=True, flags=(self.p.URDF_USE_SELF_COLLISION))
         for jid in range(self.p.getNumJoints(self.robot_uid)):
                 self.p.changeDynamics(self.robot_uid, jid,  collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
@@ -354,7 +359,7 @@ class Robot:
                                     jointIndex=self.motor_indices[i],
                                     controlMode=self.p.POSITION_CONTROL,
                                     targetPosition=joint_poses[i],
-                                    force=self.joints_max_force[i],
+                                    force=500,
                                     maxVelocity=self.joints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3)
@@ -372,9 +377,8 @@ class Robot:
         self.end_effector_orn = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
         #self.gripper_pos = self.p.getLinkState(self.robot_uid, self.gripper_index)[0]  
         #self.gripper_orn = self.p.getLinkState(self.robot_uid, self.gripper_index)[1]
-
         joints = self.get_joints_states()
-        #print(joints)
+        print(joints)
     
     def _move_gripper(self, action):
         """
@@ -585,7 +589,6 @@ class Robot:
         # action[2] += 0.1 #OFFSET
         if len(action) == 9:
             des_endeff_orientation = self.gripper_transform(action[3:7])
-
         else:
             des_endeff_orientation = None
         joint_poses = self._calculate_joint_poses(des_end_effector_pos, des_endeff_orientation)
@@ -808,4 +811,13 @@ class Robot:
             :return self.uid: Robot's unique ID
         """
         return self.robot_uid
+
+    def set_tiago_joints(self):
+        # Manually selected constant using slider
+        tiago_init = [0.7, -0.353, 3.729, 0.215, -1.036, 0.313, -0.176, 0.044, 0.02, 0.02][:len(self.motor_indices)]
+        for i, idx in enumerate(self.motor_indices):
+            self.p.resetJointState(self.robot_uid, idx, tiago_init[i])
+        self.init_joint_poses = tiago_init
+        self.joint_poses = self.init_joint_poses
+
 
