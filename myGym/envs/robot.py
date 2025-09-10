@@ -359,7 +359,7 @@ class Robot:
                                     jointIndex=self.motor_indices[i],
                                     controlMode=self.p.POSITION_CONTROL,
                                     targetPosition=joint_poses[i],
-                                    force=500,
+                                    force=1000,
                                     maxVelocity=self.joints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3)
