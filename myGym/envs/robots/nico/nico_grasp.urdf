@@ -340,8 +340,8 @@
 			<origin rpy="0 0 0" xyz="0 0 0"/>
 		</collision>-->
 		<inertial>
-			<mass value="0.000009"/>
-			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<mass value="0.01"/>  <!-- 10 g -->
+            <inertia ixx="1e-5" iyy="1e-5" izz="1e-5" ixy="0" ixz="0" iyz="0"/>
 			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
 		</inertial>
 	</link>
@@ -362,12 +362,12 @@
 			<origin rpy="0 0 0" xyz="0 0 0"/>
 		</collision>-->
 		<inertial>
-			<mass value="0.000009"/>
-			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<mass value="0.01"/>  <!-- 10 g -->
+            <inertia ixx="1e-5" iyy="1e-5" izz="1e-5" ixy="0" ixz="0" iyz="0"/>
 			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
 		</inertial>
 	</link>
-	<joint name="r_middlefinger_x" type="fixed">
+	<joint name="r_middlefinger_x_gjoint" type="revolute">
 		<parent link="gripper"/>
 		<child link="r_middlefinger"/>
 		<origin rpy="0 0 0" xyz="0 0 -0.06"/>
