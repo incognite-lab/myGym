@@ -90,6 +90,7 @@ def _get_approach_action(env: Any, info: Dict[str, Any]) -> np.ndarray:
     Returns:
         np.ndarray: Updated approach action.
     """
+    goal_dist = np.linalg.norm(np.array(info['o']["goal_state"][:3]) - np.array(info['o']["actual_state"][:3]))
     if env.env.unwrapped.reward.rewards_num <= 2:
         action = info['o']["goal_state"][:3]
         if info['o']["actual_state"][2] < -0.25:
@@ -102,6 +103,9 @@ def _get_approach_action(env: Any, info: Dict[str, Any]) -> np.ndarray:
         action[2] += 0.05
         # action[0] -= 0.05
         # print("Too close to table, raising hand: {}".format(action))
+        if goal_dist < 0.15:
+            action[2] += 0.07
+        #Too close to goal, raising hand
     return action
 
 def _set_gripper_action(action: np.ndarray, state: int, gripper: bool) -> None:

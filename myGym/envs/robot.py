@@ -36,7 +36,7 @@ class Robot:
                  init_joint_poses=None,
                  robot_action="step",
                  task_type="reach",
-                 use_fixed_end_effector_orn=False,
+                 fixed_end_effector_orn=None,
                  dimension_velocity = 0.5,
                  max_velocity = None, #1.,
                  max_force = None, #50.,
@@ -57,9 +57,9 @@ class Robot:
         self.max_force = max_force
         self.end_effector_index = end_effector_index
         self.gripper_index = gripper_index
-        self.use_fixed_end_effector_orn = use_fixed_end_effector_orn
-        if use_fixed_end_effector_orn is not None:
-            self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(use_fixed_end_effector_orn)
+        self.use_fixed_end_effector_orn = False #Set to false by default
+        if fixed_end_effector_orn is not None:
+            self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(fixed_end_effector_orn)
         self.dimension_velocity = dimension_velocity
         self.use_magnet = False
         self.motor_names = []
@@ -412,7 +412,7 @@ class Robot:
             :return joint_poses: (list) Calculated joint poses corresponding to desired end-effector position
         """
         if endeff_orientation is None:
-            if (self.use_fixed_end_effector_orn):
+            if self.use_fixed_end_effector_orn:
                 joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                            self.end_effector_index,
                                                            end_effector_pos,
