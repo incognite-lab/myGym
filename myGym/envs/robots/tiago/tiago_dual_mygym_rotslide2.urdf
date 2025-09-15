@@ -160,7 +160,7 @@
       <material name="White"/>
     </visual>
   </link>
-  <joint name="torso_lift_gjoint" type="prismatic">
+  <joint name="torso_lift_rjoint" type="prismatic">
     <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.61"/>
     <parent link="torso_fixed_link"/>
     <child link="torso_lift_link"/>
@@ -890,7 +890,7 @@
 	<joint name="endeffector_joint" type="fixed">
     	<parent link="gripper"/>
     	<child link="endeffector"/>
-    	<origin rpy="0 0 -1.57" xyz="0.0 0.0 -0.20"/>
+    	<origin rpy="0 0 -3.1415" xyz="0.0 0.0 -0.20"/>
 	</joint>
   <joint name="gripper_right_tool_joint" type="fixed">
     <origin rpy="1.57079632679 1.57079632679 -1.57079632679" xyz="0.01 0 0"/>

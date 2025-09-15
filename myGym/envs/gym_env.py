@@ -270,7 +270,7 @@ class GymEnv(CameraEnv):
         endeff_orn = [0, 0, 0] if self.top_grasp else None
         kwargs = {"position": self.workspace_dict[self.workspace]['robot']['position'],
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
-                  "init_joint_poses": self.robot_init_joint_poses, "use_fixed_end_effector_orn": endeff_orn,
+                  "init_joint_poses": self.robot_init_joint_poses, "fixed_end_effector_orn": endeff_orn,
                   "max_velocity": self.max_velocity, "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
                   "pybullet_client": self.p, "reward_type": self.unwrapped.reward}
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
@@ -585,7 +585,8 @@ class GymEnv(CameraEnv):
         Parameters:
             :param action: (list) Action data returned by trained model
         """
-        use_magnet = self.unwrapped.reward.get_magnetization_status()
+        #use_magnet = self.unwrapped.reward.get_magnetization_status()
+        self.robot.use_fixed_end_effector_orn = (self.unwrapped.reward.reward_name in ["approach", "move"])
         for i in range(self.action_repeat):
             objects = self.env_objects
             self.robot.apply_action(action, env_objects=objects)

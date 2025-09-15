@@ -14,7 +14,7 @@
     "robot"         :"tiago_dual_rotslide",
     "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.9],
-    "max_velocity"  :10,
+    "max_velocity"  :3,
     "max_force"     :20000,
     "action_repeat" :1,
     #Task

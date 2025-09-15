@@ -36,8 +36,7 @@ class Robot:
                  init_joint_poses=None,
                  robot_action="step",
                  task_type="reach",
-                 use_fixed_end_effector_orn=False,
-                 end_effector_orn=[0, 0, 0],
+                 fixed_end_effector_orn=None,
                  dimension_velocity = 0.5,
                  max_velocity = None, #1.,
                  max_force = None, #50.,
@@ -58,8 +57,9 @@ class Robot:
         self.max_force = max_force
         self.end_effector_index = end_effector_index
         self.gripper_index = gripper_index
-        self.use_fixed_end_effector_orn = use_fixed_end_effector_orn
-        self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(end_effector_orn)
+        self.use_fixed_end_effector_orn = False #Set to false by default
+        if fixed_end_effector_orn is not None:
+            self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(fixed_end_effector_orn)
         self.dimension_velocity = dimension_velocity
         self.use_magnet = False
         self.motor_names = []
@@ -80,13 +80,14 @@ class Robot:
         self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
-        # # if "tiago" in self.name:
-        #     self.set_tiago_joints()
-        # else:
-        #     self.joint_poses = self.init_joint_poses
-        #     self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
-        self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
-        self.joint_poses = self.init_joint_poses
+        if "tiago" in self.name:
+            self.init_joint_poses =  self.set_tiago_joints()
+            self.joints_poses = self.init_joint_poses
+        else:
+            self.joint_poses = self.init_joint_poses
+            self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
+        # self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
+        # self.joint_poses = self.init_joint_poses
         self.opengr_threshold = 0.07
         self.closegr_threshold = 0.001
         if 'R' in reward_type:
@@ -411,7 +412,7 @@ class Robot:
             :return joint_poses: (list) Calculated joint poses corresponding to desired end-effector position
         """
         if endeff_orientation is None:
-            if (self.use_fixed_end_effector_orn):
+            if self.use_fixed_end_effector_orn:
                 joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                            self.end_effector_index,
                                                            end_effector_pos,
@@ -814,10 +815,11 @@ class Robot:
 
     def set_tiago_joints(self):
         # Manually selected constant using slider
-        tiago_init = [0.7, -0.353, 3.729, 0.215, -1.036, 0.313, -0.176, 0.044, 0.02, 0.02][:len(self.motor_indices)]
+        tiago_init = [0.121, -0.047, 0.023, 0.295, -0.064, -0.353, 1.918, 1.662, 0.419, -0.908, 0.088][11-len(self.motor_indices):]
         for i, idx in enumerate(self.motor_indices):
             self.p.resetJointState(self.robot_uid, idx, tiago_init[i])
         self.init_joint_poses = tiago_init
         self.joint_poses = self.init_joint_poses
+        return tiago_init
 
 

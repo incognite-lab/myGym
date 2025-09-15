@@ -10,11 +10,11 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"tiago_dual_rotslide",
+    "robot"         :"tiago_dual",
     "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.4],
-    "max_velocity"  :5,
-    "max_force"     :20000,
+    "max_velocity"  :3,
+    "max_force"     :2000,
     "action_repeat" :1,
     #Task
     "task_type"             :"AGMD",
