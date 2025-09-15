@@ -5,6 +5,7 @@ import time
 import numpy as np
 from numpy import rad2deg, deg2rad, set_printoptions, array, linalg, round, any, mean
 from myGym.utils.helpers import get_robot_dict
+from myGym.utils.helpers import get_workspace_dict
 import os
 
 def apply_ik_solution(robot_id, ik_solution, joint_idxs):
@@ -92,11 +93,82 @@ def get_controllable_arm_joints(robot_id, num_joints):
 def main():
     parser = argparse.ArgumentParser(description="Nico Robot Grasping Control")
     parser.add_argument("--urdf", type=str, default="./envs/robots/nico/nico_grasper.urdf", help="Path to the robot URDF file.")
-    parser.add_argument("--interactive", action="store_true", default = 1, help="Interactive selection of robot from registry (overrides --urdf)")
+    parser.add_argument("--interactive", action="store_true", default=1, help="Interactive selection of robot from registry (overrides --urdf)")
+    parser.add_argument("--robot-key", type=str, help="Optional robot key from r_dict to use pose from if not using interactive picker.")
+    parser.add_argument("--workspace", action="store_true", help="Workspace mode: select workspace then robot; loads both.")
     args = parser.parse_args()
 
-    if args.interactive:
-        robots = sorted(get_robot_dict().keys())
+    selected_key = None
+    robot_base_pos = [0.0, 0.0, 0.0]
+    robot_base_quat = [0, 0, 0, 1]
+    rdict = get_robot_dict()
+    selected_workspace = None
+
+    # Workspace mode: first choose workspace then robot
+    if args.workspace:
+        ws_dict = get_workspace_dict()
+        ws_keys = sorted(ws_dict.keys())
+        if not ws_keys:
+            print("No workspaces available.")
+            return
+        print("Available workspaces:")
+        for i, wk in enumerate(ws_keys):
+            print(f"[{i}] {wk}")
+        while True:
+            wsel = input("Select workspace index (q to quit): ").strip().lower()
+            if wsel in ("q", "quit", "exit"):
+                return
+            if wsel.isdigit():
+                widx = int(wsel)
+                if 0 <= widx < len(ws_keys):
+                    selected_workspace = ws_keys[widx]
+                    break
+            print("Invalid selection.")
+        ws_info = ws_dict[selected_workspace]
+        # Workspace params
+        ws_urdf_name = ws_info['urdf']
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        workspace_urdf_path = os.path.join(base_dir, 'envs', 'rooms', 'collision', ws_urdf_name)
+        ws_transform = ws_info.get('transform', {})
+        ws_pos = ws_transform.get('position', [0, 0, 0])
+        ws_eul = ws_transform.get('orientation', [0, 0, 0])
+        ws_quat = p.getQuaternionFromEuler(ws_eul)
+        ws_robot = ws_info.get('robot', {})
+        ws_robot_pos = ws_robot.get('position')
+        ws_robot_eul = ws_robot.get('orientation')
+
+        # Robot selection after workspace
+        robots = sorted(rdict.keys())
+        print("Available robots:")
+        for i, rk in enumerate(robots):
+            print(f"[{i}] {rk}")
+        while True:
+            rsel = input("Select robot index (q to quit): ").strip().lower()
+            if rsel in ("q", "quit", "exit"):
+                return
+            if rsel.isdigit():
+                ridx = int(rsel)
+                if 0 <= ridx < len(robots):
+                    selected_key = robots[ridx]
+                    rinfo = rdict[selected_key]
+                    rel_path = rinfo['path'].lstrip('/')
+                    candidate = os.path.join(base_dir, rel_path)
+                    args.urdf = candidate if os.path.exists(candidate) else rel_path
+                    # Set robot base pose: workspace override > r_dict
+                    if ws_robot_pos is not None:
+                        robot_base_pos = list(np.array(ws_robot_pos).astype(float))
+                    elif 'position' in rinfo:
+                        robot_base_pos = list(np.array(rinfo['position']).astype(float))
+                    if ws_robot_eul is not None:
+                        robot_base_quat = p.getQuaternionFromEuler(ws_robot_eul)
+                    elif 'orientation' in rinfo:
+                        robot_base_quat = p.getQuaternionFromEuler(rinfo['orientation'])
+                    break
+            print("Invalid selection.")
+
+    # Robot-only interactive mode (no workspace)
+    if (not args.workspace) and args.interactive:
+        robots = sorted(rdict.keys())
         if not robots:
             print("No robots available.")
             return
@@ -105,32 +177,59 @@ def main():
             print(f"[{i}] {rk}")
         while True:
             sel = input("Select robot index (q to quit): ").strip().lower()
-            if sel in ("q","quit","exit"):
+            if sel in ("q", "quit", "exit"):
                 return
             if sel.isdigit():
                 idx = int(sel)
                 if 0 <= idx < len(robots):
-                    key = robots[idx]
-                    info = get_robot_dict()[key]
-                    rel_path = info['path'].lstrip('/')  # stored paths are project-relative
+                    selected_key = robots[idx]
+                    info = rdict[selected_key]
+                    rel_path = info['path'].lstrip('/')
                     base_dir = os.path.dirname(os.path.abspath(__file__))
                     candidate = os.path.join(base_dir, rel_path)
-                    if os.path.exists(candidate):
-                        args.urdf = candidate
-                    else:
-                        args.urdf = rel_path
-                    print(f"Selected robot '{key}' -> {args.urdf}")
+                    args.urdf = candidate if os.path.exists(candidate) else rel_path
+                    if 'position' in info:
+                        robot_base_pos = list(np.array(info['position']).astype(float))
+                    if 'orientation' in info:
+                        robot_base_quat = p.getQuaternionFromEuler(info['orientation'])
+                    print(f"Selected robot '{selected_key}' -> {args.urdf}")
                     break
             print("Invalid selection.")
+    elif not args.workspace:  # Non-interactive, no workspace
+        if args.robot_key and args.robot_key in rdict:
+            selected_key = args.robot_key
+        else:
+            # Try to infer by path ending
+            for k, v in rdict.items():
+                rel = v.get('path', '').lstrip('/')
+                if rel and (args.urdf.endswith(rel) or os.path.basename(args.urdf) == os.path.basename(rel)):
+                    selected_key = k
+                    break
+        if selected_key:
+            info = rdict[selected_key]
+            if 'position' in info:
+                robot_base_pos = list(np.array(info['position']).astype(float))
+            if 'orientation' in info:
+                robot_base_quat = p.getQuaternionFromEuler(info['orientation'])
+            print(f"Using robot key '{selected_key}' pose: pos={robot_base_pos}, euler={info.get('orientation', [0,0,0])}")
+
     # Initialize PyBullet
     physicsClient = p.connect(p.GUI)
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-    # Load URDF
+    # Load workspace first if requested
+    if args.workspace and selected_workspace is not None:
+        try:
+            w_id = p.loadURDF(workspace_urdf_path, basePosition=ws_pos, baseOrientation=ws_quat, useFixedBase=True)
+            print(f"Loaded workspace '{selected_workspace}' from {workspace_urdf_path}")
+        except Exception as ex:
+            print(f"Error loading workspace '{selected_workspace}': {ex}")
+
+    # Load robot
     try:
-        robot_id = p.loadURDF(args.urdf, useFixedBase=True, basePosition=[0.558, -0.558, 0.701], flags=p.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT)
-    except:
-        print(f"Error: Failed to load URDF file '{args.urdf}'")
+        robot_id = p.loadURDF(args.urdf, useFixedBase=True, basePosition=robot_base_pos, baseOrientation=robot_base_quat, flags=p.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT)
+    except Exception as ex:
+        print(f"Error: Failed to load URDF file '{args.urdf}': {ex}")
         return
 
     # Find end effector link
