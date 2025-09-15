@@ -393,8 +393,6 @@ class Robot:
             :param joint_poses: (list) Desired poses of individual joints
         """
         for i in range(len(self.gripper_indices)):
-            joint_info = self.p.getJointInfo(self.robot_uid, self.gripper_indices[i]) #For debugging
-            joint_name = joint_info[1]
             self.p.setJointMotorControl2(bodyUniqueId=self.robot_uid,
                                     jointIndex=self.gripper_indices[i],
                                     controlMode=self.p.POSITION_CONTROL,
