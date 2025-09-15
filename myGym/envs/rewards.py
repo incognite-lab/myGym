@@ -196,7 +196,6 @@ class Protorewards(Reward):
 
     def approach_compute(self, gripper, object, gripper_states):
         self.env.robot.set_magnetization(False)
-        self.env.robot.set_endeff_orn([0, 0, 0])
         #self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
         dist = self.task.calc_distance(gripper[:3], object[:3])        
         gripdist = sum(gripper_states)
@@ -216,7 +215,6 @@ class Protorewards(Reward):
 
     def withdraw_compute(self, gripper, object, gripper_states):
         self.env.robot.set_magnetization(False)
-        self.env.robot.set_endeff_orn(None)
         dist = self.task.calc_distance(gripper[:3], object[:3])
         gripdist = sum(gripper_states)
         if self.last_approach_dist is None:
@@ -236,7 +234,6 @@ class Protorewards(Reward):
 
     def grasp_compute(self, gripper, object, gripper_states):
         self.env.robot.set_magnetization(True)
-        self.env.robot.set_endeff_orn(None)
         dist = self.task.calc_distance(gripper[:3], object[:3])
         gripdist = sum(gripper_states)
         if self.last_approach_dist is None:
@@ -252,7 +249,6 @@ class Protorewards(Reward):
 
     def drop_compute(self, gripper, object, gripper_states):
         self.env.robot.set_magnetization(True)
-        self.env.robot.set_endeff_orn(None)
         dist = self.task.calc_distance(gripper[:3], object[:3])
         gripdist = sum(gripper_states)
         if self.last_approach_dist is None:
@@ -268,7 +264,6 @@ class Protorewards(Reward):
 
     def move_compute(self, object, goal, gripper_states):
         self.env.robot.set_magnetization(False)
-        self.env.robot.set_endeff_orn(None)
         object_XY = object[:3]
         goal_XY = goal[:3]
         gripdist = sum(gripper_states)
@@ -288,7 +283,6 @@ class Protorewards(Reward):
 
     def rotate_compute(self, object, goal, gripper_states):
         self.env.robot.set_magnetization(False)
-        self.env.robot.set_endeff_orn(None)
         dist = self.task.calc_distance(object, goal)
         if self.last_place_dist is None:
             self.last_place_dist = dist
@@ -316,7 +310,6 @@ class Protorewards(Reward):
         That way, object tries to approach goal while trying to stay on trajectory path.
         """
         self.env.robot.set_magnetization(magnetization)
-        self.env.robot.set_endeff_orn(None)
         dist_g = self.task.calc_distance(object, goal)
         if self.last_place_dist is None:
             self.last_place_dist = dist_g
@@ -343,7 +336,6 @@ class Protorewards(Reward):
         That way, object tries to approach goal while trying to stay on trajectory path.
         """
         self.env.robot.set_magnetization(magnetization)
-        self.env.robot.set_endeff_orn(None)
         dist_g = self.task.calc_distance(object, goal)
         if self.last_place_dist is None:
             self.last_place_dist = dist_g

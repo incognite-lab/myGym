@@ -586,7 +586,8 @@ class GymEnv(CameraEnv):
             :param action: (list) Action data returned by trained model
         """
         #use_magnet = self.unwrapped.reward.get_magnetization_status()
-        self.robot.use_fixed_end_effector_orn = (self.unwrapped.reward.reward_name in ["approach"])
+        if self.top_grasp:
+            self.robot.use_fixed_end_effector_orn = (self.unwrapped.reward.reward_name in ["approach"])
         for i in range(self.action_repeat):
             objects = self.env_objects
             self.robot.apply_action(action, env_objects=objects)

@@ -376,8 +376,6 @@ class Robot:
                     self.p.resetJointState(self.robot_uid, joint_idx, lower_limit)
                 elif pos > upper_limit:
                     self.p.resetJointState(self.robot_uid, joint_idx, upper_limit)
-
-        
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
         self.end_effector_orn = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
         #self.gripper_pos = self.p.getLinkState(self.robot_uid, self.gripper_index)[0]  
@@ -398,9 +396,13 @@ class Robot:
                                     controlMode=self.p.POSITION_CONTROL,
                                     targetPosition=action[i],
                                     force=self.gjoints_max_force[i],
-                                    maxVelocity=self.gjoints_max_velo[i],
                                     positionGain=0.7,
-                                    velocityGain=0.3)
+                                    velocityGain=0.3,
+                                    # maxVelocity = self.gjoints_max_velo[i]
+                                   )
+
+        # force = self.gjoints_max_force[i],
+        # maxVelocity = self.gjoints_max_velo[i],
         
         gjoints = self.get_gjoints_states()
         #print(gjoints)

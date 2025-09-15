@@ -103,6 +103,7 @@ def _get_approach_action(env: Any, info: Dict[str, Any]) -> np.ndarray:
         action[2] += 0.05
         # action[0] -= 0.05
         # print("Too close to table, raising hand: {}".format(action))
+        #TODO: fix this close to goal mechanism, put it outside of if statement and use it only in move subgoal
         if goal_dist < 0.15:
             action[2] += 0.07
         #Too close to goal, raising hand

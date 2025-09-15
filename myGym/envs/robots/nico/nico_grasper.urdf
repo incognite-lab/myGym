@@ -379,21 +379,21 @@
 		<child link="r_middlefinger"/>
 		<origin rpy="0 0 0" xyz="0 0 -0.06"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
+		<limit effort="30" lower="-2.57" upper="0" velocity="10"/>
 	</joint>
 	<joint name="r_litlefinger_x_gjoint" type="revolute">
 		<parent link="gripper"/>
 		<child link="r_littlefinger"/>
 		<origin rpy="0 0 0" xyz="0.00 0.02 -0.06"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
+		<limit effort="30" lower="-2.57" upper="0" velocity="10"/>
 	</joint>
 	<joint name="r_indexfinger_x_gjoint" type="revolute">
 		<parent link="gripper"/>
 		<child link="r_indexfinger"/>
 		<origin rpy="0 0 0" xyz="0.00 -0.02 -0.06"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
+		<limit effort="30" lower="-2.57" upper="0" velocity="10"/>
 	</joint>
     <link name="right_thumb">
 		<visual>
@@ -424,12 +424,12 @@
 		    <inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
 		</inertial>
     </link>
-    <joint name="r_thumb_x" type="revolute">
+    <joint name="r_thumb_x_joint" type="revolute">
         <parent link="gripper"/>
         <child link="thumb_intermediate_link"/>
         <origin rpy="-0.3 1 1.4" xyz="0.008 -0.020 -0.028"/>
         <axis xyz="2 1 0"/>
-        <limit effort="30" lower="-2.57" upper="0" velocity="1"/>
+        <limit effort="30" lower="-2.57" upper="0" velocity="100"/>
     </joint>
 
     <joint name="r_thumb_z_gjoint" type="revolute">
@@ -437,7 +437,7 @@
         <child link="right_thumb"/>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <axis xyz="0 1 0"/>
-        <limit effort="30" lower="-2.57" upper="0" velocity="1"/>
+        <limit effort="70" lower="-2.57" upper="0" velocity="100"/>
     </joint>
     <!-- ====LEFT ARM=== -->
     <link name="left_shoulder">
