@@ -10,7 +10,7 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot;
-    "robot"         :"tiago_dual",
+    "robot"         :"tiago_dual_rot",
     "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.4],
     "max_velocity"  :3,

@@ -153,3 +153,4 @@ def get_gripper_dict():
                     "th_closed": [(-0.375, 'l'), (1.55, 'g'), (1.55, 'g')]},
              "kuka_gripper": {"open": 0, "close": 0, "th_open": 0, "th_closed": 0},
              "nico_grasp": {"open": 0, "close": 0, "th_open": 0, "th_closed": 0}}
+    return g_dict

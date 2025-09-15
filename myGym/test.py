@@ -544,7 +544,7 @@ def print_init_info(arg_dict):
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
-    parser.add_argument("-ct", "--control", default="slider",
+    parser.add_argument("-ct", "--control", default="oraculum",
                         help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
@@ -587,7 +587,7 @@ def main() -> None:
         model_logdir = os.path.dirname(arg_dict.get("pretrained_model", ""))
         env = configure_env(arg_dict, model_logdir, for_train=0)
         implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
-        print (model_logdir)
+        print(model_logdir)
         test_model(env, None, implemented_combos, arg_dict, model_logdir, deterministic=False)
 
 

@@ -46,7 +46,7 @@ class Robot:
         self.p = pybullet_client
         self.name = robot
         self.robot_dict = get_robot_dict()
-        self.gripper_dict = get_gripper_dict()[self.name]
+        # self.gripper_dict = get_gripper_dict()[self.name]
         self.robot_path = self.robot_dict[robot]['path']
         self.position = np.array(position) + self.robot_dict[robot].get('position',np.zeros(len(position)))
         # TODO: delete addition to base position - only used for debugging
@@ -88,10 +88,12 @@ class Robot:
         else:
             self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
             self.joint_poses = self.init_joint_poses
-        self.open_gripper = self.gripper_dict["open"] #action values which open the gripper
-        self.close_gripper = self.gripper_dict["close"] #action values which close the gripper
-        self.opengr_thresholds = self.gripper_dict["th_open"]
-        self.closegr_thresholds = self.gripper_dict["th_closed"]
+        # self.open_gripper = self.gripper_dict["open"] #action values which open the gripper
+        # self.close_gripper = self.gripper_dict["close"] #action values which close the gripper
+        # self.opengr_thresholds = self.gripper_dict["th_open"]
+        # self.closegr_thresholds = self.gripper_dict["th_closed"]
+        self.opengr_threshold = 0.7
+        self.closegr_threshold = 0.001
         if 'R' in reward_type:
             self.orientation_in_rew = True
         else:
@@ -380,8 +382,8 @@ class Robot:
         self.end_effector_orn = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
         #self.gripper_pos = self.p.getLinkState(self.robot_uid, self.gripper_index)[0]  
         #self.gripper_orn = self.p.getLinkState(self.robot_uid, self.gripper_index)[1]
-        joints = self.get_joints_states()
-        print(joints)
+        #joints = self.get_joints_states()
+        #print(joints)
     
     def _move_gripper(self, action):
         """
@@ -661,6 +663,7 @@ class Robot:
             if self.task_type in ["compositional", "AG", "AGM", "AGR", "AGMD", "AGMDW", "AGRDW", "AGFDW","AGTDW"]:
                 if env_objects["actual_state"] != self: #if self.use_magnet and ...
                     gripper_states = self.get_gjoints_states()
+                    #TODO: this has to be repaired for the new way of gripper threshold checking
                     if sum(gripper_states) < self.closegr_threshold:
                         self.gripper_active = True
                         self.magnetize_object(env_objects["actual_state"])
