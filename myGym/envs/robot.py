@@ -379,7 +379,7 @@ class Robot:
         #self.gripper_pos = self.p.getLinkState(self.robot_uid, self.gripper_index)[0]  
         #self.gripper_orn = self.p.getLinkState(self.robot_uid, self.gripper_index)[1]
         joints = self.get_joints_states()
-        print(joints)
+        #print(joints)
     
     def _move_gripper(self, action):
         """
