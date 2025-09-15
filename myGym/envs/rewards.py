@@ -496,6 +496,15 @@ class AaGaM(Protorewards):
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
+        # Per-owner weight vectors (3 weights each). Can be customized per owner if needed.
+        # Example default: [0.7, 0.3, 0.1] for all owners 0, 1, 2.
+        weight_vectors = {
+            0: np.array([0.7, 0.3, 0.1], dtype=float),
+            1: np.array([0.2, 0.8, 0.1], dtype=float),
+            2: np.array([0.1, 0.3, 0.7], dtype=float),
+        }
+        # Expose the active weights for potential consumers (e.g., logging, MORL algorithms)
+        MORL_vector = weight_vectors.get(owner)
         target = \
         [[gripper_position, object_position, gripper_states], [gripper_position, object_position, gripper_states],
          [object_position, goal_position, gripper_states]][owner]
@@ -728,7 +737,7 @@ class AaGaRaDaW(Protorewards):
                   [gripper_position, object_position, gripper_states],  # grasp
                   [object_position, goal_position, gripper_states],                     # rotate (takes object, goal)
                   [gripper_position, object_position, gripper_states],  # drop
-                  [gripper_position, goal_position, gripper_states]][owner] # withdraw
+                  [gripper_position, goal_position, gripper_states]][owner]
         # Updated list of protoreward functions to call
         reward = \
         [self.approach_compute, self.grasp_compute, self.rotate_compute, self.drop_compute, self.withdraw_compute][owner](
@@ -744,6 +753,7 @@ class AaGaRaDaW(Protorewards):
 
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
         else:
@@ -980,5 +990,97 @@ class AaGaTaDaW(Protorewards):
                 self.task.check_goal() # Check if the overall task goal is met
 
         # Check for episode step limits
+        self.task.check_episode_steps()
+        return self.current_network
+
+class MaRaL(Protorewards):
+
+    def reset(self):
+        super().reset()
+        self.network_names = ["approach", "grasp", "move"]
+
+    def compute(self, observation=None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+        owner = self.decide(observation)
+
+        # Per-owner weight vectors (3 weights: approach, grasp, move). Example default: 0.7, 0.3, 0.1
+        weight_vectors = {
+            0: np.array([0.7, 0.3, 0.1], dtype=float),
+            1: np.array([0.7, 0.3, 0.1], dtype=float),
+            2: np.array([0.7, 0.3, 0.1], dtype=float),
+        }
+        MORL_vector = weight_vectors.get(owner)
+
+        # Compute all three component rewards in parallel-style using previous-step deltas
+        # Prepare current measures
+        gripper_sum = sum(gripper_states)
+        dist_go = self.task.calc_distance(gripper_position[:3], object_position[:3])      # gripper-object
+        dist_og = self.task.calc_distance(object_position[:3], goal_position[:3])         # object-goal
+
+        # Initialize last-step trackers if needed (so deltas are zero on first call)
+        if self.last_approach_dist is None:
+            self.last_approach_dist = dist_go
+        if self.last_grip_dist is None:
+            self.last_grip_dist = gripper_sum
+        if self.last_move_dist is None:
+            self.last_move_dist = dist_og
+
+        # Calculate component rewards based on stored last_* values (no robot side effects here)
+        approach_reward = (self.last_approach_dist - dist_go) + ((gripper_sum - self.last_grip_dist) * 0.2)
+        grasp_reward = (self.last_approach_dist - dist_go) * 0.2 + ((self.last_grip_dist - gripper_sum) * 10)
+        move_reward = (self.last_move_dist - dist_og) + ((self.last_grip_dist - gripper_sum) * 0.1)
+
+        # Update trackers to current values for the next step
+        self.last_approach_dist = dist_go
+        self.last_grip_dist = gripper_sum
+        self.last_move_dist = dist_og
+
+        # Weighted sum of components
+        components = np.array([approach_reward, grasp_reward, move_reward], dtype=float)
+        reward = float(np.dot(MORL_vector, components))
+
+        # Debug prints to terminal
+        #print(f"[MaRaL] approach={approach_reward:.4f}, grasp={grasp_reward:.4f}, move={move_reward:.4f}")
+        #print(f"[MaRaL] total(weighted)={reward:.4f}")
+
+        # Accumulate reward for the current network owner
+        self.network_rewards[self.current_network] += reward
+
+        if self.env.episode_terminated:
+            reward += 0.2  # Adding reward for successful finish of episode
+            print(f"[MaRaL] total(with_bonus)={reward:.4f}")
+
+        self.last_owner = owner
+        self.rewards_history.append(reward)
+        self.rewards_num = 3
+        return reward
+
+    def decide(self, observation=None):
+        goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
+        if self.env.network_switcher == "keyboard":
+            self.change_network_based_on_key()
+        else:
+            if self.current_network == 0:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_opened(gripper_states):
+                        self.current_network = 1
+            if self.current_network == 1:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        self.current_network = 2
+        if self.current_network == 2:
+            if self.object_near_goal(object_position, goal_position):
+                self.task.check_goal()
+
+        # Change after 100 and 250 steps:
+        # if self.env.episode_steps == 100:
+        #     print("changed network to 1")
+        #     self.current_network = 1
+        # elif self.env.episode_steps == 250:
+        #     self.current_network = 2
+        #     print("changed network to 2")
+
+        # Random
+        # self.current_network=np.random.randint(0, self.num_networks)
         self.task.check_episode_steps()
         return self.current_network
