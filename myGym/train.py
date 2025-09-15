@@ -77,7 +77,8 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"],
                      "natural_language": bool(arg_dict["natural_language"]),
-                     "training": bool(for_train)
+                     "training": bool(for_train), "max_episode_steps": arg_dict["max_episode_steps"],
+                     "gui_on": arg_dict["gui"]
                      }
 
     if "network_switcher" in arg_dict.keys():

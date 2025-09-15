@@ -19,7 +19,7 @@ class Robot(EnvObject):
         :param robot: (string) Type of robot to train in the environment (kuka, panda, ur3, ...)
         :param position: (list) Position of the robot's base link in the coordinate frame of the environment ([x,y,z])
         :param orientation: (list) Orientation of the robot's base link in the coordinate frame of the environment (Euler angles [x,y,z])
-        :param end_effector_index: (int) Index of the robot's end-effector link. For myGym prepared robots this is assigned automatically.  
+        :param end_effector_index: (int) Index of the robot's end-effector link. For myGym prepared robots this is assigned automatically.
         :param gripper_index: (int) Index of the robot's gripper link. For myGym prepared robots this is assigned automatically.
         :param init_joint_poses: (list) Configuration in which robot will be initialized in the environment. Specified either in joint space as list of joint poses or in the end-effector space as [x,y,z] coordinates.
         :param robot_action: (string) Mechanism of robot control (absolute, step, joints)
@@ -33,12 +33,11 @@ class Robot(EnvObject):
     def __init__(self,
                  robot='kuka',
                  position=[-0.1, 0.0, 0.07], orientation=[0, 0, 0],
-                 end_effector_index=None, gripper_index=None, 
+                 end_effector_index=None, gripper_index=None,
                  init_joint_poses=None,
                  robot_action="step",
                  task_type="reach",
                  use_fixed_end_effector_orn=False,
-                 end_effector_orn=[0, 0, 0],
                  dimension_velocity = 0.5,
                  max_velocity = None, #1.,
                  max_force = None, #50.,
@@ -62,7 +61,8 @@ class Robot(EnvObject):
         self.end_effector_index = end_effector_index
         self.gripper_index = gripper_index
         self.use_fixed_end_effector_orn = use_fixed_end_effector_orn
-        self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(end_effector_orn)
+        if use_fixed_end_effector_orn is not None and use_fixed_end_effector_orn:
+            self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(use_fixed_end_effector_orn)
         self.dimension_velocity = dimension_velocity
         self.reachable_range_from_base = self.get_reachable_range()
         self.use_magnet = False
@@ -84,12 +84,21 @@ class Robot(EnvObject):
         self._load_robot()
         self.num_joints = self.p.getNumJoints(self.uid)
         self._set_motors()
-        self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)       
+        self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
-        self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
+        if "tiago" in self.name:
+            self.init_joint_poses =  self.set_tiago_joints()
+            self.joints_poses = self.init_joint_poses
+        else:
+            self.joint_poses = self.init_joint_poses
+            self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
+        # self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
+        # self.joint_poses = self.init_joint_poses
+        self.opengr_threshold = 0.07
+        self.closegr_threshold = 0.001
 
-    def get_reachable_range(self): 
+    def get_reachable_range(self):
         # this should be updated. either check via simulation or define for each robot separately
         if self.is_humanoid:
             return [[-0.1, 0.5], [0.15, 0.8], [0.6, 1.5]]
@@ -172,14 +181,14 @@ class Robot(EnvObject):
         if self.gripper_index == None:
             print("No gripper detected. Please add gripper joint and link to the URDF file (see panda.urdf for example)")
             exit()
-        
+
         if 'gripper' in self.robot_action and not self.gripper_indices:
             print("Gripper control active but no gripped joints detected. Please add gjoints to the URDF file (see panda.urdf for example)")
             exit()
-        
+
         if 'gripper' not in self.robot_action and self.gripper_indices:
             print("Gripper joints detected but not active gripper control. Setting gripper joints to fixed values")
-        
+
         #    self.motor_indices = [x for x in self.motor_indices if x < self.gripper_index]
         #print(f"Gripper active:{self.gripper_active}")
 
@@ -188,7 +197,7 @@ class Robot(EnvObject):
         if len(contact_points)> 0:
             return True
         return False
-    
+
 
     def reset(self, random_robot=False):
         """
@@ -278,7 +287,7 @@ class Robot(EnvObject):
         for link in range(self.joints_num):
            joints.append(self.p.getJointState(self.uid,link)[0])
         return joints
-    
+
     def get_gjoints_states(self):
         """
         Returns the current positions of all robot's joints
@@ -302,7 +311,7 @@ class Robot(EnvObject):
         """
         Get position and orientation of the robot end effector
 
-        Returns: 
+        Returns:
             :return observation: (list) Position of end-effector link (center of mass)
         """
         observation = []
@@ -318,13 +327,13 @@ class Robot(EnvObject):
         """
         Get robot part of observation data
 
-        Returns: 
+        Returns:
             :return observation: (list) Position of all links (center of mass)
         """
         observation = []
         if "kuka" in self.name:
-            for link in range(self.gripper_index-num, self.gripper_index):  
-            # for link in range(4, self.gripper_index):  
+            for link in range(self.gripper_index-num, self.gripper_index):
+            # for link in range(4, self.gripper_index):
                 state = self.p.getLinkState(self.uid, link)
                 pos = state[0]
                 observation.extend(list(pos))
@@ -338,7 +347,7 @@ class Robot(EnvObject):
         """
         Get position of robot's end-effector link
 
-        Returns: 
+        Returns:
             :return position: (list) Position of end-effector link (center of mass)
         """
         #return self.get_accurate_gripper_position()
@@ -372,13 +381,13 @@ class Robot(EnvObject):
                                     maxVelocity=self.joints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3)
-            
-        
+
+
         self.end_effector_pos = self.p.getLinkState(self.uid, self.end_effector_index)[0]
         self.end_effector_orn = self.p.getLinkState(self.uid, self.end_effector_index)[1]
-        self.gripper_pos = self.p.getLinkState(self.uid, self.gripper_index)[0]  
-        self.gripper_orn = self.p.getLinkState(self.uid, self.gripper_index)[1]  
-    
+        self.gripper_pos = self.p.getLinkState(self.uid, self.gripper_index)[0]
+        self.gripper_orn = self.p.getLinkState(self.uid, self.gripper_index)[1]
+
     def _move_gripper(self, action):
         """
         Move gripper motors towards desired joint poses respecting robot's dynamics
@@ -395,7 +404,7 @@ class Robot(EnvObject):
                                     maxVelocity=self.gjoints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3)
-        
+
         gjoints = self.get_gjoints_states()
         #print(gjoints)
 
@@ -463,7 +472,7 @@ class Robot(EnvObject):
             #reset the joint state (ignoring all dynamics, not recommended to use during simulation)
             for jid in range(len(self.motor_indices)):
                 self.p.resetJointState(self.uid, self.motor_indices[jid], joint_poses[jid])
-                   
+
             ls = self.p.getLinkState(self.uid, self.end_effector_index)
             newPos = ls[4] #world position of the URDF link frame
             newOrn = ls[5] #world orientation of the URDF link frame
@@ -472,7 +481,7 @@ class Robot(EnvObject):
                 diffOrn = np.linalg.norm(np.asarray(self.fixed_end_effector_orn)-np.asarray(newOrn))
             else:
                 diffOrn = 0
-            closeEnough = ((diffPos < thresholdPos) and (diffOrn < thresholdOrn)) 
+            closeEnough = ((diffPos < thresholdPos) and (diffOrn < thresholdOrn))
             iter = iter + 1
         if not closeEnough:
             print(f"WARNING - Intitalization error: pos:{diffPos}, orr:{diffOrn}")
@@ -624,7 +633,7 @@ class Robot(EnvObject):
             :param action: (list) Desired action data
         """
         self._run_motors(action[:(self.joints_num)])
-        
+
     def apply_action_joints_step(self, action):
         """
         Apply action command to robot using joint-step control mechanism
@@ -694,7 +703,7 @@ class Robot(EnvObject):
 
     def magnetize_object(self, object, distance_threshold=.1):
         if len(self.magnetized_objects) == 0 :
-            
+
             if np.linalg.norm(np.asarray(self.get_position()) - np.asarray(object.get_position()[:3])) <= distance_threshold:
                 self.p.changeVisualShape(object.uid, -1, rgbaColor=[.8, .1 , 0.1, 1])
                 #self.end_effector_prev_pos = self.end_effector_pos
@@ -774,4 +783,14 @@ class Robot(EnvObject):
             :return self.uid: Robot's unique ID
         """
         return self.uid
+
+    def set_tiago_joints(self):
+        # Manually selected constant using slider
+        tiago_init = [0.121, -0.047, 0.023, 0.295, -0.064, -0.353, 1.918, 1.662, 0.419, -0.908, 0.088][11-len(self.motor_indices):]
+        for i, idx in enumerate(self.motor_indices):
+            self.p.resetJointState(self.uid, idx, tiago_init[i])
+        self.init_joint_poses = tiago_init
+        self.joint_poses = self.init_joint_poses
+        return tiago_init
+
 
