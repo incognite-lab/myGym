@@ -50,7 +50,7 @@ def distance_reward(point_A, point_B, increase_distance = False) -> float:
     dist = euclidean_distance(point_A, point_B)
     return sgn * dist
 
-def gripper_reward(gripper, obj, open = True) -> float:
+def gripper_reward(gripper, obj=None, open=True) -> float:
     """
     Implements the computation of RDDL's rewards based on the states of the gripper.
     Args:
@@ -64,8 +64,9 @@ def gripper_reward(gripper, obj, open = True) -> float:
     #TODO: This needs to be refactored after discussion
     sgn = 1 if open else -1
     gripper_states = gripper.get_gjoints_states()
-    distance = euclidean_distance(gripper.get_position(), obj.get_position())
-    reward = sgn*sum(gripper_states)*GRIPPER_FACTOR - DIST_FACTOR*distance
+    # distance = euclidean_distance(gripper.get_position(), obj.get_position())
+    # reward = sgn*sum(gripper_states)*GRIPPER_FACTOR - DIST_FACTOR*distance
+    reward = sgn * sum(gripper_states) * GRIPPER_FACTOR
     return reward
 
 def rotate_reward(object, goal):
@@ -87,13 +88,16 @@ NEAR_THRESHOLD = 0.1
 GRIPPER_FACTOR = 1
 DIST_FACTOR = 0.2
 
+from functools import partial
+
 mapping = {
     "is_holding": is_holding,
     "euclidean_distance": euclidean_distance,
     "is_reachable": is_reachable,
     "near_threshold": NEAR_THRESHOLD,
-    "distance_reward": distance_reward,
-    "gripper_reward": gripper_reward,
+    "distance_reward": partial(distance_reward, increase_distance=True),
+    "gripper_open_reward": partial(gripper_reward, open=True),
+    "gripper_close_reward": partial(gripper_reward, open=False),
     "rotate_reward": rotate_reward,
     "gripper_at": lambda g, o: all(g.location == o.location),
     "gripper_open": lambda g: np.random.random() < 0.5,
@@ -211,7 +215,7 @@ class Mustard(GraspableObject, EnvObject):
         kw["rgba"] = self.rgba
         super().__init__(self._get_generic_reference() if reference is None else reference, "mustard", **kw)
         self._kind = kind
-        
+
 class Meatcan(GraspableObject, EnvObject):
 
     def __init__(self, reference: Optional[str] = None, kind: str = "", **kw):
@@ -341,8 +345,6 @@ class RobotGripper(Gripper, Robot):
 
     def __init__(self, reference: Optional[str] = None, **kw):
         super().__init__("gripper_robot" if reference is None else reference, **kw)
-
-
 
 
 # @pytest.fixture

@@ -343,7 +343,7 @@ class GymEnv(CameraEnv):
             self.nl_text_id = self.p.addUserDebugText(self.nl.get_previously_generated_subtask_description(), [2, 0, 1], textSize=1)
             if only_subtask and self.nl_text_id is not None:
                 self.p.removeUserDebugItem(self.nl_text_id)
-        info = {'d': 0.9, 'f': 0, 'o': self._observation} 
+        info = {'d': 0.9, 'f': 0, 'o': self._observation}
         return (np.asarray(self._observation.copy(), dtype="float32"), info)
 
     def _set_cameras(self):
@@ -403,9 +403,9 @@ class GymEnv(CameraEnv):
         if self.dataset:
             reward, terminated, truncated, info = 0, False, False, {}
         else:
-            rew = self.compute_reward()  # this uses rddl protoaction, no arguments needed
-            reward = self.normalize_reward(rew)
-            self.reward_history.append(rew)
+            reward = self.compute_reward()  # this uses rddl protoaction, no arguments needed
+            # reward = self.normalize_reward(reward)
+            self.reward_history.append(reward)
             self.episode_reward += reward
             done = self.task.rddl_task.current_action.goal.decide() #@TODO replace with actual is_done value from RDDL
             info = {'d': 0.9, 'f': int(self.episode_failed),
@@ -416,7 +416,7 @@ class GymEnv(CameraEnv):
         # return self._observation, reward, done, truncated, info
         truncated = False #not sure when to use this
         return np.asarray(self._observation.copy(), dtype="float32"), reward, done, truncated,info
-    
+
     def normalize_reward(self, current_reward):
         """Normalize the current reward with respect to previous rewards
 
@@ -427,7 +427,9 @@ class GymEnv(CameraEnv):
             past_reward = current_reward
         else:
             past_reward = self.reward_history[-1]
-        norm_diff = (past_reward - current_reward) / past_reward
+        if past_reward == 0:  # handling cases where past reward is 0
+            return current_reward
+        norm_diff = (past_reward - current_reward) / (past_reward)
         return norm_diff
 
     def get_linkstates_unpacked(self):
@@ -438,7 +440,7 @@ class GymEnv(CameraEnv):
 
     def check_obs_template(self):
         """
-        @TODO Add smart and variable observation space constructor based on config? 
+        @TODO Add smart and variable observation space constructor based on config?
 
         Returns:
             :return obsdim: (int) Dimensionality of observation
@@ -472,7 +474,7 @@ class GymEnv(CameraEnv):
                 self.human.point_finger_at(position=self.task_objects["goal_state"].get_position())
             self.p.stepSimulation()
         self.episode_steps += 1
-        
+
     def choose_goal_object_by_human_with_keys(self, objects: List[EnvObject]) -> EnvObject:
         self.text_id = self.p.addUserDebugText("Point the human's finger via arrow keys at the goal object and press enter", [1, 0, 0.5], textSize=1)
         move_factor = 10  # times 1 cm
