@@ -49,7 +49,6 @@ class Robot:
         # self.gripper_dict = get_gripper_dict()[self.name]
         self.robot_path = self.robot_dict[robot]['path']
         self.position = np.array(position) + self.robot_dict[robot].get('position',np.zeros(len(position)))
-        # TODO: delete addition to base position - only used for debugging
         self.p.setPhysicsEngineParameter(enableFileCaching=0)
         #self.position[2] += 0.2
         self.orientation = self.p.getQuaternionFromEuler(np.array(orientation) +
@@ -79,6 +78,14 @@ class Robot:
         self._load_robot()
         self.num_joints = self.p.getNumJoints(self.robot_uid)
         self._set_motors()
+        box_initial_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)
+        box_size = 0.03
+        # self.box_id = self.p.createMultiBody(
+        #     baseMass=0,  # Set mass to 0 if it's only visual
+        #     baseCollisionShapeIndex=-1,  # No collision shape
+        #     baseVisualShapeIndex=self.p.createVisualShape(self.p.GEOM_BOX, halfExtents=[box_size / 2] * 3,
+        #                                                   rgbaColor=[1, 0.0, 0.0, 0.8]),  # Visual shape only
+        #     basePosition=box_initial_pos)
         self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
@@ -99,6 +106,7 @@ class Robot:
         else:
             self.orientation_in_rew = False
         self.offset_quat = self.p.getQuaternionFromEuler((0, 0, 0))
+
         
 
     def _load_robot(self):
@@ -121,6 +129,7 @@ class Robot:
         # if 'jaco' in self.name: #@TODO jaco gripper has closed loop between finger and finger_tip that is not respected by the simulator
         #     self.p.createConstraint(self.robot_uid, 11, self.robot_uid, 15, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0], [0, 0, 0])
         #     self.p.createConstraint(self.robot_uid, 13, self.robot_uid, 17, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0], [0, 0, 0])
+
 
     def _set_motors(self):
         """
@@ -223,6 +232,7 @@ class Robot:
         for jid in range(len(self.motor_indices)):
             self.p.resetJointState(self.robot_uid, self.motor_indices[jid], joint_poses[jid])
         self._run_motors(joint_poses)
+
 
     def get_joints_limits(self,indices):
         """
@@ -367,7 +377,8 @@ class Robot:
                                     force=1000,
                                     maxVelocity=self.joints_max_velo[i],
                                     positionGain=0.7,
-                                    velocityGain=0.3)
+                                    velocityGain=0.3
+                                    )
             if joint_type == self.p.JOINT_PRISMATIC:
                 pos = self.p.getJointState(self.robot_uid, joint_idx)[0]
                 # if pos < lower_limit or pos > upper_limit:
@@ -594,6 +605,8 @@ class Robot:
         """
         des_end_effector_pos = action[:3]
         # action[2] += 0.1 #OFFSET
+        # des_end_effector_pos = [0.168, -0.084, 0.221]
+        # self.p.resetBasePositionAndOrientation(self.box_id, des_end_effector_pos, [0, 0, 0, 1])
         if len(action) == 9:
             des_endeff_orientation = self.gripper_transform(action[3:7])
         else:

@@ -315,9 +315,10 @@ def main():
 
             target_pos = [
                 p.readUserDebugParameter(x_slider),
-                p.readUserDebugParameter(y_slider), 
+                p.readUserDebugParameter(y_slider),
                 p.readUserDebugParameter(z_slider)
             ]
+            # target_pos =[0.168, -0.084, 0.221]
             # Use main orientation sliders
             roll = p.readUserDebugParameter(roll_slider)
             pitch = p.readUserDebugParameter(pitch_slider)

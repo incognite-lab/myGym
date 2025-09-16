@@ -56,7 +56,7 @@
 			<origin rpy="0 0 0" xyz="0 0.000266 0.050352"/>
 		</inertial>
 	</link>
-	<joint name="head_z" type="revolute">
+	<joint name="head_z" type="fixed">
 		<parent link="torso"/>
 		<child link="neck"/>
 		<origin rpy="0 0 0" xyz="-0.025 0.000 0.23"/>
@@ -85,7 +85,7 @@
 			<origin rpy="0 0 0" xyz="0.01525 -0.023771 0.09423"/>
 		</inertial>
 	</link>
-	<joint name="head_y" type="revolute">
+	<joint name="head_y" type="fixed">
 		<parent link="neck"/>
 		<child link="head"/>
 		<origin rpy="0 -0.69 0" xyz="0 0.0 0.105"/>
@@ -424,7 +424,7 @@
 		    <inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
 		</inertial>
     </link>
-    <joint name="r_thumb_x_joint" type="revolute">
+    <joint name="r_thumb_x_joint" type="fixed">
         <parent link="gripper"/>
         <child link="thumb_intermediate_link"/>
         <origin rpy="-0.3 1 1.4" xyz="0.008 -0.020 -0.028"/>
@@ -462,7 +462,7 @@
 			<origin rpy="0 0 0" xyz="0.005637 0.000876 0.033153"/>
 		</inertial>
 	</link>
-	<joint name="l_shoulder_z" type="revolute">
+	<joint name="l_shoulder_z" type="fixed">
 		<parent link="torso"/>
 		<child link="left_shoulder"/>
 		<origin rpy="0 0 0" xyz="0.000 0.040 0.23"/>
@@ -491,7 +491,7 @@
 			<origin rpy="0 0 0" xyz="-0 -0.041345 -0.002364"/>
 		</inertial>
 	</link>
-	<joint name="l_shoulder_y" type="revolute">
+	<joint name="l_shoulder_y" type="fixed">
 		<parent link="left_shoulder"/>
 		<child link="left_collarbone"/>
 		<origin rpy="0 0 0" xyz="-0.021 0.023 0.033"/>
@@ -520,7 +520,7 @@
 			<origin rpy="0 0 0" xyz="-0.02306 -0.000321 -0.0866"/>
 		</inertial>
 	</link>
-	<joint name="l_arm_x" type="revolute">
+	<joint name="l_arm_x" type="fixed">
 		<parent link="left_collarbone"/>
 		<child link="left_upper_arm"/>
 		<origin rpy="0 0 0" xyz="0.00 0.073 -0.023"/>
@@ -549,7 +549,7 @@
 			<origin rpy="0 0 0" xyz="0 0.022485 -0.081055"/>
 		</inertial>
 	</link>
-	<joint name="l_elbow_y" type="revolute">
+	<joint name="l_elbow_y" type="fixed">
 		<parent link="left_upper_arm"/>
 		<child link="left_lower_arm"/>
 		<origin rpy="0 3.14 0" xyz="0.0 0 -0.17"/>
@@ -578,7 +578,7 @@
 			<origin rpy="0 0 0" xyz="0.000031 -0.011056 -0.0675"/>
 		</inertial>
 	</link>
-	<joint name="l_wrist_z" type="revolute">
+	<joint name="l_wrist_z" type="fixed">
 		<parent link="left_lower_arm"/>
 		<child link="left_wrist"/>
 		<origin rpy="0 0 1.5707" xyz="0 0 -0.105"/>
@@ -607,7 +607,7 @@
 			<origin rpy="0 0 0" xyz="-0.029511 0.002253 -0.023968"/>
 		</inertial>
 	</link>
-	<joint name="l_wrist_x" type="revolute">
+	<joint name="l_wrist_x" type="fixed">
 		<parent link="left_wrist"/>
 		<child link="left_palm"/>
 		<origin rpy="0 0 0" xyz="0 0 -0.10"/>
@@ -700,21 +700,21 @@
 			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
 		</inertial>
 	</link>
-	<joint name="l_middlefingers_x" type="revolute">
+	<joint name="l_middlefingers_x" type="fixed">
 		<parent link="left_palm"/>
 		<child link="l_middlefinger"/>
 		<origin rpy="0 0 0" xyz="0 0 -0.06"/>
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
 	</joint>
-	<joint name="l_litlefinger_x" type="revolute">
+	<joint name="l_litlefinger_x" type="fixed">
 		<parent link="left_palm"/>
 		<child link="l_littlefinger"/>
 		<origin rpy="0 0 0" xyz="0.00 0.02 -0.06"/>
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
 	</joint>
-	<joint name="l_indexfinger_x" type="revolute">
+	<joint name="l_indexfinger_x" type="fixed">
 		<parent link="left_palm"/>
 		<child link="l_indexfinger"/>
 		<origin rpy="0 0 0" xyz="0.00 -0.02 -0.06"/>
@@ -750,7 +750,7 @@
 		    <inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
 		</inertial>
     </link>
-    <joint name="l_thumb_x" type="revolute">
+    <joint name="l_thumb_x" type="fixed">
         <parent link="left_palm"/>
         <child link="l_thumb_intermediate_link"/>
         <origin rpy="0.3 1 1.4" xyz="-0.008 -0.020 -0.028"/>
@@ -758,7 +758,7 @@
         <limit effort="30" lower="-2.57" upper="0" velocity="1"/>
     </joint>
 
-    <joint name="l_thumb_z" type="revolute">
+    <joint name="l_thumb_z" type="fixed">
         <parent link="l_thumb_intermediate_link"/>
         <child link="left_thumb"/>
         <origin rpy="0 0 0" xyz="0 0 0"/>
