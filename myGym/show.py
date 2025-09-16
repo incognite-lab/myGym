@@ -361,6 +361,760 @@ def cli_select(entries: List[Entry]) -> Optional[Entry]:
         print("Invalid selection.")
 
 
+def _normalize_sr(sr: Optional[float]) -> Optional[float]:
+    """Normalize success rate to percentage scale [0, 100]. Accepts None.
+    If value appears to be in [0,1], multiply by 100. Clamp to [0, 100]."""
+    if sr is None:
+        return None
+    try:
+        v = float(sr)
+    except Exception:
+        return None
+    if 0.0 <= v <= 1.0:
+        v *= 100.0
+    v = max(0.0, min(100.0, v))
+    return v
+
+
+def _deep_find_first_str(obj: Any, key_names: set[str]) -> Optional[str]:
+    """Recursively search for the first string value under any of the keys in key_names."""
+    try:
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                lk = str(k).lower()
+                if lk in key_names and isinstance(v, str) and v:
+                    return v
+            for v in obj.values():
+                found = _deep_find_first_str(v, key_names)
+                if found:
+                    return found
+        elif isinstance(obj, list):
+            for it in obj:
+                found = _deep_find_first_str(it, key_names)
+                if found:
+                    return found
+    except Exception:
+        pass
+    return None
+
+
+def _extract_robot_task(config_path: str, rel_dir: str) -> tuple[str, str]:
+    """Try to extract (robot, task) from train.json content; fallback to path heuristics."""
+    robot: Optional[str] = None
+    task: Optional[str] = None
+    # Try reading config JSON
+    try:
+        with open(config_path, 'r') as f:
+            cfg = json.load(f)
+        robot = _deep_find_first_str(cfg, {"robot", "robot_name", "robotname", "manipulator", "arm"})
+        task = _deep_find_first_str(cfg, {"task", "task_type", "tasktype", "task_name", "taskname"})
+        if task is None:
+            env_id = _deep_find_first_str(cfg, {"env_id", "envid", "env"})
+            if env_id and isinstance(env_id, str):
+                parts = [p for p in env_id.replace("/", "-").split('-') if p]
+                if parts:
+                    # assume first token is task
+                    task = parts[0]
+                if len(parts) >= 2 and robot is None:
+                    # assume second token may be robot
+                    robot = parts[1]
+    except Exception:
+        pass
+    # Fallback to path-based heuristics
+    if not robot or not task:
+        parts = [p for p in rel_dir.split(os.sep) if p]
+        if not robot and parts:
+            robot = parts[0]
+        if not task:
+            if len(parts) >= 2:
+                task = parts[1]
+            elif parts:
+                task = parts[-1]
+    # Final defaults
+    robot = (robot or "unknown").strip()
+    task = (task or "unknown").strip()
+    return robot, task
+
+
+def _extract_algo(config_path: str, rel_dir: str) -> Optional[str]:
+    """Extract algorithm name; normalize to 'multippo' or 'ppo' if found, else None."""
+    def norm(name: str) -> Optional[str]:
+        s = name.lower()
+        if 'multippo' in s or ('multi' in s and 'ppo' in s):
+            return 'multippo'
+        if 'ppo' in s:
+            return 'ppo'
+        return None
+    # Try config JSON
+    try:
+        with open(config_path, 'r') as f:
+            cfg = json.load(f)
+        cand = _deep_find_first_str(cfg, {"algo", "algorithm", "algorithm_name", "agent", "trainer", "policy", "name"})
+        if cand:
+            n = norm(cand)
+            if n:
+                return n
+    except Exception:
+        pass
+    # Fallback: path heuristics
+    rel = rel_dir.lower()
+    # check segments and common separators
+    tokens: list[str] = []
+    for seg in rel.split(os.sep):
+        tokens.extend(seg.replace('-', '_').split('_'))
+    joined = ' '.join(tokens)
+    n = norm(joined)
+    return n
+
+
+def run_visualize(train_json_path: str):
+    file_dir = os.path.dirname(os.path.abspath(train_json_path))
+    parent_dir = os.path.dirname(file_dir)
+    target_path = parent_dir if parent_dir else file_dir
+    try:
+        print(f"\n[VIS] Running visualization for base path {target_path} (from {train_json_path})")
+        subprocess.run([sys.executable, 'visualize_results.py', '--pth', target_path], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"[VIS][ERROR] visualize_results.py exited with {e.returncode}")
+    except FileNotFoundError:
+        print("[VIS][ERROR] visualize_results.py not found.")
+
+
+def run_visualize_current(train_json_path: str):
+    file_dir = os.path.dirname(os.path.abspath(train_json_path))
+    try:
+        print(f"\n[VIS] Running visualization for path {file_dir} (no parent exclusion)")
+        subprocess.run([sys.executable, 'visualize_results.py', '--pth', file_dir], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"[VIS][ERROR] visualize_results.py exited with {e.returncode}")
+    except FileNotFoundError:
+        print("[VIS][ERROR] visualize_results.py not found.")
+
+
+def _extract_eval_metrics(eval_path: str) -> tuple[Optional[int], Optional[float]]:
+    """Robustly extract last episode index and success rate from evaluation_results.json.
+
+    Supports formats:
+      1. Single dict with keys 'episodes' (list of dicts) or 'history'.
+      2. Single dict with scalar 'episode' / 'last_episode' and 'success_rate'.
+      3. List of episode dicts directly.
+      4. Newline-delimited JSON objects (each a dict) -> use last valid line.
+      5. Mixed: list of numbers for success rates under 'success_rate_history'.
+    """
+    try:
+        with open(eval_path, 'r') as f:
+            raw = f.read().strip()
+        last_ep: Optional[int] = None
+        success: Optional[float] = None
+
+        def norm_ep(v):
+            try:
+                return int(v)
+            except Exception:
+                return None
+        def norm_sr(v):
+            try:
+                return float(v)
+            except Exception:
+                return None
+
+        parsed = None
+        # Try full-file JSON parse first
+        try:
+            parsed = json.loads(raw)
+        except Exception:
+            # Fallback: treat as newline-delimited JSON objects
+            lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+            for ln in reversed(lines):
+                try:
+                    obj = json.loads(ln)
+                    parsed = obj
+                    break
+                except Exception:
+                    continue
+        if parsed is None:
+            return None, None
+
+        # Case: dict
+        if isinstance(parsed, dict):
+            # Direct keys first
+            if 'success_rate' in parsed:
+                success = norm_sr(parsed.get('success_rate'))
+            elif 'successRate' in parsed:
+                success = norm_sr(parsed.get('successRate'))
+            # Historical success list
+            if success is None:
+                sr_hist = parsed.get('success_rate_history') or parsed.get('successRateHistory')
+                if isinstance(sr_hist, list) and sr_hist:
+                    success = norm_sr(sr_hist[-1])
+            # Episodes style lists
+            episodes = parsed.get('episodes') or parsed.get('history') or parsed.get('evaluations')
+            if isinstance(episodes, list) and episodes:
+                for item in reversed(episodes):
+                    if isinstance(item, dict):
+                        if last_ep is None:
+                            last_ep = norm_ep(item.get('episode') or item.get('id') or item.get('iter'))
+                        if success is None:
+                            success = norm_sr(item.get('success_rate') or item.get('success') or item.get('sr'))
+                        if last_ep is not None and success is not None:
+                            break
+            # Fallback scalar keys
+            if last_ep is None:
+                last_ep = norm_ep(parsed.get('last_episode') or parsed.get('episode') or parsed.get('epoch'))
+            # NEW: handle dictionary-of-evaluations pattern (keys like evaluation_after_XXXX_steps)
+            if last_ep is None and success is None:
+                eval_blocks = []
+                for k, v in parsed.items():
+                    if isinstance(v, dict) and ('episode' in v or 'success_rate' in v or 'successRate' in v):
+                        ep_candidate = norm_ep(v.get('episode'))
+                        sr_candidate = norm_sr(v.get('success_rate') or v.get('successRate'))
+                        if ep_candidate is not None:
+                            eval_blocks.append((ep_candidate, sr_candidate))
+                if eval_blocks:
+                    # pick the block with the largest episode number
+                    eval_blocks.sort(key=lambda x: (x[0] is None, x[0]))  # None episodes last
+                    last_ep, success_candidate = eval_blocks[-1]
+                    if success is None:
+                        success = success_candidate
+        # Case: list
+        elif isinstance(parsed, list) and parsed:
+            # Assume list of dicts or list of scalar success rates
+            for item in reversed(parsed):
+                if isinstance(item, dict):
+                    if last_ep is None:
+                        last_ep = norm_ep(item.get('episode') or item.get('id') or item.get('iter'))
+                    if success is None:
+                        success = norm_sr(item.get('success_rate') or item.get('success') or item.get('sr'))
+                    if last_ep is not None and success is not None:
+                        break
+                else:  # scalar
+                    if success is None:
+                        success = norm_sr(item)
+                        # episode index maybe implicit length
+                        last_ep = len(parsed)
+                        break
+        return last_ep, success
+    except Exception:
+        return None, None
+
+
+def scan(root: str, target_name: str, recursive: bool) -> List[Entry]:
+    entries: List[Entry] = []
+    i = 0
+    if recursive:
+        for dirpath, _, filenames in os.walk(root):
+            if target_name in filenames:
+                full = os.path.join(dirpath, target_name)
+                rel = os.path.relpath(full, root)
+                eval_path = os.path.join(dirpath, EVAL_RESULTS_FILENAME)
+                last_ep, succ = _extract_eval_metrics(eval_path) if os.path.isfile(eval_path) else (None, None)
+                entries.append(Entry(i, full, rel, last_ep, succ))
+                i += 1
+    else:
+        for f in os.listdir(root):
+            full_dir = os.path.join(root, f)
+            if os.path.isdir(full_dir):
+                full = os.path.join(full_dir, target_name)
+                if os.path.isfile(full):
+                    eval_path = os.path.join(full_dir, EVAL_RESULTS_FILENAME)
+                    last_ep, succ = _extract_eval_metrics(eval_path) if os.path.isfile(eval_path) else (None, None)
+                    rel = os.path.relpath(full, root)
+                    entries.append(Entry(i, full, rel, last_ep, succ))
+                    i += 1
+    return entries
+
+
+def run_test(config_path: str, dry: bool, extra: List[str], g_value: Optional[str]):
+    cmd = [sys.executable, 'test.py', '--config', config_path]
+    # Only add -g if not already provided in extra
+    if all(arg != '-g' for arg in extra) and g_value is not None:
+        cmd += ['-g', g_value]
+    cmd += extra
+    print(f"\nRunning: {' '.join(cmd)}")
+    if dry:
+        print("(dry-run) Not executing.")
+        return
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"test.py exited with non-zero status {e.returncode}")
+
+
+def cli_select(entries: List[Entry]) -> Optional[Entry]:
+    if not entries:
+        print("No train.json files found.")
+        return None
+    print("Discovered configurations:")
+    for e in entries:
+        ep = _format_steps(e.last_episode)
+        sr = _format_success(e.success_rate)
+        dir_path = os.path.dirname(e.rel)
+        dt = _format_mtime(e.path)
+        print(f"[{e.idx}] {dir_path}  ({dt} {ep} {sr})")
+    print("Type index to run, 's <index>' to show that evaluation_results.json, 'v <index>' to visualize, 'c <index>' to visualize (no parent), 'd <index>' to delete directory, or q to quit.")
+    while True:
+        raw = input("Select index / command: ").strip().lower()
+        if not raw:
+            continue
+        if raw in ('q','quit','exit'):
+            print("Exiting.")
+            sys.exit(0)
+        if raw.startswith('s'):
+            parts = raw.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                idx = int(parts[1])
+                if 0 <= idx < len(entries):
+                    entry = entries[idx]
+                    eval_path = os.path.join(os.path.dirname(entry.path), EVAL_RESULTS_FILENAME)
+                    if os.path.isfile(eval_path):
+                        print(f"--- {eval_path} (episode & success_rate) ---")
+                        for line in _filter_episode_success(eval_path):
+                            print(line)
+                        print("--- end ---")
+                    else:
+                        print("[INFO] evaluation_results.json not found for this entry.")
+                else:
+                    print("Invalid index for show command.")
+            else:
+                print("Usage: s <index>")
+            continue
+        if raw.startswith('v'):
+            parts = raw.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                idx = int(parts[1])
+                if 0 <= idx < len(entries):
+                    run_visualize(entries[idx].path)
+                else:
+                    print("Invalid index for visualize command.")
+            else:
+                print("Usage: v <index>")
+            continue
+        if raw.startswith('c'):
+            parts = raw.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                idx = int(parts[1])
+                if 0 <= idx < len(entries):
+                    run_visualize_current(entries[idx].path)
+                else:
+                    print("Invalid index for visualize command.")
+            else:
+                print("Usage: c <index>")
+            continue
+        if raw.startswith('d'):
+            parts = raw.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                idx = int(parts[1])
+                if 0 <= idx < len(entries):
+                    entry = entries[idx]
+                    target_dir = os.path.dirname(entry.path)
+                    confirm = input(f"Delete directory '{target_dir}'? This cannot be undone! (y/N): ").strip().lower()
+                    if confirm == 'y':
+                        try:
+                            shutil.rmtree(target_dir)
+                            print(f"Deleted {target_dir}")
+                            # remove from list and reindex
+                            entries[:] = [e for e in entries if os.path.exists(e.path)]
+                            for i, e in enumerate(entries):
+                                e.idx = i
+                            # reprint list
+                            print("Updated configurations:")
+                            for e in entries:
+                                ep = _format_steps(e.last_episode)
+                                sr = _format_success(e.success_rate)
+                                dir_path = os.path.dirname(e.rel)
+                                dt = _format_mtime(e.path) if os.path.exists(e.path) else 'DELETED'
+                                print(f"[{e.idx}] {dir_path}  ({dt} {ep} {sr})")
+                        except Exception as ex:
+                            print(f"[ERROR] Failed to delete: {ex}")
+                else:
+                    print("Invalid index for delete command.")
+            else:
+                print("Usage: d <index>")
+            continue
+        if raw.isdigit():
+            idx = int(raw)
+            if 0 <= idx < len(entries):
+                return entries[idx]
+        print("Invalid selection.")
+
+
+def _normalize_sr(sr: Optional[float]) -> Optional[float]:
+    """Normalize success rate to percentage scale [0, 100]. Accepts None.
+    If value appears to be in [0,1], multiply by 100. Clamp to [0, 100]."""
+    if sr is None:
+        return None
+    try:
+        v = float(sr)
+    except Exception:
+        return None
+    if 0.0 <= v <= 1.0:
+        v *= 100.0
+    v = max(0.0, min(100.0, v))
+    return v
+
+
+def _deep_find_first_str(obj: Any, key_names: set[str]) -> Optional[str]:
+    """Recursively search for the first string value under any of the keys in key_names."""
+    try:
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                lk = str(k).lower()
+                if lk in key_names and isinstance(v, str) and v:
+                    return v
+            for v in obj.values():
+                found = _deep_find_first_str(v, key_names)
+                if found:
+                    return found
+        elif isinstance(obj, list):
+            for it in obj:
+                found = _deep_find_first_str(it, key_names)
+                if found:
+                    return found
+    except Exception:
+        pass
+    return None
+
+
+def _extract_robot_task(config_path: str, rel_dir: str) -> tuple[str, str]:
+    """Try to extract (robot, task) from train.json content; fallback to path heuristics."""
+    robot: Optional[str] = None
+    task: Optional[str] = None
+    # Try reading config JSON
+    try:
+        with open(config_path, 'r') as f:
+            cfg = json.load(f)
+        robot = _deep_find_first_str(cfg, {"robot", "robot_name", "robotname", "manipulator", "arm"})
+        task = _deep_find_first_str(cfg, {"task", "task_type", "tasktype", "task_name", "taskname"})
+        if task is None:
+            env_id = _deep_find_first_str(cfg, {"env_id", "envid", "env"})
+            if env_id and isinstance(env_id, str):
+                parts = [p for p in env_id.replace("/", "-").split('-') if p]
+                if parts:
+                    # assume first token is task
+                    task = parts[0]
+                if len(parts) >= 2 and robot is None:
+                    # assume second token may be robot
+                    robot = parts[1]
+    except Exception:
+        pass
+    # Fallback to path-based heuristics
+    if not robot or not task:
+        parts = [p for p in rel_dir.split(os.sep) if p]
+        if not robot and parts:
+            robot = parts[0]
+        if not task:
+            if len(parts) >= 2:
+                task = parts[1]
+            elif parts:
+                task = parts[-1]
+    # Final defaults
+    robot = (robot or "unknown").strip()
+    task = (task or "unknown").strip()
+    return robot, task
+
+
+def _extract_algo(config_path: str, rel_dir: str) -> Optional[str]:
+    """Extract algorithm name; normalize to 'multippo' or 'ppo' if found, else None."""
+    def norm(name: str) -> Optional[str]:
+        s = name.lower()
+        if 'multippo' in s or ('multi' in s and 'ppo' in s):
+            return 'multippo'
+        if 'ppo' in s:
+            return 'ppo'
+        return None
+    # Try config JSON
+    try:
+        with open(config_path, 'r') as f:
+            cfg = json.load(f)
+        cand = _deep_find_first_str(cfg, {"algo", "algorithm", "algorithm_name", "agent", "trainer", "policy", "name"})
+        if cand:
+            n = norm(cand)
+            if n:
+                return n
+    except Exception:
+        pass
+    # Fallback: path heuristics
+    rel = rel_dir.lower()
+    # check segments and common separators
+    tokens: list[str] = []
+    for seg in rel.split(os.sep):
+        tokens.extend(seg.replace('-', '_').split('_'))
+    joined = ' '.join(tokens)
+    n = norm(joined)
+    return n
+
+
+def run_visualize(train_json_path: str):
+    file_dir = os.path.dirname(os.path.abspath(train_json_path))
+    parent_dir = os.path.dirname(file_dir)
+    target_path = parent_dir if parent_dir else file_dir
+    try:
+        print(f"\n[VIS] Running visualization for base path {target_path} (from {train_json_path})")
+        subprocess.run([sys.executable, 'visualize_results.py', '--pth', target_path], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"[VIS][ERROR] visualize_results.py exited with {e.returncode}")
+    except FileNotFoundError:
+        print("[VIS][ERROR] visualize_results.py not found.")
+
+
+def run_visualize_current(train_json_path: str):
+    file_dir = os.path.dirname(os.path.abspath(train_json_path))
+    try:
+        print(f"\n[VIS] Running visualization for path {file_dir} (no parent exclusion)")
+        subprocess.run([sys.executable, 'visualize_results.py', '--pth', file_dir], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"[VIS][ERROR] visualize_results.py exited with {e.returncode}")
+    except FileNotFoundError:
+        print("[VIS][ERROR] visualize_results.py not found.")
+
+
+def _extract_eval_metrics(eval_path: str) -> tuple[Optional[int], Optional[float]]:
+    """Robustly extract last episode index and success rate from evaluation_results.json.
+
+    Supports formats:
+      1. Single dict with keys 'episodes' (list of dicts) or 'history'.
+      2. Single dict with scalar 'episode' / 'last_episode' and 'success_rate'.
+      3. List of episode dicts directly.
+      4. Newline-delimited JSON objects (each a dict) -> use last valid line.
+      5. Mixed: list of numbers for success rates under 'success_rate_history'.
+    """
+    try:
+        with open(eval_path, 'r') as f:
+            raw = f.read().strip()
+        last_ep: Optional[int] = None
+        success: Optional[float] = None
+
+        def norm_ep(v):
+            try:
+                return int(v)
+            except Exception:
+                return None
+        def norm_sr(v):
+            try:
+                return float(v)
+            except Exception:
+                return None
+
+        parsed = None
+        # Try full-file JSON parse first
+        try:
+            parsed = json.loads(raw)
+        except Exception:
+            # Fallback: treat as newline-delimited JSON objects
+            lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+            for ln in reversed(lines):
+                try:
+                    obj = json.loads(ln)
+                    parsed = obj
+                    break
+                except Exception:
+                    continue
+        if parsed is None:
+            return None, None
+
+        # Case: dict
+        if isinstance(parsed, dict):
+            # Direct keys first
+            if 'success_rate' in parsed:
+                success = norm_sr(parsed.get('success_rate'))
+            elif 'successRate' in parsed:
+                success = norm_sr(parsed.get('successRate'))
+            # Historical success list
+            if success is None:
+                sr_hist = parsed.get('success_rate_history') or parsed.get('successRateHistory')
+                if isinstance(sr_hist, list) and sr_hist:
+                    success = norm_sr(sr_hist[-1])
+            # Episodes style lists
+            episodes = parsed.get('episodes') or parsed.get('history') or parsed.get('evaluations')
+            if isinstance(episodes, list) and episodes:
+                for item in reversed(episodes):
+                    if isinstance(item, dict):
+                        if last_ep is None:
+                            last_ep = norm_ep(item.get('episode') or item.get('id') or item.get('iter'))
+                        if success is None:
+                            success = norm_sr(item.get('success_rate') or item.get('success') or item.get('sr'))
+                        if last_ep is not None and success is not None:
+                            break
+            # Fallback scalar keys
+            if last_ep is None:
+                last_ep = norm_ep(parsed.get('last_episode') or parsed.get('episode') or parsed.get('epoch'))
+            # NEW: handle dictionary-of-evaluations pattern (keys like evaluation_after_XXXX_steps)
+            if last_ep is None and success is None:
+                eval_blocks = []
+                for k, v in parsed.items():
+                    if isinstance(v, dict) and ('episode' in v or 'success_rate' in v or 'successRate' in v):
+                        ep_candidate = norm_ep(v.get('episode'))
+                        sr_candidate = norm_sr(v.get('success_rate') or v.get('successRate'))
+                        if ep_candidate is not None:
+                            eval_blocks.append((ep_candidate, sr_candidate))
+                if eval_blocks:
+                    # pick the block with the largest episode number
+                    eval_blocks.sort(key=lambda x: (x[0] is None, x[0]))  # None episodes last
+                    last_ep, success_candidate = eval_blocks[-1]
+                    if success is None:
+                        success = success_candidate
+        # Case: list
+        elif isinstance(parsed, list) and parsed:
+            # Assume list of dicts or list of scalar success rates
+            for item in reversed(parsed):
+                if isinstance(item, dict):
+                    if last_ep is None:
+                        last_ep = norm_ep(item.get('episode') or item.get('id') or item.get('iter'))
+                    if success is None:
+                        success = norm_sr(item.get('success_rate') or item.get('success') or item.get('sr'))
+                    if last_ep is not None and success is not None:
+                        break
+                else:  # scalar
+                    if success is None:
+                        success = norm_sr(item)
+                        # episode index maybe implicit length
+                        last_ep = len(parsed)
+                        break
+        return last_ep, success
+    except Exception:
+        return None, None
+
+
+def scan(root: str, target_name: str, recursive: bool) -> List[Entry]:
+    entries: List[Entry] = []
+    i = 0
+    if recursive:
+        for dirpath, _, filenames in os.walk(root):
+            if target_name in filenames:
+                full = os.path.join(dirpath, target_name)
+                rel = os.path.relpath(full, root)
+                eval_path = os.path.join(dirpath, EVAL_RESULTS_FILENAME)
+                last_ep, succ = _extract_eval_metrics(eval_path) if os.path.isfile(eval_path) else (None, None)
+                entries.append(Entry(i, full, rel, last_ep, succ))
+                i += 1
+    else:
+        for f in os.listdir(root):
+            full_dir = os.path.join(root, f)
+            if os.path.isdir(full_dir):
+                full = os.path.join(full_dir, target_name)
+                if os.path.isfile(full):
+                    eval_path = os.path.join(full_dir, EVAL_RESULTS_FILENAME)
+                    last_ep, succ = _extract_eval_metrics(eval_path) if os.path.isfile(eval_path) else (None, None)
+                    rel = os.path.relpath(full, root)
+                    entries.append(Entry(i, full, rel, last_ep, succ))
+                    i += 1
+    return entries
+
+
+def run_test(config_path: str, dry: bool, extra: List[str], g_value: Optional[str]):
+    cmd = [sys.executable, 'test.py', '--config', config_path]
+    # Only add -g if not already provided in extra
+    if all(arg != '-g' for arg in extra) and g_value is not None:
+        cmd += ['-g', g_value]
+    cmd += extra
+    print(f"\nRunning: {' '.join(cmd)}")
+    if dry:
+        print("(dry-run) Not executing.")
+        return
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"test.py exited with non-zero status {e.returncode}")
+
+
+def cli_select(entries: List[Entry]) -> Optional[Entry]:
+    if not entries:
+        print("No train.json files found.")
+        return None
+    print("Discovered configurations:")
+    for e in entries:
+        ep = _format_steps(e.last_episode)
+        sr = _format_success(e.success_rate)
+        dir_path = os.path.dirname(e.rel)
+        dt = _format_mtime(e.path)
+        print(f"[{e.idx}] {dir_path}  ({dt} {ep} {sr})")
+    print("Type index to run, 's <index>' to show that evaluation_results.json, 'v <index>' to visualize, 'c <index>' to visualize (no parent), 'd <index>' to delete directory, or q to quit.")
+    while True:
+        raw = input("Select index / command: ").strip().lower()
+        if not raw:
+            continue
+        if raw in ('q','quit','exit'):
+            print("Exiting.")
+            sys.exit(0)
+        if raw.startswith('s'):
+            parts = raw.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                idx = int(parts[1])
+                if 0 <= idx < len(entries):
+                    entry = entries[idx]
+                    eval_path = os.path.join(os.path.dirname(entry.path), EVAL_RESULTS_FILENAME)
+                    if os.path.isfile(eval_path):
+                        print(f"--- {eval_path} (episode & success_rate) ---")
+                        for line in _filter_episode_success(eval_path):
+                            print(line)
+                        print("--- end ---")
+                    else:
+                        print("[INFO] evaluation_results.json not found for this entry.")
+                else:
+                    print("Invalid index for show command.")
+            else:
+                print("Usage: s <index>")
+            continue
+        if raw.startswith('v'):
+            parts = raw.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                idx = int(parts[1])
+                if 0 <= idx < len(entries):
+                    run_visualize(entries[idx].path)
+                else:
+                    print("Invalid index for visualize command.")
+            else:
+                print("Usage: v <index>")
+            continue
+        if raw.startswith('c'):
+            parts = raw.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                idx = int(parts[1])
+                if 0 <= idx < len(entries):
+                    run_visualize_current(entries[idx].path)
+                else:
+                    print("Invalid index for visualize command.")
+            else:
+                print("Usage: c <index>")
+            continue
+        if raw.startswith('d'):
+            parts = raw.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                idx = int(parts[1])
+                if 0 <= idx < len(entries):
+                    entry = entries[idx]
+                    target_dir = os.path.dirname(entry.path)
+                    confirm = input(f"Delete directory '{target_dir}'? This cannot be undone! (y/N): ").strip().lower()
+                    if confirm == 'y':
+                        try:
+                            shutil.rmtree(target_dir)
+                            print(f"Deleted {target_dir}")
+                            # remove from list and reindex
+                            entries[:] = [e for e in entries if os.path.exists(e.path)]
+                            for i, e in enumerate(entries):
+                                e.idx = i
+                            # reprint list
+                            print("Updated configurations:")
+                            for e in entries:
+                                ep = _format_steps(e.last_episode)
+                                sr = _format_success(e.success_rate)
+                                dir_path = os.path.dirname(e.rel)
+                                dt = _format_mtime(e.path) if os.path.exists(e.path) else 'DELETED'
+                                print(f"[{e.idx}] {dir_path}  ({dt} {ep} {sr})")
+                        except Exception as ex:
+                            print(f"[ERROR] Failed to delete: {ex}")
+                else:
+                    print("Invalid index for delete command.")
+            else:
+                print("Usage: d <index>")
+            continue
+        if raw.isdigit():
+            idx = int(raw)
+            if 0 <= idx < len(entries):
+                return entries[idx]
+        print("Invalid selection.")
+
+
 def curses_select(entries: List[Entry], start_idx: int = 0) -> Optional[Entry]:
     try:
         import curses  # type: ignore
@@ -388,7 +1142,7 @@ def curses_select(entries: List[Entry], start_idx: int = 0) -> Optional[Entry]:
         stdscr.clear()
         h, w = stdscr.getmaxyx()
         stdscr.addstr(0,0, f"Config selector - {len(filtered)}/{len(entries)} (filter: '{filter_text}')")
-        stdscr.addstr(1,0, "Arrows: navigate  Enter: run  r: run+record  s: show eval  v: visualize  c: visualize(cur)  d: delete  /: start filter  BKSP: delete  ESC: clear filter  q: quit")
+        stdscr.addstr(1,0, "Arrows: navigate  Enter: run  r: run+record  s: show eval  v: visualize  c: visualize(cur)  d: delete  t: table  /: start filter  BKSP: delete  ESC: clear filter  q: quit")
         max_visible = h - 3
         start = 0
         if pos >= max_visible:
@@ -425,6 +1179,70 @@ def curses_select(entries: List[Entry], start_idx: int = 0) -> Optional[Entry]:
             stdscr.addstr(h-1, 0, f"-- truncated {len(lines)-max_body} more lines -- press any key --"[:w-1])
         else:
             stdscr.addstr(h-1, 0, "Press any key to return"[:w-1])
+        stdscr.refresh()
+        stdscr.getch()
+
+    def show_table(stdscr):
+        """Render a table of max success rates per (robot, task) across all entries, as multippo/ppo."""
+        stdscr.clear()
+        h, w = stdscr.getmaxyx()
+        # Build aggregation
+        robots_set: set[str] = set()
+        tasks_set: set[str] = set()
+        agg_multi: dict[tuple[str, str], float] = {}
+        agg_ppo: dict[tuple[str, str], float] = {}
+        for e in entries:
+            rel_dir = os.path.dirname(e.rel)
+            robot, task = _extract_robot_task(e.path, rel_dir)
+            algo = _extract_algo(e.path, rel_dir)
+            sr = _normalize_sr(e.success_rate)
+            if sr is None or algo is None:
+                continue
+            robots_set.add(robot)
+            tasks_set.add(task)
+            key = (robot, task)
+            if algo == 'multippo':
+                prev = agg_multi.get(key)
+                if prev is None or sr > prev:
+                    agg_multi[key] = sr
+            elif algo == 'ppo':
+                prev = agg_ppo.get(key)
+                if prev is None or sr > prev:
+                    agg_ppo[key] = sr
+        robots = sorted(robots_set)
+        tasks = sorted(tasks_set)
+        # Header widths (ensure space for "100.0/100.0")
+        first_col = max(5, max((len(r) for r in robots), default=5))
+        col_widths = [max(11, len(t)) for t in tasks]
+        # Compose header
+        header = "Robot".ljust(first_col) + (" " if tasks else "") + " ".join(t.ljust(col_widths[i]) for i, t in enumerate(tasks))
+        stdscr.addstr(0, 0, header[:w-1])
+        # Separator
+        sep = ("-" * min(len(header), w-1))
+        stdscr.addstr(1, 0, sep)
+        # Helper to format pair
+        def fmt_pair(m: Optional[float], p: Optional[float]) -> str:
+            m_str = f"{m:5.1f}" if m is not None else "  -  "
+            p_str = f"{p:5.1f}" if p is not None else "  -  "
+            return f"{m_str}/{p_str}"
+        # Rows
+        max_body = h - 3
+        lines_rendered = 0
+        for r in robots[:max_body]:
+            row_vals = []
+            for i, t in enumerate(tasks):
+                key = (r, t)
+                v_m = agg_multi.get(key)
+                v_p = agg_ppo.get(key)
+                cell_val = fmt_pair(v_m, v_p)
+                row_vals.append(cell_val.rjust(col_widths[i]))
+            line = r.ljust(first_col) + (" " if tasks else "") + " ".join(row_vals)
+            stdscr.addstr(2 + lines_rendered, 0, line[:w-1])
+            lines_rendered += 1
+            if lines_rendered >= max_body:
+                break
+        footer = "Press any key to return"
+        stdscr.addstr(h-1, 0, footer[:w-1])
         stdscr.refresh()
         stdscr.getch()
 
@@ -491,6 +1309,9 @@ def curses_select(entries: List[Entry], start_idx: int = 0) -> Optional[Entry]:
                         pos = 0
                         stdscr = curses.initscr()
                         curses.curs_set(0)
+            elif ch == ord('t'):
+                if filtered:
+                    show_table(stdscr)
             elif ch == ord('/'):
                 filter_text = ""
             elif ch in (curses.KEY_BACKSPACE, 127, 8):
