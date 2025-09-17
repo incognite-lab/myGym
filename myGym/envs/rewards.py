@@ -30,21 +30,19 @@ class Reward:
         self.network_rewards = [0] * self.num_networks
 
     def network_switch_control(self, observation):
-        if self.env.num_networks <= 1:
-            print("Cannot switch networks in a single-network scenario. Turn algo to ppo, multippo doesn not make sense.")
+
+        if self.env.network_switcher == "gt":
+            self.current_network = self.decide(observation)
+        elif self.env.network_switcher == "keyboard":
+            keypress = self.env.p.getKeyboardEvents()
+            if 107 in keypress.keys() and keypress[107] == 1:  # K
+                if self.current_network < self.num_networks - 1:
+                    self.current_network += 1
+            elif 106 in keypress.keys() and keypress[106] == 1:  # J
+                if self.current_network > 0:
+                    self.current_network -= 1
         else:
-            if self.env.network_switcher == "gt":
-                self.current_network = self.decide(observation)
-            elif self.env.network_switcher == "keyboard":
-                keypress = self.env.p.getKeyboardEvents()
-                if 107 in keypress.keys() and keypress[107] == 1:  # K
-                    if self.current_network < self.num_networks - 1:
-                        self.current_network += 1
-                elif 106 in keypress.keys() and keypress[106] == 1:  # J
-                    if self.current_network > 0:
-                        self.current_network -= 1
-            else:
-                raise NotImplementedError("Currently only implemented ground truth ('gt') network switcher")
+            raise NotImplementedError("Currently only implemented ground truth ('gt') network switcher")
         return self.current_network
 
     def compute(self, observation=None):

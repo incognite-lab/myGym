@@ -709,13 +709,13 @@ class PPOEvalCallback(EvalCallback):
         actual_calls = self.n_calls * self.num_cpu
         if not hasattr(self, "printer"):
             self.printer = PrintEveryNCalls("Actual_calls: ", 20)
-        self.printer(actual_calls)
+        #self.printer(actual_calls)
         if not hasattr(self, "printer2"):
             self.printer2 = PrintEveryNCalls("self.num_cpu: ", 20)
         if not hasattr(self, "printer3"):
             self.printer3 = PrintEveryNCalls("self.n_calls: ", 20)
-        self.printer2(self.num_cpu)
-        self.printer3(self.n_calls)
+        #self.printer2(self.num_cpu)
+        #self.printer3(self.n_calls)
 
         if (self.eval_freq > 0 and actual_calls >= self.eval_freq*self.num_evals):
             # Sync training and eval env if there is VecNormalize
