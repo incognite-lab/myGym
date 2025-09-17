@@ -99,7 +99,7 @@ class Robot:
         # self.close_gripper = self.gripper_dict["close"] #action values which close the gripper
         # self.opengr_thresholds = self.gripper_dict["th_open"]
         # self.closegr_thresholds = self.gripper_dict["th_closed"]
-        self.opengr_threshold = 0.7
+        self.opengr_threshold = 0.07
         self.closegr_threshold = 0.001
         if 'R' in reward_type:
             self.orientation_in_rew = True

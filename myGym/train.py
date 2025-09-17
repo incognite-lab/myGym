@@ -240,7 +240,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     # Environment
-    parser.add_argument("-cfg", "--config", type=str, default = "./configs/train_AGM_RDDL.json", help="Config file path") #./trained_models/AG/AG_table_tiago_tiago_dual_joints_gripper_multippo/train.json
+    parser.add_argument("-cfg", "--config", type=str, default = "./configs/train_AGMDW_RDDL.json", help="Config file path") #./trained_models/AG/AG_table_tiago_tiago_dual_joints_gripper_multippo/train.json
     parser.add_argument("-n", "--env_name", type=str, help="Environment name")
     parser.add_argument("-ws", "--workspace", type=str, help="Workspace name")
     parser.add_argument("-p", "--engine", type=str, help="Simulation engine name")
