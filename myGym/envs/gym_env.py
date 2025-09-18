@@ -25,6 +25,7 @@ import torch as th
 from stable_baselines3.common.utils import obs_as_tensor
 
 from stable_baselines3.common.vec_env.base_vec_env import VecEnv
+from rddl import Operand
 
 currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
 
@@ -398,6 +399,7 @@ class GymEnv(CameraEnv):
             :return info: (dict) Additional information about step
         """
         self._apply_action_robot(action)
+        Operand.reset_cache()
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
         if self.dataset:
@@ -407,7 +409,7 @@ class GymEnv(CameraEnv):
             # reward = self.normalize_reward(reward)
             self.reward_history.append(reward)
             self.episode_reward += reward
-            done = self.task.rddl_task.current_action.goal.decide() #@TODO replace with actual is_done value from RDDL
+            done = self.task.rddl_task.current_action.decide()  #@TODO replace with actual is_done value from RDDL
             info = {'d': 0.9, 'f': int(self.episode_failed),
                     'o': self._observation} # @TODOreplace 'd' with actual distance values obtained from rddl or make own implementation
         if done is True: self.successful_finish(info)
