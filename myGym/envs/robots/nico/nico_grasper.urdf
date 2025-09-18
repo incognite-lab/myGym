@@ -432,7 +432,7 @@
         <limit effort="30" lower="-2.57" upper="0" velocity="100"/>
     </joint>
 
-    <joint name="r_thumb_z_gjoint" type="revolute">
+    <joint name="r_thumb_z_gjoint" type="fixed">
         <parent link="thumb_intermediate_link"/>
         <child link="right_thumb"/>
         <origin rpy="0 0 0" xyz="0 0 0"/>

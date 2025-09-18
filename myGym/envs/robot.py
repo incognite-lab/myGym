@@ -99,8 +99,8 @@ class Robot:
         # self.close_gripper = self.gripper_dict["close"] #action values which close the gripper
         # self.opengr_thresholds = self.gripper_dict["th_open"]
         # self.closegr_thresholds = self.gripper_dict["th_closed"]
-        self.opengr_threshold = 0.07
-        self.closegr_threshold = 0.001
+        self.opengr_threshold = self.determine_opengr_threshold()
+        self.closegr_threshold = self.determine_closegr_threshold()
         if 'R' in reward_type:
             self.orientation_in_rew = True
         else:
@@ -841,5 +841,14 @@ class Robot:
         self.init_joint_poses = tiago_init
         self.joint_poses = self.init_joint_poses
         return tiago_init
+
+
+    def determine_opengr_threshold(self):
+        min, max = self.gjoints_limits[0], self.gjoints_limits[1]
+        return sum(min) + 0.95*(sum(max) - sum(min))
+
+    def determine_closegr_threshold(self):
+        min, max = self.gjoints_limits[0], self.gjoints_limits[1]
+        return sum(min) + 0.01 * (sum(max) - sum(min))
 
 
