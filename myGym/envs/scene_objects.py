@@ -90,6 +90,11 @@ DIST_FACTOR = 0.2
 
 from functools import partial
 
+def gripper_at(gripper, object):
+    norm = np.linalg.norm(gripper.location - object.location)
+    print(norm)
+    return norm < NEAR_THRESHOLD
+
 mapping = {
     "is_holding": is_holding,
     "euclidean_distance": euclidean_distance,
@@ -99,7 +104,8 @@ mapping = {
     "gripper_open_reward": partial(gripper_reward, open=True),
     "gripper_close_reward": partial(gripper_reward, open=False),
     "rotate_reward": rotate_reward,
-    "gripper_at": lambda g, o: all(g.location == o.location),
+    "gripper_at": gripper_at,
+    # "gripper_at": lambda g, o: all(g.location == o.location),
     "gripper_open": lambda g: np.random.random() < 0.5,
     "object_at": lambda g, o: g.location == o.location,
     "exists": lambda e: True,
