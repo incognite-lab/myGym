@@ -113,3 +113,8 @@ Predicate.set_mapping(predicate_mapping)
 
 Entity.set_observation_getter(lambda self: self)
 Location.monkey_patch(Location._get_location, lambda self: self.get_position())
+
+from rddl.actions import Approach
+from rddl.rewards import ApproachReward
+
+Approach.REWARD_CLASS = ApproachReward.RELATIVE_REWARD
