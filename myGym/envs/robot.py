@@ -604,11 +604,8 @@ class Robot:
             :param action: (list) Desired action data
         """
         des_end_effector_pos = action[:3]
-        # action[2] += 0.1 #OFFSET
-        # des_end_effector_pos = [0.168, -0.084, 0.221]
-        # self.p.resetBasePositionAndOrientation(self.box_id, des_end_effector_pos, [0, 0, 0, 1])
-        if len(action) == 9:
-            des_endeff_orientation = self.gripper_transform(action[3:7])
+        if len(action) == 7 + self.gjoints_num: #If the action contains orientation quaternion
+            des_endeff_orientation = self.gripper_transform(action[3:7]) #Indexes 3 to 7 contain orientation quat
         else:
             des_endeff_orientation = None
         joint_poses = self._calculate_joint_poses(des_end_effector_pos, des_endeff_orientation)

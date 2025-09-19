@@ -152,7 +152,7 @@ def n_pressed(last_call_time):
 
 
 def test_env(env: object, arg_dict: dict) -> None:
-    env.reset()
+    obs, info = env.reset()
     results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Success"])
     current_result = None
     env.render()
@@ -165,6 +165,8 @@ def test_env(env: object, arg_dict: dict) -> None:
     video_path = None
     action = None
     info = None
+    grip_limits = env.unwrapped.robot.gjoints_limits
+    oraculum_obj = oraculum.Oraculum(env, info, arg_dict["robot_action"], grip_limits)
 
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
@@ -275,7 +277,7 @@ def test_env(env: object, arg_dict: dict) -> None:
                     last_action = action
                     
             if arg_dict["control"] == "oraculum":
-                action = oraculum.perform_oraculum_task(t, env, arg_dict, action, info)
+                action = oraculum_obj.perform_oraculum_task(t, env, action, info)
             elif arg_dict["control"] == "keyboard":
                 keypress = p.getKeyboardEvents()
                 action = detect_key(keypress, arg_dict, action)
