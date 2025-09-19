@@ -2,6 +2,7 @@ import copy
 from typing import List, Any
 import warnings
 from myGym.envs import robot, env_object
+from . import configure_rddl
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
