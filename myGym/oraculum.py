@@ -78,7 +78,7 @@ class Oraculum:
                 elif 0.20 > distance_to_goal > 0.09:  # Threshold for being "close enough"
                     info['o']["goal_state"][2] += 0.07
                     action[:3] = info['o']["goal_state"][:3]
-                    print(f"Close to goal, raising hand: {action[:3]}")
+                    #print(f"Close to goal, raising hand: {action[:3]}")
                 else:
                     action[:3] = info['o']["goal_state"][:3]
             elif reward_name == "drop":
@@ -123,7 +123,7 @@ class Oraculum:
         action = info['o']["actual_state"][:3]
         if info['o']["actual_state"][2] < -0.25:
             action[2] += 0.05
-            print("Too close to table, raising hand: {}".format(action))
+            #print("Too close to table, raising hand: {}".format(action))
         return action
 
 
