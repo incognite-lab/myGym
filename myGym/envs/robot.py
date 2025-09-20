@@ -437,7 +437,8 @@ class Robot:
                                                            lowerLimits=self.joints_limits[0],
                                                            upperLimits=self.joints_limits[1],
                                                            jointRanges=self.joints_ranges,
-                                                           restPoses=self.joints_rest_poses)
+                                                           restPoses=self.joints_rest_poses
+                                                                )
             else:
                 joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                            self.end_effector_index,

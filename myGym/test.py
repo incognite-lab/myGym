@@ -153,6 +153,8 @@ def n_pressed(last_call_time):
 
 def test_env(env: object, arg_dict: dict) -> None:
     obs, info = env.reset()
+    if arg_dict["control"] == "oraculum":
+        arg_dict["robot_action"] = "absolute_gripper"
     results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Success"])
     current_result = None
     env.render()
@@ -553,7 +555,7 @@ def main() -> None:
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
     parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
-    parser.add_argument("-tp", "--top_grasp",  default = False, help="Use top grasp when reaching objects with oraculum.")
+    parser.add_argument("-tp", "--top_grasp",  default = True, help="Use top grasp when reaching objects with oraculum.")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
     arg_dict, commands = get_arguments(parser)
     parameters = {}
@@ -572,8 +574,6 @@ def main() -> None:
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
-    if arg_dict["control"] == "oraculum":
-        arg_dict["robot_action"] = "absolute_gripper"
     else:
         if arg_dict["results_report"]:
             print("Results report cannot be used without oraculum.")
