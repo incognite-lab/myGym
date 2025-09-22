@@ -308,7 +308,6 @@
     	<child link="endeffector"/>
     	<origin rpy="3.14 1.57 0" xyz="0.03 0.0 -0.05"/>
 	</joint>
-
 	<link name="r_middlefinger">
 		<visual>
 			<geometry>
@@ -319,21 +318,18 @@
 				<color rgba="0.74902 0.74902 0.74902 1"/>
 			</material>
 		</visual>
-		<!--
 		<collision>
 			<geometry>
 				<mesh filename="mesh/finger.stl"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="0 0 0"/>
 		</collision>
-		-->
 		<inertial>
 			<mass value="0.01"/>  <!-- 10 g -->
             <inertia ixx="1e-5" iyy="1e-5" izz="1e-5" ixy="0" ixz="0" iyz="0"/>
 			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
 		</inertial>
 	</link>
-
 	<link name="r_littlefinger">
 		<visual>
 			<geometry>
@@ -344,14 +340,12 @@
 				<color rgba="0.74902 0.74902 0.74902 1"/>
 			</material>
 		</visual>
-		<!--
 		<collision>
 			<geometry>
 				<mesh filename="mesh/finger.stl"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="0 0 0"/>
 		</collision>
-		-->
 		<inertial>
 			<mass value="0.01"/>  <!-- 10 g -->
             <inertia ixx="1e-5" iyy="1e-5" izz="1e-5" ixy="0" ixz="0" iyz="0"/>
@@ -368,14 +362,12 @@
 				<color rgba="0.74902 0.74902 0.74902 1"/>
 			</material>
 		</visual>
-		<!--
 		<collision>
 			<geometry>
 				<mesh filename="mesh/finger.stl"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="0 0 0"/>
 		</collision>
-		-->
 		<inertial>
 			<mass value="0.01"/>  <!-- 10 g -->
             <inertia ixx="1e-5" iyy="1e-5" izz="1e-5" ixy="0" ixz="0" iyz="0"/>
@@ -440,7 +432,7 @@
         <limit effort="30" lower="-2.57" upper="0" velocity="100"/>
     </joint>
 
-    <joint name="r_thumb_z_gjoint" type="fixed">
+    <joint name="r_thumb_z_gjoint" type="revolute">
         <parent link="thumb_intermediate_link"/>
         <child link="right_thumb"/>
         <origin rpy="0 0 0" xyz="0 0 0"/>
