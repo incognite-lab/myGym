@@ -72,14 +72,11 @@ class BaseEnv(gym.Env):
         self.time_step = 1. / 240.
         self.urdf_root = pybullet_data.getDataPath()
         self.observation = {}
-
-        # Set objects information
-        #        self.objects_dir_path = objects_dir_path
-        # Set objects information (ensure filesystem string, forward slashes)
+ # Set objects information (ensure string filesystem path, forward slashes)
         if objects_dir_path is None:
-            self.objects_dir_path = _resolve_pkg_path("envs")
+            self.objects_dir_path = str(pkg_resources.files("myGym").joinpath("envs")).replace("\\", "/")
         else:
-            # accept Traversable or string
+            # accept either Traversable or string
             self.objects_dir_path = str(objects_dir_path).replace("\\", "/")
         self.env_objects = {}
         self.scene_objects_uids = {}
@@ -265,7 +262,7 @@ class BaseEnv(gym.Env):
         """
         if "virtual" in obj_name:
             return "virtual.urdf"
-        # match case-insensitive and normalized paths
+        # match case-insensitive and normalized with forward slashes
         needle = f"/{obj_name.lower()}."
         for file in self.all_objects_filenames:
             if needle in file.lower():
@@ -320,7 +317,7 @@ class BaseEnv(gym.Env):
             :return filenames: (list)
         """
         list_all = []
-        base_dir = str(dir).replace("\\", "/")
+        base_dir = dir.replace("\\", "/")
         for (dirpath, dirnames, filenames) in os.walk(base_dir):
             dirpath_norm = dirpath.replace("\\", "/")
             if '_old' not in dirpath_norm and 'urdf' in dirpath_norm.lower():
