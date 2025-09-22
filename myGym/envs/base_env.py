@@ -12,8 +12,15 @@ from gymnasium.utils import seeding
 
 from myGym.envs.camera import Camera
 
-currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
-repodir = os.path.join(pkg_resources.files("myGym"), "./")
+# Helper: convert importlib.resources Traversable -> filesystem path compatible with pybullet on Windows
+def _resolve_pkg_path(*parts):
+    root = pkg_resources.files("myGym")
+    res = root.joinpath(*parts)
+    return str(res).replace("\\", "/")
+
+# normalized module paths
+currentdir = _resolve_pkg_path("envs")
+repodir = _resolve_pkg_path(".")
 
 
 class BaseEnv(gym.Env):
@@ -33,12 +40,12 @@ class BaseEnv(gym.Env):
 
     def __init__(self,
                  gui_on=True,
-                 objects_dir_path= os.path.join(pkg_resources.files("myGym"), "envs/"),
-                 max_ep_steps=1024,
-                 show_bounding_boxes_gui=False,
-                 changing_light_gui=False,
-                 shadows_on_gui=True
-                 ):
+                 objects_dir_path=None,
+                  max_ep_steps=1024,
+                  show_bounding_boxes_gui=False,
+                  changing_light_gui=False,
+                  shadows_on_gui=True
+                  ):
         self.gui_on = gui_on
         self.max_episode_steps = max_ep_steps
         self.spec = envs.spec('Gym-v0')
@@ -67,7 +74,13 @@ class BaseEnv(gym.Env):
         self.observation = {}
 
         # Set objects information
-        self.objects_dir_path = objects_dir_path
+        #        self.objects_dir_path = objects_dir_path
+        # Set objects information (ensure filesystem string, forward slashes)
+        if objects_dir_path is None:
+            self.objects_dir_path = _resolve_pkg_path("envs")
+        else:
+            # accept Traversable or string
+            self.objects_dir_path = str(objects_dir_path).replace("\\", "/")
         self.env_objects = {}
         self.scene_objects_uids = {}
         self.all_objects_filenames = self._get_all_urdf_filenames(self.objects_dir_path)
@@ -252,8 +265,10 @@ class BaseEnv(gym.Env):
         """
         if "virtual" in obj_name:
             return "virtual.urdf"
+        # match case-insensitive and normalized paths
+        needle = f"/{obj_name.lower()}."
         for file in self.all_objects_filenames:
-            if '/' + obj_name + '.' in file:
+            if needle in file.lower():
                 return file
         if self.dataset:
             print("Did not find an urdf for {}, if it is a robot, it is OK".format(obj_name))
@@ -305,9 +320,13 @@ class BaseEnv(gym.Env):
             :return filenames: (list)
         """
         list_all = []
-        for (dirpath, dirnames, filenames) in os.walk(self.objects_dir_path):
-            if '_old' not in dirpath and 'urdf' in dirpath:
-                list_all += [os.path.join(dirpath, file) for file in filenames]
+        base_dir = str(dir).replace("\\", "/")
+        for (dirpath, dirnames, filenames) in os.walk(base_dir):
+            dirpath_norm = dirpath.replace("\\", "/")
+            if '_old' not in dirpath_norm and 'urdf' in dirpath_norm.lower():
+                for file in filenames:
+                    path = os.path.join(dirpath, file)
+                    list_all.append(path.replace("\\", "/"))
         return list_all
 
     def _remove_object(self, obj):

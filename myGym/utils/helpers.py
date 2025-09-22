@@ -113,9 +113,6 @@ def get_robot_dict():
                              'panda': {'path': '/envs/robots/franka_emika/panda_bullet/panda.urdf', 'position': np.array([0.0, -0.05, -0.04])},
                              'jaco': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq.urdf', 'position': np.array([0.0, 0.0, -0.041])},
                              'jaco_fixed': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq_fixed.urdf', 'position': np.array([0.0, 0.0, -0.041])},
-                             'nico': {'path': '/envs/robots/nico/nico_alljoints.urdf', 'position': np.array([0.0, 0.0, 0.05])},
-                             'nico_upper': {'path': '/envs/robots/nico/nico_upper.urdf', 'position': np.array([-0.0, 0.1, -0.475])},
-                             'nico_upper_rh6d': {'path': '/envs/robots/nico/nico_upper_rh6d.urdf', 'position': np.array([-0.0, 0.1, 0.05])},
                              'nico_grasp': {'path': '/envs/robots/nico/nico_grasper.urdf', 'position': np.array([-0.0, 0.1, 0.05])},
                              'reachy': {'path': '/envs/robots/pollen/reachy/urdf/reachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
                              'leachy': {'path': '/envs/robots/pollen/reachy/urdf/leachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
@@ -143,3 +140,17 @@ def get_robot_dict():
                               'g1_whole': {'path': '/envs/robots/unitree/g1_mygym_whole.urdf', 'position': np.array([0, -0.2, 0.6]), 'orientation': [0.0, 0.0, 0 * np.pi]},
                              }
     return r_dict
+
+def get_gripper_dict():
+    """
+    Dict with important values for the grippers of each robot - closed/open values and thresholds
+    cpen: value for each gripper joint which opens the gripper
+    close: value for each gripper joint which closes the gripper
+    th_open: value
+    """
+    g_dict ={"tiago": {"open": [1, 1], "close": [0,0], "th_open": [(0.7, 'g'), (0.7, 'g')], "th_closed": [(0.001, 'l'), (0.001, 'l')]},
+             "g1": {"open": [0 ,0, 0], "close": [-0.4, 1.57, 1.57], "th_open": [(0.02, 'g'), (0.5, 'l'), (0.5, 'l')],
+                    "th_closed": [(-0.375, 'l'), (1.55, 'g'), (1.55, 'g')]},
+             "kuka_gripper": {"open": 0, "close": 0, "th_open": 0, "th_closed": 0},
+             "nico_grasp": {"open": 0, "close": 0, "th_open": 0, "th_closed": 0}}
+    return g_dict
