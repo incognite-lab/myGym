@@ -3,11 +3,11 @@ import importlib.resources as pkg_resources
 from myGym.utils.vector import Vector
 import numpy as np
 import math
-from myGym.utils.helpers import get_robot_dict
+from myGym.utils.helpers import get_robot_dict, get_gripper_dict
 import os
 
-currentdir = os.path.join(str(pkg_resources.files("myGym")), "envs")
-repodir = str(pkg_resources.files("myGym"))
+currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
+repodir = pkg_resources.files("myGym")
 
 
 class Robot:
@@ -29,15 +29,14 @@ class Robot:
         :param max_force: (float) Maximum allowed force reached by individual joint motor. Should be adjusted in case of sim2real scenario.
         :param pybullet_client: Which pybullet client the environment should refere to in case of parallel existence of multiple instances of this environment
     """
-    def __init__(self, 
+    def __init__(self,
                  robot='kuka',
                  position=[-0.1, 0.0, 0.07], orientation=[0, 0, 0],
                  end_effector_index=None, gripper_index=None, 
                  init_joint_poses=None,
                  robot_action="step",
                  task_type="reach",
-                 use_fixed_end_effector_orn=False,
-                 end_effector_orn=[0, 0, 0],
+                 fixed_end_effector_orn=None,
                  dimension_velocity = 0.5,
                  max_velocity = None, #1.,
                  max_force = None, #50.,
@@ -45,18 +44,23 @@ class Robot:
                  reward_type = None):
         self.debug = True
         self.p = pybullet_client
+        self.name = robot
         self.robot_dict = get_robot_dict()
+        # self.gripper_dict = get_gripper_dict()[self.name]
         self.robot_path = self.robot_dict[robot]['path']
         self.position = np.array(position) + self.robot_dict[robot].get('position',np.zeros(len(position)))
+        self.p.setPhysicsEngineParameter(enableFileCaching=0)
+        #self.position[2] += 0.2
         self.orientation = self.p.getQuaternionFromEuler(np.array(orientation) +
                                                        self.robot_dict[robot].get('orientation',np.zeros(len(orientation))))
-        self.name = robot
+
         self.max_velocity = max_velocity
         self.max_force = max_force
         self.end_effector_index = end_effector_index
         self.gripper_index = gripper_index
-        self.use_fixed_end_effector_orn = use_fixed_end_effector_orn
-        self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(end_effector_orn)
+        self.use_fixed_end_effector_orn = False #Set to false by default
+        if fixed_end_effector_orn is not None:
+            self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(fixed_end_effector_orn)
         self.dimension_velocity = dimension_velocity
         self.use_magnet = False
         self.motor_names = []
@@ -74,17 +78,35 @@ class Robot:
         self._load_robot()
         self.num_joints = self.p.getNumJoints(self.robot_uid)
         self._set_motors()
-        self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)       
+        box_initial_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)
+        box_size = 0.03
+        # self.box_id = self.p.createMultiBody(
+        #     baseMass=0,  # Set mass to 0 if it's only visual
+        #     baseCollisionShapeIndex=-1,  # No collision shape
+        #     baseVisualShapeIndex=self.p.createVisualShape(self.p.GEOM_BOX, halfExtents=[box_size / 2] * 3,
+        #                                                   rgbaColor=[1, 0.0, 0.0, 0.8]),  # Visual shape only
+        #     basePosition=box_initial_pos)
+        self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
-        self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
-        self.opengr_threshold = 0.07
-        self.closegr_threshold = 0.001
+        if "tiago" in self.name: #This needed to be added becuase tiago got initialized in a bad position and IK didn't work
+            self.init_joint_poses =  self.set_tiago_joints()
+            self.joints_poses = self.init_joint_poses
+        else:
+            self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
+            self.joint_poses = self.init_joint_poses
+        # self.open_gripper = self.gripper_dict["open"] #action values which open the gripper
+        # self.close_gripper = self.gripper_dict["close"] #action values which close the gripper
+        # self.opengr_thresholds = self.gripper_dict["th_open"]
+        # self.closegr_thresholds = self.gripper_dict["th_closed"]
+        self.opengr_threshold = self.determine_opengr_threshold()
+        self.closegr_threshold = self.determine_closegr_threshold()
         if 'R' in reward_type:
             self.orientation_in_rew = True
         else:
             self.orientation_in_rew = False
         self.offset_quat = self.p.getQuaternionFromEuler((0, 0, 0))
+
         
 
     def _load_robot(self):
@@ -93,46 +115,21 @@ class Robot:
         """
         if self.robot_path[-3:] == 'sdf':
             objects = self.p.loadSDF(
-               os.path.join(pkg_resources.files("myGym"),
-                                                self.robot_path))
+               os.path.join(pkg_resources.files("myGym"), self.robot_path))
             self.robot_uid = objects[0]
             self.p.resetBasePositionAndOrientation(self.robot_uid, self.position,
                                               self.orientation)
         else:
-            # Build a proper filesystem path from importlib.resources Traversable
-            pkg_root = pkg_resources.files("myGym")
-            # split the relative path into components and join with Traversable to avoid absolute-root issues
-            parts = self.robot_path.split("/")
-            robot_res = pkg_root.joinpath(*parts)
-            urdf_path = str(robot_res)
-            # normalize slashes for pybullet on Windows
-            urdf_path = urdf_path.replace("\\", "/")
 
-            # Debug: print resolved path and check file existence
-            if self.debug:
-                print("Resolved URDF path:", urdf_path)
-            if not os.path.exists(urdf_path):
-                raise FileNotFoundError(f"URDF not found: {urdf_path}")
-
-            try:
-                # pass plain Python lists to pybullet (numpy arrays usually OK too)
-                self.robot_uid = self.p.loadURDF(
-                    urdf_path,
-                    self.position.tolist() if hasattr(self.position, "tolist") else self.position,
-                    self.orientation.tolist() if hasattr(self.orientation, "tolist") else self.orientation,
-                    useFixedBase=True,
-                    flags=self.p.URDF_USE_SELF_COLLISION
-                )
-            except Exception as e:
-                # helpful diagnostic on Windows
-                print(f"Failed to load URDF: {urdf_path}")
-                print("Exception from pybullet:", e)
-                raise
+            self.robot_uid = self.p.loadURDF(
+                os.path.join(pkg_resources.files("myGym"), self.robot_path),
+                self.position, self.orientation, useFixedBase=True, flags=(self.p.URDF_USE_SELF_COLLISION))
         for jid in range(self.p.getNumJoints(self.robot_uid)):
                 self.p.changeDynamics(self.robot_uid, jid,  collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
         # if 'jaco' in self.name: #@TODO jaco gripper has closed loop between finger and finger_tip that is not respected by the simulator
         #     self.p.createConstraint(self.robot_uid, 11, self.robot_uid, 15, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0], [0, 0, 0])
         #     self.p.createConstraint(self.robot_uid, 13, self.robot_uid, 17, self.p.JOINT_FIXED, [0, 0, 0], [0, 0, 0], [0, 0, 0])
+
 
     def _set_motors(self):
         """
@@ -235,6 +232,7 @@ class Robot:
         for jid in range(len(self.motor_indices)):
             self.p.resetJointState(self.robot_uid, self.motor_indices[jid], joint_poses[jid])
         self._run_motors(joint_poses)
+
 
     def get_joints_limits(self,indices):
         """
@@ -376,10 +374,11 @@ class Robot:
                                     jointIndex=self.motor_indices[i],
                                     controlMode=self.p.POSITION_CONTROL,
                                     targetPosition=joint_poses[i],
-                                    force=self.joints_max_force[i],
+                                    force=1000,
                                     maxVelocity=self.joints_max_velo[i],
                                     positionGain=0.7,
-                                    velocityGain=0.3)
+                                    velocityGain=0.3
+                                    )
             if joint_type == self.p.JOINT_PRISMATIC:
                 pos = self.p.getJointState(self.robot_uid, joint_idx)[0]
                 # if pos < lower_limit or pos > upper_limit:
@@ -388,14 +387,11 @@ class Robot:
                     self.p.resetJointState(self.robot_uid, joint_idx, lower_limit)
                 elif pos > upper_limit:
                     self.p.resetJointState(self.robot_uid, joint_idx, upper_limit)
-
-        
         self.end_effector_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)[0]
         self.end_effector_orn = self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
         #self.gripper_pos = self.p.getLinkState(self.robot_uid, self.gripper_index)[0]  
         #self.gripper_orn = self.p.getLinkState(self.robot_uid, self.gripper_index)[1]
-
-        joints = self.get_joints_states()
+        #joints = self.get_joints_states()
         #print(joints)
     
     def _move_gripper(self, action):
@@ -411,9 +407,13 @@ class Robot:
                                     controlMode=self.p.POSITION_CONTROL,
                                     targetPosition=action[i],
                                     force=self.gjoints_max_force[i],
-                                    maxVelocity=self.gjoints_max_velo[i],
                                     positionGain=0.7,
-                                    velocityGain=0.3)
+                                    velocityGain=0.3,
+                                    # maxVelocity = self.gjoints_max_velo[i]
+                                   )
+
+        # force = self.gjoints_max_force[i],
+        # maxVelocity = self.gjoints_max_velo[i],
         
         gjoints = self.get_gjoints_states()
         #print(gjoints)
@@ -429,7 +429,7 @@ class Robot:
             :return joint_poses: (list) Calculated joint poses corresponding to desired end-effector position
         """
         if endeff_orientation is None:
-            if (self.use_fixed_end_effector_orn):
+            if self.use_fixed_end_effector_orn:
                 joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                            self.end_effector_index,
                                                            end_effector_pos,
@@ -437,7 +437,8 @@ class Robot:
                                                            lowerLimits=self.joints_limits[0],
                                                            upperLimits=self.joints_limits[1],
                                                            jointRanges=self.joints_ranges,
-                                                           restPoses=self.joints_rest_poses)
+                                                           restPoses=self.joints_rest_poses
+                                                                )
             else:
                 joint_poses = self.p.calculateInverseKinematics(self.robot_uid,
                                                            self.end_effector_index,
@@ -604,10 +605,8 @@ class Robot:
             :param action: (list) Desired action data
         """
         des_end_effector_pos = action[:3]
-        # action[2] += 0.1 #OFFSET
-        if len(action) == 9:
-            des_endeff_orientation = self.gripper_transform(action[3:7])
-
+        if len(action) == 7 + self.gjoints_num: #If the action contains orientation quaternion
+            des_endeff_orientation = self.gripper_transform(action[3:7]) #Indexes 3 to 7 contain orientation quat
         else:
             des_endeff_orientation = None
         joint_poses = self._calculate_joint_poses(des_end_effector_pos, des_endeff_orientation)
@@ -675,6 +674,7 @@ class Robot:
             if self.task_type in ["compositional", "AG", "AGM", "AGR", "AGMD", "AGMDW", "AGRDW", "AGFDW","AGTDW"]:
                 if env_objects["actual_state"] != self: #if self.use_magnet and ...
                     gripper_states = self.get_gjoints_states()
+                    #TODO: this has to be repaired for the new way of gripper threshold checking
                     if sum(gripper_states) < self.closegr_threshold:
                         self.gripper_active = True
                         self.magnetize_object(env_objects["actual_state"])
@@ -830,4 +830,23 @@ class Robot:
             :return self.uid: Robot's unique ID
         """
         return self.robot_uid
+
+    def set_tiago_joints(self):
+        # Manually selected constant using slider
+        tiago_init = [0.121, -0.047, 0.023, 0.295, -0.064, -0.353, 1.918, 1.662, 0.419, -0.908, 0.088][11-len(self.motor_indices):]
+        for i, idx in enumerate(self.motor_indices):
+            self.p.resetJointState(self.robot_uid, idx, tiago_init[i])
+        self.init_joint_poses = tiago_init
+        self.joint_poses = self.init_joint_poses
+        return tiago_init
+
+
+    def determine_opengr_threshold(self):
+        min, max = self.gjoints_limits[0], self.gjoints_limits[1]
+        return sum(min) + 0.95*(sum(max) - sum(min))
+
+    def determine_closegr_threshold(self):
+        min, max = self.gjoints_limits[0], self.gjoints_limits[1]
+        return sum(min) + 0.01 * (sum(max) - sum(min))
+
 

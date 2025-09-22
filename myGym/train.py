@@ -81,7 +81,8 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "reward": arg_dict["reward"], "logdir": arg_dict["logdir"], "vae_path": arg_dict["vae_path"],
                      "yolact_path": arg_dict["yolact_path"], "yolact_config": arg_dict["yolact_config"],
                      "natural_language": bool(arg_dict["natural_language"]),
-                     "training": bool(for_train), "max_ep_steps": arg_dict["max_episode_steps"],
+                     "training": bool(for_train), "top_grasp": arg_dict["top_grasp"],
+                     "max_ep_steps": arg_dict["max_episode_steps"],
                      "gui_on": arg_dict["gui"]
                      }
 
@@ -130,14 +131,14 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
     implemented_combos = {"ppo": {}, "sac": {}, "td3": {}, "a2c": {}, "multippo": {}}
 
     implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env),
-                                            {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir,
+                                            {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir,
                                              "device": "cpu"}]
     implemented_combos["sac"]["pytorch"] = [SAC_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
     implemented_combos["td3"]["pytorch"] = [TD3_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
     implemented_combos["a2c"]["pytorch"] = [A2C_P, ('MlpPolicy', env), {"n_steps": arg_dict["algo_steps"], "verbose": 1,
                                                                         "tensorboard_log": model_logdir}]
     implemented_combos["multippo"]["pytorch"] = [MultiPPOSB3, ("MlpPolicy", env),
-                                                 {"n_steps": 1024, "verbose": 1, "tensorboard_log": model_logdir,
+                                                 {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir,
                                                   "device": "cpu", "n_models": arg_dict["num_networks"]}]
     return implemented_combos
 
@@ -238,8 +239,8 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    # Environmentr
-    parser.add_argument("-cfg", "--config", type=str, default = "./configs/train_AGR_RDDL.json", help="Config file path") #./trained_models/AG/AG_table_tiago_tiago_dual_joints_gripper_multippo/train.json
+    # Environment
+    parser.add_argument("-cfg", "--config", type=str, default = "./configs/train_AGMDW_RDDL.json", help="Config file path") #./trained_models/AG/AG_table_tiago_tiago_dual_joints_gripper_multippo/train.json
     parser.add_argument("-n", "--env_name", type=str, help="Environment name")
     parser.add_argument("-ws", "--workspace", type=str, help="Workspace name")
     parser.add_argument("-p", "--engine", type=str, help="Simulation engine name")
@@ -385,6 +386,7 @@ def main():
     parser = get_parser()
     arg_dict, commands = get_arguments(parser)
     args = parser.parse_args()
+    arg_dict["top_grasp"] = False
 
     # for key, arg in arg_dict.items():
     #     if type(arg_dict[key]) == list:
@@ -406,7 +408,7 @@ def main():
         arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
     model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join(
-        (arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"], arg_dict["robot_action"], arg_dict["algo"])))
+        (arg_dict["robot_action"], arg_dict["algo"])))
 
     model_logdir = model_logdir_ori
     add = 1

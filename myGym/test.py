@@ -152,7 +152,7 @@ def n_pressed(last_call_time):
 
 
 def test_env(env: object, arg_dict: dict) -> None:
-    env.reset()
+    obs, info = env.reset()
     results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Success"])
     current_result = None
     env.render()
@@ -162,8 +162,11 @@ def test_env(env: object, arg_dict: dict) -> None:
     jointparams = [f"Jnt{i}" for i in range(1, 20)]
 
     images = []
+    video_path = None
     action = None
     info = None
+    grip_limits = env.unwrapped.robot.gjoints_limits
+    oraculum_obj = oraculum.Oraculum(env, info, arg_dict["robot_action"], grip_limits)
 
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
@@ -174,22 +177,22 @@ def test_env(env: object, arg_dict: dict) -> None:
         if "joints" in arg_dict["robot_action"]:
             if 'gripper' in arg_dict["robot_action"]:
                 print("gripper is present")
-                for i in range(env.action_space.shape[0]):
-                    if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
-                        joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i],
-                                                            env.action_space.high[i], env.env.robot.init_joint_poses[i])
+                for i in range(env.unwrapped.action_space.shape[0]):
+                    if i < (env.unwrapped.action_space.shape[0] - len(env.unwrapped.robot.gjoints_rest_poses)):
+                        joints[i] = p.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i],
+                                                            env.unwrapped.action_space.high[i], env.unwrapped.robot.init_joint_poses[i])
                     else:
-                        joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i],
-                                                            env.action_space.high[i], .02)
+                        joints[i] = p.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i],
+                                                            env.unwrapped.action_space.high[i], .02)
             else:
-                for i in range(env.action_space.shape[0]):
-                    joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i],
-                                                        env.env.robot.init_joint_poses[i])
+                for i in range(env.unwrapped.action_space.shape[0]):
+                    joints[i] = p.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i], env.unwrapped.action_space.high[i],
+                                                        env.unwrapped.robot.init_joint_poses[i])
         elif "absolute" in arg_dict["robot_action"]:
             if 'gripper' in arg_dict["robot_action"]:
                 print("gripper is present")
                 for i in range(env.action_space.shape[0]):
-                    if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
+                    if i < (env.action_space.shape[0] - len(env.unwrapped.robot.gjoints_rest_poses)):
                         joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
                     else:
                         joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
@@ -200,7 +203,7 @@ def test_env(env: object, arg_dict: dict) -> None:
             if 'gripper' in arg_dict["robot_action"]:
                 print("gripper is present")
                 for i in range(env.action_space.shape[0]):
-                    if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
+                    if i < (env.action_space.shape[0] - len(env.unwrapped.robot.gjoints_rest_poses)):
                         joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
                     else:
                         joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
@@ -253,16 +256,28 @@ def test_env(env: object, arg_dict: dict) -> None:
 
             if arg_dict["control"] == "observation":
                 if t == 0:
-                    action = env.action_space.sample()
+                    action = env.unwrapped.robot.init_joint_poses
+                    last_action = action
                 else:
                     if "joints" in arg_dict["robot_action"]:
-                        action = info['o']["additional_obs"]["joints_angles"]
+                        action = env.unwrapped.robot.get_joints_states()
                     elif "absolute" in arg_dict["robot_action"]:
                         action = info['o']["actual_state"]
                     else:
                         action = [0, 0, 0]
+
+                    # Compute element-wise difference safely using numpy
+                    try:
+                        diff = np.array(last_action, dtype=float) - np.array(action, dtype=float)
+                        print(f"\rLast action difference: {np.round(diff, 4)}", end='', flush=True)
+                    except Exception:
+                        # Fallback if shapes mismatch
+                        print("\rLast action difference: (shape mismatch)", end='', flush=True)
+
+                    last_action = action
+                    
             if arg_dict["control"] == "oraculum":
-                action = oraculum.perform_oraculum_task(t, env, arg_dict, action, info)
+                action = oraculum_obj.perform_oraculum_task(t, env, action, info)
             elif arg_dict["control"] == "keyboard":
                 keypress = p.getKeyboardEvents()
                 action = detect_key(keypress, arg_dict, action)
@@ -321,13 +336,12 @@ def test_env(env: object, arg_dict: dict) -> None:
                 cv2.waitKey(1)
 
             if arg_dict["record"] > 0 and len(images) < 80000:
-                if len(images) < 1:
-                    mp4_path = make_path(arg_dict, ".mp4", False)
-                    gif_path = make_path(arg_dict, ".gif", False)
-                if arg_dict["record"] == 1:
-                    record_video(images, arg_dict, env, gif_path)
-                elif arg_dict["record"] == 2:
-                    record_video(images, arg_dict, env, mp4_path)
+                if video_path is None:
+                    if arg_dict["record"] == 1:
+                        video_path = make_path(arg_dict, ".gif", False)
+                    elif arg_dict["record"] == 2:
+                        video_path = make_path(arg_dict, ".webm", False)
+                record_video(images, arg_dict, env, video_path, finalize=False)
 
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
@@ -344,74 +358,78 @@ def test_env(env: object, arg_dict: dict) -> None:
                 break
             i+=1
         results.to_csv(filename, index = False)
+    if arg_dict.get("record",0) > 0 and video_path is not None and len(images)>0:
+        record_video(images, arg_dict, env, video_path, finalize=True)
 
 
-
-def record_video(images: list, arg_dict: dict, env: object, path: str) -> None:
+def record_video(images: list, arg_dict: dict, env: object, path: str, finalize: bool=False) -> None:
     if arg_dict["camera"] < 1:
         raise ValueError("Camera parameter must be set to > 0 to record!")
-
-    def select_fourcc(path_ext: str):
-        # Return first working FOURCC based on desired container
-        test_size = (16, 16)
-        dummy_frame = np.zeros((test_size[1], test_size[0], 3), dtype=np.uint8)
-        candidates = []
-        if path_ext == '.mp4':
-            # Order of preference for broad web playback
-            candidates = ['avc1', 'H264', 'X264', 'mp4v']
-        elif path_ext == '.webm':
-            candidates = ['VP90', 'VP80', 'avc1']  # VP9, VP8, fallback avc1
-        else:
-            candidates = ['mp4v']
-        for c in candidates:
-            try:
-                fourcc = cv2.VideoWriter_fourcc(*c)
-                vw = cv2.VideoWriter('_codec_test.tmp', fourcc, 1, test_size)
-                ok = vw.isOpened()
-                if ok:
-                    vw.write(dummy_frame)
-                    vw.release()
-                    if os.path.exists('_codec_test.tmp'):
-                        os.remove('_codec_test.tmp')
-                    print(f"[INFO] Using codec {c} for {path_ext}")
-                    return fourcc, c
-                vw.release()
-            except Exception:
-                pass
-        print("[WARN] No preferred codec available; falling back to mp4v")
-        return cv2.VideoWriter_fourcc(*'mp4v'), 'mp4v'
 
     render_info = env.render()
     image = render_info[arg_dict["camera"] - 1]["image"]
     images.append(image)
-    print(f"Frame: {len(images)}")
-    if len(images) >= 80000:
-        print(f"too many images; total size: {len(images)}")
-    if ".gif" in path and done:
+    if not finalize:
+        print(f"\rRecording frame: {len(images)} - ", end='', flush=True)
+        return
+    # Finalize and write video
+    print()  # newline after progress line
+    print(f"Finalizing video with {len(images)} frames -> {path}")
+    if ".gif" in path:
         imageio.mimsave(path, [np.array(img) for i, img in enumerate(images) if i % 2 == 0], duration=65)
-        os.system(
-            './utils/gifopt -O3 --lossy=5 --colors 256 -o {dest} {source}'.format(source=path, dest=path))
+        os.system('./utils/gifopt -O3 --lossy=5 --colors 256 -o {dest} {source}'.format(source=path, dest=path))
         print("Record saved to " + path)
-    elif (path.endswith('.mp4') or path.endswith('.webm')) and done:
-        height, width, layers = image.shape
-        ext = '.mp4' if path.endswith('.mp4') else '.webm'
-        fourcc, used = select_fourcc(ext)
-        out = cv2.VideoWriter(path, fourcc, 30, (width, height))
-        if not out.isOpened():
-            print(f"[ERROR] Failed to open VideoWriter with codec {used}; aborting video save.")
+        return
+    # Ensure webm extension
+    if not path.endswith('.webm'):
+        base = os.path.splitext(path)[0]
+        path = base + '.webm'
+    height, width, _ = images[0].shape
+    codec_chain = [
+        ['-c:v', 'libvpx-vp9', '-b:v', '2M'],
+        ['-c:v', 'libvpx', '-b:v', '2M']
+    ]
+    for codec_args in codec_chain:
+        cmd = [
+            'ffmpeg', '-y',
+            '-f', 'rawvideo',
+            '-vcodec', 'rawvideo',
+            '-pix_fmt', 'rgb24',
+            '-s', f'{width}x{height}',
+            '-r', '30',
+            '-i', '-',
+            '-an',
+        ] + codec_args + ['-pix_fmt', 'yuv420p', path]
+        try:
+            proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except FileNotFoundError:
+            print('[ERROR] ffmpeg not found in PATH. Cannot save video.')
             return
-        for img in images:
-            out.write(cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
-        out.release()
-        print(f"Record saved to {path} (codec {used})")
+        try:
+            for frame in images:
+                f = frame
+                if f.dtype != np.uint8:
+                    f = np.clip(f, 0, 255).astype(np.uint8)
+                proc.stdin.write(f.tobytes())
+        finally:
+            if proc.stdin:
+                proc.stdin.close()
+            proc.wait()
+        if proc.returncode == 0:
+            print(f'Record saved to {path} ({codec_args[1]})')
+            break
+        else:
+            print(f'[WARN] ffmpeg failed with codec {codec_args[1]}, trying fallback...')
+    else:
+        print('[ERROR] All webm codecs failed; no video saved.')
 
 
 def make_path(arg_dict: dict, record_format: str, model: bool):
     counter = 0
     if model:
         model_logdir = os.path.dirname(arg_dict.get("logdir", ""))
-        model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
-        logdir = os.path.join(model_logdir, "train_record_" + model_name)
+        model_name = str(arg_dict["robot"]) + '_' + str(arg_dict["task_type"]) + '_' + str(arg_dict["robot_action"]) + '_' + str(arg_dict["algo"])
+        logdir = os.path.join(model_logdir,model_name)
         print("Saving to " + logdir)
     else:
         if not os.path.exists(arg_dict["logdir"]):
@@ -455,6 +473,7 @@ def test_model(
         raise Exception(err)
 
     images = []  # Empty list for GIF images
+    video_path = None
     success_episodes_num = 0
     distance_error_sum = 0
     steps_sum = 0
@@ -479,13 +498,12 @@ def test_model(
                 visualize_infotext(action, env, info)
 
             if arg_dict["record"] > 0 and len(images) < 8000:
-                if len(images) < 1:
-                    mp4_path = make_path(arg_dict, ".mp4", True)
-                    gif_path = make_path(arg_dict, ".gif", True)
-                if arg_dict["record"] == 1:
-                    record_video(images, arg_dict, env, gif_path)
-                elif arg_dict["record"] == 2:
-                    record_video(images, arg_dict, env, mp4_path)
+                if video_path is None:
+                    if arg_dict["record"] == 1:
+                        video_path = make_path(arg_dict, ".gif", True)
+                    elif arg_dict["record"] == 2:
+                        video_path = make_path(arg_dict, ".webm", True)
+                record_video(images, arg_dict, env, video_path, finalize=False)
 
         success_episodes_num += is_successful
         distance_error_sum += distance_error
@@ -507,6 +525,8 @@ def test_model(
     file.write("#Mean distance error is {:.2f}% \n".format(mean_distance_error * 100))
     file.write("#Mean number of steps {}\n".format(mean_steps_num))
     file.close()
+    if arg_dict.get("record",0) > 0 and video_path is not None and len(images)>0:
+        record_video(images, arg_dict, env, video_path, finalize=True)
 
 def print_init_info(arg_dict):
     control = arg_dict.get("control")
@@ -526,19 +546,18 @@ def print_init_info(arg_dict):
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
-    parser.add_argument("-ct", "--control", default="none",
+    parser.add_argument("-ct", "--control", default="oraculum",
                         help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
     parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
-    parser.add_argument("-tp", "--top_grasp", default = False, help="Use top grasp when reaching objects with oraculum.")
+    parser.add_argument("-tp", "--top_grasp",  default = True, help="Use top grasp when reaching objects with oraculum.")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
     arg_dict, commands = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
-
         
     for key, arg in arg_dict.items():
         if type(arg_dict[key]) == list:
@@ -553,8 +572,6 @@ def main() -> None:
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
-    if arg_dict["control"] == "oraculum":
-        arg_dict["robot_action"] = "absolute_gripper"
     else:
         if arg_dict["results_report"]:
             print("Results report cannot be used without oraculum.")
@@ -563,6 +580,7 @@ def main() -> None:
         print_init_info(arg_dict)
         arg_dict["gui"] = 1
         arg_dict = automatic_argument_assignment(arg_dict)
+        arg_dict["robot_action"] = "absolute_gripper"
         env = configure_env(arg_dict, model_logdir=None, for_train=0)
         test_env(env, arg_dict)
     else:
@@ -570,7 +588,7 @@ def main() -> None:
         model_logdir = os.path.dirname(arg_dict.get("pretrained_model", ""))
         env = configure_env(arg_dict, model_logdir, for_train=0)
         implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
-        print (model_logdir)
+        print(model_logdir)
         test_model(env, None, implemented_combos, arg_dict, model_logdir, deterministic=False)
 
 

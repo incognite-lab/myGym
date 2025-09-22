@@ -270,10 +270,13 @@ class GymEnv(CameraEnv):
         endeff_orn = [0, 0, 0] if self.top_grasp else None
         kwargs = {"position": self.workspace_dict[self.workspace]['robot']['position'],
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
-                  "init_joint_poses": self.robot_init_joint_poses, "use_fixed_end_effector_orn": endeff_orn,
+                  "init_joint_poses": self.robot_init_joint_poses, "fixed_end_effector_orn": endeff_orn,
                   "max_velocity": self.max_velocity, "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
                   "pybullet_client": self.p, "reward_type": self.unwrapped.reward}
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
+        # if "tiago" in self.robot_type:
+        #     #TODO: set a proper init state value for tiago joints, so that IK works well
+        #     self.p.resetJointState(self.robot.robot_uid, self.robot.motor_indices[2], 1.7)
         if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
 
 
@@ -348,6 +351,8 @@ class GymEnv(CameraEnv):
         if "gripper" in self.robot_action:
             self.action_low = np.append(self.action_low, np.array(self.robot.gjoints_limits[0]))
             self.action_high = np.append(self.action_high, np.array(self.robot.gjoints_limits[1]))
+            # self.action_low = np.append(self.action_low, np.array(0))
+            # self.action_high = np.append(self.action_high, np.array(1))
 
         self.action_space = spaces.Box(self.action_low, self.action_high, dtype = np.float64)
 
@@ -582,7 +587,9 @@ class GymEnv(CameraEnv):
         Parameters:
             :param action: (list) Action data returned by trained model
         """
-        use_magnet = self.unwrapped.reward.get_magnetization_status()
+        #use_magnet = self.unwrapped.reward.get_magnetization_status()
+        if self.top_grasp:
+            self.robot.use_fixed_end_effector_orn = (self.unwrapped.reward.reward_name in ["approach"])
         for i in range(self.action_repeat):
             objects = self.env_objects
             self.robot.apply_action(action, env_objects=objects)
