@@ -20,6 +20,7 @@ from utils.sim_height_calculation import calculate_z
 
 from myGym import oraculum
 from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env, automatic_argument_assignment
+from myGym.envs.env_object import EnvObject
 
 clear = lambda: os.system('clear')
 
@@ -166,298 +167,53 @@ def n_pressed(last_call_time):
         return False, last_call_time
 
 
-def test_env(env: object, arg_dict: dict) -> None:
-    obs, info = env.reset()
-    results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Success"])
-    current_result = None
-    env.render()
-    global done
-    # Prepare names for sliders
-    joints = [f"Joint{i}" for i in range(1, 20)]
-    jointparams = [f"Jnt{i}" for i in range(1, 20)]
-
-    images = []
-    video_path = None
-    action = None
-    info = None
-    grip_limits = env.unwrapped.robot.gjoints_limits
-    oraculum_obj = oraculum.Oraculum(env, info, arg_dict["robot_action"], grip_limits)
-
-    p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-    p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
-    p.setAdditionalSearchPath(pybullet_data.getDataPath())
-    last_call_time = time.time()
-    if arg_dict["control"] == "slider":
-        p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
-        if "joints" in arg_dict["robot_action"]:
-            if 'gripper' in arg_dict["robot_action"]:
-                print("gripper is present")
-                for i in range(env.unwrapped.action_space.shape[0]):
-                    if i < (env.unwrapped.action_space.shape[0] - len(env.unwrapped.robot.gjoints_rest_poses)):
-                        joints[i] = p.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i],
-                                                            env.unwrapped.action_space.high[i], env.unwrapped.robot.init_joint_poses[i])
-                    else:
-                        joints[i] = p.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i],
-                                                            env.unwrapped.action_space.high[i], .02)
-            else:
-                for i in range(env.unwrapped.action_space.shape[0]):
-                    joints[i] = p.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i], env.unwrapped.action_space.high[i],
-                                                        env.unwrapped.robot.init_joint_poses[i])
-        elif "absolute" in arg_dict["robot_action"]:
-            if 'gripper' in arg_dict["robot_action"]:
-                print("gripper is present")
-                for i in range(env.action_space.shape[0]):
-                    if i < (env.action_space.shape[0] - len(env.unwrapped.robot.gjoints_rest_poses)):
-                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
-                    else:
-                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
-            else:
-                for i in range(env.action_space.shape[0]):
-                    joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
-        elif "step" in arg_dict["robot_action"]:
-            if 'gripper' in arg_dict["robot_action"]:
-                print("gripper is present")
-                for i in range(env.action_space.shape[0]):
-                    if i < (env.action_space.shape[0] - len(env.unwrapped.robot.gjoints_rest_poses)):
-                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
-                    else:
-                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
-            else:
-                for i in range(env.action_space.shape[0]):
-                    joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
-
-    p.addUserDebugParameter("Lateral Friction", 0, 100, 0)
-    p.addUserDebugParameter("Spinning Friction", 0, 100, 0)
-    p.addUserDebugParameter("Linear Damping", 0, 100, 0)
-    p.addUserDebugParameter("Angular Damping", 0, 100, 0)
-
-    if arg_dict["vsampling"]:
-        visualize_sampling_area(arg_dict)
-    if arg_dict["control"] == "random":
-        action = env.action_space.sample()
-    if arg_dict["control"] == "keyboard":
-        action = arg_dict["robot_init"]
-        if "gripper" in arg_dict["robot_action"]:
-            action.append(.1)
-            action.append(.1)
-    if arg_dict["control"] == "slider":
-        action = []
-        for i in range(env.action_space.shape[0]):
-            jointparams[i] = p.readUserDebugParameter(joints[i])
-            action.append(jointparams[i])
-
-    eval_episodes = arg_dict.get("eval_episodes", 50)
-    for e in range(eval_episodes):
-        obs, info = env.reset()
-        # Store oraculum results if selected:
-        if arg_dict["results_report"]:
-            if len(arg_dict["task_type"]) <=2: #A or AG task
-                positions = [info['o']['actual_state'],  None,
-                              info['o']['goal_state']]
-            else:
-                positions = [info['o']["additional_obs"]["endeff_xyz"],
-                             info['o']['actual_state'],
-                             info['o']['goal_state']]
-            current_result = [arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"],
-                            np.round(np.array(positions[0]), 2) if positions[0] is not None else None,
-                            np.round(np.array(positions[1]), 2) if positions[1] is not None else None,
-                            np.round(np.array(positions[2]), 2) if positions[2] is not None else None]
-        for t in range(arg_dict["max_episode_steps"]):
-            if arg_dict["control"] == "slider":
-                action = []
-                for i in range(env.action_space.shape[0]):
-                    jointparams[i] = p.readUserDebugParameter(joints[i])
-                    action.append(jointparams[i])
-
-            if arg_dict["control"] == "observation":
-                if t == 0:
-                    action = env.unwrapped.robot.init_joint_poses
-                    last_action = action
-                else:
-                    if "joints" in arg_dict["robot_action"]:
-                        action = env.unwrapped.robot.get_joints_states()
-                    elif "absolute" in arg_dict["robot_action"]:
-                        action = info['o']["actual_state"]
-                    else:
-                        action = [0, 0, 0]
-
-                    # Compute element-wise difference safely using numpy
-                    try:
-                        diff = np.array(last_action, dtype=float) - np.array(action, dtype=float)
-                        print(f"\rLast action difference: {np.round(diff, 4)}", end='', flush=True)
-                    except Exception:
-                        # Fallback if shapes mismatch
-                        print("\rLast action difference: (shape mismatch)", end='', flush=True)
-
-                    last_action = action
-                    
-            if arg_dict["control"] == "oraculum":
-                action = oraculum_obj.perform_oraculum_task(t, env, action, info)
-            elif arg_dict["control"] == "keyboard":
-                keypress = p.getKeyboardEvents()
-                action = detect_key(keypress, arg_dict, action)
-            elif arg_dict["control"] == "random":
-                action = env.action_space.sample()
-
-            observation, reward, terminated, truncated, info = env.step(action)
-            done = terminated or truncated
-            #print("observation shape:", len(obs))
-
-            n_p, last_call_time = n_pressed(last_call_time)
-            if n_p:  # If key 'n' is pressed, switch to next task - useful if robot gets stuck
-                env.unwrapped.task.end_episode_fail("manual_switch")
-                done = True
-
-            if arg_dict["results_report"] and done:
-                if terminated:
-                    current_result.append(True)
-                elif truncated:
-                    current_result.append(False)
-                else:
-                    current_result.append(False)
-                results.loc[len(results)] = current_result #Append result to pd dataframe
-
-            if arg_dict["vtrajectory"]:
-                visualize_trajectories(info, action)
-            if arg_dict["vinfo"]:
-                visualize_infotext(action, env, info)
-
-            if "step" in arg_dict["robot_action"]:
-                action[:3] = [0, 0, 0]
-
-            if arg_dict["visualize"]:
-                visualizations = [[], []]
-                env.render()
-                for camera_id in range(arg_dict["camera"]):
-                    camera_render = env.render()
-                    image = cv2.cvtColor(camera_render[camera_id]["image"], cv2.COLOR_RGB2BGR)
-                    depth = camera_render[camera_id]["depth"]
-                    image = cv2.copyMakeBorder(image, 30, 10, 10, 20, cv2.BORDER_CONSTANT, value=[255, 255, 255])
-                    cv2.putText(image, 'Camera {}'.format(camera_id), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, .5,
-                                (0, 0, 0), 1, 0)
-                    visualizations[0].append(image)
-                    depth = cv2.copyMakeBorder(depth, 30, 10, 10, 20, cv2.BORDER_CONSTANT, value=[255, 255, 255])
-                    cv2.putText(depth, 'Camera {}'.format(camera_id), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, .5,
-                                (0, 0, 0), 1, 0)
-                    visualizations[1].append(depth)
-
-                if len(visualizations[0]) % 2 != 0:
-                    visualizations[0].append(255 * np.ones(visualizations[0][0].shape, dtype=np.uint8))
-                    visualizations[1].append(255 * np.ones(visualizations[1][0].shape, dtype=np.float32))
-                fig_rgb = np.vstack((np.hstack((visualizations[0][0::2])), np.hstack((visualizations[0][1::2]))))
-                fig_depth = np.vstack((np.hstack((visualizations[1][0::2])), np.hstack((visualizations[1][1::2]))))
-                cv2.imshow('Camera RGB renders', fig_rgb)
-                cv2.imshow('Camera depth renders', fig_depth)
-                cv2.waitKey(1)
-
-            if arg_dict["record"] > 0 and len(images) < 80000:
-                if video_path is None:
-                    if arg_dict["record"] == 1:
-                        video_path = make_path(arg_dict, ".gif", False)
-                    elif arg_dict["record"] == 2:
-                        video_path = make_path(arg_dict, ".webm", False)
-                record_video(images, arg_dict, env, video_path, finalize=False)
-
-            if done:
-                print("Episode finished after {} timesteps".format(t + 1))
-                break
-    if arg_dict["results_report"]:
-        # results = results.round(2)
-        i=1
-        print(results.dtypes)
-        print(results)
-        print(type(results))
-        while True:
-            filename = f"./oraculum_results/results{i}.csv"
-            if not(os.path.exists(filename)):
-                break
-            i+=1
-        results.to_csv(filename, index = False)
-    if arg_dict.get("record",0) > 0 and video_path is not None and len(images)>0:
-        record_video(images, arg_dict, env, video_path, finalize=True)
+def apply_goal_position_override(env: Any, pos_xyz) -> bool:
+    """Teleport the goal object to pos_xyz if available. Returns True on success."""
+    try:
+        goal = getattr(env.unwrapped, 'task_objects', {}).get('goal_state', None)
+        if not isinstance(goal, EnvObject):
+            return False
+        uid = getattr(goal, 'uid', None)
+        if uid is None:
+            return False
+        p_client = getattr(env.unwrapped, 'p', p)
+        _, orn = p_client.getBasePositionAndOrientation(uid)
+        target = [float(pos_xyz[0]), float(pos_xyz[1]), float(pos_xyz[2])]
+        p_client.resetBasePositionAndOrientation(uid, target, orn)
+        return True
+    except Exception as ex:
+        print("[WARN] Failed to override goal position:", ex)
+        return False
 
 
-def record_video(images: list, arg_dict: dict, env: object, path: str, finalize: bool=False) -> None:
-    if arg_dict["camera"] < 1:
-        raise ValueError("Camera parameter must be set to > 0 to record!")
 
-    render_info = env.render()
-    image = render_info[arg_dict["camera"] - 1]["image"]
-    images.append(image)
-    if not finalize:
-        print(f"\rRecording frame: {len(images)} - ", end='', flush=True)
-        return
-    # Finalize and write video
-    print()  # newline after progress line
-    print(f"Finalizing video with {len(images)} frames -> {path}")
-    if ".gif" in path:
-        imageio.mimsave(path, [np.array(img) for i, img in enumerate(images) if i % 2 == 0], duration=65)
-        os.system('./utils/gifopt -O3 --lossy=5 --colors 256 -o {dest} {source}'.format(source=path, dest=path))
-        print("Record saved to " + path)
-        return
-    # Ensure webm extension
-    if not path.endswith('.webm'):
-        base = os.path.splitext(path)[0]
-        path = base + '.webm'
-    height, width, _ = images[0].shape
-    codec_chain = [
-        ['-c:v', 'libvpx-vp9', '-b:v', '2M'],
-        ['-c:v', 'libvpx', '-b:v', '2M']
-    ]
-    for codec_args in codec_chain:
-        cmd = [
-            'ffmpeg', '-y',
-            '-f', 'rawvideo',
-            '-vcodec', 'rawvideo',
-            '-pix_fmt', 'rgb24',
-            '-s', f'{width}x{height}',
-            '-r', '30',
-            '-i', '-',
-            '-an',
-        ] + codec_args + ['-pix_fmt', 'yuv420p', path]
-        try:
-            proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except FileNotFoundError:
-            print('[ERROR] ffmpeg not found in PATH. Cannot save video.')
-            return
-        try:
-            for frame in images:
-                f = frame
-                if f.dtype != np.uint8:
-                    f = np.clip(f, 0, 255).astype(np.uint8)
-                proc.stdin.write(f.tobytes())
-        finally:
-            if proc.stdin:
-                proc.stdin.close()
-            proc.wait()
-        if proc.returncode == 0:
-            print(f'Record saved to {path} ({codec_args[1]})')
-            break
-        else:
-            print(f'[WARN] ffmpeg failed with codec {codec_args[1]}, trying fallback...')
-    else:
-        print('[ERROR] All webm codecs failed; no video saved.')
-
-
-def make_path(arg_dict: dict, record_format: str, model: bool):
-    counter = 0
-    if model:
-        model_logdir = os.path.dirname(arg_dict.get("logdir", ""))
-        model_name = str(arg_dict["robot"]) + '_' + str(arg_dict["task_type"]) + '_' + str(arg_dict["robot_action"]) + '_' + str(arg_dict["algo"])
-        logdir = os.path.join(model_logdir,model_name)
-        print("Saving to " + logdir)
-    else:
-        if not os.path.exists(arg_dict["logdir"]):
-            os.makedirs(arg_dict["logdir"])
-        logdir = os.path.join(arg_dict["logdir"], "train_record_" + arg_dict["task_type"])
-
-    video_path = logdir + "_" + str(counter) + record_format
-    while os.path.exists(video_path):
-        counter += 1
-        video_path = logdir + "_" + str(counter) + record_format
-
-    return video_path
-
+def sync_hardware_pose_from_env(env: Any, grasper: Grasper) -> bool:
+    """Map sim joint states to hardware joint names and command the real robot.
+    Returns True if a command was sent, False otherwise.
+    """
+    try:
+        robot = getattr(env.unwrapped, 'robot', None)
+        if robot is None or not getattr(grasper, 'is_robot_connected', False):
+            return False
+        indices = getattr(robot, 'motor_indices', [])
+        mapped_names, rad_values = [], []
+        for jid in indices:
+            ji = robot.p.getJointInfo(robot.robot_uid, jid)
+            nm = ji[1]
+            nm = nm.decode('utf-8') if isinstance(nm, (bytes, bytearray)) else str(nm)
+            base = nm.replace('_rjoint', '').replace('_pjoint', '').replace('_gjoint', '')
+            q = robot.p.getJointState(robot.robot_uid, jid)[0]
+            mapped_names.append(base)
+            rad_values.append(float(q))
+        nico_deg = grasper.rad2nicodeg(mapped_names, rad_values)
+        hw_keys = set(grasper.INIT_POS.keys())
+        target_angles_deg = {k: v for k, v in nico_deg.items() if k in hw_keys}
+        if target_angles_deg:
+            grasper.perform_move(target_angles_deg)
+            return True
+    except Exception as ex:
+        print("[WARN] Could not sync hardware pose:", ex)
+    return False
 
 def test_model(
         env: Any,
@@ -499,6 +255,12 @@ def test_model(
     for e in range(arg_dict["eval_episodes"]):
         done = False
         obs, info = env.reset()
+        # Optionally reposition goal object from CLI -pos
+        if arg_dict.get("pos") is not None:
+            apply_goal_position_override(env, arg_dict["pos"])
+            # refresh observation after moving goal
+        # Sync hardware joints with the environment's reset pose
+        sync_hardware_pose_from_env(env, grasper)
         is_successful = 0
         distance_error = 0
 
@@ -541,30 +303,13 @@ def test_model(
                             values_print.append(round(float(q), 5))  # meters for prismatic or others
                             names.append(f"{nm} (m)")
                     print(f"Successful episode {e+1}:")
-                    print("Controlled joints:", names)
-                    print("Last joint values:", values_print)
+                    #print("Controlled joints:", names)
+                    #print("Last joint values:", values_print)
                     try:
-                        input("Press Enter to continue...")
-                        # Prepare joints for hardware move: map names and convert to Nico-specific degrees
-                        mapped_names, rad_values = [], []
-                        for jid in indices:
-                            ji = robot.p.getJointInfo(robot.robot_uid, jid)
-                            nm = ji[1]
-                            nm = nm.decode('utf-8') if isinstance(nm, (bytes, bytearray)) else str(nm)
-                            base = nm.replace('_rjoint', '').replace('_pjoint', '').replace('_gjoint', '')
-                            q = robot.p.getJointState(robot.robot_uid, jid)[0]
-                            mapped_names.append(base)
-                            rad_values.append(float(q))
-                        try:
-                            nico_deg = grasper.rad2nicodeg(mapped_names, rad_values)
-                            hw_keys = set(grasper.INIT_POS.keys())
-                            target_angles_deg = {k: v for k, v in nico_deg.items() if k in hw_keys}
-                            if target_angles_deg:
-                                grasper.perform_move(target_angles_deg)
-                            else:
-                                print("[WARN] No matching hardware joints found to command.")
-                        except Exception as conv_ex:
-                            print("[WARN] Failed preparing joints for hardware move:", conv_ex)
+                        input("Press to execute on real robot...")
+                        # Also push the final sim pose to hardware
+                        if not sync_hardware_pose_from_env(env, grasper):
+                            print("[WARN] No matching hardware joints found to command.")
                     except Exception:
                         pass
             except Exception as ex:
@@ -620,6 +365,8 @@ def main() -> None:
     parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
     parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
     parser.add_argument("-tp", "--top_grasp",  default = True, help="Use top grasp when reaching objects with oraculum.")
+    # new: override goal position in env (x y z)
+    parser.add_argument("-pos", "--pos", nargs=3, type=float, metavar=("X","Y","Z"), default=[0.3, 0.3, 0.2], help="Override goal object position (meters)")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
     arg_dict, commands = get_arguments(parser)
     parameters = {}
