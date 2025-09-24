@@ -258,7 +258,13 @@ class GymEnv(CameraEnv):
         """
         Set action space dimensions and range
         """
-        self.task = TaskModule(self, self.rddl_config["num_task_range"], self.rddl_config["protoactions"], self.rddl_config["allowed_objects"], self.rddl_config["allowed_predicates"], self.p)
+        self.task = TaskModule(self,
+                               num_task_range=self.rddl_config["num_task_range"],
+                               allowed_protoactions=self.rddl_config["protoactions"],
+                               allowed_initial_protoactions=self.rddl_config["initial_protoactions"],
+                               allowed_objects=self.rddl_config["allowed_objects"],
+                               allowed_predicates=self.rddl_config["allowed_predicates"],
+                               pybullet_client=self.p)
         self.task.build_scene_for_task_sequence() # this loads the robot. must be done his way so that rddl knows about the robot
         self._init_task_and_reward() # we first need rddl to make a robot
         if self.framework == "ray":

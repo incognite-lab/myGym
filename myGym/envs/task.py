@@ -17,11 +17,12 @@ class TaskModule():
         :param allowed_predicates: (list of strings) names of allowed predicates
         :param pybullet_client: (object) pybullet instance
     """
-    def __init__(self, env=None, num_task_range=[], allowed_protoactions=[], allowed_objects=[], allowed_predicates=[], pybullet_client=None):
+    def __init__(self, env=None, num_task_range=[], allowed_protoactions=[], allowed_initial_protoactions=[], allowed_objects=[], allowed_predicates=[], pybullet_client=None):
         self.env = env
         self.p = pybullet_client
         self.number_tasks_range = num_task_range
         self.allowed_protoactions = allowed_protoactions
+        self.allowed_initial_protoactions = allowed_initial_protoactions
         self.allowed_objects = allowed_objects
         self.allowed_predicates = allowed_predicates
         self.current_task_length = None
@@ -32,9 +33,9 @@ class TaskModule():
         self.current_action = None
         self.scene_entities = []
         self.scene_objects = []
-        self.rddl_world = RDDLWorld(allowed_actions=self.cfg_strings_to_classes(self.allowed_protoactions), 
-                                    allowed_entities=self.cfg_strings_to_classes(self.allowed_objects) + [RobotGripper], 
-                                    allowed_initial_actions=self.cfg_strings_to_classes(self.allowed_protoactions))
+        self.rddl_world = RDDLWorld(allowed_actions=self.cfg_strings_to_classes(self.allowed_protoactions),
+                                    allowed_entities=self.cfg_strings_to_classes(self.allowed_objects) + [RobotGripper],
+                                    allowed_initial_actions=self.cfg_strings_to_classes(self.allowed_initial_protoactions))
 
     def sample_num_subtasks(self):
         '''Whenever a new sequence of actions is desired, this function chooses a random
@@ -72,7 +73,9 @@ class TaskModule():
         '''Goes to the beginning of the already existing sequence (typically at "small" reset), regenerate objects'''
         self.current_task_sequence = self.rddl_task.get_generator()
         self.current_action = next(self.current_task_sequence)
-        print(f"Resetting the existing action sequence. Current task: {self.current_action}")
+        print("Resetting the existing action sequence.")
+        print(f"Current task: {list(self.rddl_task.get_actions())}")
+        print(f"Current action: {self.current_action}")
         self.rddl_task.regenerate_objects()
         self.build_scene_for_task_sequence()
 
