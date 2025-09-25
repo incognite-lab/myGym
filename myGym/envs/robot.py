@@ -92,6 +92,9 @@ class Robot:
         if "tiago" in self.name: #This needed to be added becuase tiago got initialized in a bad position and IK didn't work
             self.init_joint_poses =  self.set_tiago_joints()
             self.joints_poses = self.init_joint_poses
+        elif "nico" in self.name:
+            self.init_joint_poses = self.set_nico_joints()
+            self.joints_poses = self.init_joint_poses
         else:
             self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
             self.joint_poses = self.init_joint_poses
@@ -674,7 +677,6 @@ class Robot:
             if self.task_type in ["compositional", "AG", "AGM", "AGR", "AGMD", "AGMDW", "AGRDW", "AGFDW","AGTDW"]:
                 if env_objects["actual_state"] != self: #if self.use_magnet and ...
                     gripper_states = self.get_gjoints_states()
-                    #TODO: this has to be repaired for the new way of gripper threshold checking
                     if sum(gripper_states) < self.closegr_threshold:
                         self.gripper_active = True
                         self.magnetize_object(env_objects["actual_state"])
@@ -848,5 +850,14 @@ class Robot:
     def determine_closegr_threshold(self):
         min, max = self.gjoints_limits[0], self.gjoints_limits[1]
         return sum(min) + 0.01 * (sum(max) - sum(min))
+
+    def set_nico_joints(self):
+        # Manually selected constant using slider
+        nico_init = np.deg2rad([0.976, 16.582, 50.472, 86.261, 32.209, 22.263])
+        for i, idx in enumerate(self.motor_indices):
+            self.p.resetJointState(self.robot_uid, idx, nico_init[i])
+        self.init_joint_poses = nico_init
+        self.joint_poses = self.init_joint_poses
+        return nico_init
 
 

@@ -111,11 +111,11 @@ class Protorewards(Reward):
         self.offsetright = [-0.2, 0.0, -0.1]
         self.offsetcenter = [0.0, 0.0, -0.1]
         self.grip_threshold = 0.1
-        self.approached_threshold = 0.08
+        self.approached_threshold = 0.04
         self.withdraw_threshold = 0.3
         self.opengr_threshold = self.env.robot.opengr_threshold
         self.closegr_threshold = self.env.robot.closegr_threshold
-        self.near_threshold = 0.06
+        self.near_threshold = 0.05
         self.lift_threshold = 0.1
         self_above_threshold = 0.1
         self.above_offset = 0.02
@@ -363,38 +363,13 @@ class Protorewards(Reward):
         return False
 
     def gripper_opened(self, gripper_states):
-        #TODO: finish this new way of checking thresholds
-        # for i, state in enumerate(gripper_states):
-        #     th_tuple = self.opengr_thresholds[i]
-        #     if th_tuple[1] == 'l':
-        #         if state > th_tuple[0]:
-        #             return False
-        #     else:
-        #         if state < th_tuple[0]:
-        #             return False
-        # self.env.robot.release_object(self.env.env_objects["actual_state"])
-        # self.env.robot.set_magnetization(False)
         if sum(gripper_states) >= self.opengr_threshold:
             self.env.robot.release_object(self.env.env_objects["actual_state"])
             self.env.robot.set_magnetization(False)
             return True
-        return True
+        return False
 
     def gripper_closed(self, gripper_states):
-        # TODO: finish this new way of checking thresholds
-        # for i, state in enumerate(gripper_states):
-        #     th_tuple = self.closegr_thresholds[i]
-        #     if th_tuple[1] == 'l':
-        #         if state > th_tuple[0]:
-        #             return False
-        #     else:
-        #         if state < th_tuple[0]:
-        #             return False
-        # try:
-        #     self.env.robot.set_magnetization(True)
-        # except:
-        #     pass
-        # return True
         if sum(gripper_states) <= self.closegr_threshold:
             try:
                 #self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
@@ -683,14 +658,14 @@ class AaGaMaDaW(Protorewards):
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_opened(gripper_states):
                         self.current_network = 1
-            if self.current_network == 1:
+            elif self.current_network == 1:
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_closed(gripper_states):
                         self.current_network = 2
-            if self.current_network == 2:
+            elif self.current_network == 2:
                 if self.object_near_goal(object_position, goal_position):
                     self.current_network = 3
-            if self.current_network == 3:
+            elif self.current_network == 3:
                 # if self.gripper_approached_object(gripper_position, object_position):
                 if self.gripper_opened(gripper_states):
                     self.current_network = 4
