@@ -111,7 +111,7 @@ class Protorewards(Reward):
         self.offsetright = [-0.2, 0.0, -0.1]
         self.offsetcenter = [0.0, 0.0, -0.1]
         self.grip_threshold = 0.1
-        self.approached_threshold = 0.04
+        self.approached_threshold = 0.045
         self.withdraw_threshold = 0.3
         self.opengr_threshold = self.env.robot.opengr_threshold
         self.closegr_threshold = self.env.robot.closegr_threshold

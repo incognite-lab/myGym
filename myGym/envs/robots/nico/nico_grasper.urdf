@@ -269,12 +269,14 @@
 				<color rgba="0.74902 0.74902 0.74902 1"/>
 			</material>
 		</visual>
+		<!--
 		<collision>
 			<geometry>
 				<mesh filename="mesh/right_palm.stl"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="0 0 0"/>
 		</collision>
+		-->
 		<inertial>
 			<mass value="0.005332"/>
 			<inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
@@ -413,12 +415,14 @@
 				<color rgba="0.74902 0.74902 0.74902 1"/>
 			</material>
 		</visual>
+		<!--
 		<collision>
 			<geometry>
 				<mesh filename="mesh/finger.stl"/>
 			</geometry>
 			<origin rpy="0 0 0" xyz="0 0 0"/>
 		</collision>
+		-->
 		<inertial>
 			<mass value="0.01"/>  <!-- 10 g -->
             <inertia ixx="1e-5" iyy="1e-5" izz="1e-5" ixy="0" ixz="0" iyz="0"/>

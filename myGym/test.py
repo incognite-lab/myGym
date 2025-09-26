@@ -167,6 +167,9 @@ def test_env(env: object, arg_dict: dict) -> None:
     info = None
     grip_limits = env.unwrapped.robot.gjoints_limits
     oraculum_obj = oraculum.Oraculum(env, info, arg_dict["robot_action"], grip_limits)
+    if "control" not in arg_dict.keys():
+        print("No control method selected. Testing random actions in selected environment.")
+        arg_dict["control"] = "random"
 
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
@@ -546,7 +549,7 @@ def print_init_info(arg_dict):
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
-    parser.add_argument("-ct", "--control",
+    parser.add_argument("-ct", "--control", default="oraculum",
                         help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
@@ -558,7 +561,6 @@ def main() -> None:
     arg_dict, commands = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
-        
     for key, arg in arg_dict.items():
         if type(arg_dict[key]) == list:
             if len(arg_dict[key]) > 1 and key != "robot_init" and key != "end_effector_orn":

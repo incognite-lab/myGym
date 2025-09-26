@@ -76,7 +76,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_hip_pitch_joint" type="revolute">
+  <joint name="left_hip_pitch_joint" type="fixed">
     <origin xyz="0 0.064452 -0.1027" rpy="0 0 0"/>
     <parent link="pelvis"/>
     <child link="left_hip_pitch_link"/>
@@ -105,7 +105,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_hip_roll_joint" type="revolute">
+  <joint name="left_hip_roll_joint" type="fixed">
     <origin xyz="0 0.052 -0.030465" rpy="0 -0.1749 0"/>
     <parent link="left_hip_pitch_link"/>
     <child link="left_hip_roll_link"/>
@@ -134,7 +134,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_hip_yaw_joint" type="revolute">
+  <joint name="left_hip_yaw_joint" type="fixed">
     <origin xyz="0.025001 0 -0.12412" rpy="0 0 0"/>
     <parent link="left_hip_roll_link"/>
     <child link="left_hip_yaw_link"/>
@@ -163,7 +163,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_knee_joint" type="revolute">
+  <joint name="left_knee_joint" type="fixed">
     <origin xyz="-0.078273 0.0021489 -0.17734" rpy="0 0.1749 0"/>
     <parent link="left_hip_yaw_link"/>
     <child link="left_knee_link"/>
@@ -192,7 +192,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_ankle_pitch_joint" type="revolute">
+  <joint name="left_ankle_pitch_joint" type="fixed">
     <origin xyz="0 -9.4445E-05 -0.30001" rpy="0 0 0"/>
     <parent link="left_knee_link"/>
     <child link="left_ankle_pitch_link"/>
@@ -239,7 +239,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_ankle_roll_joint" type="revolute">
+  <joint name="left_ankle_roll_joint" type="fixed">
     <origin xyz="0 0 -0.017558" rpy="0 0 0"/>
     <parent link="left_ankle_pitch_link"/>
     <child link="left_ankle_roll_link"/>
@@ -268,7 +268,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_hip_pitch_joint" type="revolute">
+  <joint name="right_hip_pitch_joint" type="fixed">
     <origin xyz="0 -0.064452 -0.1027" rpy="0 0 0"/>
     <parent link="pelvis"/>
     <child link="right_hip_pitch_link"/>
@@ -297,7 +297,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_hip_roll_joint" type="revolute">
+  <joint name="right_hip_roll_joint" type="fixed">
     <origin xyz="0 -0.052 -0.030465" rpy="0 -0.1749 0"/>
     <parent link="right_hip_pitch_link"/>
     <child link="right_hip_roll_link"/>
@@ -326,7 +326,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_hip_yaw_joint" type="revolute">
+  <joint name="right_hip_yaw_joint" type="fixed">
     <origin xyz="0.025001 0 -0.12412" rpy="0 0 0"/>
     <parent link="right_hip_roll_link"/>
     <child link="right_hip_yaw_link"/>
@@ -355,7 +355,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_knee_joint" type="revolute">
+  <joint name="right_knee_joint" type="fixed">
     <origin xyz="-0.078273 -0.0021489 -0.17734" rpy="0 0.1749 0"/>
     <parent link="right_hip_yaw_link"/>
     <child link="right_knee_link"/>
@@ -384,7 +384,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_ankle_pitch_joint" type="revolute">
+  <joint name="right_ankle_pitch_joint" type="fixed">
     <origin xyz="0 9.4445E-05 -0.30001" rpy="0 0 0"/>
     <parent link="right_knee_link"/>
     <child link="right_ankle_pitch_link"/>
@@ -431,7 +431,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_ankle_roll_joint" type="revolute">
+  <joint name="right_ankle_roll_joint" type="fixed">
     <origin xyz="0 0 -0.017558" rpy="0 0 0"/>
     <parent link="right_ankle_pitch_link"/>
     <child link="right_ankle_roll_link"/>
@@ -629,7 +629,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_shoulder_pitch_joint" type="revolute">
+  <joint name="left_shoulder_pitch_joint" type="fixed">
     <origin xyz="0.0039563 0.10022 0.24778" rpy="0.27931 5.4949E-05 -0.00019159"/>
     <parent link="torso_link"/>
     <child link="left_shoulder_pitch_link"/>
@@ -658,7 +658,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_shoulder_roll_joint" type="revolute">
+  <joint name="left_shoulder_roll_joint" type="fixed">
     <origin xyz="0 0.038 -0.013831" rpy="-0.27925 0 0"/>
     <parent link="left_shoulder_pitch_link"/>
     <child link="left_shoulder_roll_link"/>
@@ -687,7 +687,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_shoulder_yaw_joint" type="revolute">
+  <joint name="left_shoulder_yaw_joint" type="fixed">
     <origin xyz="0 0.00624 -0.1032" rpy="0 0 0"/>
     <parent link="left_shoulder_roll_link"/>
     <child link="left_shoulder_yaw_link"/>
@@ -716,14 +716,14 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_elbow_joint" type="revolute">
+  <joint name="left_elbow_joint" type="fixed">
     <origin xyz="0.015783 0 -0.080518" rpy="0 0 0"/>
     <parent link="left_shoulder_yaw_link"/>
     <child link="left_elbow_link"/>
     <axis xyz="0 1 0"/>
     <limit lower="-1.0472" upper="2.0944" effort="25" velocity="37"/>
   </joint>
-  <joint name="left_wrist_roll_joint" type="revolute">
+  <joint name="left_wrist_roll_joint" type="fixed">
     <origin xyz="0.100 0.00188791 -0.010" rpy="0 0 0"/>
     <axis xyz="1 0 0"/>
     <parent link="left_elbow_link"/>
@@ -752,7 +752,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_wrist_pitch_joint" type="revolute">
+  <joint name="left_wrist_pitch_joint" type="fixed">
     <origin xyz="0.038 0 0" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
     <parent link="left_wrist_roll_link"/>
@@ -781,7 +781,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_wrist_yaw_joint" type="revolute">
+  <joint name="left_wrist_yaw_joint" type="fixed">
     <origin xyz="0.046 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <parent link="left_wrist_pitch_link"/>
@@ -837,7 +837,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_hand_thumb_0_joint" type="revolute">
+  <joint name="left_hand_thumb_0_joint" type="fixed">
     <origin xyz="0.0255 0 0" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
     <parent link="left_hand_palm_link"/>
@@ -866,7 +866,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_hand_thumb_1_joint" type="revolute">
+  <joint name="left_hand_thumb_1_joint" type="fixed">
     <origin xyz="-0.0025 -0.0193 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <parent link="left_hand_thumb_0_link"/>
@@ -895,7 +895,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_hand_thumb_2_joint" type="revolute">
+  <joint name="left_hand_thumb_2_joint" type="fixed">
     <origin xyz="0 -0.0458 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <parent link="left_hand_thumb_1_link"/>
@@ -924,7 +924,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_hand_middle_0_joint" type="revolute">
+  <joint name="left_hand_middle_0_joint" type="fixed">
     <origin xyz="0.0777 0.0016 -0.0285" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <parent link="left_hand_palm_link"/>
@@ -953,7 +953,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_hand_middle_1_joint" type="revolute">
+  <joint name="left_hand_middle_1_joint" type="fixed">
     <origin xyz="0.0458 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <parent link="left_hand_middle_0_link"/>
@@ -982,7 +982,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_hand_index_0_joint" type="revolute">
+  <joint name="left_hand_index_0_joint" type="fixed">
     <origin xyz="0.0777 0.0016 0.0285" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <parent link="left_hand_palm_link"/>
@@ -1011,7 +1011,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_hand_index_1_joint" type="revolute">
+  <joint name="left_hand_index_1_joint" type="fixed">
     <origin xyz="0.0458 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <parent link="left_hand_index_0_link"/>
@@ -1263,12 +1263,14 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_palm_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
 <link name="endeffector">
     	<visual>
@@ -1291,7 +1293,7 @@
     	<origin rpy="1.57 0 0" xyz="0.07 0.07 0.0"/>
 	</joint>
 
-  <joint name="right_hand_thumb_0_joint" type="revolute">
+  <joint name="right_hand_thumb_0_joint" type="fixed">
     <origin xyz="0.0255 0 0" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
     <parent link="gripper"/>
@@ -1313,12 +1315,14 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_thumb_0_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_hand_thumb_1_gjoint" type="revolute">
     <origin xyz="-0.0025 0.0193 0" rpy="0 0 0"/>
@@ -1341,15 +1345,17 @@
       <material name="white">
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
-    </visual>
+      </visual>
+    <!--
     <collision>
       <origin xyz="-0.001 0.032 0" rpy="0 0 0"/>
       <geometry>
         <box size="0.02 0.03 0.02"/>
       </geometry>
     </collision>
+    -->
   </link>
-  <joint name="right_hand_thumb_2_joint" type="revolute">
+  <joint name="right_hand_thumb_2_joint" type="fixed">
     <origin xyz="0 0.0458 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <parent link="right_hand_thumb_1_link"/>
@@ -1371,12 +1377,14 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_thumb_2_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_hand_middle_0_gjoint" type="revolute">
     <origin xyz="0.0777 -0.0016 -0.0285" rpy="0 0 0"/>
@@ -1400,14 +1408,16 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+     <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_middle_0_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
-  <joint name="right_hand_middle_1_joint" type="revolute">
+  <joint name="right_hand_middle_1_joint" type="fixed">
     <origin xyz="0.0458 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <parent link="right_hand_middle_0_link"/>
@@ -1429,12 +1439,14 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_middle_1_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_hand_index_0_gjoint" type="revolute">
     <origin xyz="0.0777 -0.0016 0.0285" rpy="0 0 0"/>
@@ -1458,14 +1470,16 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+     <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_index_0_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
-  <joint name="right_hand_index_1_joint" type="revolute">
+  <joint name="right_hand_index_1_joint" type="fixed">
     <origin xyz="0.0458 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <parent link="right_hand_index_0_link"/>
@@ -1487,11 +1501,13 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_index_1_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
 </robot>

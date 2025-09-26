@@ -121,7 +121,7 @@ class Oraculum:
             return action
         action = info['o']["actual_state"][:3]
         if info['o']["actual_state"][2] < -0.25:
-            action[2] += 0.05
+            action[2] += 0.01
         return action
 
 

@@ -48,7 +48,7 @@
     "multiprocessing"   :null,
     #Evaluation
     "eval_freq"     :500000,
-    "eval_episodes" :1,
+    "eval_episodes" :50,
     #Saving and logging
     "logdir"    :"trained_models/AGM",
     "record"    :0
