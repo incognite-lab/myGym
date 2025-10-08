@@ -11,3 +11,4 @@ class RosMelodicTransmitPlugin:
         print(f"Sending: {data_dict}")
         ret = self.client.call(data_dict)
         print(f"Response: {ret}")
+        return ret
