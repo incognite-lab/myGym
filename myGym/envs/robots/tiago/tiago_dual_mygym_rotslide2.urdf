@@ -45,29 +45,42 @@
   <material name="Yellow">
     <color rgba="0.96 0.88 0.14 1.0"/>
   </material>
-   <!-- World link -->
+  <!-- World link -->
   <link name="world"/>
   <!-- Base footprint -->
   <link name="base_footprint">
+    <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
   </link>
+
   <link name="base_footprint2">
+    <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
   </link>
+
+  <!-- Slider joints -->
   <joint name="baseslide_rjoint" type="prismatic">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
     <parent link="world"/>
     <child link="base_footprint"/>
     <axis xyz="0 1 0"/>
-    <limit effort="500" lower="-0.7" upper="0.35" velocity="1"/>
+    <limit effort="16" lower="-0.5" upper="0.5" velocity="0.05"/>
   </joint>
-  <joint name="baseslide2_rjoint" type="prismatic">
+
+  <joint name="baseslide_rjoint2" type="prismatic">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
     <parent link="base_footprint"/>
     <child link="base_footprint2"/>
     <axis xyz="1 0 0"/>
-    <limit effort="500" lower="-0.5" upper="0.4" velocity="1"/>
+    <limit effort="16" lower="-0.5" upper="0.5" velocity="0.05"/>
   </joint>
+
   <!-- Base -->
   <link name="base_link">
     <inertial>
@@ -88,7 +101,7 @@
     <child link="base_link"/>
     <parent link="base_footprint2"/>
     <axis xyz="0 0 1"/>
-    <limit effort="200" lower="-3.140972451" upper="3.140972451" velocity="20"/>
+    <limit effort="16" lower="-1.1780972451" upper="1.57079632679" velocity="1.95"/>
   </joint>
   <!-- Bottom fixed part of column -->
   <link name="torso_fixed_link">
@@ -146,15 +159,8 @@
       </geometry>
       <material name="White"/>
     </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://tiago_dual_description/meshes/torso/torso_lift_dual_arm.stl" scale="1 1 1"/>
-      </geometry>
-      <material name="White"/>
-    </collision>
   </link>
-  <joint name="torso_lift_joint" type="prismatic">
+  <joint name="torso_lift_rjoint" type="prismatic">
     <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.61"/>
     <parent link="torso_fixed_link"/>
     <child link="torso_lift_link"/>
@@ -228,6 +234,12 @@
       </geometry>
       <material name="White"/>
     </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://tiago_description/meshes/arm/arm_1_collision.dae" scale="1 -1 -1"/>
+      </geometry>
+    </collision>
   </link>
   <joint name="arm_left_1_joint" type="fixed">
     <parent link="torso_lift_link"/>
@@ -618,9 +630,9 @@
   <joint name="arm_right_2_rjoint" type="revolute">
     <parent link="arm_right_1_link"/>
     <child link="arm_right_2_link"/>
-    <origin rpy="-1.5707963267948966 0.0 0.0" xyz="0.125 -0.0195 -0.031"/>
+    <origin rpy="-1.57079632679 0.0 0.0" xyz="0.125 -0.0195 -0.031"/>
     <axis xyz="0 0 1"/>
-    <limit effort="43.0" lower="-1.1780972450961724" upper="1.5707963267948966" velocity="1.95"/>
+    <limit effort="43.0" lower="-1.1780972451" upper="1.57079632679" velocity="1.95"/>
   </joint>
   <link name="arm_right_3_link">
     <inertial>
@@ -639,7 +651,7 @@
   <joint name="arm_right_3_rjoint" type="revolute">
     <parent link="arm_right_2_link"/>
     <child link="arm_right_3_link"/>
-    <origin rpy="-1.5707963267948966 0.0 1.5707963267948966" xyz="0.0895 0.0 -0.0015"/>
+    <origin rpy="-1.57079632679 0.0 1.57079632679" xyz="0.0895 0.0 -0.0015"/>
     <axis xyz="0 0 1"/>
     <limit effort="26" lower="-0.7853981633974483" upper="3.9269908169872414" velocity="2.35"/>
   </joint>
@@ -663,9 +675,9 @@
   <joint name="arm_right_4_rjoint" type="revolute">
     <parent link="arm_right_3_link"/>
     <child link="arm_right_4_link"/>
-    <origin rpy="-1.57079632679 0.78 0.0" xyz="-0.02 -0.027 -0.222"/>
+    <origin rpy="-1.57079632679 -1.57079632679 0.0" xyz="-0.02 -0.027 -0.222"/>
     <axis xyz="0 0 1"/>
-    <limit effort="26" lower="-1.57079632679" upper="0" velocity="2.35"/>
+    <limit effort="26" lower="-0.392699081699" upper="2.35619449019" velocity="2.35"/>
   </joint>
   <!--************************-->
   <!--        WRIST           -->
@@ -676,8 +688,8 @@
   <link name="arm_right_5_link">
     <inertial>
       <origin rpy="0.00000 0.00000 0.00000" xyz="0.001078 -0.000151 -0.077173"/>
-      <mass value="1.655819"/>
-      <inertia ixx="0.00613800000" ixy="-0.00000400000" ixz="0.00015600000" iyy="0.00564000000" iyz="0.00002200000" izz="0.00179700000"/>
+      <mass value="0.9359143689"/>
+      <inertia ixx="0.001036187977" ixy="1.0622321E-07" ixz="1.9920336E-06" iyy="0.000794527176366096" iyz="-2.56396106998404E-07" izz="0.000439831229979178"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -697,8 +709,8 @@
   <link name="arm_right_6_link">
     <inertial>
       <origin rpy="0.00000 0.00000 0.00000" xyz="-0.000153 -0.003122 0.000183"/>
-      <mass value="0.370063"/>
-      <inertia ixx="0.00021500000" ixy="0.00000000000" ixz="0.00000000000" iyy="0.00017000000" iyz="0.00000200000" izz="0.00017400000"/>
+      <mass value="0.30275767222"/>
+      <inertia ixx="3.29233557E-05" ixy="6.31537395E-08" ixz="-4.567124912E-11" iyy="3.85334410118923E-05" iyz="-2.01613082836742E-07" izz="3.33282849168039E-05"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -718,8 +730,8 @@
   <link name="arm_right_7_link">
     <inertial>
       <origin rpy="0.00000 0.00000 0.00000" xyz="0.000010 -0.000003 -0.007774"/>
-      <mass value="0.234252"/>
-      <inertia ixx="0.00014200000" ixy="0.00000000000" ixz="0.00000000000" iyy="0.00011300000" iyz="0.00000000000" izz="0.00005200000"/>
+      <mass value="0.100"/>
+      <inertia ixx="1.14959795E-05" ixy="-1.390727219E-07" ixz="5.930207406E-09" iyy="1.13594084240734E-05" iyz="-1.78396260812528E-08" izz="2.01898984804048E-05"/>
     </inertial>
   </link>
   <joint name="arm_right_7_rjoint" type="revolute">
@@ -799,20 +811,26 @@
       <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00001" iyz="0.0" izz="0.00001"/>
     </inertial>
   </link>
-  <joint name="endeffector_gjoint" type="fixed">
-    <parent link="gripper"/>
-    <child link="endeffector"/>
-    <origin rpy="0 0 -1.57079632679" xyz="0.0 0.0 -0.20"/>
-  </joint>
   <link name="endeffector">
     <visual>
-      <origin rpy="0 0 0" xyz="-0.0 0.0 0.0"/>
+      		<origin rpy="0 0 0" xyz="0 0.0 0"/> <!-- Updated position -->
       <geometry>
-        <sphere radius="0.01"/>
+        		<cylinder length="0.05" radius="0.002"/>
       </geometry>
-      <material name="LightGrey"/>
+			<material name="blue">
+      			<color rgba="0 0 1 0.5"/> <!-- RGBA: Red Green Blue Alpha (opacity) -->
+    		</material>
     </visual>
+        <inertial>
+		    <mass value="0.0000332"/>
+		    <inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
+		</inertial>
   </link>
+	<joint name="endeffector_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="endeffector"/>
+    	<origin rpy="0 0 -3.1415" xyz="0.0 0.0 -0.20"/>
+	</joint>
   <joint name="gripper_right_tool_joint" type="fixed">
     <origin rpy="1.57079632679 1.57079632679 -1.57079632679" xyz="0.01 0 0"/>
     <parent link="wrist_right_ft_tool_link"/>

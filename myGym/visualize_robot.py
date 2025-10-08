@@ -13,7 +13,7 @@ def main():
     # Initialize PyBullet
     physicsClient = p.connect(p.GUI)
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
-    
+
     # Fixed orientation for IK (quaternion)
     fixed_orientation = p.getQuaternionFromEuler([0, -np.pi/2, 0])  # Fixed downward orientation
 
@@ -28,34 +28,34 @@ def main():
     #                  baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX,
     #                                                                halfExtents=[.165, .267, 0.001]), baseMass=0,
     #                  basePosition=[0.395, 0, 0.054])
-    
+
     # Load URDF
     try:
         robot_id = p.loadURDF(args.urdf, useFixedBase=True)
     except:
         print(f"Error: Failed to load URDF file '{args.urdf}'")
         return
-    
-    # Find end effector link
+
     num_joints = p.getNumJoints(robot_id)
+
 
     # Get joint information
     sliders = []
-    
+
     for joint_idx in range(num_joints):
         joint_info = p.getJointInfo(robot_id, joint_idx)
         joint_name = joint_info[1].decode("utf-8")
         joint_type = joint_info[2]
-        
+
         # Only create sliders for non-fixed joints
         if joint_type != p.JOINT_FIXED:
             lower = joint_info[8]
             upper = joint_info[9]
-            
+
             # Handle unlimited joints
             if lower >= upper:
                 lower, upper = -180, 180  # Default to ±180° for rotation joints
-                
+
             # Convert joint limits from radians to degrees for display
             lower_deg = lower * 57.2958
             upper_deg = upper * 57.2958
@@ -84,7 +84,7 @@ def main():
     #    baseCollisionShapeIndex=p.createCollisionShape(p.GEOM_BOX, halfExtents=[box_size/2]*3),
     #    basePosition=[0.35, 0, 0.07]  # Initial position
     #)
-    
+
     # Create sliders for box position control
     #x_slider = p.addUserDebugParameter("Box X", 0.05, 0.6, 0.35)
     #y_slider = p.addUserDebugParameter("Box Y", -0.45, 0.45, 0)
@@ -98,20 +98,20 @@ def main():
         cameraPitch=-15,
         cameraTargetPosition=[0, 0, 0.3]
     )
-    
+
     try:
         while True:
             # Update box position from sliders
             #box_pos = [
             #    p.readUserDebugParameter(x_slider),
-            #    p.readUserDebugParameter(y_slider), 
+            #    p.readUserDebugParameter(y_slider),
             #    p.readUserDebugParameter(z_slider)
             #]
             #p.resetBasePositionAndOrientation(box_id, box_pos, [0,0,0,1])
-            
+
             # Check keyboard events
-            
-            
+
+
             for joint_idx, slider_id in sliders:
                 value_deg = p.readUserDebugParameter(slider_id)
                 joint_info = p.getJointInfo(robot_id, joint_idx)

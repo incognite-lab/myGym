@@ -1,5 +1,18 @@
 import numpy as np
 
+class PrintEveryNCalls:
+    def __init__(self, msg, n):
+        self.default_msg = msg
+        self.n = n
+        self.call_count = 0
+
+    def __call__(self, additional_msg = ""):
+        self.call_count += 1
+        if self.call_count % self.n == 0:
+            print(self.default_msg + str(additional_msg))
+
+
+
 def get_workspace_dict():
     ws_dict = {'baskets':  {'urdf': 'baskets.urdf', 'texture': 'baskets.jpg',
                                             'transform': {'position':[3.18, -3.49, -1.05], 'orientation':[0.0, 0.0, -0.4*np.pi]},
@@ -100,10 +113,7 @@ def get_robot_dict():
                              'panda': {'path': '/envs/robots/franka_emika/panda_bullet/panda.urdf', 'position': np.array([0.0, -0.05, -0.04])},
                              'jaco': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq.urdf', 'position': np.array([0.0, 0.0, -0.041])},
                              'jaco_fixed': {'path': '/envs/robots/jaco_arm/jaco/urdf/jaco_robotiq_fixed.urdf', 'position': np.array([0.0, 0.0, -0.041])},
-                             'nico': {'path': '/envs/robots/nico/nico_alljoints.urdf', 'position': np.array([0.0, 0.0, 0.05])},
-                             'nico_upper': {'path': '/envs/robots/nico/nico_upper.urdf', 'position': np.array([-0.0, 0.1, -0.475])},
-                             'nico_upper_rh6d': {'path': '/envs/robots/nico/nico_upper_rh6d.urdf', 'position': np.array([-0.0, 0.1, 0.05])},
-                             'nico_grasp': {'path': '/envs/robots/nico/nico_grasp.urdf', 'position': np.array([-0.0, 0.1, 0.05])},
+                             'nico_grasp': {'path': '/envs/robots/nico/nico_grasper.urdf', 'position': np.array([-0.0, 0.1, 0.05])},
                              'reachy': {'path': '/envs/robots/pollen/reachy/urdf/reachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
                              'leachy': {'path': '/envs/robots/pollen/reachy/urdf/leachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
                              'reachy_and_leachy': {'path': '/envs/robots/pollen/reachy/urdf/reachy_and_leachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0]},
@@ -119,25 +129,28 @@ def get_robot_dict():
                              'tiago_dual': {'path': '/envs/robots/tiago/tiago_dual_mygym.urdf', 'position': np.array([0.0, -0.5, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual_rot': {'path': '/envs/robots/tiago/tiago_dual_mygym_rot.urdf', 'position': np.array([0.0, -0.6, -0.1]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual_rotslide': {'path': '/envs/robots/tiago/tiago_dual_mygym_rotslide.urdf', 'position': np.array([0.0, -0.6, -0.1]), 'orientation': [0.0, 0.0, 0*np.pi]},
-                             'tiago_dual_rotslide2': {'path': '/envs/robots/tiago/tiago_dual_mygym_rotslide2.urdf', 'position': np.array([0.0, -0.6, -0.1]), 'orientation': [0.0, 0.0, 0*np.pi]},
+                             'tiago_dual_rotslide2': {'path': '/envs/robots/tiago/tiago_dual_mygym_rotslide2.urdf', 'position': np.array([0.2, -0.6, -0.1]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual_hand': {'path': '/envs/robots/tiago/tiago_dual_hand.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_omni_single': {'path': '/envs/robots/tiago/tiago_stanford_right_arm.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_simple': {'path': '/envs/robots/tiago/tiago_simple.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual_fingers': {'path': '/envs/robots/tiago_dualhand/tiago_dual_hey5.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0 * np.pi]},
                               'hsr': {'path': '/envs/robots/hsr/hsrb4s.urdf', 'position': np.array([0.0, -0.15, -0.4]), 'orientation': [0.0, 0.0, 0 * np.pi]},
+                              'g1': {'path': '/envs/robots/unitree/g1_mygym.urdf', 'position': np.array([0, -0.2, 0.6]), 'orientation': [0.0, 0.0, 0 * np.pi]},
+                              'g1_dual': {'path': '/envs/robots/unitree/g1_mygym_dual.urdf', 'position': np.array([0, -0.2, 0.6]), 'orientation': [0.0, 0.0, 0 * np.pi]},
+                              'g1_whole': {'path': '/envs/robots/unitree/g1_mygym_whole.urdf', 'position': np.array([0, -0.2, 0.6]), 'orientation': [0.0, 0.0, 0 * np.pi]},
                              }
     return r_dict
 
-
-def get_module_type(observation):
+def get_gripper_dict():
     """
-    Get source of the information from environment (ground_truth, yolact, vae)
-
-    Returns:
-        :return source: (string) Source of information
+    Dict with important values for the grippers of each robot - closed/open values and thresholds
+    cpen: value for each gripper joint which opens the gripper
+    close: value for each gripper joint which closes the gripper
+    th_open: value
     """
-    if observation["actual_state"] not in ["vae", "yolact", "voxel", "dope"]:
-        src = "ground_truth_6D" if "6D" in observation["actual_state"] else "ground_truth"
-    else:
-        src = observation["actual_state"]
-    return src
+    g_dict ={"tiago": {"open": [1, 1], "close": [0,0], "th_open": [(0.7, 'g'), (0.7, 'g')], "th_closed": [(0.001, 'l'), (0.001, 'l')]},
+             "g1": {"open": [0 ,0, 0], "close": [-0.4, 1.57, 1.57], "th_open": [(0.02, 'g'), (0.5, 'l'), (0.5, 'l')],
+                    "th_closed": [(-0.375, 'l'), (1.55, 'g'), (1.55, 'g')]},
+             "kuka_gripper": {"open": 0, "close": 0, "th_open": 0, "th_closed": 0},
+             "nico_grasp": {"open": 0, "close": 0, "th_open": 0, "th_closed": 0}}
+    return g_dict

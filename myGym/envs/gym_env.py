@@ -98,6 +98,7 @@ class GymEnv(CameraEnv):
                  yolact_config=None,
                  natural_language=False,
                  training=True,
+                 top_grasp = False,
                  **kwargs
                  ):
 
@@ -136,6 +137,7 @@ class GymEnv(CameraEnv):
         self.visualize = visualize
         self.visgym    = visgym
         self.logdir    = logdir
+        self.top_grasp = top_grasp
         self.workspace_dict = get_workspace_dict()
         if not hasattr(self, "task"):
           self.task = None
@@ -173,19 +175,56 @@ class GymEnv(CameraEnv):
         if self.unwrapped.reward == 'distractor':
             self.has_distractor = True
             self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
-        reward_classes = {
-            "1-network": {"A": A,},
-            "2-network": {"AG": AaG},
-            "3-network": {"AGM": AaGaM},
-            "4-network": {"AGMD" : AaGaMaD},
-            "5-network": {"AGMDW" : AaGaMaDaW},
-            "5-network": {"AGRDW" : AaGaRaDaW},
-            "5-network": {"AGFDW" : AaGaFaDaW},
-            "5-network": {"AGTDW" : AaGaTaDaW}}
+         # --- New logic for reward class determination based on self.task_type ---
+        source_shorthand_for_reward = self.task_type
 
+        if not source_shorthand_for_reward:
+            raise ValueError("self.task_type cannot be empty when used for reward class derivation.")
 
-        scheme = "{}-network".format(str(self.num_networks))
-        assert self.unwrapped.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
+        # Count capital letters in self.task_type to determine num_networks
+        num_capitals = sum(1 for char in source_shorthand_for_reward if char.isupper())
+
+        # Update self.num_networks based on this count
+        self.num_networks = num_capitals
+
+        # Determine the scheme (e.g., "3-network", "1-network", "0-network")
+        scheme = f"{self.num_networks}-network"
+
+        # Construct the reward class name string from self.task_type
+        # e.g., "AGM" -> "AaGaM", "A" -> "A", "reach" -> "raeaaacah"
+        reward_class_name_str = 'a'.join(list(source_shorthand_for_reward))
+        # Ensure 'a'.join didn't produce an empty string if source_shorthand_for_reward was somehow non-empty but list(source_shorthand_for_reward) was empty (highly unlikely for strings)
+        if not reward_class_name_str and source_shorthand_for_reward: # If join resulted in empty but source wasn't, it's an issue.
+             reward_class_name_str = source_shorthand_for_reward # Fallback for single char non-alpha or unusual cases. 'a'.join handles 'A' correctly.
+
+        dynamically_constructed_reward_map = {}
+        try:
+            ActualRewardClass = globals()[reward_class_name_str]
+            dynamically_constructed_reward_map = {
+                scheme: {
+                    source_shorthand_for_reward: ActualRewardClass # Inner key is self.task_type
+                }
+            }
+        except KeyError:
+            raise ValueError(
+                f"Reward class '{reward_class_name_str}' (derived from task_type='{source_shorthand_for_reward}') "
+                f"was not found. Please ensure it is defined in 'myGym.envs.rewards.py' and imported."
+            )
+
+        # Debug print, similar to original
+        if scheme in dynamically_constructed_reward_map:
+            print(f"Dynamically derived reward scheme: {scheme}, task_type key: {list(dynamically_constructed_reward_map[scheme].keys())}")
+            # Assertion to ensure self.task_type (source_shorthand_for_reward) is indeed the key
+            assert source_shorthand_for_reward in dynamically_constructed_reward_map[scheme].keys(), \
+                f"Internal consistency error: task_type '{source_shorthand_for_reward}' " \
+                f"not found as key in dynamically constructed map for scheme '{scheme}'."
+        else:
+            # This should not be reached if ActualRewardClass was found and map constructed
+            raise LookupError(
+                f"Failed to create reward map entry for scheme='{scheme}' and task_type='{source_shorthand_for_reward}'."
+            )
+
+        #assert self.unwrapped.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
         self.task = t.TaskModule(task_type=self.task_type,
                                  observation=self.obs_type,
                                  vae_path=self.vae_path,
@@ -194,7 +233,19 @@ class GymEnv(CameraEnv):
                                  distance_type=self.distance_type,
                                  number_tasks=len(self.task_objects_dict),
                                  env=self)
-        self.unwrapped.reward = reward_classes[scheme][self.unwrapped.reward](env=self, task=self.task)
+
+        # Instantiate the reward object using the dynamically constructed map
+        # self.unwrapped.reward (which was the init argument 'reward') will be overwritten here.
+        try:
+            reward_constructor = dynamically_constructed_reward_map[scheme][source_shorthand_for_reward]
+            self.unwrapped.reward = reward_constructor(env=self, task=self.task)
+        except KeyError:
+            # This should ideally be caught by earlier checks
+            raise LookupError(
+                f"Failed to instantiate reward. Could not find class for scheme='{scheme}' and "
+                f"task_type='{source_shorthand_for_reward}' in the dynamically constructed map: "
+                f"{dynamically_constructed_reward_map}"
+            )
 
     def get_wrapper_attr(self, name: str) -> Any:
         return getattr(self.unwrapped, name)
@@ -216,12 +267,16 @@ class GymEnv(CameraEnv):
         if ws_texture: self._change_texture(self.workspace, self._load_texture(ws_texture))
         self._change_texture("floor", self._load_texture("parquet1.jpg"))
         self.objects_area_borders = self.workspace_dict[self.workspace]['borders']
+        endeff_orn = [0, 0, 0] if self.top_grasp else None
         kwargs = {"position": self.workspace_dict[self.workspace]['robot']['position'],
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
-                  "init_joint_poses": self.robot_init_joint_poses, "max_velocity": self.max_velocity,
-                  "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
-                  "pybullet_client": self.p}
+                  "init_joint_poses": self.robot_init_joint_poses, "fixed_end_effector_orn": endeff_orn,
+                  "max_velocity": self.max_velocity, "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
+                  "pybullet_client": self.p, "reward_type": self.unwrapped.reward}
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
+        # if "tiago" in self.robot_type:
+        #     #TODO: set a proper init state value for tiago joints, so that IK works well
+        #     self.p.resetJointState(self.robot.robot_uid, self.robot.motor_indices[2], 1.7)
         if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
 
 
@@ -530,7 +585,9 @@ class GymEnv(CameraEnv):
         Parameters:
             :param action: (list) Action data returned by trained model
         """
-        use_magnet = self.unwrapped.reward.get_magnetization_status()
+        #use_magnet = self.unwrapped.reward.get_magnetization_status()
+        if self.top_grasp:
+            self.robot.use_fixed_end_effector_orn = (self.unwrapped.reward.reward_name in ["approach"])
         for i in range(self.action_repeat):
             objects = self.env_objects
             self.robot.apply_action(action, env_objects=objects)
@@ -576,7 +633,7 @@ class GymEnv(CameraEnv):
     def _place_object(self, obj_info):
         fixed = True if obj_info["fixed"] == 1 else False
         pos = env_object.EnvObject.get_random_object_position(obj_info["sampling_area"])
-        orn = env_object.EnvObject.get_random_z_rotation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
+        orn = env_object.EnvObject.get_random_object_orientation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
         object = env_object.EnvObject(obj_info["urdf"], pos, orn, pybullet_client=self.p, fixed=fixed)
         if self.color_dict: object.set_color(self.color_of_object(object))
         return object

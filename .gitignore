@@ -1,3 +1,18 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **/*.pyc
 **/*.swp
 MANIFEST
@@ -14,3 +29,4 @@ myGym/my_config.json
 myGym/config_test.json
 .idea
 natural_language.txt
+oraculum_results

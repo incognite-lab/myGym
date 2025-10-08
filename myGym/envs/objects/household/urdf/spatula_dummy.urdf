@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<robot name="spatula_dummy">
+  <link name="baseLink">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0225 0.000 0.0047"/>
+      <geometry>
+        <mesh filename="../obj/spatula.obj" scale="0.01 0.01 0.01"/>
+      </geometry>
+       <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+</robot>

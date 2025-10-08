@@ -9,12 +9,12 @@
     "gui"       :0,
     "visualize" :0,
     "visgym"    :0,
-    #Robot
+    #Robot;
     "robot"         :"nico_grasp",
     "robot_action"  :"joints_gripper",
     "robot_init"    :[0.5, 0.2, 0.4],
-    "max_velocity"  :5,
-    "max_force"     :300,
+    "max_velocity"  :10,
+    "max_force"     :2000,
     "action_repeat" :1,
     #Task
     "task_type"             :"AGM",
@@ -32,24 +32,20 @@
     "distractors"           : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
                                        "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
     #Reward
-    "reward"        :"AGM",
     "distance_type" :"euclidean",
     "vae_path"      :null,
     "yolact_path"   :null,
     "yolact_config" :null,
     #Train
     "train_framework"   :"pytorch",
-    "algo"              :"ppo",
-    "num_networks"      :3,
+    "algo"              :"multippo",
     "max_episode_steps" :512,
-    "algo_steps"        :512,
-    "steps"             :20000000,
+    "steps"             :30000000,
     "pretrained_model"  :null,
-    "multiprocessing"   :false,
+    "multiprocessing"   :null,
     #Evaluation
     "eval_freq"     :500000,
     "eval_episodes" :50,
     #Saving and logging
-    "logdir"    :"trained_models/AGM_nico",
     "record"    :0
     }

@@ -30,21 +30,19 @@ class Reward:
         self.network_rewards = [0] * self.num_networks
 
     def network_switch_control(self, observation):
-        if self.env.num_networks <= 1:
-            print("Cannot switch networks in a single-network scenario")
+
+        if self.env.network_switcher == "gt":
+            self.current_network = self.decide(observation)
+        elif self.env.network_switcher == "keyboard":
+            keypress = self.env.p.getKeyboardEvents()
+            if 107 in keypress.keys() and keypress[107] == 1:  # K
+                if self.current_network < self.num_networks - 1:
+                    self.current_network += 1
+            elif 106 in keypress.keys() and keypress[106] == 1:  # J
+                if self.current_network > 0:
+                    self.current_network -= 1
         else:
-            if self.env.network_switcher == "gt":
-                self.current_network = self.decide(observation)
-            elif self.env.network_switcher == "keyboard":
-                keypress = self.env.p.getKeyboardEvents()
-                if 107 in keypress.keys() and keypress[107] == 1:  # K
-                    if self.current_network < self.num_networks - 1:
-                        self.current_network += 1
-                elif 106 in keypress.keys() and keypress[106] == 1:  # J
-                    if self.current_network > 0:
-                        self.current_network -= 1
-            else:
-                raise NotImplementedError("Currently only implemented ground truth ('gt') network switcher")
+            raise NotImplementedError("Currently only implemented ground truth ('gt') network switcher")
         return self.current_network
 
     def compute(self, observation=None):
@@ -120,7 +118,7 @@ class Protorewards(Reward):
         self.near_threshold = 0.06
         self.lift_threshold = 0.1
         self_above_threshold = 0.1
-        self.above_offset = [0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0]
+        self.above_offset = 0.02
         self.reward_name = None
         self.iter = 1
 
@@ -182,13 +180,14 @@ class Protorewards(Reward):
         goal_position = observation["goal_state"]
         object_position = observation["actual_state"]
         # gripper_name = [x for x in self.env.task.obs_template["additional_obs"] if "endeff" in x][0]
-        gripper_position = self.env.robot.get_accurate_gripper_position()  # observation["additional_obs"][gripper_name][:3]
+        #gripper_position = self.env.robot.get_accurate_gripper_position()  # observation["additional_obs"][gripper_name][:3]
         gripper_position = observation["additional_obs"]["endeff_xyz"]
         gripper_states = self.env.robot.get_gjoints_states()
 
         if self.prev_object_position is None:
             self.prev_object_position = object_position
-        goal_position += np.array(self.above_offset)
+        if self.__class__.__name__ in ["AaGaM", "AaGaMaD", "AaGaMaDaW"]:
+            goal_position[2] += self.above_offset
         return goal_position, object_position, gripper_position, gripper_states
 
     #### PROTOREWARDS DEFINITIONS  ####
@@ -280,11 +279,13 @@ class Protorewards(Reward):
         self.reward_name = "move"
         return reward
 
-    def rotate_compute(self, object, goal):
+    def rotate_compute(self, object, goal, gripper_states):
         self.env.robot.set_magnetization(False)
         dist = self.task.calc_distance(object, goal)
         if self.last_place_dist is None:
             self.last_place_dist = dist
+        gripdist = sum(gripper_states)
+        gripper_rew = (self.last_grip_dist - gripdist) * 0.1
         reward = self.last_place_dist - dist
         rot = self.task.calc_rot_quat(object, goal)
         if self.last_rot_dist is None:
@@ -362,16 +363,41 @@ class Protorewards(Reward):
         return False
 
     def gripper_opened(self, gripper_states):
+        #TODO: finish this new way of checking thresholds
+        # for i, state in enumerate(gripper_states):
+        #     th_tuple = self.opengr_thresholds[i]
+        #     if th_tuple[1] == 'l':
+        #         if state > th_tuple[0]:
+        #             return False
+        #     else:
+        #         if state < th_tuple[0]:
+        #             return False
+        # self.env.robot.release_object(self.env.env_objects["actual_state"])
+        # self.env.robot.set_magnetization(False)
         if sum(gripper_states) >= self.opengr_threshold:
             self.env.robot.release_object(self.env.env_objects["actual_state"])
             self.env.robot.set_magnetization(False)
             return True
-        return False
+        return True
 
     def gripper_closed(self, gripper_states):
+        # TODO: finish this new way of checking thresholds
+        # for i, state in enumerate(gripper_states):
+        #     th_tuple = self.closegr_thresholds[i]
+        #     if th_tuple[1] == 'l':
+        #         if state > th_tuple[0]:
+        #             return False
+        #     else:
+        #         if state < th_tuple[0]:
+        #             return False
+        # try:
+        #     self.env.robot.set_magnetization(True)
+        # except:
+        #     pass
+        # return True
         if sum(gripper_states) <= self.closegr_threshold:
             try:
-                self.env.robot.grasp_object(self.env.env_objects["actual_state"])
+                #self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
                 self.env.robot.set_magnetization(True)
                 return True
             except:
@@ -379,6 +405,7 @@ class Protorewards(Reward):
         return False
 
     def object_near_goal(self, object, goal):
+        goal[2] += self.above_offset
         distance = self.task.calc_distance(goal, object)
         if distance < self.near_threshold:
             return True
@@ -401,7 +428,7 @@ class A(Protorewards):
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
         self.last_owner = owner
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.rewards_history.append(reward)
         self.rewards_num = 1
         return reward
@@ -429,7 +456,7 @@ class AaG(Protorewards):
         reward = [self.approach_compute, self.grasp_compute][owner](*target)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 2
@@ -465,7 +492,7 @@ class AaGaM(Protorewards):
         reward = [self.approach_compute, self.grasp_compute, self.move_compute][owner](*target)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 3
@@ -520,7 +547,7 @@ class AaGaR(Protorewards):
         target = [
             [gripper_position, object_position, gripper_states],  # approach
             [gripper_position, object_position, gripper_states],  # grasp
-            [object_position, goal_position]                      # rotate
+            [object_position, goal_position, gripper_states]                      # rotate
         ][owner]
 
         # List of protoreward functions corresponding to network_names
@@ -538,7 +565,7 @@ class AaGaR(Protorewards):
             reward += 0.2
 
         # Display, log, and update history
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 3 # Total number of networks is 3
@@ -591,7 +618,7 @@ class AaGaMaD(Protorewards):
         reward = [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute][owner](*target)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 4
@@ -614,9 +641,9 @@ class AaGaMaD(Protorewards):
                 if self.object_near_goal(object_position, goal_position):
                     self.current_network = 3
         if self.current_network == 3:
-            if self.gripper_approached_object(gripper_position, object_position):
-                if self.gripper_opened(gripper_states):
-                    self.task.check_goal()
+            # if self.gripper_approached_object(gripper_position, object_position):
+            if self.gripper_opened(gripper_states):
+                self.task.check_goal()
         self.task.check_episode_steps()
         return self.current_network
 
@@ -640,7 +667,7 @@ class AaGaMaDaW(Protorewards):
             *target)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5
@@ -664,9 +691,9 @@ class AaGaMaDaW(Protorewards):
                 if self.object_near_goal(object_position, goal_position):
                     self.current_network = 3
             if self.current_network == 3:
-                if self.gripper_approached_object(gripper_position, object_position):
-                    if self.gripper_opened(gripper_states):
-                        self.current_network = 4
+                # if self.gripper_approached_object(gripper_position, object_position):
+                if self.gripper_opened(gripper_states):
+                    self.current_network = 4
         if self.current_network == 4:
             if self.gripper_withdraw_object(gripper_position, object_position):
                 if self.gripper_opened(gripper_states):
@@ -689,7 +716,7 @@ class AaGaRaDaW(Protorewards):
         # Updated target list for the new sequence of protorewards
         target = [[gripper_position, object_position, gripper_states],  # approach
                   [gripper_position, object_position, gripper_states],  # grasp
-                  [object_position, goal_position],                     # rotate (takes object, goal)
+                  [object_position, goal_position, gripper_states],                     # rotate (takes object, goal)
                   [gripper_position, object_position, gripper_states],  # drop
                   [gripper_position, goal_position, gripper_states]][owner] # withdraw
         # Updated list of protoreward functions to call
@@ -698,7 +725,7 @@ class AaGaRaDaW(Protorewards):
             *target)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5 # Still 5 networks
@@ -798,7 +825,7 @@ class AaGaFaDaW(Protorewards):
             reward += 0.2
 
         # Display, log, and update history
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5 # Total number of networks remains 5
@@ -904,7 +931,7 @@ class AaGaTaDaW(Protorewards):
             reward += 0.2
 
         # Display, log, and update history
-        self.disp_reward(reward, owner)
+        #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5 # Total number of networks remains 5
