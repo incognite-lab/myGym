@@ -127,6 +127,7 @@ def get_robot_dict():
                              'human': {'path': '/envs/robots/real_hands/humanoid_with_hands.urdf', 'position': np.array([0.0, 2, 0.45]), 'orientation': [0.0, 0.0, 0.0]},
                              'tiago': {'path': '/envs/robots/tiago/tiago_pal_gripper.urdf', 'position': np.array([0.0, -0.4, -0.2]),'orientation': [0.0, 0.0, 0 * np.pi]},
                              'tiago_dual': {'path': '/envs/robots/tiago/tiago_dual_mygym.urdf', 'position': np.array([0.0, -0.5, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
+                             'tiago_dual_fix': {'path': '/envs/robots/tiago/tiago_dual_mygym_fix.urdf', 'position': np.array([0.0, -0.5, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual_rot': {'path': '/envs/robots/tiago/tiago_dual_mygym_rot.urdf', 'position': np.array([0.0, -0.6, -0.1]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual_rotslide': {'path': '/envs/robots/tiago/tiago_dual_mygym_rotslide.urdf', 'position': np.array([0.0, -0.6, -0.1]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual_rotslide2': {'path': '/envs/robots/tiago/tiago_dual_mygym_rotslide2.urdf', 'position': np.array([0.2, -0.6, -0.1]), 'orientation': [0.0, 0.0, 0*np.pi]},
