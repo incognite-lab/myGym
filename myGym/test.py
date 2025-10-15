@@ -152,7 +152,7 @@ def n_pressed(last_call_time):
 
 
 def test_env(env: object, arg_dict: dict) -> None:
-    env.reset()
+    obs, info = env.reset()
     results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Success"])
     current_result = None
     env.render()
@@ -165,6 +165,8 @@ def test_env(env: object, arg_dict: dict) -> None:
     video_path = None
     action = None
     info = None
+    grip_limits = env.unwrapped.robot.gjoints_limits
+    oraculum_obj = oraculum.Oraculum(env, info, arg_dict["robot_action"], grip_limits)
 
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
@@ -275,7 +277,7 @@ def test_env(env: object, arg_dict: dict) -> None:
                     last_action = action
 
             if arg_dict["control"] == "oraculum":
-                action = oraculum.perform_oraculum_task(t, env, arg_dict, action, info)
+                action = oraculum_obj.perform_oraculum_task(t, env, action, info)
             elif arg_dict["control"] == "keyboard":
                 keypress = p.getKeyboardEvents()
                 action = detect_key(keypress, arg_dict, action)
@@ -544,7 +546,7 @@ def print_init_info(arg_dict):
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
-    parser.add_argument("-ct", "--control", default="oraculum",
+    parser.add_argument("-ct", "--control",
                         help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
@@ -573,8 +575,6 @@ def main() -> None:
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
-    if arg_dict["control"] == "oraculum":
-        arg_dict["robot_action"] = "absolute_gripper"
     else:
         if arg_dict["results_report"]:
             print("Results report cannot be used without oraculum.")
@@ -583,6 +583,7 @@ def main() -> None:
         print_init_info(arg_dict)
         arg_dict["gui"] = 1
         arg_dict = automatic_argument_assignment(arg_dict)
+        arg_dict["robot_action"] = "absolute_gripper"
         env = configure_env(arg_dict, model_logdir=None, for_train=0)
         test_env(env, arg_dict)
     else:

@@ -351,6 +351,8 @@ class GymEnv(CameraEnv):
         if "gripper" in self.robot_action:
             self.action_low = np.append(self.action_low, np.array(self.robot.gjoints_limits[0]))
             self.action_high = np.append(self.action_high, np.array(self.robot.gjoints_limits[1]))
+            # self.action_low = np.append(self.action_low, np.array(0))
+            # self.action_high = np.append(self.action_high, np.array(1))
 
         self.action_space = spaces.Box(self.action_low, self.action_high, dtype=np.float64)
 
