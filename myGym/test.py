@@ -507,6 +507,7 @@ def test_model(
 
         success_episodes_num += is_successful
         distance_error_sum += distance_error
+        input("Press enter to continue")
 
     mean_distance_error = distance_error_sum / arg_dict["eval_episodes"]
     mean_steps_num = steps_sum // arg_dict["eval_episodes"]

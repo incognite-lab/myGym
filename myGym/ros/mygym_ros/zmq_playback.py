@@ -61,6 +61,12 @@ class ZMQPlayback(metaclass=ZMQCommMeta):
         self._actions = []
         self._grips = []
 
+        print("ZMQ Configuration")
+        print(":-------------->")
+        for param, value in self._zmq_config.items():
+            print("{}: {}".format(param, value))
+        print("<--------------:")
+
     def _handle_data(self, topic, data):
         if self._is_recording_active:
             # TODO: add time stamps

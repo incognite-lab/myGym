@@ -4,7 +4,7 @@ import numpy as np
 import streamlit as st
 from pathlib import Path
 from typing import Optional, List, Dict
-from zmq_playback import ZMQPlayback
+from mygym_ros.zmq_playback import ZMQPlayback
 from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ctx
 from threading import Thread
 from streamlit_autorefresh import st_autorefresh
@@ -77,6 +77,9 @@ class StZMQPlayback(ZMQPlayback):
                             if self.can_record:
                                 self.finalize_recording()
                             self.play()
+                            st.rerun(scope="fragment")
+                        if st.button("▶️ stop", key=f"stop_play_{self.name}"):
+                            self.stop()
                             st.rerun(scope="fragment")
                 with ctrl_cols[1]:
                     # Speed control
@@ -161,8 +164,20 @@ class StZMQInstantPlayback(StZMQPlayback):
                 raise ValueError(f"Unsupported data type: {type(data)}")
             out_data.append(d)
         transmitter.send_data({
-            "joint_names": joint_names, "data": out_data}
-        )
+            "cmd": "send",
+            "joint_names": joint_names,
+            "data": out_data
+        })
+        st.rerun()
+
+    def stop(self):
+        if "transmitter" not in st.session_state:
+            st.error("No transmitter found")
+            return
+        transmitter = st.session_state.transmitter
+        transmitter.send_data({
+            "cmd": "halt",
+        })
         st.rerun()
 
 

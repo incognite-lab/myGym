@@ -919,13 +919,18 @@ class Robot(metaclass=RobotClassShim):
 
 class ROSRobot(Robot, metaclass=ZMQCommMeta):
 
-    def __init__(self, robot='kuka', position=[-0.1, 0, 0.07], orientation=[0, 0, 0], end_effector_index=None, gripper_index=None, init_joint_poses=None, robot_action="step", task_type="reach", use_fixed_end_effector_orn=False, end_effector_orn=[0, -math.pi, 0], dimension_velocity=0.5, max_velocity=None, max_force=None, pybullet_client=None):
-        super().__init__(robot, position, orientation, end_effector_index, gripper_index, init_joint_poses, robot_action, task_type, use_fixed_end_effector_orn, end_effector_orn, dimension_velocity, max_velocity, max_force, pybullet_client)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         if ParamPublisher is None:
             raise ImportError("ROSRobot is not available. Please install zmq_comm.")
         self.zmq_publisher = ParamPublisher(
             **self._zmq_config
         )
+        print("ZMQ Configuration")
+        print(":-------------->")
+        for param, value in self._zmq_config.items():
+            print("{}: {}".format(param, value))
+        print("<--------------:")
 
     def apply_action(self, action, env_objects=None):
         if "joints" in self.robot_action:
