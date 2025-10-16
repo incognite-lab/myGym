@@ -6,7 +6,7 @@ Publishes "true" on the external emergency topic when the emergency key is press
 
 Run me in "sudo" mode - requires access to /dev/input
 """
-from re import A
+import sys
 import rospy
 from std_msgs.msg import Bool
 import threading
@@ -16,12 +16,25 @@ from select import select
 import argparse
 
 
+def _translate_key_code_to_ecode(key_str):
+    key_str = key_str.upper()
+    if key_str.startswith("KEY_"):
+        key_str = key_str[4:]
+
+    for key, value in vars(ecodes).items():
+        if isinstance(value, int) and "KEY_" in key and key[4:].upper() == key_str:
+            return value
+
+    # Return the translated key or 'Unknown key' if not found
+    return -1
+
+
 class GlobalKeyListenerNode(object):
     def __init__(self, topic_name="/emergency_stop",
                  startup_key=ecodes.KEY_E,
-                 emergency_key=ecodes.KEY_SPACE
+                 emergency_key=ecodes.KEY_ENTER
                  ):
-        rospy.init_node('global_key_listener')
+        rospy.init_node('emergency_stop_key')
         self.pub = rospy.Publisher(topic_name, Bool, queue_size=1)
 
         self.startup_key = startup_key
@@ -39,11 +52,12 @@ class GlobalKeyListenerNode(object):
             # Filter for devices that report keys
             caps = dev.capabilities()
             if ecodes.EV_KEY in caps:
-                rospy.loginfo("Listening on device: %s (%s)" % (path, dev.name))
+                print("Listening on device: %s (%s)" % (path, dev.name))
                 self.devices.append(dev)
 
         if not self.devices:
-            rospy.logerr("No input devices with key capability found. Exiting.")
+            print("No input devices with key capability found. Exiting.")
+            print('\a')
             raise RuntimeError("No keyboard devices")
 
         # Create a thread to read events
@@ -51,10 +65,10 @@ class GlobalKeyListenerNode(object):
         self.listener_thread.daemon = True
         self.listener_thread.start()
 
-        rospy.loginfo("GlobalKeyListenerNode: started")
-        rospy.logwarn("Press 'Ctrl+Shift+%s' to toggle vigilance mode (waiting for emergency key)" % self._translate_ecode_to_str(self.startup_key))
-        rospy.logwarn("Press '%s' for EMERGENCY STOP when in vigilance mode" % self._translate_ecode_to_str(self.emergency_key))
-        rospy.loginfo("Publishing emergency stop messages on topic: %s" % topic_name)
+        print("GlobalKeyListenerNode: started")
+        print("Press 'Ctrl+Shift+%s' to toggle vigilance mode (waiting for emergency key)" % self._translate_ecode_to_str(self.startup_key))
+        print("Press '%s' for EMERGENCY STOP when in vigilance mode" % self._translate_ecode_to_str(self.emergency_key))
+        print("Publishing emergency stop messages on topic: %s" % topic_name)
 
     def _translate_ecode_to_str(self, ecode):
         # Define a dictionary to store the key translations
@@ -73,13 +87,22 @@ class GlobalKeyListenerNode(object):
         dev_fds = {dev.fd: dev for dev in self.devices}
 
         while not rospy.is_shutdown() and not self._stop:
-            r, w, x = select(dev_fds.keys(), [], [], 0.5)
+            r, _, _ = select(dev_fds.keys(), [], [], 0.1)
             for fd in r:
                 dev = dev_fds[fd]
-                for ev in dev.read():
-                    # print(ev.value)
-                    if ev.type == ecodes.EV_KEY:
-                        self._handle_key_event(ev)
+                try:
+                    for ev in dev.read():
+                        # print(ev)
+                        if ev.type == ecodes.EV_KEY:
+                            self._handle_key_event(ev)
+                except OSError as e:
+                    if e.errno == 19:
+                        # Device removed
+                        # dev_fds.pop(fd)  # don't want to remove the device
+                        print("Device removed: %s (%s)" % (dev.name, dev.path))
+                        print("Restart the node!!!")
+                        print('\a')
+                    continue
 
     def _handle_key_event(self, ev):
         # Key press (value = 1) or release (value = 0)
@@ -108,16 +131,16 @@ class GlobalKeyListenerNode(object):
         # If not in emergency mode, look for startup key
         if not self.emergency_mode:
             if self.control_down and self.shift_down and key == self.startup_key:
-                rospy.loginfo("Startup key pressed -> Entering emergency mode")
+                print("Startup key pressed -> Entering emergency mode")
                 self.emergency_mode = True
         else:
             # In emergency mode: check for emergency_key or startup key again
             if self.control_down and self.shift_down and key == self.startup_key:
-                rospy.loginfo("Startup key pressed -> exit emergency mode, publish False")
+                print("Startup key pressed -> exit emergency mode, publish False")
                 self.pub.publish(Bool(False))
                 self.emergency_mode = False
             elif key == self.emergency_key:
-                rospy.loginfo("Emergency key pressed -> publish True")
+                print("Emergency key pressed -> publish True")
                 self.pub.publish(Bool(True))
 
     def shutdown(self):
@@ -127,11 +150,22 @@ class GlobalKeyListenerNode(object):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("emergency_topic", type=str, nargs='?', default="/external_stop_trigger")
+    parser.add_argument("emergency_topic", type=str, nargs='?', default="/external_stop_trigger",
+                        help="Emergency stop topic where the message should be published")
+    parser.add_argument("--emergency_key", "--key", "-k", type=str, default="kpenter",
+                        help="Emergency stop key (default: 'kpenter' = keypad enter key)")
     args = parser.parse_args()
 
     emergency_topic = args.emergency_topic
+    emergency_key = _translate_key_code_to_ecode(args.emergency_key)
+    if emergency_key == -1:
+        print("Unknown key: %s" % args.emergency_key)
+        sys.exit(1)
 
-    node = GlobalKeyListenerNode(topic_name=emergency_topic)
+    node = GlobalKeyListenerNode(
+        topic_name=emergency_topic,
+        startup_key=ecodes.KEY_E,
+        emergency_key=emergency_key
+    )
     rospy.on_shutdown(node.shutdown)
     rospy.spin()
