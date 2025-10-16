@@ -25,6 +25,7 @@ import os
 import sys
 import subprocess
 import glob
+import argparse
 
 # ANSI colors for output marks
 GREEN = "\033[92m"
@@ -90,8 +91,6 @@ def main():
     """
     Main function to test all configs in the configs folder.
     """
-    import argparse
-    
     parser = argparse.ArgumentParser(
         description='Test train.py with all configs in ./configs folder'
     )
