@@ -160,6 +160,9 @@ class StZMQInstantPlayback(StZMQPlayback):
                 d = list(data.values())
                 if len(joint_names) == 0:
                     joint_names = list(data.keys())
+                elif joint_names != list(data.keys()):
+                    st.error(f"Joint names do not match! {joint_names} != {list(data.keys())}")
+                    return
             else:
                 raise ValueError(f"Unsupported data type: {type(data)}")
             out_data.append(d)
