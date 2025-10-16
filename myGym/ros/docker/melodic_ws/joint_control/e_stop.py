@@ -32,13 +32,13 @@ def _translate_key_code_to_ecode(key_str):
 class GlobalKeyListenerNode(object):
     def __init__(self, topic_name="/emergency_stop",
                  startup_key=ecodes.KEY_E,
-                 emergency_key=ecodes.KEY_ENTER
+                 emergency_keys=None
                  ):
         rospy.init_node('emergency_stop_key')
         self.pub = rospy.Publisher(topic_name, Bool, queue_size=1)
 
         self.startup_key = startup_key
-        self.emergency_key = emergency_key
+        self.emergency_keys = emergency_keys or [ecodes.KEY_SPACE]
 
         self.emergency_mode = False
         self.control_down = False
@@ -65,9 +65,11 @@ class GlobalKeyListenerNode(object):
         self.listener_thread.daemon = True
         self.listener_thread.start()
 
+        keystr = ' or '.join(["'%s'" % self._translate_ecode_to_str(key) for key in self.emergency_keys])
+
         print("GlobalKeyListenerNode: started")
         print("Press 'Ctrl+Shift+%s' to toggle vigilance mode (waiting for emergency key)" % self._translate_ecode_to_str(self.startup_key))
-        print("Press '%s' for EMERGENCY STOP when in vigilance mode" % self._translate_ecode_to_str(self.emergency_key))
+        print("Press %s for EMERGENCY STOP when in vigilance mode" % keystr)
         print("Publishing emergency stop messages on topic: %s" % topic_name)
 
     def _translate_ecode_to_str(self, ecode):
@@ -137,35 +139,52 @@ class GlobalKeyListenerNode(object):
             # In emergency mode: check for emergency_key or startup key again
             if self.control_down and self.shift_down and key == self.startup_key:
                 print("Startup key pressed -> exit emergency mode, publish False")
-                self.pub.publish(Bool(False))
+                self.release_emergency_stop()
                 self.emergency_mode = False
-            elif key == self.emergency_key:
+            elif key in self.emergency_keys:
                 print("Emergency key pressed -> publish True")
-                self.pub.publish(Bool(True))
+                self.do_emergency_stop()
+
+    def do_emergency_stop(self):
+        self.pub.publish(Bool(True))
+
+    def release_emergency_stop(self):
+        self.pub.publish(Bool(False))
 
     def shutdown(self):
         self._stop = True
         self.listener_thread.join()
+        if self.emergency_mode:
+            self.release_emergency_stop()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("emergency_topic", type=str, nargs='?', default="/external_stop_trigger",
                         help="Emergency stop topic where the message should be published")
-    parser.add_argument("--emergency_key", "--key", "-k", type=str, default="kpenter",
-                        help="Emergency stop key (default: 'kpenter' = keypad enter key)")
+    parser.add_argument("--emergency_key", "--key", "-k", action="append",
+                        help="Emergency stop key (default: 'kpenter' = keypad enter key). Use this argument multiple times to add more keys.")
     args = parser.parse_args()
 
     emergency_topic = args.emergency_topic
-    emergency_key = _translate_key_code_to_ecode(args.emergency_key)
-    if emergency_key == -1:
-        print("Unknown key: %s" % args.emergency_key)
+    emergency_keys = []
+    if args.emergency_key is None:
+        args.emergency_key = ["kpenter"]
+    for key in args.emergency_key:
+        key_code = _translate_key_code_to_ecode(key)
+        if key_code == -1:
+            print("Unknown key: %s" % key)
+            continue
+        emergency_keys.append(key_code)
+
+    if len(emergency_keys) == 0:
+        print("No valid emergency keys found. Exiting.")
         sys.exit(1)
 
     node = GlobalKeyListenerNode(
         topic_name=emergency_topic,
         startup_key=ecodes.KEY_E,
-        emergency_key=emergency_key
+        emergency_keys=emergency_keys
     )
     rospy.on_shutdown(node.shutdown)
     rospy.spin()
