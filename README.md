@@ -94,6 +94,35 @@ You can visualize the virtual gym env prior to the training.
 
 There will be the default workspace activated.  
 
+## Unit Tests
+
+The repository includes unit tests in the `myGym/unittest/` directory:
+
+### Test all training configs
+Test train.py with all configuration files in the `./configs` folder:
+
+```bash
+# Test all configs with default settings (10000 steps)
+python3 myGym/unittest/test_train_configs.py
+
+# Test with custom step count
+python3 myGym/unittest/test_train_configs.py --steps 5000
+
+# Test a specific config
+python3 myGym/unittest/test_train_configs.py --config train_A_nico.json
+```
+
+The test will display each config with a ✔ OK mark if training succeeds without errors, and provide a summary table of successfully trained configs at the end.
+
+### Test robot URDFs
+Test robot URDF joint limit reachability:
+
+```bash
+python3 myGym/unittest/test_robots.py
+```
+
+See `myGym/unittest/README.md` for more details on available tests.  
+
 ## Training
 
 Run the default training without specifying the parameters:

@@ -3,6 +3,23 @@
 Unit test that runs train.py with all configs in ./configs folder with steps=10000.
 Prints the name of each config with OK mark if there's no error during execution.
 At the end, prints a table with successfully trained configs.
+
+Requirements:
+    - All dependencies from pyproject.toml must be installed
+    - Run: pip install -e . (from repository root)
+    
+Usage:
+    # Test all configs with default settings (10000 steps)
+    python3 myGym/unittest/test_train_configs.py
+    
+    # Test with custom step count
+    python3 myGym/unittest/test_train_configs.py --steps 5000
+    
+    # Test a specific config
+    python3 myGym/unittest/test_train_configs.py --config train_A_nico.json
+    
+    # Custom timeout per config
+    python3 myGym/unittest/test_train_configs.py --timeout 600
 """
 import os
 import sys
