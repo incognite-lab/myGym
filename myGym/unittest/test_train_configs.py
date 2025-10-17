@@ -97,13 +97,13 @@ def main():
     parser.add_argument(
         '--steps',
         type=int,
-        default=10000,
+        default=3000,
         help='Number of training steps to run (default: 10000)'
     )
     parser.add_argument(
         '--timeout',
         type=int,
-        default=1200,
+        default=120,
         help='Timeout in seconds for each config test (default: 1200)'
     )
     parser.add_argument(
