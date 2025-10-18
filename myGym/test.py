@@ -574,10 +574,11 @@ def main() -> None:
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
-    else:
-        if arg_dict["results_report"]:
-            print("Results report cannot be used without oraculum.")
-            arg_dict["results_report"] = False
+    
+    # Check if results_report is used with oraculum control
+    if arg_dict["results_report"] and arg_dict.get("control") != "oraculum":
+        print("Results report cannot be used without oraculum.")
+        arg_dict["results_report"] = False
     if arg_dict.get("pretrained_model") is None:
         print_init_info(arg_dict)
         arg_dict["gui"] = 1
