@@ -286,12 +286,14 @@
       </geometry>
       <material name="panda_white"/>
     </visual>
+    <!--
     <collision>
       <geometry>
         <mesh filename="package://meshes/collision/finger.obj"/>
       </geometry>
       <material name="panda_white"/>
     </collision>
+    -->
   </link>
   <link name="panda_rightfinger">
         <contact>
@@ -314,6 +316,7 @@
       </geometry>
       <material name="panda_white"/>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 3.14159265359" xyz="0 0 0"/>
       <geometry>
@@ -321,6 +324,7 @@
       </geometry>
       <material name="panda_white"/>
     </collision>
+    -->
   </link>
   <joint name="panda_finger_gjoint1" type="prismatic">
     <parent link="gripper"/>

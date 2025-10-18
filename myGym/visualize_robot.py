@@ -3,11 +3,13 @@ import pybullet_data
 import argparse
 import time
 import numpy as np
+from utils.helpers import get_robot_dict
 
 def main():
     parser = argparse.ArgumentParser(description='URDF Visualizer with Joint Sliders')
-    parser.add_argument('--urdf', type=str, default='./envs/robots/tiago/tiago_dual_mygym_rotslide2.urdf',
-                       help='Path to URDF file')
+    # parser.add_argument('--urdf', type=str, default='./envs/robots/tiago/tiago_dual_mygym_rotslide2.urdf',
+    #                    help='Path to URDF file')
+    parser.add_argument("-b", "--robot",  type=str, default="tiago")
     args = parser.parse_args()
 
     # Initialize PyBullet
@@ -31,9 +33,11 @@ def main():
     
     # Load URDF
     try:
-        robot_id = p.loadURDF(args.urdf, useFixedBase=True)
+        rd = get_robot_dict()
+        urdf = rd[args.robot]['path']
+        robot_id = p.loadURDF(urdf, useFixedBase=True)
     except:
-        print(f"Error: Failed to load URDF file '{args.urdf}'")
+        print(f"Error: Failed to load URDF file of robot '{args.robot}'")
         return
 
     num_joints = p.getNumJoints(robot_id)
