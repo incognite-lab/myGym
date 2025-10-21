@@ -14,6 +14,7 @@ TIAGo trajectory bridge (Python 2.7, ROS Melodic)
 """
 
 from __future__ import print_function, division
+import enum
 import sys, os, argparse, json, threading, math, time
 import numpy as np
 
@@ -36,6 +37,8 @@ except Exception:
     treeFromParam = None
     from kdl_parser_py import treeFromUrdfModel
 
+from enum import Enum
+
 # SciPy optional; fallback to Catmull-Rom if absent
 try:
     from scipy.interpolate import splprep, splev
@@ -49,6 +52,20 @@ import cloudpickle as cpl
 
 # -------- TTY confirmation --------
 import tty, termios
+
+
+class KdlError(Enum):
+    E_DEGRADED = 1
+    E_NOERROR = 0
+    E_NO_CONVERGE = -1
+    E_UNDEFINED = -2
+    E_NOT_UP_TO_DATE = -3
+    E_SIZE_MISMATCH = -4
+    E_MAX_ITERATIONS_EXCEEDED = -5
+    E_OUT_OF_RANGE = -6
+    E_NOT_IMPLEMENTED = -7
+    E_SVD_FAILED = -8
+
 
 def read_char(message=""):
     sys.stdout.write(message)
@@ -105,6 +122,7 @@ def catmull_rom(points, upsample=1):
                 Q.append(q)
     Q.append(P[-1])
     return [q.tolist() for q in Q]
+
 
 def smooth_points(points, smoothing=0.0, resample=None):
     """
@@ -244,7 +262,9 @@ class TiagoTrajectoryController(object):
                  merge_eps=0.0, smooth=0.0, resample=0,
                  v_max=0.7, a_max=1.5, dt_min=0.08,
                  exec_delay=0.2, urdf_path=None, zmq_port=242424,
-                 start_offset=0, trim_end=0, max_length=0):
+                 start_offset=0, trim_end=0, max_length=0,
+                 no_wait_server=False,
+                 ):
         """
         merge_eps: radians threshold for sequential merging
         smooth: 0..1 smoothing weight; resample: 0 keep length, else count
@@ -276,9 +296,12 @@ class TiagoTrajectoryController(object):
 
         # Action client
         self.client = actionlib.SimpleActionClient(self.action_name, FollowJointTrajectoryAction)
-        rospy.loginfo("Waiting for action server: %s", self.action_name)
-        if not self.client.wait_for_server(rospy.Duration(15.0)):
-            raise RuntimeError("No action server: %s" % self.action_name)
+        if no_wait_server:
+            rospy.loginfo("Not waiting for action server: %s", self.action_name)
+        else:
+            rospy.loginfo("Waiting for action server: %s", self.action_name)
+            if not self.client.wait_for_server(rospy.Duration(15)):
+                raise RuntimeError("No action server: %s" % self.action_name)
 
         # Publishers for visualization
         self.disp_pub = rospy.Publisher('/move_group/display_planned_path', DisplayTrajectory, queue_size=1)
@@ -293,24 +316,26 @@ class TiagoTrajectoryController(object):
         # URDF/KDL for FK and simple self-collision checks
         if urdf_path is None:
             if treeFromParam is not None:
-                ok, tree = treeFromParam('/robot_description')
+                ok, self.tree = treeFromParam('/robot_description')
                 if not ok:
                     raise RuntimeError("Failed to parse URDF from /robot_description")
                 robot = None
             else:
                 robot = URDF.from_parameter_server()
-                ok, tree = treeFromUrdfModel(robot)
+                ok, self.tree = treeFromUrdfModel(robot)
                 if not ok:
                     raise RuntimeError("Failed to build KDL tree")
         else:
             robot = URDF.from_xml_file(urdf_path)
-            ok, tree = treeFromUrdfModel(robot)
+            ok, self.tree = treeFromUrdfModel(robot)
             if not ok:
                 raise RuntimeError("Failed to build KDL tree from file")
 
-        self.base_link = 'torso_lift_link'
-        self.ee_link = 'arm_%s_7_link' % self.arm_side
-        self.chain = tree.getChain(self.base_link, self.ee_link)
+        self.base_link = 'torso_fixed_link'
+        # self.ee_link = 'arm_%s_7_link' % self.arm_side
+        self.ee_link = 'gripper_%s_link' % self.arm_side
+        self.chain = self.tree.getChain(self.base_link, self.ee_link)
+        self.tree.getChain('torso_fixed_link', 'arm_right_7_link').getNrOfJoints()
         self.fk = kdl.ChainFkSolverPos_recursive(self.chain)
 
         # arm link names for approx collision
@@ -373,7 +398,7 @@ class TiagoTrajectoryController(object):
             # normalize names
             names = []
             for nm in joint_names:
-                s = str(nm).replace('_rjoint', '_joint').replace("b'", '').replace("'", '')
+                s = str(nm).replace('_gjoint', '_joint').replace('_rjoint', '_joint').replace("b'", '').replace("'", '')
                 names.append(s)
 
             # per-request overrides
@@ -471,46 +496,51 @@ class TiagoTrajectoryController(object):
         return result
 
     # ---- visualization ----
-    def visualize(self, traj, collisions):
+    def visualize(self, traj):
         # DisplayTrajectory (no MoveIt requirement)
-        disp = DisplayTrajectory()
-        disp.trajectory.append(RobotTrajectory(joint_trajectory=traj))
-        with self.joint_state_lock:
-            if self.joint_state is not None:
-                disp.trajectory_start.joint_state = self.joint_state
-        self.disp_pub.publish(disp)
+        # disp = DisplayTrajectory()
+        # disp.trajectory.append(RobotTrajectory(joint_trajectory=traj))
+        # with self.joint_state_lock:
+        #     if self.joint_state is not None:
+        #         disp.trajectory_start.joint_state = self.joint_state
+        # self.disp_pub.publish(disp)
 
         # EE path & collision markers
         marr = MarkerArray()
         line = Marker()
         line.header.frame_id = self.base_link
         line.header.stamp = rospy.Time.now()
-        line.ns = 'ee_path'; line.id = 0
-        line.type = Marker.LINE_STRIP; line.action = Marker.ADD
-        line.scale.x = 0.006
+        line.ns = 'ee_path'
+        line.id = 0
+        line.type = Marker.LINE_STRIP
+        line.action = Marker.ADD
+        line.scale.x = 0.003
+        line.pose.orientation.w = 1.0
         line.color = ColorRGBA(0.1, 0.9, 0.1, 1.0)
         marr.markers.append(line)
 
-        for k, pt in enumerate(traj.points):
+        for k, pt in enumerate(traj):
             # fk to ee (quick demo path)
-            jarr = kdl.JntArray(len(pt.positions))
-            for i, q in enumerate(pt.positions): jarr[i] = q
+            jarr = kdl.JntArray(len(pt))
+            for i, q in enumerate(pt):
+                jarr[i] = q
             frame = kdl.Frame()
-            self.fk.JntToCart(jarr, frame)
+            err_code = self.fk.JntToCart(jarr, frame)
+            if err_code < 0:
+                rospy.logwarn("Vizualization: FK error: %d '%s' for point %d", err_code, KdlError(err_code).name, k)
             p = frame.p
+            # import pdb; pdb.set_trace()
             gp = Point(p.x(), p.y(), p.z())
             marr.markers[0].points.append(gp)
 
-            # draw sample spheres for flagged collisions
-            if collisions and collisions[k]:
-                m = Marker()
-                m.header = line.header
-                m.ns = 'coll_warn'; m.id = k+1
-                m.type = Marker.SPHERE; m.action = Marker.ADD
-                m.pose.position = gp; m.pose.orientation.w = 1.0
-                m.scale.x = m.scale.y = m.scale.z = 0.03
-                m.color = ColorRGBA(1.0, 0.2, 0.2, 0.9)
-                marr.markers.append(m)
+            m = Marker()
+            m.header = line.header
+            m.ns = 'ee_pos'; m.id = k + 1
+            m.type = Marker.SPHERE; m.action = Marker.ADD
+            m.pose.position = gp; m.pose.orientation.w = 1.0
+            m.scale.x = m.scale.y = m.scale.z = 0.006
+            m.color = ColorRGBA(1.0, 0.2, 0.2, 0.9)
+            marr.markers.append(m)
         self.marker_pub.publish(marr)
 
     # ---- printing and confirmation ----
@@ -534,16 +564,49 @@ class TiagoTrajectoryController(object):
 
     # ---- building and sending ----
     def build_traj(self, joint_names, points, times):
-        jt = JointTrajectory()
-        jt.header.stamp = rospy.Time.now() + rospy.Duration(self.exec_delay)
-        jt.header.frame_id = self.base_link
-        jt.joint_names = list(joint_names)
-        for p, t in zip(points, times):
-            pt = JointTrajectoryPoint()
-            pt.positions = list(map(float, p))
-            pt.time_from_start = rospy.Duration(float(t))
-            jt.points.append(pt)
-        return jt
+        # separate torso, arm and gripper joints (if any)
+        joint_names_arm = []
+        joint_names_torso = []
+        joint_names_gripper = []
+        jcodes = np.zeros(len(joint_names))
+        for i, jname in enumerate(joint_names):
+            if jname.startswith('arm_'):
+                joint_names_arm.append(jname)
+                jcodes[i] = 0
+            elif jname.startswith('torso_'):
+                joint_names_torso.append(jname)
+                jcodes[i] = 1
+            elif jname.startswith('gripper_'):
+                joint_names_gripper.append(jname)
+                jcodes[i] = 2
+            else:
+                raise ValueError("Unknown joint type '%s'" % jname)
+
+        jt_arm = JointTrajectory()
+        jt_arm.header.stamp = rospy.Time.now() + rospy.Duration(self.exec_delay)
+        jt_arm.header.frame_id = self.base_link
+        jt_arm.joint_names = list(joint_names_arm)
+        jt_torso = JointTrajectory()
+        jt_torso.header.stamp = rospy.Time.now() + rospy.Duration(self.exec_delay)
+        jt_torso.header.frame_id = self.base_link
+        jt_torso.joint_names = list(joint_names_torso)
+        jt_gripper = JointTrajectory()
+        jt_gripper.header.stamp = rospy.Time.now() + rospy.Duration(self.exec_delay)
+        jt_gripper.header.frame_id = self.base_link
+        jt_gripper.joint_names = list(joint_names_gripper)
+
+        joint_trajectories = [jt_arm, jt_torso, jt_gripper]
+        for point, t in zip(points, times):
+            point = np.array(point)
+            for jtype in range(3):
+                jt_point = point[jcodes == jtype]
+                if len(jt_point) == 0:
+                    continue
+                pt = JointTrajectoryPoint()
+                pt.positions = list(map(float, jt_point))
+                pt.time_from_start = rospy.Duration(float(t))
+                joint_trajectories[jtype].points.append(pt)
+        return jt_arm, jt_torso, jt_gripper
 
     def send_trajectory(self, joint_names, positions,
                         merge=None, smooth=None, resample=None,
@@ -586,23 +649,25 @@ class TiagoTrajectoryController(object):
         # 4) timing
         times = retime_by_distance(pts, v_max=v_max, a_max=a_max, dt_min=dt_min, t0=dt_min)
 
+        self.visualize(pts)
+
         # build trajectory
-        traj = self.build_traj(joint_names, pts, times)
+        arm_traj, torso_traj, gripper_traj = self.build_traj(joint_names, pts, times)
 
         # approximate collision check
-        collisions = self.check_self_collision(joint_names, pts)
-        n_bad = sum(1 for c in collisions if c)
-        warn = None
-        if n_bad > 0:
-            warn = "approx_self_collision_suspected_in_%d_points" % n_bad
-            rospy.logwarn("Approx. self-collision suspected in %d points (arm only).", n_bad)
+        # collisions = self.check_self_collision(joint_names, pts)
+        # n_bad = sum(1 for c in collisions if c)
+        # warn = None
+        # if n_bad > 0:
+        #     warn = "approx_self_collision_suspected_in_%d_points" % n_bad
+        #     rospy.logwarn("Approx. self-collision suspected in %d points (arm only).", n_bad)
 
         # preview (RViz) + print to console
-        self.visualize(traj, collisions)
-        self._print_trajectory(traj)
+        # self.visualize(traj, collisions)
+        self._print_trajectory(arm_traj)
 
         if preview_only:
-            return True, warn
+            return True, "preview_only"
 
         # confirmation
         if not self._confirm_send():
@@ -619,7 +684,7 @@ class TiagoTrajectoryController(object):
                 self._goal_active = False
 
             goal = FollowJointTrajectoryGoal()
-            goal.trajectory = traj
+            goal.trajectory = arm_traj
             self._done_event.clear()
             self._goal_active = True
             self.client.send_goal(goal,
@@ -628,7 +693,7 @@ class TiagoTrajectoryController(object):
                                   feedback_cb=self._feedback_cb)
             rospy.loginfo("Goal sent: %d points (v_max=%.2f, a_max=%.2f, dt_min=%.2f)",
                           len(pts), v_max, a_max, dt_min)
-        return True, warn
+        return True, "goal_sent"
 
     # ---- action client callbacks & helpers ----
     def _active_cb(self):
@@ -684,11 +749,11 @@ class TiagoTrajectoryController(object):
         try: self.server.close()
         except Exception: pass
 
-# ---- entry point ----
 
+# ---- entry point ----
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--side', choices=['left', 'right'], default='left')
+    parser.add_argument('--side', choices=['left', 'right'], default='right')
     parser.add_argument('--unsafe', action='store_true')
 
     # merge/smooth/timing
@@ -709,8 +774,10 @@ def main():
                         help='Cap the final number of poses after processing (0 = unlimited)')
 
     parser.add_argument('--zmq-port', type=int, default=242424)
-    parser.add_argument('--urdf-path', type=str, default=None)
+    parser.add_argument('--urdf-path', '-u', type=str, default=None)
     parser.add_argument('--preview-only', action='store_true')
+
+    parser.add_argument("--no-wait-server", action="store_true", help="Do not wait for the joint action server to start (for debugging without ROS).")
 
     args = parser.parse_args()
 
@@ -719,13 +786,15 @@ def main():
         merge_eps=args.merge, smooth=args.smooth, resample=args.resample,
         v_max=args.v_max, a_max=args.a_max, dt_min=args.dt_min,
         exec_delay=args.exec_delay, urdf_path=args.urdf_path, zmq_port=args.zmq_port,
-        start_offset=args.start_offset, trim_end=args.trim, max_length=args.max_length
+        start_offset=args.start_offset, trim_end=args.trim, max_length=args.max_length,
+        no_wait_server=args.no_wait_server
     )
 
     rospy.loginfo("ZMQ usage:\n  SEND:  {'cmd':'send','joint_names':[...],'data':[[...],...],"
                   " 'start_offset':K,'trim':T,'max_length':L}\n"
                   "  CANCEL: {'cmd':'cancel'}    HALT: {'cmd':'halt'}")
     rospy.spin()
+
 
 if __name__ == '__main__':
     main()
