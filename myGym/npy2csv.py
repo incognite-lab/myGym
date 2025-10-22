@@ -16,7 +16,7 @@ print(f"\nfile path: {path}")
 print(f"shape: {data.shape}")
 print(f"dtype: {data.dtype}")
 
-# ---- 中身の一部を表示 ----
-np.set_printoptions(precision=4, suppress=True)  # 小数点をきれいに
+
+np.set_printoptions(precision=4, suppress=True)  
 print("\ndata")
 print(data[:50])  
