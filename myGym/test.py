@@ -214,10 +214,10 @@ def test_env(env: object, arg_dict: dict) -> None:
                 for i in range(env.action_space.shape[0]):
                     joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
 
-    p.addUserDebugParameter("Lateral Friction", 0, 100, 0)
-    p.addUserDebugParameter("Spinning Friction", 0, 100, 0)
-    p.addUserDebugParameter("Linear Damping", 0, 100, 0)
-    p.addUserDebugParameter("Angular Damping", 0, 100, 0)
+    #p.addUserDebugParameter("Lateral Friction", 0, 100, 0)
+    #p.addUserDebugParameter("Spinning Friction", 0, 100, 0)
+    #p.addUserDebugParameter("Linear Damping", 0, 100, 0)
+    #p.addUserDebugParameter("Angular Damping", 0, 100, 0)
 
     if arg_dict["vsampling"]:
         visualize_sampling_area(arg_dict)
@@ -549,7 +549,7 @@ def print_init_info(arg_dict):
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
-    parser.add_argument("-ct", "--control", default="oraculum",
+    parser.add_argument("-ct", "--control",
                         help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
@@ -583,7 +583,7 @@ def main() -> None:
         print_init_info(arg_dict)
         arg_dict["gui"] = 1
         arg_dict = automatic_argument_assignment(arg_dict)
-        arg_dict["robot_action"] = "absolute_gripper"
+        #arg_dict["robot_action"] = "absolute_gripper"
         env = configure_env(arg_dict, model_logdir=None, for_train=0)
         test_env(env, arg_dict)
     else:
