@@ -300,6 +300,13 @@ def get_parser():
                              "of the given type, save it to the predefined file (for communication with other scripts) "
                              "and exit the program (without the actual training taking place). Expected values are \"description\" "
                              "(generate a task description) or \"new_tasks\" (generate new tasks)")
+    # ===== Fixed Reach Mode (no RL model) =====
+    parser.add_argument("--fixed_reach_only", type=int, default=0, help="1にすると学習済みモデルを使わず、指定角度へP制御でリーチだけを実行")
+    parser.add_argument("--target_q_rad", type=str, default="", help="目標関節角(rad)のカンマ区切り（例: '0.0,-1.2,1.57,0.0,0.8,0.0,0.0'）")
+    parser.add_argument("--p_gain", type=float, default=0.15, help="P制御ゲイン：action = Kp*(q_target - q_now)")
+    parser.add_argument("--fixed_steps", type=int, default=512, help="実行ステップ数（繰り返し回数）")
+    parser.add_argument("--q_from_obs_index", type=int, default=0, help="obs中で関節角を取り出す開始インデックス（envにAPIが無い場合の保険）")
+    parser.add_argument("--q_dof", type=int, default=7, help="アーム自由度（例: 7）")
     return parser
 
 

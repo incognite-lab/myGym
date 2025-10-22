@@ -15,6 +15,7 @@ import pybullet_data
 from numpy import matrix
 from sklearn.model_selection import ParameterGrid
 import pandas as pd
+from pathlib import Path
 
 from myGym import oraculum
 from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env, automatic_argument_assignment
@@ -588,7 +589,126 @@ def print_init_info(arg_dict):
         print("Testing robot control in selected environment using observation.")
     else:
         print("Testing random actions in selected environment.")
+#--------------------------------------------------------------#
+def run_fixed_reach(env, arg_dict, model_logdir):
+    """モデルなし。指定角度へP制御/絶対角で fixed_steps ステップ× fixed_episodes 回"""
+    from datetime import datetime
+    import numpy as np
+    from pathlib import Path
+    import json, time
 
+    def _parse_vec(s: str):
+        return np.array([float(x) for x in s.split(",") if x.strip() != ""], dtype=float)
+
+    target_q = _parse_vec(arg_dict["target_q_rad"])
+    Kp       = float(arg_dict.get("p_gain", 0.15))
+    steps    = int(arg_dict.get("fixed_steps", 512))
+    episodes = int(arg_dict.get("fixed_episodes", 1))
+    q_from   = int(arg_dict.get("q_from_obs_index", 0))
+    q_dof    = int(arg_dict.get("q_dof", 7))
+    abs_joint = bool(int(arg_dict.get("abs_joint", 0)))
+
+    base = Path(model_logdir if model_logdir else ".") / "fixed_reach"
+    run_tag = datetime.now().strftime("%Y%m%d_%H%M%S")
+    base = base / f"run_{run_tag}"
+    base.mkdir(parents=True, exist_ok=True)
+
+    # アクション次元
+    act_dim = int(np.prod(env.action_space.shape))
+    # Δ角/速度仕様なら絶対角をフォールバック
+    delta_mode = False
+    try:
+        lo, hi = env.action_space.low, env.action_space.high
+        if np.all((hi - lo) < 0.5):  # 幅が小さければデルタ仕様（経験的閾値）
+            delta_mode = True
+    except Exception:
+        pass
+    use_abs = (abs_joint and not delta_mode)
+
+    for e in range(episodes):
+        res = env.reset()
+        obs = res[0] if isinstance(res, tuple) else res
+
+        ep_dir = base / f"ep_{e:03d}"
+        ep_dir.mkdir(parents=True, exist_ok=True)
+
+        joint_traj, actions_traj = [], []
+        terminated = False
+        truncated = False
+
+        for t in range(steps):
+            # ---- 現在関節角の取得（API優先）----
+            if hasattr(env, "unwrapped") and hasattr(env.unwrapped, "robot") and hasattr(env.unwrapped.robot, "get_joints_states"):
+                q_now = np.array(env.unwrapped.robot.get_joints_states(), dtype=float)[:q_dof]
+            elif hasattr(env, "robot") and hasattr(env.robot, "get_joints_states"):
+                q_now = np.array(env.robot.get_joints_states(), dtype=float)[:q_dof]
+            else:
+                q_now = np.array(obs[q_from:q_from+q_dof], dtype=float)
+
+            # ---- 行動生成 ----
+            action = np.zeros(act_dim, dtype=float)
+            if use_abs:
+                action[:q_dof] = target_q - q_now                     # 絶対角
+            else:
+                u = Kp * (target_q - q_now)
+                action[:q_dof] = u                             # Δ角/速度
+
+            if act_dim > q_dof:
+                action[q_dof] = 0.0  # グリッパ固定（必要なら変更）
+
+            try:
+                lo, hi = env.action_space.low, env.action_space.high
+                action = np.clip(action, lo, hi)
+            except Exception:
+                pass
+
+            # ---- step（Gym/Gymnasium 両対応）----
+            out = env.step(action)
+            if len(out) == 5:
+                obs, reward, terminated, truncated, info = out
+            else:
+                obs, reward, done, info = out
+                terminated, truncated = (done, False)
+
+            # ★ step後に“もう一度”現在角を取得してログする（ズレ防止）
+            if hasattr(env, "unwrapped") and hasattr(env.unwrapped, "robot") and hasattr(env.unwrapped.robot, "get_joints_states"):
+                q_after = np.array(env.unwrapped.robot.get_joints_states(), dtype=float)[:q_dof]
+            elif hasattr(env, "robot") and hasattr(env.robot, "get_joints_states"):
+                q_after = np.array(env.robot.get_joints_states(), dtype=float)[:q_dof]
+            else:
+                q_after = np.array(obs[q_from:q_from+q_dof], dtype=float)
+
+            joint_traj.append(q_after.copy())
+            actions_traj.append(action.copy())
+
+            # ✅ done でも break しない：即 reset して続行（固定ステップ回し切る）
+            if terminated or truncated:
+                res = env.reset()
+                obs = res[0] if isinstance(res, tuple) else res
+                terminated = truncated = False
+
+        # ---- 保存 ----
+        joint_traj = np.asarray(joint_traj, dtype=float)
+        np.save(ep_dir / "joint_trajectory.npy", joint_traj)
+        np.save(ep_dir / "actions.npy", np.asarray(actions_traj, dtype=float))
+
+        summary = {
+            "episode": int(e),
+            "num_steps": int(joint_traj.shape[0]),
+            "last_joint_position": joint_traj[-1].tolist() if joint_traj.size else None,
+            "target_q_rad": target_q.tolist(),
+            "p_gain": Kp,
+            "terminated": False,
+            "truncated": False,
+            "use_abs_joint": bool(use_abs),
+            "delta_mode_detected": bool(delta_mode),
+        }
+        with open(ep_dir / "summary.json", "w") as f:
+            json.dump(summary, f, indent=2)
+
+        print(f"[fixed-reach] ep {e:03d} saved -> {ep_dir}")
+
+    print(f"[fixed-reach] all done -> {base}")
 
 def main() -> None:
     """Main entry point for the testing script."""
@@ -601,10 +721,20 @@ def main() -> None:
     parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
     parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
     parser.add_argument("-tp", "--top_grasp",  default = True, help="Use top grasp when reaching objects with oraculum.")
+
+    parser.add_argument("--fixed_episodes", type=int, default=1, help="P制御の固定リーチを繰り返す回数（エピソード数）")
+    parser.add_argument("--abs_joint", type=int, default=0, help="1なら絶対角仕様（action=目標関節角[rad]）を使う。0なら相対Δ角/速度仕様（P制御）。")
+    parser.add_argument("--arm_idx", type=str, default="0,1,2,3,4,5,6", help="右腕7軸のAPI上のインデックス（カンマ区切り）。例 '12,13,14,15,16,17,18'")
+
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
     arg_dict, commands = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
+    # ==== fixed reach parameters bridge ====
+    args = parser.parse_args()
+    for k in ["fixed_reach_only", "target_q_rad", "p_gain", "fixed_steps", "q_from_obs_index", "q_dof", "fixed_episodes"]:
+        arg_dict[k] = getattr(args, k)
+
         
     for key, arg in arg_dict.items():
         if type(arg_dict[key]) == list:
@@ -634,6 +764,14 @@ def main() -> None:
         #arg_dict["robot_action"] = "joints_gripper" #Model has to be tested with this action type
         model_logdir = os.path.dirname(arg_dict.get("pretrained_model", ""))
         env = configure_env(arg_dict, model_logdir, for_train=0)
+        #--------------------------------------------------------------#
+        if int(arg_dict.get("fixed_reach_only", 0)) == 1:
+            if not arg_dict.get("target_q_rad", ""):
+                raise ValueError("--target_q_rad を指定してください（rad, カンマ区切り）")
+            run_fixed_reach(env, arg_dict, model_logdir)
+            env.close()
+            return  # ここで終了（モデルは一切使わない）
+        #--------------------------------------------------------------#
         implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
         print(model_logdir)
         test_model(env, None, implemented_combos, arg_dict, model_logdir, deterministic=False)
