@@ -59,6 +59,13 @@ def fmt_date(ts: float) -> str:
     except Exception:
         return "?"
 
+# helper to clear mode flags so they don't persist across runs
+def reset_modes(entry: Entry) -> None:
+    entry.oracle = False
+    entry.keyboard = False
+    entry.slider = False
+    entry.random_mode = False
+
 def run_test(config_path: str, dry: bool, g_value: str, extra: List[str]):
     cmd = [sys.executable, "test.py", "--config", config_path, "-g", g_value]
     cmd += extra
@@ -349,6 +356,8 @@ def main():
                 extra_args += ['-b', selected.selected_robot]
             selected.selected_robot = None  # reset after run
         run_test(selected.path, args.dry_run, g_val, extra_args)
+        # clear mode flags so the next run doesn't reuse previous parameters
+        reset_modes(selected)
 
 if __name__ == "__main__":
     main()
