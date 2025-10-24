@@ -183,10 +183,10 @@ class GymEnv(CameraEnv):
 
         # Count capital letters in self.task_type to determine num_networks
         num_capitals = sum(1 for char in source_shorthand_for_reward if char.isupper())
-        
+
         # Update self.num_networks based on this count
         self.num_networks = num_capitals
-        
+
         # Determine the scheme (e.g., "3-network", "1-network", "0-network")
         scheme = f"{self.num_networks}-network"
 
@@ -210,7 +210,7 @@ class GymEnv(CameraEnv):
                 f"Reward class '{reward_class_name_str}' (derived from task_type='{source_shorthand_for_reward}') "
                 f"was not found. Please ensure it is defined in 'myGym.envs.rewards.py' and imported."
             )
-        
+
         # Debug print, similar to original
         if scheme in dynamically_constructed_reward_map:
             print(f"Dynamically derived reward scheme: {scheme}, task_type key: {list(dynamically_constructed_reward_map[scheme].keys())}")
@@ -233,7 +233,7 @@ class GymEnv(CameraEnv):
                                  distance_type=self.distance_type,
                                  number_tasks=len(self.task_objects_dict),
                                  env=self)
-        
+
         # Instantiate the reward object using the dynamically constructed map
         # self.unwrapped.reward (which was the init argument 'reward') will be overwritten here.
         try:
@@ -286,7 +286,7 @@ class GymEnv(CameraEnv):
                                transform['position'],  self.p.getQuaternionFromEuler(transform['orientation']),
                                useFixedBase=fixedbase,
                                useMaximalCoordinates=maxcoords)
-    
+
     def _load_static_scene_urdf(self, path, name, fixedbase=True):
         transform = self.workspace_dict[self.workspace]['transform']
         object = env_object.EnvObject(os.path.join(pkg_resources.files("myGym"), os.path.join("envs", path)), transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase)
@@ -312,14 +312,14 @@ class GymEnv(CameraEnv):
         if self.obs_space == "dict":
             goaldim = int(self.task.obsdim / 2) if self.task.obsdim % 2 == 0 else int(self.task.obsdim / 3)
             self.observation_space = spaces.Dict(
-                {"observation": spaces.Box(-10.0, high=10., shape=(self.task.obsdim,),dtype = np.float64),
+                {"observation": spaces.Box(-10.0, high=10., shape=(self.task.obsdim,),dtype = np.float32),
                  "achieved_goal": spaces.Box(low=-10., high=10., shape=(goaldim,)),
                  "desired_goal": spaces.Box(low=-10., high=10., shape=(goaldim,))})
         else:
             observationDim = self.task.obsdim
-            observation_high = np.array([100] * observationDim, dtype = np.float64)
+            observation_high = np.array([100] * observationDim, dtype=np.float64)
             self.observation_space = spaces.Box(-observation_high,
-                                                observation_high, dtype = np.float64)
+                                                observation_high, dtype=np.float64)
 
 
     def _set_action_space(self):
@@ -345,8 +345,8 @@ class GymEnv(CameraEnv):
 
 
         elif "joints" in self.robot_action:
-            self.action_low = np.array(self.robot.joints_limits[0], dtype = np.float64)
-            self.action_high = np.array(self.robot.joints_limits[1], dtype = np.float64)
+            self.action_low = np.array(self.robot.joints_limits[0], dtype=np.float64)
+            self.action_high = np.array(self.robot.joints_limits[1], dtype=np.float64)
 
         if "gripper" in self.robot_action:
             self.action_low = np.append(self.action_low, np.array(self.robot.gjoints_limits[0]))
@@ -354,7 +354,7 @@ class GymEnv(CameraEnv):
             # self.action_low = np.append(self.action_low, np.array(0))
             # self.action_high = np.append(self.action_high, np.array(1))
 
-        self.action_space = spaces.Box(self.action_low, self.action_high, dtype = np.float64)
+        self.action_space = spaces.Box(self.action_low, self.action_high, dtype=np.float64)
 
     def _rescale_action(self, action):
         """
@@ -597,7 +597,7 @@ class GymEnv(CameraEnv):
                 self.human.point_finger_at(position=self.task_objects["goal_state"].get_position())
             self.p.stepSimulation()
         self.episode_steps += 1
-        
+
     def choose_goal_object_by_human_with_keys(self, objects: List[EnvObject]) -> EnvObject:
         self.text_id = self.p.addUserDebugText("Point the human's finger via arrow keys at the goal object and press enter", [1, 0, 0.5], textSize=1)
         move_factor = 10  # times 1 cm

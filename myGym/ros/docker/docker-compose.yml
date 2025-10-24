@@ -1,0 +1,32 @@
+services:
+  melodic:
+    image: tiago_melodic
+    privileged: true
+    network_mode: "host"
+    build:
+      context: ./src/melodic/
+      dockerfile: Dockerfile
+    volumes:
+      - /entrypoint.sh:/src/melodic/entrypoint.sh
+      - $HOME/.Xauthority:/root/.Xauthority:rw
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./melodic_ws:/tiago_public_ws/src/user_packages
+    working_dir: /tiago_public_ws
+    environment:
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+      - ROS_MASTER_URI=${ROS_MASTER_URI:-http://tiago-114c:11311}
+      - ROS_IP=${ROS_IP:-10.68.0.128}
+      #- ROS_IP=${ROS_IP:-127.0.0.1}
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    # command: rosrun bridge_noetic_melodic bridge_noetic_melodic.py
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all     # or a specific GPU count
+              capabilities: [gpu]
+    command: roscore & bash
+    stdin_open: true
+    tty: true

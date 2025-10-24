@@ -278,7 +278,7 @@ def test_env(env: object, arg_dict: dict) -> None:
                         print("\rLast action difference: (shape mismatch)", end='', flush=True)
 
                     last_action = action
-                    
+
             if arg_dict["control"] == "oraculum":
                 action = oraculum_obj.perform_oraculum_task(t, env, action, info)
             elif arg_dict["control"] == "keyboard":
@@ -593,19 +593,22 @@ def print_init_info(arg_dict):
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
-    parser.add_argument("-ct", "--control", default="oraculum",
+    parser.add_argument("-ct", "--control",
                         help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
     parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
-    parser.add_argument("-tp", "--top_grasp",  default = True, help="Use top grasp when reaching objects with oraculum.")
+    parser.add_argument("-tp", "--top_grasp",  default = False, help="Use top grasp when reaching objects with oraculum.")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
     arg_dict, commands = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
-        
+
+    from myGym.envs.robot import ROSRobot, Robot
+    Robot.shim_to(ROSRobot)  # swap Robot for ROSRobot class
+
     for key, arg in arg_dict.items():
         if type(arg_dict[key]) == list:
             if len(arg_dict[key]) > 1 and key != "robot_init" and key != "end_effector_orn":
@@ -613,7 +616,7 @@ def main() -> None:
                     parameters[key] = arg
                     if key in commands:
                         commands.pop(key)
-    
+
 
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:

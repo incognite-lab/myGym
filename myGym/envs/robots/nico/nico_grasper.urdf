@@ -112,7 +112,7 @@
 		<axis xyz="0 0 0"/>
 		<limit effort="30" lower="-0.8726" upper="0.4363" velocity="1"/>
 	</joint>
-	
+
     <!-- ====RIGHT ARM=== -->
 	<link name="right_shoulder">
 		<visual>
@@ -425,7 +425,7 @@
 			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
 		</inertial>
 	</link>
-    
+
     <link name="thumb_intermediate_link">
         <inertial>
 		    <mass value="0.0000332"/>
@@ -751,7 +751,7 @@
 			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
 		</inertial>
 	</link>
-    
+
     <link name="l_thumb_intermediate_link">
         <inertial>
 		    <mass value="0.0000332"/>
@@ -774,4 +774,3 @@
         <limit effort="30" lower="-2.57" upper="0" velocity="1"/>
     </joint>
 </robot>
-

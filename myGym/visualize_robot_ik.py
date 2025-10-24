@@ -62,21 +62,21 @@ def get_controllable_arm_joints(robot_id, num_joints):
         joint_info = p.getJointInfo(robot_id, joint_idx)
         joint_name = joint_info[1].decode("utf-8")
         joint_type = joint_info[2]
-        
+
         # Print all joint names and IDs for inspection
         print(f"  Joint ID: {joint_idx}, Name: {joint_name}, Type: {joint_type}")
 
         if joint_type != p.JOINT_FIXED:
             # Exclude gripper joints from the main IK control list
-            if 'right_' not in joint_name or 'finger' not in joint_name: 
+            if 'right_' not in joint_name or 'finger' not in joint_name:
                 lower = joint_info[8]
                 upper = joint_info[9]
-                
+
                 if lower >= upper:
                     # Handle cases with no limits or invalid limits
                     print(f"    Warning: Joint {joint_idx} ('{joint_name}') has invalid limits ({lower}, {upper}). Defaulting to +/- pi.")
                     lower, upper = -np.pi, np.pi # Default to reasonable limits if needed
-                    
+
                 joint_idxs.append(joint_idx)
                 joint_names.append(joint_name)
                 print(f"    -> Selected for IK control.")
@@ -241,7 +241,7 @@ def main():
         if link_name == 'endeffector':
             end_effector_index = joint_idx
 
-    
+
     if end_effector_index == -1:
         print("Error: Could not find end effector link in URDF")
         return
@@ -282,18 +282,18 @@ def main():
         cameraPitch=-15,
         cameraTargetPosition=[0, 0, 0.3]
     )
- 
+
     orientation_line_id = None # Initialize desired orientation line ID tracker
     actual_orientation_line_id = None # Initialize actual orientation line ID tracker
     orientation_diff_text_id = None # Initialize debug text ID tracker
     position_diff_text_id = None # Initialize position difference text ID tracker
-    
-    
+
+
     try:
         while True:
             # Check keyboard events first to potentially switch targets
             keys = p.getKeyboardEvents()
-            
+
             # Check if 'c' key is pressed to close the gripper (set gripper joints to 0)
             if ord('c') in keys and keys[ord('c')] & p.KEY_WAS_TRIGGERED:
                 # Move gripper joints to their individual lower limits
@@ -308,10 +308,10 @@ def main():
                 apply_ik_solution(robot_id, gripper_up_limits, gripper_idxs)
                 print(gripper_up_limits)
                 # grasper.perform_drop()
-            
+
             if ord('m') in keys and keys[ord('m')] & p.KEY_WAS_TRIGGERED:
                 grasper.move_arm([0.35,-0.4,0.2], args.ori, args.side)
-                        
+
 
             target_pos = [
                 p.readUserDebugParameter(x_slider),
@@ -364,18 +364,18 @@ def main():
             # --- Calculate and Display Orientation Difference ---
             # Quaternion difference
             quat_diff = p.getDifferenceQuaternion(target_orientation_quat, actual_orientation_quat)
-            
+
             # Convert quaternion difference to Euler angles (axis-angle representation essentially)
             axis, angle = p.getAxisAngleFromQuaternion(quat_diff)
-            
-            
-            
+
+
+
             # Euler angle difference (direct subtraction, might wrap around pi)
             euler_diff = [d - a for d, a in zip(target_orientation_euler, actual_orientation_euler)]
             # Normalize Euler differences to [-pi, pi] for better readability (optional)
             euler_diff_norm = [(diff + np.pi) % (2 * np.pi) - np.pi for diff in euler_diff]
             #print (f"Orientation Difference (Euler): {euler_diff_norm}")
-            
+
 
             # Remove previous orientation debug text
             if orientation_diff_text_id is not None:
@@ -385,23 +385,23 @@ def main():
             orientation_diff_text = (
                 f"  Quat Diff Angle: {angle:.3f} rad\n"
             )
-            
+
             # Add new orientation debug text
             if angle> 0.1:
                 color=[1,0,0]
             else:
                 color = [0, 0, 1]
-            
+
             #orientation_diff_text_id = p.addUserDebugText(
-            #    orientation_diff_text, 
+            #    orientation_diff_text,
             #    textPosition=[0.05, 0.0, 0.8], # Position in the GUI
-            #    textColorRGB=color, 
+            #    textColorRGB=color,
             #    textSize=1.0
             #)
             #orientation_diff_text_id = p.addUserDebugText(
-            #    str(rad2nicodeg(joint_names, ik_solution)), 
+            #    str(rad2nicodeg(joint_names, ik_solution)),
             #    textPosition=[0.05, -2.0, 0.5], # Position in the GUI
-            #    textColorRGB=color, 
+            #    textColorRGB=color,
             #    textSize=1.0
             #)
 
@@ -426,7 +426,7 @@ def main():
             #position_diff_text_id = p.addUserDebugText(
             #    position_diff_text,
             #    textPosition=[0.05, 0, 0.7], # Position above orientation text
-            #    textColorRGB=color2, 
+            #    textColorRGB=color2,
             #    textSize=1.0
             #)
 

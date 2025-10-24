@@ -73,24 +73,31 @@ class Oraculum:
                 # Check if the robot is close enough to the goal
                 distance_to_goal = np.linalg.norm(np.array(info['o']["actual_state"][:2]) - np.array(info['o']["goal_state"][:2]))
                 if info['o']["actual_state"][2] < -0.272:
-                    info['o']["goal_state"][2] += 0.1
+                     action[:3] = info['o']["goal_state"][:3]
+                     #action[2] += 0.1
+                     #= i
+                elif 0.22 > distance_to_goal > 0.13:  # Threshold for being "close enough"
                     action[:3] = info['o']["goal_state"][:3]
-                elif 0.20 > distance_to_goal > 0.09:  # Threshold for being "close enough"
-                    info['o']["goal_state"][2] += 0.07
-                    action[:3] = info['o']["goal_state"][:3]
+                    #action[2] += 0.065
                     #print(f"Close to goal, raising hand: {action[:3]}")
                 else:
                     action[:3] = info['o']["goal_state"][:3]
             elif reward_name == "drop":
-                self._set_gripper_action(action, GRIPPER_OPEN, gripper)
-            elif reward_name == "withdraw":
-                distance_to_goal = np.linalg.norm(
-                    np.array(info['o']["goal_state"][:3]) - np.array(info['o']["actual_state"][:3]))
-                if distance_to_goal > 0.2:
+                if self.wait_n_steps(5):
                     self._set_gripper_action(action, GRIPPER_OPEN, gripper)
-                    action[:3] = np.array(info['o']["actual_state"][:3]) + DEFAULT_WITHDRAW_OFFSET
                 else:
-                    action[:3] = info['o']["goal_state"][2] + 0.1
+                    pass
+            elif reward_name == "withdraw":
+                if self.wait_n_steps(25):
+                    distance_to_goal = np.linalg.norm(
+                        np.array(info['o']["goal_state"][:3]) - np.array(info['o']["actual_state"][:3]))
+                    if distance_to_goal > 0.2:
+                        self._set_gripper_action(action, GRIPPER_OPEN, gripper)
+                        action[:3] = np.array(info['o']["actual_state"][:3]) + DEFAULT_WITHDRAW_OFFSET
+                    else:
+                        action[:3] = info['o']["goal_state"][:3] + DEFAULT_WITHDRAW_OFFSET
+                else:
+                    action = action
             else:
                 action[:3] = info['o']["goal_state"][:3]
         else:
@@ -109,21 +116,12 @@ class Oraculum:
         Returns:
             np.ndarray: Updated approach action.
         """
-        # if env.unwrapped.task.current_task_length <= 2:
-        #     action = info['o']["actual_state"][:3]
-        #     if info['o']["actual_state"][2] < -0.25:
-        #         action[2] += 0.05
-        #         print("Too close to table, raising hand: {}".format(action))
-        #     return action
-        # action = info['o']["actual_state"][:3]
-        # if info['o']["actual_state"][2] < -0.25:
-        #     action[2] += 0.05
-        #     print("Too close to table, raising hand: {}".format(action))
-
+        if env.env.unwrapped.reward.rewards_num <= 2:
+            action = info['o']["goal_state"][:3]
+            return action
         action = info['o']["actual_state"][:3]
         if info['o']["actual_state"][2] < -0.25:
             action[2] += 0.05
-            #print("Too close to table, raising hand: {}".format(action))
         return action
 
 
@@ -142,3 +140,14 @@ class Oraculum:
                 action[-len(self._gripper_open):] = self._gripper_open
         else:
             print("No gripper to control, change 'robot_action' to contain 'gripper'.")
+
+
+    def wait_n_steps(self, n):
+        if not hasattr(self, '_wait_n_steps'):
+            self._wait_n_steps = 1
+        elif self._wait_n_steps >= n:
+            del(self._wait_n_steps)
+            return True
+        else:
+            self._wait_n_steps += 1
+            return False
