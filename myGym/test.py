@@ -535,7 +535,7 @@ def test_model(
                 
         ##Saving Joint Trajectory and Summary
         joint_traj = np.asarray(joint_traj, dtype=float)
-        np.save(os.path.join(save_dir, "joint_trajectory.npy"), joint_traj)
+        np.save(os.path.join(save_dir, "joint_trajectory.npy"), joint_traj[:,1:8])  #Saving only arm joints
         if len(action_traj) > 0:
             np.save(os.path.join(save_dir, "actions.npy"), np.asarray(action_traj, dtype=float))
 
