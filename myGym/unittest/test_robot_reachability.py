@@ -321,93 +321,150 @@ def plot_reachable_volume(reachable_points, bounding_box_min, bounding_box_max, 
     plt.close()
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Test robot IK reachability across a 3D volume"
-    )
-    parser.add_argument(
-        "--robot",
-        type=str,
-        help="Robot key from r_dict (if not provided, interactive selection)"
-    )
-    parser.add_argument(
-        "--gui",
-        action="store_true",
-        help="Run with PyBullet GUI (default: no GUI)"
-    )
-    parser.add_argument(
-        "--with-orientation",
-        action="store_true",
-        help="Use orientation constraint in IK (default: position only)"
-    )
-    parser.add_argument(
-        "--euler",
-        type=float,
-        nargs=3,
-        default=[0.0, 0.0, 0.0],
-        help="Euler angles for orientation [roll, pitch, yaw] in radians (default: 0 0 0)"
-    )
-    parser.add_argument(
-        "--min",
-        type=float,
-        nargs=3,
-        default=[-1.0, -1.0, -1.0],
-        help="Minimum coordinates [x, y, z] (default: -1 -1 -1)"
-    )
-    parser.add_argument(
-        "--max",
-        type=float,
-        nargs=3,
-        default=[1.0, 1.0, 1.0],
-        help="Maximum coordinates [x, y, z] (default: 1 1 1)"
-    )
-    parser.add_argument(
-        "--step",
-        type=float,
-        default=0.2,
-        help="Grid step size (default: 0.1)"
-    )
-    parser.add_argument(
-        "--threshold",
-        type=float,
-        default=0.05,
-        help="Distance threshold for reachability (default: 0.05)"
-    )
+def create_bbox_visual(bbox_min, bbox_max, rgba_color):
+    """Create visual representation of a bounding box using line segments.
     
-    args = parser.parse_args()
-    
-    # Get robot dictionary
-    r_dict = get_robot_dict()
-    
-    # Select robot
-    if args.robot:
-        if args.robot not in r_dict:
-            print(f"Error: Robot '{args.robot}' not found in r_dict")
-            print(f"Available robots: {', '.join(sorted(r_dict.keys()))}")
-            return 1
-        selected_key = args.robot
-    else:
-        # Interactive selection
-        robots = sorted(r_dict.keys())
-        print("Available robots:")
-        for i, robot_key in enumerate(robots):
-            print(f"[{i}] {robot_key}")
+    Args:
+        bbox_min: Minimum coordinates [x, y, z]
+        bbox_max: Maximum coordinates [x, y, z]
+        rgba_color: Color as [r, g, b, a]
         
-        while True:
-            sel = input("Select robot index (q to quit): ").strip().lower()
-            if sel in ("q", "quit", "exit"):
-                return 0
-            if sel.isdigit():
-                idx = int(sel)
-                if 0 <= idx < len(robots):
-                    selected_key = robots[idx]
-                    break
-            print("Invalid selection.")
+    Returns:
+        list of visual shape IDs
+    """
+    edges = [
+        # Bottom face
+        ([bbox_min[0], bbox_min[1], bbox_min[2]], [bbox_max[0], bbox_min[1], bbox_min[2]]),
+        ([bbox_max[0], bbox_min[1], bbox_min[2]], [bbox_max[0], bbox_max[1], bbox_min[2]]),
+        ([bbox_max[0], bbox_max[1], bbox_min[2]], [bbox_min[0], bbox_max[1], bbox_min[2]]),
+        ([bbox_min[0], bbox_max[1], bbox_min[2]], [bbox_min[0], bbox_min[1], bbox_min[2]]),
+        # Top face
+        ([bbox_min[0], bbox_min[1], bbox_max[2]], [bbox_max[0], bbox_min[1], bbox_max[2]]),
+        ([bbox_max[0], bbox_min[1], bbox_max[2]], [bbox_max[0], bbox_max[1], bbox_max[2]]),
+        ([bbox_max[0], bbox_max[1], bbox_max[2]], [bbox_min[0], bbox_max[1], bbox_max[2]]),
+        ([bbox_min[0], bbox_max[1], bbox_max[2]], [bbox_min[0], bbox_min[1], bbox_max[2]]),
+        # Vertical edges
+        ([bbox_min[0], bbox_min[1], bbox_min[2]], [bbox_min[0], bbox_min[1], bbox_max[2]]),
+        ([bbox_max[0], bbox_min[1], bbox_min[2]], [bbox_max[0], bbox_min[1], bbox_max[2]]),
+        ([bbox_max[0], bbox_max[1], bbox_min[2]], [bbox_max[0], bbox_max[1], bbox_max[2]]),
+        ([bbox_min[0], bbox_max[1], bbox_min[2]], [bbox_min[0], bbox_max[1], bbox_max[2]]),
+    ]
     
-    print(f"\nSelected robot: {selected_key}")
+    line_ids = []
+    for start, end in edges:
+        line_id = p.addUserDebugLine(start, end, lineColorRGB=rgba_color[:3], lineWidth=3)
+        line_ids.append(line_id)
+    
+    return line_ids
+
+
+def visualize_in_pybullet(robot_id, reachable_points, bbox_min, bbox_max):
+    """Visualize reachable volume in PyBullet with transparent meshes.
+    
+    Args:
+        robot_id: PyBullet robot ID
+        reachable_points: Array of reachable points
+        bbox_min: Minimum coordinates of bounding box
+        bbox_max: Maximum coordinates of bounding box
+    """
+    print("\nVisualizing in PyBullet...")
+    print("Press 'q' in terminal to quit visualization")
+    
+    # Create transparent bounding box (green)
+    if bbox_min is not None and bbox_max is not None:
+        bbox_lines = create_bbox_visual(bbox_min, bbox_max, [0, 1, 0, 0.7])
+        print("Created green bounding box visualization")
+    
+    # Create convex hull visualization (blue)
+    hull_visual_id = None
+    if len(reachable_points) >= 4:
+        try:
+            hull = ConvexHull(reachable_points)
+            
+            # Create mesh from convex hull vertices and simplices
+            vertices = reachable_points[hull.vertices]
+            
+            # Calculate center of hull for positioning
+            center = np.mean(vertices, axis=0)
+            
+            # Create vertices relative to center
+            relative_vertices = vertices - center
+            
+            # Create mesh indices (triangles)
+            indices = hull.simplices.flatten().tolist()
+            
+            # Create collision and visual shapes
+            collision_shape = p.createCollisionShape(
+                shapeType=p.GEOM_MESH,
+                vertices=relative_vertices.tolist(),
+                indices=indices
+            )
+            
+            visual_shape = p.createVisualShape(
+                shapeType=p.GEOM_MESH,
+                vertices=relative_vertices.tolist(),
+                indices=indices,
+                rgbaColor=[0, 0, 1, 0.3]  # Transparent blue
+            )
+            
+            # Create multibody with the mesh
+            hull_visual_id = p.createMultiBody(
+                baseMass=0,
+                baseCollisionShapeIndex=collision_shape,
+                baseVisualShapeIndex=visual_shape,
+                basePosition=center.tolist()
+            )
+            
+            print("Created blue convex hull visualization")
+            
+        except Exception as e:
+            print(f"Warning: Could not create convex hull visualization: {e}")
+    
+    # Visualize reachable points as small spheres
+    point_visual_ids = []
+    sphere_radius = 0.01
+    for i, point in enumerate(reachable_points[::10]):  # Sample every 10th point to avoid overload
+        visual_shape = p.createVisualShape(
+            shapeType=p.GEOM_SPHERE,
+            radius=sphere_radius,
+            rgbaColor=[0, 0, 1, 0.3]
+        )
+        point_id = p.createMultiBody(
+            baseMass=0,
+            baseCollisionShapeIndex=-1,
+            baseVisualShapeIndex=visual_shape,
+            basePosition=point.tolist()
+        )
+        point_visual_ids.append(point_id)
+    
+    print(f"Created {len(point_visual_ids)} point visualizations (sampled)")
+    
+    # Keep visualization open until user quits
+    print("\nVisualization active. Press Ctrl+C or close the PyBullet window to continue...")
+    try:
+        while True:
+            p.stepSimulation()
+            import time
+            time.sleep(0.01)
+    except KeyboardInterrupt:
+        print("\nVisualization closed by user")
+
+
+def test_robot_reachability(robot_key, r_dict, args):
+    """Run reachability test for a single robot.
+    
+    Args:
+        robot_key: Key identifying the robot in r_dict
+        r_dict: Robot dictionary
+        args: Command line arguments
+        
+    Returns:
+        0 on success, 1 on error
+    """
+    print(f"\nTesting robot: {robot_key}")
     
     # Get robot info
-    robot_info = r_dict[selected_key]
+    robot_info = r_dict[robot_key]
     rel_path = robot_info['path'].lstrip('/')
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     urdf_path = os.path.join(base_dir, rel_path)
@@ -528,7 +585,7 @@ def main():
     print("\n" + "="*60)
     print("RESULTS")
     print("="*60)
-    print(f"Robot: {selected_key}")
+    print(f"Robot: {robot_key}")
     print(f"Total points tested: {total_points}")
     print(f"Reachable points: {len(reachable_points)} ({len(reachable_points)/total_points*100:.2f}%)")
     
@@ -548,12 +605,143 @@ def main():
     # Generate plot
     if len(reachable_points) > 0:
         print("\nGenerating 3D plot...")
-        plot_reachable_volume(reachable_points, bbox_min, bbox_max, selected_key, args.min, args.max, initial_robot_links)
+        plot_reachable_volume(reachable_points, bbox_min, bbox_max, robot_key, args.min, args.max, initial_robot_links)
+    
+    # PyBullet visualization if requested
+    if args.visualize_pybullet and len(reachable_points) > 0:
+        # Reconnect to GUI if not already in GUI mode
+        if not args.gui:
+            p.disconnect()
+            physics_client = p.connect(p.GUI)
+            p.setAdditionalSearchPath(pybullet_data.getDataPath())
+            p.setGravity(0, 0, -9.81)
+            
+            # Reload robot
+            robot_id = p.loadURDF(
+                urdf_path,
+                useFixedBase=True,
+                basePosition=robot_base_pos,
+                baseOrientation=robot_base_quat,
+                flags=p.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT
+            )
+            
+            p.resetDebugVisualizerCamera(
+                cameraDistance=2.0,
+                cameraYaw=45,
+                cameraPitch=-30,
+                cameraTargetPosition=[0, 0, 0.5]
+            )
+        
+        visualize_in_pybullet(robot_id, np.array(reachable_points), bbox_min, bbox_max)
     
     # Cleanup
     p.disconnect()
     
     return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Test robot IK reachability across a 3D volume"
+    )
+    parser.add_argument(
+        "--robot",
+        type=str,
+        help="Robot key from r_dict (if not provided, interactive selection)"
+    )
+    parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="Run with PyBullet GUI (default: no GUI)"
+    )
+    parser.add_argument(
+        "--with-orientation",
+        action="store_true",
+        help="Use orientation constraint in IK (default: position only)"
+    )
+    parser.add_argument(
+        "--euler",
+        type=float,
+        nargs=3,
+        default=[0.0, 0.0, 0.0],
+        help="Euler angles for orientation [roll, pitch, yaw] in radians (default: 0 0 0)"
+    )
+    parser.add_argument(
+        "--min",
+        type=float,
+        nargs=3,
+        default=[-1.0, -1.0, -1.0],
+        help="Minimum coordinates [x, y, z] (default: -1 -1 -1)"
+    )
+    parser.add_argument(
+        "--max",
+        type=float,
+        nargs=3,
+        default=[1.0, 1.0, 1.0],
+        help="Maximum coordinates [x, y, z] (default: 1 1 1)"
+    )
+    parser.add_argument(
+        "--step",
+        type=float,
+        default=0.2,
+        help="Grid step size (default: 0.1)"
+    )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.05,
+        help="Distance threshold for reachability (default: 0.05)"
+    )
+    parser.add_argument(
+        "--visualize-pybullet",
+        action="store_true",
+        help="Visualize reachable volume in PyBullet after test (default: off)"
+    )
+    
+    args = parser.parse_args()
+    
+    # Get robot dictionary
+    r_dict = get_robot_dict()
+    
+    # Select robot
+    if args.robot:
+        if args.robot not in r_dict:
+            print(f"Error: Robot '{args.robot}' not found in r_dict")
+            print(f"Available robots: {', '.join(sorted(r_dict.keys()))}")
+            return 1
+        selected_key = args.robot
+    else:
+        # Interactive selection
+        robots = sorted(r_dict.keys())
+        print("Available robots:")
+        print("[0] all")
+        for i, robot_key in enumerate(robots):
+            print(f"[{i+1}] {robot_key}")
+        
+        while True:
+            sel = input("Select robot index (q to quit): ").strip().lower()
+            if sel in ("q", "quit", "exit"):
+                return 0
+            if sel.isdigit():
+                idx = int(sel)
+                if idx == 0:
+                    # Run for all robots
+                    print("\nRunning reachability test for all robots...")
+                    for robot_key in robots:
+                        result = test_robot_reachability(robot_key, r_dict, args)
+                        if result != 0:
+                            print(f"Warning: Test failed for robot {robot_key}")
+                    print("\nAll tests completed!")
+                    return 0
+                elif 1 <= idx <= len(robots):
+                    selected_key = robots[idx - 1]
+                    break
+            print("Invalid selection.")
+    
+    print(f"\nSelected robot: {selected_key}")
+    
+    # Run test for single robot
+    return test_robot_reachability(selected_key, r_dict, args)
 
 
 if __name__ == "__main__":
