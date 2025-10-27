@@ -20,7 +20,7 @@ Tests robot IK reachability across a 3D volume. This test spawns an IK target in
 
 **Usage:**
 ```bash
-# Interactive robot selection (default: tests volume from [-1,-1,-1] to [1,1,1] with step 0.1)
+# Run with interactive robot selection and default volume parameters ([-1,-1,-1] to [1,1,1], step 0.1)
 python3 myGym/unittest/test_robot_reachability.py
 
 # Test specific robot
@@ -33,7 +33,7 @@ python3 myGym/unittest/test_robot_reachability.py --robot panda1 --gui
 python3 myGym/unittest/test_robot_reachability.py --robot ur5 --min 0.2 0.2 0.2 --max 0.8 0.8 0.8 --step 0.1
 
 # Test with orientation constraint (default: position-only IK)
-python3 myGym/unittest/test_robot_reachability.py --robot kuka --with-orientation --euler 0 0 0
+python3 myGym/unittest/test_robot_reachability.py --robot kuka --with-orientation --euler 0 0 1.57
 
 # Test with custom threshold
 python3 myGym/unittest/test_robot_reachability.py --robot jaco --threshold 0.03
@@ -54,7 +54,7 @@ The test will:
 1. Display progress during testing
 2. Show reachability statistics (total points, reachable percentage)
 3. Output the 3D bounding box lower and upper bounds of reachable volume
-4. Generate a 3D plot saved to `/tmp/reachability_<robotname>.png`
+4. Generate a 3D plot saved to `/tmp/reachability_<robotname>.png` (Unix/Linux)
 
 ### test_train_configs.py
 Tests train.py with all configuration files in the `./configs` folder. This test runs the training script with a specified number of steps (default: 10000) for each config file and reports which configs trained successfully.
