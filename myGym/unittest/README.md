@@ -15,6 +15,47 @@ python3 myGym/unittest/test_robots.py [--gui]
 Options:
 - `--gui`: Visualize the tests in PyBullet GUI
 
+### test_robot_reachability.py
+Tests robot IK reachability across a 3D volume. This test spawns an IK target in a grid volume and checks whether the robot can reach each point. It outputs a 3D plot of reachable points and the bounding box of the reachable volume.
+
+**Usage:**
+```bash
+# Interactive robot selection (default: tests volume from [-1,-1,-1] to [1,1,1] with step 0.1)
+python3 myGym/unittest/test_robot_reachability.py
+
+# Test specific robot
+python3 myGym/unittest/test_robot_reachability.py --robot kuka
+
+# Test with GUI visualization
+python3 myGym/unittest/test_robot_reachability.py --robot panda1 --gui
+
+# Test with custom volume and step size
+python3 myGym/unittest/test_robot_reachability.py --robot ur5 --min 0.2 0.2 0.2 --max 0.8 0.8 0.8 --step 0.1
+
+# Test with orientation constraint (default: position-only IK)
+python3 myGym/unittest/test_robot_reachability.py --robot kuka --with-orientation --euler 0 0 0
+
+# Test with custom threshold
+python3 myGym/unittest/test_robot_reachability.py --robot jaco --threshold 0.03
+```
+
+Options:
+- `--robot ROBOT`: Robot key from r_dict (if not provided, interactive selection)
+- `--gui`: Run with PyBullet GUI (default: no GUI)
+- `--with-orientation`: Use orientation constraint in IK (default: position only)
+- `--euler ROLL PITCH YAW`: Euler angles for orientation in radians (default: 0 0 0)
+- `--min X Y Z`: Minimum coordinates for test volume (default: -1 -1 -1)
+- `--max X Y Z`: Maximum coordinates for test volume (default: 1 1 1)
+- `--step STEP`: Grid step size (default: 0.1)
+- `--threshold THRESHOLD`: Distance threshold for reachability in meters (default: 0.05)
+
+**Output:**
+The test will:
+1. Display progress during testing
+2. Show reachability statistics (total points, reachable percentage)
+3. Output the 3D bounding box lower and upper bounds of reachable volume
+4. Generate a 3D plot saved to `/tmp/reachability_<robotname>.png`
+
 ### test_train_configs.py
 Tests train.py with all configuration files in the `./configs` folder. This test runs the training script with a specified number of steps (default: 10000) for each config file and reports which configs trained successfully.
 
@@ -103,6 +144,7 @@ To run all tests in this directory:
 ```bash
 cd myGym/unittest
 python3 test_robots.py
+python3 test_robot_reachability.py --robot kuka
 python3 test_train_configs.py
 python3 test_oraculum_configs.py
 ```
