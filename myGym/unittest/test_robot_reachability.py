@@ -14,6 +14,8 @@ import pybullet as p
 import pybullet_data
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from scipy.spatial import ConvexHull
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -125,25 +127,88 @@ def compute_bounding_box(points):
     return min_coords, max_coords
 
 
-def plot_reachable_volume(reachable_points, bounding_box_min, bounding_box_max, robot_name):
-    """Create 3D plot of reachable volume and bounding box."""
+def get_robot_kinematic_tree(robot_id):
+    """Extract kinematic tree structure and link positions for non-fixed joints.
+    
+    Returns:
+        links: list of tuples (link_index, link_name, parent_index, position, is_end_effector)
+    """
+    num_joints = p.getNumJoints(robot_id)
+    links = []
+    
+    # Add base link
+    base_pos, _ = p.getBasePositionAndOrientation(robot_id)
+    links.append((-1, "base", None, np.array(base_pos), False))
+    
+    # Add all non-fixed joints
+    for joint_idx in range(num_joints):
+        joint_info = p.getJointInfo(robot_id, joint_idx)
+        joint_type = joint_info[2]
+        link_name = joint_info[12].decode("utf-8")
+        parent_idx = joint_info[16]
+        
+        # Only include non-fixed joints
+        if joint_type != p.JOINT_FIXED:
+            link_state = p.getLinkState(robot_id, joint_idx)
+            link_pos = np.array(link_state[0])
+            is_end_effector = (link_name == 'endeffector')
+            
+            links.append((joint_idx, link_name, parent_idx, link_pos, is_end_effector))
+    
+    return links
+
+
+def plot_reachable_volume(reachable_points, bounding_box_min, bounding_box_max, robot_name, tested_min=None, tested_max=None, robot_links=None):
+    """Create 3D plot of reachable volume and bounding box.
+    
+    Args:
+        reachable_points: list/array of reachable points
+        bounding_box_min: min coords of reachable points
+        bounding_box_max: max coords of reachable points
+        robot_name: name for title and output file
+        tested_min: min coords of tested limits (optional)
+        tested_max: max coords of tested limits (optional)
+        robot_links: kinematic tree links from get_robot_kinematic_tree (optional)
+    """
     if len(reachable_points) == 0:
         print("No reachable points to plot.")
         return
     
     reachable_points = np.array(reachable_points)
     
-    fig = plt.figure(figsize=(10, 8))
+    fig = plt.figure(figsize=(12, 10))
     ax = fig.add_subplot(111, projection='3d')
     
-    # Plot reachable points
-    ax.scatter(reachable_points[:, 0], reachable_points[:, 1], reachable_points[:, 2],
-               c='blue', marker='o', s=1, alpha=0.3, label='Reachable points')
+    # Compute and plot convex hull first (so it appears behind)
+    if len(reachable_points) >= 4:  # Need at least 4 points for 3D convex hull
+        try:
+            hull = ConvexHull(reachable_points)
+            
+            # Create mesh from convex hull
+            faces = []
+            for simplex in hull.simplices:
+                faces.append([reachable_points[simplex[0]], 
+                             reachable_points[simplex[1]], 
+                             reachable_points[simplex[2]]])
+            
+            # Plot convex hull as transparent volume
+            poly3d = Poly3DCollection(faces, alpha=0.3, facecolor='cyan', 
+                                     edgecolor='none', label='Reachable volume (convex hull)')
+            ax.add_collection3d(poly3d)
+            
+            # Calculate and print convex hull volume
+            hull_volume = hull.volume
+            print(f"Convex hull volume: {hull_volume:.6f} cubic units")
+            
+        except Exception as e:
+            print(f"Warning: Could not compute convex hull: {e}")
+    else:
+        print("Not enough points to compute convex hull (need at least 4)")
     
-    # Plot bounding box
-    if bounding_box_min is not None and bounding_box_max is not None:
-        # Create box edges
-        r = [bounding_box_min, bounding_box_max]
+    # Plot tested limits bounding box (blue)
+    if tested_min is not None and tested_max is not None:
+        r = [tested_min, tested_max]
+        first_tested_edge = True
         for s, e in [
             ([r[0][0], r[0][1], r[0][2]], [r[1][0], r[0][1], r[0][2]]),
             ([r[0][0], r[1][1], r[0][2]], [r[1][0], r[1][1], r[0][2]]),
@@ -158,17 +223,101 @@ def plot_reachable_volume(reachable_points, bounding_box_min, bounding_box_max, 
             ([r[0][0], r[1][1], r[0][2]], [r[0][0], r[1][1], r[1][2]]),
             ([r[1][0], r[1][1], r[0][2]], [r[1][0], r[1][1], r[1][2]]),
         ]:
-            ax.plot3D(*zip(s, e), color='red', linewidth=2)
+            ax.plot3D(*zip(s, e), color='blue', linewidth=2, alpha=0.5, 
+                     label='Tested limits' if first_tested_edge else None)
+            first_tested_edge = False
+    
+    # Plot reachable bounding box (green)
+    if bounding_box_min is not None and bounding_box_max is not None:
+        r = [bounding_box_min, bounding_box_max]
+        first_edge = True
+        for s, e in [
+            ([r[0][0], r[0][1], r[0][2]], [r[1][0], r[0][1], r[0][2]]),
+            ([r[0][0], r[1][1], r[0][2]], [r[1][0], r[1][1], r[0][2]]),
+            ([r[0][0], r[0][1], r[1][2]], [r[1][0], r[0][1], r[1][2]]),
+            ([r[0][0], r[1][1], r[1][2]], [r[1][0], r[1][1], r[1][2]]),
+            ([r[0][0], r[0][1], r[0][2]], [r[0][0], r[1][1], r[0][2]]),
+            ([r[1][0], r[0][1], r[0][2]], [r[1][0], r[1][1], r[0][2]]),
+            ([r[0][0], r[0][1], r[1][2]], [r[0][0], r[1][1], r[1][2]]),
+            ([r[1][0], r[0][1], r[1][2]], [r[1][0], r[1][1], r[1][2]]),
+            ([r[0][0], r[0][1], r[0][2]], [r[0][0], r[0][1], r[1][2]]),
+            ([r[1][0], r[0][1], r[0][2]], [r[1][0], r[0][1], r[1][2]]),
+            ([r[0][0], r[1][1], r[0][2]], [r[0][0], r[1][1], r[1][2]]),
+            ([r[1][0], r[1][1], r[0][2]], [r[1][0], r[1][1], r[1][2]]),
+        ]:
+            ax.plot3D(*zip(s, e), color='green', linewidth=2, alpha=0.7,
+                     label='Reachable bbox' if first_edge else None)
+            first_edge = False
+    
+    # Plot reachable points
+    ax.scatter(reachable_points[:, 0], reachable_points[:, 1], reachable_points[:, 2],
+               c='blue', marker='o', s=10, alpha=0.3, label='Reachable points')
+    
+    # Plot coordinate axes at origin (0,0,0) - without labels
+    axis_length = 0.5
+    ax.quiver(0, 0, 0, axis_length, 0, 0, color='red', linewidth=3, arrow_length_ratio=0.2)
+    ax.quiver(0, 0, 0, 0, axis_length, 0, color='green', linewidth=3, arrow_length_ratio=0.2)
+    ax.quiver(0, 0, 0, 0, 0, axis_length, color='blue', linewidth=3, arrow_length_ratio=0.2)
+    
+    # Plot robot kinematic tree (initial position) - plot AFTER volume so it's on top with correct colors
+    if robot_links is not None:
+        first_link = True
+        for link_idx, link_name, parent_idx, link_pos, is_end_effector in robot_links:
+            # Draw connection to parent first (lines behind joints)
+            if parent_idx is not None and parent_idx >= -1:
+                # Find parent position
+                parent_pos = None
+                for p_idx, p_name, _, p_pos, _ in robot_links:
+                    if p_idx == parent_idx:
+                        parent_pos = p_pos
+                        break
+                
+                if parent_pos is not None:
+                    # Draw line from parent to child
+                    ax.plot3D([parent_pos[0], link_pos[0]], 
+                             [parent_pos[1], link_pos[1]], 
+                             [parent_pos[2], link_pos[2]], 
+                             color='red', linewidth=3, alpha=1.0,
+                             label='Robot kinematic tree' if first_link else None, zorder=10)
+                    first_link = False
+        
+        # Draw joints on top of lines
+        for link_idx, link_name, parent_idx, link_pos, is_end_effector in robot_links:
+            if link_idx == -1:
+                # Base link - larger red dot
+                ax.scatter([link_pos[0]], [link_pos[1]], [link_pos[2]], 
+                          c='red', marker='o', s=150, alpha=1.0, edgecolors='darkred', 
+                          linewidths=2, zorder=11)
+            elif is_end_effector:
+                # End effector - big red X
+                ax.scatter([link_pos[0]], [link_pos[1]], [link_pos[2]], 
+                          c='red', marker='x', s=500, alpha=1.0, linewidths=4, zorder=11)
+            else:
+                # Regular joint - small red sphere
+                ax.scatter([link_pos[0]], [link_pos[1]], [link_pos[2]], 
+                          c='red', marker='o', s=80, alpha=1.0, edgecolors='darkred',
+                          linewidths=1, zorder=11)
+    
+    # Add text annotations for bounding box limits
+    if bounding_box_min is not None and bounding_box_max is not None:
+        bbox_text = f"Reachable bbox:\nMin: [{bounding_box_min[0]:.2f}, {bounding_box_min[1]:.2f}, {bounding_box_min[2]:.2f}]\n"
+        bbox_text += f"Max: [{bounding_box_max[0]:.2f}, {bounding_box_max[1]:.2f}, {bounding_box_max[2]:.2f}]"
+        ax.text2D(0.02, 0.98, bbox_text, transform=ax.transAxes, 
+                 fontsize=9, verticalalignment='top', 
+                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    # Set camera view angle
+    ax.view_init(elev=30, azim=30)
     
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     ax.set_title(f'Reachable Volume for {robot_name}')
-    ax.legend()
+    ax.legend(loc='upper right')
     
     plt.tight_layout()
-    plt.savefig(f'/tmp/reachability_{robot_name}.png')
-    print(f"Plot saved to /tmp/reachability_{robot_name}.png")
+    plt.savefig(f'./unittest/reachability_{robot_name}.png', dpi=150)
+    print(f"Plot saved to ./unittest/reachability_{robot_name}.png")
     plt.close()
 
 
@@ -215,7 +364,7 @@ def main():
     parser.add_argument(
         "--step",
         type=float,
-        default=0.1,
+        default=0.2,
         help="Grid step size (default: 0.1)"
     )
     parser.add_argument(
@@ -301,6 +450,9 @@ def main():
         p.disconnect()
         return 1
     
+    # Get initial robot kinematic tree for visualization
+    initial_robot_links = get_robot_kinematic_tree(robot_id)
+    
     # Find end effector
     num_joints = p.getNumJoints(robot_id)
     end_effector_idx = find_end_effector(robot_id)
@@ -369,6 +521,9 @@ def main():
     # Compute bounding box
     bbox_min, bbox_max = compute_bounding_box(reachable_points)
     
+    # Get robot kinematic tree for visualization
+    robot_links = get_robot_kinematic_tree(robot_id)
+    
     # Output results
     print("\n" + "="*60)
     print("RESULTS")
@@ -393,7 +548,7 @@ def main():
     # Generate plot
     if len(reachable_points) > 0:
         print("\nGenerating 3D plot...")
-        plot_reachable_volume(reachable_points, bbox_min, bbox_max, selected_key)
+        plot_reachable_volume(reachable_points, bbox_min, bbox_max, selected_key, args.min, args.max, initial_robot_links)
     
     # Cleanup
     p.disconnect()
