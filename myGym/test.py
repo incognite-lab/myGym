@@ -234,7 +234,7 @@ def test_env(env: object, arg_dict: dict) -> None:
             jointparams[i] = p.readUserDebugParameter(joints[i])
             action.append(jointparams[i])
 
-    eval_episodes = arg_dict.get("eval_episodes", 50)
+    eval_episodes = arg_dict.get("eval_episodes", 1)# Default to 1 for Sim2Real
     for e in range(eval_episodes):
         obs, info = env.reset()
         # Store oraculum results if selected:
@@ -278,7 +278,7 @@ def test_env(env: object, arg_dict: dict) -> None:
                         print("\rLast action difference: (shape mismatch)", end='', flush=True)
 
                     last_action = action
-
+                    
             if arg_dict["control"] == "oraculum":
                 action = oraculum_obj.perform_oraculum_task(t, env, action, info)
             elif arg_dict["control"] == "keyboard":
@@ -446,6 +446,42 @@ def make_path(arg_dict: dict, record_format: str, model: bool):
 
     return video_path
 
+#str to vec3
+def _parse_vec3(s: str):
+    if s is None:
+        return None
+    # "x y z" or "x,y,z" 
+    s = s.replace(",", " ")
+    vals = [float(t) for t in s.split() if t.strip() != ""]
+    if len(vals) != 3:
+        raise ValueError(f"--target expects 3 values, got {len(vals)}: {s}")
+    return np.asarray(vals, dtype=float)
+
+def apply_target_to_env(env, target_np: np.ndarray) -> bool:
+    """
+    change env if it is wrong
+    """
+    # メソッドを持つタイプ
+    for meth in ["set_target", "set_goal", "set_desired_goal"]:
+        if hasattr(env, meth):
+            try:
+                getattr(env, meth)(target_np)
+                return True
+            except Exception:
+                pass
+
+    # 属性で持つタイプ（wrapped / unwrapped も試す）
+    for obj in [env, getattr(env, "unwrapped", None)]:
+        if obj is None:
+            continue
+        for name in ["target", "goal", "desired_goal"]:
+            if hasattr(obj, name):
+                try:
+                    setattr(obj, name, np.asarray(target_np, dtype=float))
+                    return True
+                except Exception:
+                    pass
+    return False
 
 def test_model(
         env: Any,
@@ -484,12 +520,22 @@ def test_model(
 
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
     model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
+    target_np=_parse_vec3(arg_dict["target"])
     for e in range(arg_dict["eval_episodes"]):
         done = False
         obs, info = env.reset()
         is_successful = 0
         distance_error = 0
-        
+        # modify position to user setting
+        if target_np is not None:
+            ok=apply_target_to_env(env,target_np)
+            if not ok:
+                print("[WARN] Could not set target on this env; using default/random target.")
+            try:
+                obs=env._get_obs() if hasattr(env,"_get_obs") else obs
+            except Exception:
+                pass
+            
         ##Definition of Storage Variables
         run_tag = datetime.now().strftime("%Y%m%d_%H%M%S")
         save_dir = os.path.join(model_logdir, "rollouts", run_tag, f"ep_{e:03d}")
@@ -588,27 +634,23 @@ def print_init_info(arg_dict):
         print("Testing robot control in selected environment using observation.")
     else:
         print("Testing random actions in selected environment.")
-
-
 def main() -> None:
     """Main entry point for the testing script."""
     parser = get_parser()
-    parser.add_argument("-ct", "--control",
+    parser.add_argument("-ct", "--control", default="oraculum",
                         help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
     parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
     parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
-    parser.add_argument("-tp", "--top_grasp",  default = False, help="Use top grasp when reaching objects with oraculum.")
+    parser.add_argument("-tp", "--top_grasp",  default = True, help="Use top grasp when reaching objects with oraculum.")
+    parser.add_argument("--target", type=str, default=None, help="point to reach")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
     arg_dict, commands = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
-
-    from myGym.envs.robot import ROSRobot, Robot
-    Robot.shim_to(ROSRobot)  # swap Robot for ROSRobot class
-
+        
     for key, arg in arg_dict.items():
         if type(arg_dict[key]) == list:
             if len(arg_dict[key]) > 1 and key != "robot_init" and key != "end_effector_orn":
@@ -616,7 +658,7 @@ def main() -> None:
                     parameters[key] = arg
                     if key in commands:
                         commands.pop(key)
-
+    
 
     # Check if we chose one of the existing engines
     if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
