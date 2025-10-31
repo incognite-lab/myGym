@@ -86,9 +86,9 @@ def send_over_zmq(traj: np.ndarray, zmq_addr: str) -> dict:
   
 def main():
     parser = argparse.ArgumentParser(description="Run test.py (optional), load joint_trajectory.npy, and send via ZMQ.")
-    g = parser.add_mutually_exclusive_group(required=True)
+    g = parser.add_mutually_exclusive_group(required=False)
     g.add_argument("--npy", help="Path to an existing joint_trajectory.npy")
-    g.add_argument("--test-script",default=os.path.join(os.path.dirname(__file__), "../myGym/test.py"), help="Path to test.py (to run and capture the produced joint_trajectory.npy)")
+    g.add_argument("--test-script",default=os.path.abspath(os.path.join(os.path.dirname(__file__), "../myGym/test.py")), help="Path to test.py (to run and capture the produced joint_trajectory.npy)")
     #absolute path
     parser.add_argument("--test-args", default="", help="Arguments passed to test.py (as a single quoted string).")
     parser.add_argument("--cwd", default=os.path.abspath(os.path.join(os.path.dirname(__file__), "../myGym/")), help="Working directory to run test.py in.")

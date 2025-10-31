@@ -508,6 +508,7 @@ def test_model(
         elif arg_dict["algo"] not in implemented_combos.keys():
             err = "{} algorithm is not implemented.".format(arg_dict["algo"])
         else:
+            print(arg_dict["pretrained_model"])
             err = "invalid model_path argument"
         raise Exception(err)
 
@@ -520,13 +521,13 @@ def test_model(
 
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
     model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
-    target_np=_parse_vec3(arg_dict["target"])
     for e in range(arg_dict["eval_episodes"]):
         done = False
         obs, info = env.reset()
         is_successful = 0
         distance_error = 0
         # modify position to user setting
+        target_np=_parse_vec3(arg_dict.get("target",None))
         if target_np is not None:
             ok=apply_target_to_env(env,target_np)
             if not ok:
@@ -645,7 +646,7 @@ def main() -> None:
     parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
     parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
     parser.add_argument("-tp", "--top_grasp",  default = True, help="Use top grasp when reaching objects with oraculum.")
-    parser.add_argument("--target", type=str, default=None, help="point to reach")
+    parser.add_argument("-tar","--target", type=str, default=None, help="point to reach")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
     arg_dict, commands = get_arguments(parser)
     parameters = {}

@@ -550,10 +550,11 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
         load_path = load_path.split("/")
         path = "/".join(load_path)
-        dir_path = os.path.dirname(path)
+        dir_path = path #os.path.dirname(path)
 
         #Load arguments from train.json config
         import commentjson
+        print(dir_path+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         with open(dir_path + "/train.json", "r") as f:
             json = commentjson.load(f)
         num_models = json["num_networks"]
@@ -566,6 +567,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             reward_names = env.unwrapped.reward.network_names
         for i in range(num_models):
             load_path = dir_path + "/" + reward_names[i] + "/best_model"
+            print(load_path+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
             data, params, pytorch_variables = load_from_zip_file(
                 load_path,
                 device=device,
