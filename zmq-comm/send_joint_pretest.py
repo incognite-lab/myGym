@@ -98,33 +98,6 @@ def make_roundtrip(traj: np.ndarray) -> np.ndarray:
 
     return np.vstack([traj, pause_block, reverse])
 
-def parse_vec3(s: str):
-    s = s.replace(","," ")
-    vals = [float(t) for t in s.split() if t.strip()]
-    if len(vals) != 3:
-        raise ValueError("target expects 3 values, got: {s}")
-    return np.asarray(vals, dtype = float)
-
-def read_targets_file(path: str):
-    if not os.path.exists(path):
-        raise FileNotFoundError(
-            "Target file not found: {path}\n"
-        )
-    arr = []
-    with open(path, "r") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            arr.append(parse_vec3(line))
-    if not arr:
-        raise ValueError("No valid targets in file: {path}")
-    return arr
-
-def strip_existing_target(args_str: str) -> str:
-    pattern = r"(?:^|\s)--target\s+([^\s]+\s[,\s]\s[^\s]+\s[,\s]\s[^\s]+)"
-    return re.sub(pattern, " ", args_str or "").strip()
-
 def main():
     parser = argparse.ArgumentParser(description="Run test.py (optional), load joint_trajectory.npy, and send via ZMQ.")
     g = parser.add_mutually_exclusive_group(required=False)
@@ -138,38 +111,24 @@ def main():
     parser.add_argument("--return-trip",action="store_true",help="After sending the forward trajectory, wait at the final pose and send the reverse trajectory back to start")
     parser.add_argument("--pause-sec", type=float, default=1.0, help="Dwell time at the final pose before reversing")
     parser.add_argument("--hz", type=float, default=50.0, help="Assumed playback rate on the robot side to convert seconds to samples")
-    
-    #parser.add_argument("--targets", default=None, help="Multiple targets as a single string")
-    parser.add_argument("--targets-file", default=os.path.abspath(os.path.join(os.path.dirname(__file__), "../zmq-comm/targets.txt")), help="Path to a text file with reach position")
+
     args = parser.parse_args()
 
     if args.test_script:
-        targets = read_targets_file(args.targets_file)
-        base_args = strip_existing_target(args.test_args)
-        #stack all trajectory
-        all_trajs = []
-        for idx, tgt in enumerate(targets, 1):
-            tstr = f"{tgt[0]:.6f} {tgt[1]:.6f} {tgt[2]:.6f}"
-            run_args = (base_args + " " if base_args else "") + f"--target {tstr}"
-            print(f"[INFO] === Sim {idx}/{len(targets)}: target {tstr} ===")
-
-            npy_path = run_test_and_get_npy(args.test_script, run_args, args.cwd)
-            traj = load_traj(npy_path)  
-            traj = make_roundtrip(traj)
-            all_trajs.append(traj)
-        big_traj = np.vstack(all_trajs)
-        resp = send_over_zmq(big_traj, args.zmq)
+        npy_path = run_test_and_get_npy(args.test_script, args.test_args, args.cwd)
     else:
         npy_path = args.npy
         if not os.path.exists(npy_path):
             raise FileNotFoundError(f"[ERROR] npy not found: {npy_path}") 
 
-        traj = load_traj(npy_path)
-        #print("[INFO] Loaded trajectory with shape:", traj.shape)
-        traj=make_roundtrip(traj)
-        print("[INFO] Round trip added. New shape", traj.shape)
-        resp = send_over_zmq(traj, args.zmq)
-        print("resp:", resp)
+    traj = load_traj(npy_path)
+    #print("[INFO] Loaded trajectory with shape:", traj.shape)
+
+    traj=make_roundtrip(traj)
+    print("[INFO] Round trip added. New shape", traj.shape)
+
+    resp = send_over_zmq(traj, args.zmq)
+    print("resp:", resp)
 
 
 if __name__ == "__main__":
