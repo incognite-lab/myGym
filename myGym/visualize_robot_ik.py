@@ -6,6 +6,7 @@ import numpy as np
 from numpy import rad2deg, deg2rad, set_printoptions, array, linalg, round, any, mean
 from myGym.utils.helpers import get_robot_dict
 from myGym.utils.helpers import get_workspace_dict
+import importlib.resources as pkg_resources
 import os
 
 def apply_ik_solution(robot_id, ik_solution, joint_idxs):
@@ -216,6 +217,38 @@ def main():
     # Initialize PyBullet
     physicsClient = p.connect(p.GUI)
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    p.setGravity(0, 0, -9.81)
+
+    # Load workspace and plane (unless already loaded in workspace mode)
+    if not args.workspace:
+        ws_dict = get_workspace_dict()
+        workspace_key = "table_uni"
+        workspace_info = ws_dict[workspace_key]
+        
+        # Load scene
+        currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
+        
+        # Load workspace
+        workspace_urdf_path = os.path.join(currentdir, "rooms/collision/" + workspace_info['urdf'])
+        if os.path.exists(workspace_urdf_path):
+            transform = workspace_info['transform']
+            workspace_id = p.loadURDF(
+                workspace_urdf_path,
+                transform['position'],
+                p.getQuaternionFromEuler(transform['orientation']),
+                useFixedBase=True
+            )
+            print(f"Loaded workspace from: {workspace_urdf_path}")
+        else:
+            print(f"Warning: Workspace URDF not found: {workspace_urdf_path}")
+        
+        # Load floor
+        floor_path = os.path.join(currentdir, "rooms/plane.urdf")
+        if os.path.exists(floor_path):
+            floor_id = p.loadURDF(floor_path, transform['position'], 
+                                 p.getQuaternionFromEuler(transform['orientation']), 
+                                 useFixedBase=True)
+            print(f"Loaded floor from: {floor_path}")
 
     # Load workspace first if requested
     if args.workspace and selected_workspace is not None:
@@ -231,6 +264,28 @@ def main():
     except Exception as ex:
         print(f"Error: Failed to load URDF file '{args.urdf}': {ex}")
         return
+
+    # Reset joint positions to default_joint_ori if available
+    if selected_key and selected_key in rdict:
+        robot_info = rdict[selected_key]
+        if 'default_joint_ori' in robot_info:
+            init_pos = robot_info['default_joint_ori']
+            print(f"Resetting joints to default_joint_ori: {init_pos}")
+            
+            # Get list of non-fixed joints
+            non_fixed_joints = []
+            num_joints = p.getNumJoints(robot_id)
+            for joint_idx in range(num_joints):
+                joint_info = p.getJointInfo(robot_id, joint_idx)
+                joint_type = joint_info[2]
+                if joint_type != p.JOINT_FIXED:
+                    non_fixed_joints.append(joint_idx)
+            
+            # Reset joint states
+            for i, joint_idx in enumerate(non_fixed_joints):
+                if i < len(init_pos):
+                    p.resetJointState(robot_id, joint_idx, init_pos[i])
+                    print(f"  Joint {joint_idx}: {init_pos[i]}")
 
     # Find end effector link
     num_joints = p.getNumJoints(robot_id)
@@ -266,7 +321,7 @@ def main():
     # Create sliders for  box position control
     x_slider = p.addUserDebugParameter("Box X", -1, 1.0, box_initial_pos[0][0]+0.1)
     y_slider = p.addUserDebugParameter("Box Y", -1, 1, box_initial_pos[0][1]+0.1)
-    z_slider = p.addUserDebugParameter("Box Z", 0, 2, box_initial_pos[0][2])
+    z_slider = p.addUserDebugParameter("Box Z", -1, 1, box_initial_pos[0][2])
 
     # Create additional init sliders for Yaw, Pitch, Roll
     roll_slider = p.addUserDebugParameter("Box Roll", -np.pi, np.pi, 0)

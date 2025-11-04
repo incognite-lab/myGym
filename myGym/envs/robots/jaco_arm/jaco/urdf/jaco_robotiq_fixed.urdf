@@ -258,20 +258,26 @@
       <inertia ixx="0.0004321316048" ixy="0" ixz="0" iyy="9.26e-05" iyz="0" izz="0.0004321316048"/>
     </inertial>
   </link>
-  <joint name="endeffector_joint" type="fixed">
-    <parent link="gripper"/>
-    <child link="endeffector"/>
-    <origin rpy="0 0 0" xyz="0 0.0 -0.23"/>
-  </joint>
   <link name="endeffector">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.01"/>
-      </geometry>
-      <material name="Black"/>
-    </visual>
-  </link>
+    	<visual>
+      		<origin rpy="0 0 0" xyz="0 0.0 0"/> <!-- Updated position -->
+      		<geometry>
+        		<cylinder length="0.05" radius="0.002"/>
+      		</geometry>
+			<material name="blue">
+      			<color rgba="0 0 1 0.5"/> <!-- RGBA: Red Green Blue Alpha (opacity) -->
+    		</material>
+    	</visual>
+        <inertial>
+		    <mass value="0.0000332"/>
+		    <inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
+		</inertial>
+  	</link>
+	<joint name="endeffector_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="endeffector"/>
+    	<origin rpy="0 0 1.57" xyz="0.0 0.0 -0.23"/>
+	</joint>
 
 
   <joint name="j2s7s300_ee_fixed_joint" type="fixed">
