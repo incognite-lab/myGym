@@ -16,10 +16,12 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.spatial import ConvexHull
+import time
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.helpers import get_robot_dict
+from utils.helpers import get_robot_dict, get_workspace_dict
+import importlib.resources as pkg_resources
 
 
 def get_controllable_arm_joints(robot_id, num_joints):
@@ -50,6 +52,80 @@ def find_end_effector(robot_id):
     return -1
 
 
+def calculate_home_joint_angles(robot_id, end_effector_idx, joint_idxs, home_position=[0.0, 0.0, 3]):
+    """Calculate joint angles to move end effector to home position.
+    
+    Args:
+        robot_id: PyBullet robot ID
+        end_effector_idx: End effector link index
+        joint_idxs: List of controllable joint indices
+        home_position: Target home position for end effector [x, y, z]
+        
+    Returns:
+        List of joint angles (clipped to joint limits if they exist)
+    """
+    # Calculate IK for home position
+    ik_solution = p.calculateInverseKinematics(
+        robot_id, end_effector_idx, home_position
+    )
+    
+    # Clip IK solution to joint limits
+    joint_angles = []
+    for index, joint_idx in enumerate(joint_idxs):
+        if index < len(ik_solution):
+            joint_info = p.getJointInfo(robot_id, joint_idx)
+            joint_lower_limit = joint_info[8]
+            joint_upper_limit = joint_info[9]
+            
+            ik_value = ik_solution[index]
+            
+            # Clip to joint limits if they exist
+            #if joint_lower_limit < joint_upper_limit:
+            #    ik_value = np.clip(ik_value, joint_lower_limit, joint_upper_limit)
+            
+            joint_angles.append(ik_value)
+    
+    return joint_angles
+
+
+def reset_robot_with_joint_angles(robot_id, joint_idxs, joint_angles):
+    """Reset robot joints to specified angles using motor commands.
+    
+    Args:
+        robot_id: PyBullet robot ID
+        joint_idxs: List of controllable joint indices
+        joint_angles: List of target joint angles
+    """
+    # Set motor commands to move to target joint angles
+    p.setJointMotorControlArray(
+        bodyUniqueId=robot_id,
+        jointIndices=joint_idxs,
+        controlMode=p.POSITION_CONTROL,
+        targetPositions=joint_angles,
+        forces=[100] * len(joint_idxs),
+        targetVelocities=[0.1] * len(joint_idxs)
+    )
+    
+    # Run simulation for 50 steps to let motors reach target
+    for _ in range(100):
+        p.stepSimulation()
+        #time.sleep(0.1)
+
+
+def reset_robot_to_home(robot_id, end_effector_idx, joint_idxs, home_position=[0.0, 0.0, 3]):
+    """Reset robot to home position by moving end effector to specified position.
+    
+    Args:
+        robot_id: PyBullet robot ID
+        end_effector_idx: End effector link index
+        joint_idxs: List of controllable joint indices
+        home_position: Target home position for end effector [x, y, z]
+    """
+    joint_angles = calculate_home_joint_angles(robot_id, end_effector_idx, joint_idxs, home_position)
+    reset_robot_with_joint_angles(robot_id, joint_idxs, joint_angles)
+    return joint_angles
+
+
 def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target_orientation=None, threshold=0.05):
     """
     Test if robot can reach target position.
@@ -75,20 +151,61 @@ def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target
             robot_id, end_effector_idx, target_pos
         )
     
-    # Apply IK solution to joints
+    # Apply IK solution to joints with joint limit checking
+    joints_within_limits = True
+    target_positions = []
+    
     for index, joint_idx in enumerate(joint_idxs):
         if index < len(ik_solution):
-            p.setJointMotorControl2(
-                bodyIndex=robot_id,
-                jointIndex=joint_idx,
-                controlMode=p.POSITION_CONTROL,
-                targetPosition=ik_solution[index],
-                force=500
-            )
+            joint_info = p.getJointInfo(robot_id, joint_idx)
+            joint_lower_limit = joint_info[8]  # Lower joint limit
+            joint_upper_limit = joint_info[9]  # Upper joint limit
+            
+            ik_value = ik_solution[index]
+            
+            # Check if joint has limits (some joints may have limits set to 0, meaning unlimited)
+            if joint_lower_limit < joint_upper_limit:
+                # Clip to joint limits
+                clipped_value = np.clip(ik_value, joint_lower_limit, joint_upper_limit)
+                
+                # Track if any joint was outside limits
+                if abs(clipped_value - ik_value) > 1e-6:
+                    joints_within_limits = False
+                
+                target_positions.append(clipped_value)
+            else:
+                # No limits, use IK solution directly
+                target_positions.append(ik_value)
     
-    # Step simulation to let robot move
-    for _ in range(100):
+    # If any joint was outside limits, the IK solution is not valid
+    if not joints_within_limits:
+        return False
+    
+    # Set motor commands instead of resetting joint states
+    p.setJointMotorControlArray(
+        bodyUniqueId=robot_id,
+        jointIndices=joint_idxs,
+        controlMode=p.POSITION_CONTROL,
+        targetPositions=target_positions,
+        forces=[100] * len(joint_idxs),
+        targetVelocities=[0.1] * len(joint_idxs)
+    )
+    
+    # Run simulation for 100 steps to let motors reach target
+    for _ in range(300):
         p.stepSimulation()
+        #time.sleep(0.1)
+    
+    # Check for collisions with all robot links
+    #num_joints = p.getNumJoints(robot_id)
+    #contact_points = p.getContactPoints(bodyA=robot_id)
+    
+    # Filter out self-collisions (contacts where both bodies are the robot)
+    #external_contacts = [cp for cp in contact_points if cp[2] != robot_id]
+    
+    #if len(external_contacts) > 0:
+    #    # Collision detected with environment/workspace
+    #    return False
     
     # Get actual end effector position
     link_state = p.getLinkState(robot_id, end_effector_idx)
@@ -473,18 +590,38 @@ def test_robot_reachability(robot_key, r_dict, args):
         print(f"Error: URDF file not found: {urdf_path}")
         return 1
     
+    # Get workspace dictionary and determine which workspace to use
+    ws_dict = get_workspace_dict()
+    workspace_key = "table_uni"  # default
+    
+    # Check if robot name is partially in any workspace key
+    #for ws_key in ws_dict.keys():
+    #    if robot_key in ws_key:
+    #        workspace_key = ws_key
+    #        print(f"Using workspace: {workspace_key} (matched with robot name)")
+    #        break
+    #
+    #if workspace_key == "table":
+    #    print(f"Using default workspace: table")
+    
+    workspace_info = ws_dict[workspace_key]
+    
+    # Get robot position from workspace or use robot_info position
+
     robot_base_pos = list(np.array(robot_info.get('position', [0.0, 0.0, 0.0])).astype(float))
     robot_base_orientation = robot_info.get('orientation', [0.0, 0.0, 0.0])
+    
     robot_base_quat = p.getQuaternionFromEuler(robot_base_orientation)
     
     # Initialize PyBullet
     if args.gui:
         physics_client = p.connect(p.GUI)
+        p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
         p.resetDebugVisualizerCamera(
             cameraDistance=2.0,
             cameraYaw=45,
             cameraPitch=-30,
-            cameraTargetPosition=[0, 0, 0.5]
+            cameraTargetPosition=[0, 0, 0.0]
         )
     else:
         physics_client = p.connect(p.DIRECT)
@@ -492,6 +629,34 @@ def test_robot_reachability(robot_key, r_dict, args):
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
     p.setGravity(0, 0, -9.81)
     
+    # Load scene similar to _setup_scene in gym_env
+    currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
+    
+    
+    
+    # Load workspace
+    workspace_urdf_path = os.path.join(currentdir, "rooms/collision/" + workspace_info['urdf'])
+    if os.path.exists(workspace_urdf_path):
+        transform = workspace_info['transform']
+        workspace_id = p.loadURDF(
+            workspace_urdf_path,
+            transform['position'],
+            p.getQuaternionFromEuler(transform['orientation']),
+            useFixedBase=True
+        )
+        print(f"Loaded workspace from: {workspace_urdf_path}")
+        print(f"Workspace position: {transform['position']}")
+        print(f"Workspace orientation (euler): {transform['orientation']}")
+    else:
+        print(f"Warning: Workspace URDF not found: {workspace_urdf_path}")
+    
+    # Load floor
+    floor_path = os.path.join(currentdir, "rooms/plane.urdf")
+    floor_id = p.loadURDF(floor_path, transform['position'], p.getQuaternionFromEuler(transform['orientation']), useFixedBase=True)
+    print(f"Loaded floor from: {floor_path}")
+    print(f"Floor position: {transform['position']}")
+    print(f"Floor orientation (euler): {transform['orientation']}") 
+
     # Load robot
     try:
         robot_id = p.loadURDF(
@@ -502,16 +667,29 @@ def test_robot_reachability(robot_key, r_dict, args):
             flags=p.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT
         )
         print(f"Loaded robot from: {urdf_path}")
+        print(f"Robot position: {robot_base_pos}")
+        print(f"Robot orientation (euler): {robot_base_orientation}")
     except Exception as ex:
         print(f"Error loading URDF: {ex}")
         p.disconnect()
         return 1
     
+    # Get controllable arm joints
+    num_joints = p.getNumJoints(robot_id)
+    joint_idxs = get_controllable_arm_joints(robot_id, num_joints)
+    print(f"Controllable arm joints: {joint_idxs}")
+    
+    # Store original joint angles from URDF
+    original_joint_angles = []
+    for joint_idx in joint_idxs:
+        joint_state = p.getJointState(robot_id, joint_idx)
+        original_joint_angles.append(joint_state[0])  # joint_state[0] is the position
+    print(f"Original joint angles from URDF: {original_joint_angles}")
+    
     # Get initial robot kinematic tree for visualization
     initial_robot_links = get_robot_kinematic_tree(robot_id)
     
     # Find end effector
-    num_joints = p.getNumJoints(robot_id)
     end_effector_idx = find_end_effector(robot_id)
     
     if end_effector_idx == -1:
@@ -521,9 +699,10 @@ def test_robot_reachability(robot_key, r_dict, args):
     
     print(f"End effector link index: {end_effector_idx}")
     
-    # Get controllable arm joints
-    joint_idxs = get_controllable_arm_joints(robot_id, num_joints)
-    print(f"Controllable arm joints: {joint_idxs}")
+    # Reset robot to home position
+    home_position = [0.3, 0.2, 0.5]
+    print(f"Resetting robot to home position: {home_position}")
+    init_joint_angles = reset_robot_to_home(robot_id, end_effector_idx, joint_idxs, home_position)
     
     # Prepare orientation if needed
     target_orientation = None
@@ -534,7 +713,7 @@ def test_robot_reachability(robot_key, r_dict, args):
         print("Using position-only IK (no orientation constraint)")
     
     # Create IK target visualization object
-    box_size = 0.03
+    box_size = 0.02
     box_id = p.createMultiBody(
         baseMass=0,
         baseCollisionShapeIndex=-1,
@@ -555,6 +734,10 @@ def test_robot_reachability(robot_key, r_dict, args):
     # Test reachability for each point
     reachable_points = []
     
+    # Visual marker lists (only used in GUI mode)
+    reachable_visual_ids = []
+    unreachable_visual_ids = []
+    
     for i, point in enumerate(grid_points):
         # Update visualization
         p.resetBasePositionAndOrientation(box_id, point, [0, 0, 0, 1])
@@ -565,8 +748,40 @@ def test_robot_reachability(robot_key, r_dict, args):
             point, target_orientation, args.threshold
         )
         
+        # Reset robot to home position after each test
+        reset_robot_with_joint_angles(robot_id, joint_idxs, init_joint_angles)
         if is_reachable:
             reachable_points.append(point)
+            
+            # Create green transparent sphere for reachable point (GUI mode only)
+            if args.gui:
+                visual_shape = p.createVisualShape(
+                    p.GEOM_BOX,
+                    halfExtents=[0.1/2]*3,
+                    rgbaColor=[0, 1, 0, 0.2]
+                )
+                marker_id = p.createMultiBody(
+                    baseMass=0,
+                    baseCollisionShapeIndex=-1,
+                    baseVisualShapeIndex=visual_shape,
+                    basePosition=point.tolist()
+                )
+                reachable_visual_ids.append(marker_id)
+        else:
+            # Create red transparent dot for unreachable point (GUI mode only)
+            if args.gui:
+                visual_shape = p.createVisualShape(
+                    p.GEOM_BOX,
+                    halfExtents=[0.005/2]*3,
+                    rgbaColor=[1, 0, 0, 0.3]
+                )
+                marker_id = p.createMultiBody(
+                    baseMass=0,
+                    baseCollisionShapeIndex=-1,
+                    baseVisualShapeIndex=visual_shape,
+                    basePosition=point.tolist()
+                )
+                unreachable_visual_ids.append(marker_id)
         
         # Progress indicator
         if (i + 1) % 100 == 0 or (i + 1) == total_points:
@@ -586,6 +801,7 @@ def test_robot_reachability(robot_key, r_dict, args):
     print("RESULTS")
     print("="*60)
     print(f"Robot: {robot_key}")
+    print(f"Workspace: {workspace_key}")
     print(f"Total points tested: {total_points}")
     print(f"Reachable points: {len(reachable_points)} ({len(reachable_points)/total_points*100:.2f}%)")
     
@@ -599,6 +815,11 @@ def test_robot_reachability(robot_key, r_dict, args):
               f"{bbox_max[2]-bbox_min[2]:.3f}]")
     else:
         print("\nNo reachable points found - cannot compute bounding box.")
+    
+    if args.gui:
+        print(f"\nGUI visualization markers created:")
+        print(f"  Green spheres (reachable): {len(reachable_visual_ids)}")
+        print(f"  Red dots (unreachable): {len(unreachable_visual_ids)}")
     
     print("="*60)
     
@@ -615,6 +836,16 @@ def test_robot_reachability(robot_key, r_dict, args):
             physics_client = p.connect(p.GUI)
             p.setAdditionalSearchPath(pybullet_data.getDataPath())
             p.setGravity(0, 0, -9.81)
+            
+            # Reload scene
+            floor_id = p.loadURDF(floor_path, useFixedBase=True)
+            if os.path.exists(workspace_urdf_path):
+                workspace_id = p.loadURDF(
+                    workspace_urdf_path,
+                    transform['position'],
+                    p.getQuaternionFromEuler(transform['orientation']),
+                    useFixedBase=True
+                )
             
             # Reload robot
             robot_id = p.loadURDF(

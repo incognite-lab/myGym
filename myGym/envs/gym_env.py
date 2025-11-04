@@ -291,7 +291,11 @@ class GymEnv(CameraEnv):
         transform = self.workspace_dict[self.workspace]['transform']
         object = env_object.EnvObject(os.path.join(pkg_resources.files("myGym"), os.path.join("envs", path)), transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase)
         self.static_scene_objects[name] = object
+        print(f"Loaded static scene object '{name}' from: {path}")
+        print(f"Object position: {transform['position']}")
+        print(f"Object orientation: {transform['orientation']}")
         return object.uid
+    
 
     def _change_texture(self, name, texture_id):
         self.p.changeVisualShape(self.get_scene_object_uid_by_name(name), -1,

@@ -1,3 +1,4 @@
+from matplotlib.pyplot import table
 import numpy as np
 
 class PrintEveryNCalls:
@@ -88,7 +89,7 @@ def get_workspace_dict():
                                             'borders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1]},
                                 'verticalmaze': {'urdf': 'verticalmaze.urdf', 'texture': 'verticalmaze.jpg',
                                             'transform': {'position':[-5.7, -7.55, -1.05], 'orientation':[0.0, 0.0, 0.5*np.pi]},
-                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.5*np.pi]},
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.]},
                                             'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.05, 2.5]],
                                                         'target': [[-0.0, -1.05, 1.0], [0.0, 0.55, 1.3], [1.4, -0.75, 0.9], [-1.3, -0.75, 0.9], [0.0, 0.15, 2.1]]},
                                             'borders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]},
@@ -97,12 +98,20 @@ def get_workspace_dict():
                                             'robot': {'position': [0.0, -0.5, 0.05], 'orientation': [0.0, 0.0, 0.5*np.pi]},
                                             'camera': {'position': [[-0.0, -1.25, 1.0], [0.0, 1.35, 1.3], [1.7, -1.25, 1.0], [-1.6, -1.25, 1.0], [0.0, 0.7, 2.1], [-0.0, -0.3, 0.2]],
                                                         'target': [[-0.0, -1.05, 0.9], [0.0, 0.55, 1.3], [1.4, -0.75, 0.9], [-1.3, -0.75, 0.9], [0.0, 0.71, 1.8], [-0.0, -0.25, 0.199]]},
-                                            'borders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]}}
+                                            'borders':[-0.7, 0.8, 0.65, 0.65, 0.7, 1.4]},
+                                'table_uni': {'urdf': 'table_uni.urdf', 'texture': 'table.jpg',
+                                            'transform': {'position':[0.0, 0.0, -0.72], 'orientation':[0.0, 0.0, 0.0]},
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.0]},
+                                            'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.5, 1.0], [1.8, 0.9, 1.0], [-1.8, 0.9, 1.0], [0., 0.85, 1.4],
+                                                                    [0.0, 1.6, 0.8], [-0.0, -0.5, 0.8], [0.8, 0.9, 0.6], [-0.8, 0.9, 0.8], [0.0, 0.9, 1.]],
+                                                        'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.80, 1.],
+                                                                   [0.0, 1.3, 0.5], [-0.0, -0.0, 0.6], [0.6, 0.9, 0.4], [-0.6, 0.9, 0.5], [0.0, 0.898, 0.8]]},
+                                            'borders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1]}}
     return ws_dict
 
 
 def get_robot_dict():
-    r_dict =   {'kuka': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_magnetic.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
+    r_dict =   {'kuka': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_magnetic.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, np.pi/2]},
                              'kuka_push': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_push.urdf', 'position': np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'pepper' : {'path': '/envs/robots/pepper/pepper.urdf', 'position':  np.array([-0.0, -0.18, -0.721]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'kuka_throw' : {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_throw.urdf', 'position':  np.array([0.0, 0.0, -0.041]), 'orientation': [0.0, 0.0, 0*np.pi]},
@@ -128,7 +137,7 @@ def get_robot_dict():
                              'tiago': {'path': '/envs/robots/tiago/tiago_pal_gripper.urdf', 'position': np.array([0.0, -0.4, -0.2]),'orientation': [0.0, 0.0, 0 * np.pi]},
                              'tiago_dual': {'path': '/envs/robots/tiago/tiago_dual_mygym.urdf', 'position': np.array([0.0, -0.5, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual_fix': {'path': '/envs/robots/tiago/tiago_dual_mygym_fix.urdf', 'position': np.array([0.0, -0.5, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
-                             'tiago_dual_rot': {'path': '/envs/robots/tiago/tiago_dual_mygym_rot.urdf', 'position': np.array([0.0, -0.6, -0.1]), 'orientation': [0.0, 0.0, 0*np.pi]},
+                             'tiago_dual_rot': {'path': '/envs/robots/tiago/tiago_dual_mygym_rot.urdf', 'position': np.array([0.0, -0.5, -0.72]), 'orientation': [0.0, 0.0, np.pi/2]},
                              'tiago_dual_rotslide': {'path': '/envs/robots/tiago/tiago_dual_mygym_rotslide.urdf', 'position': np.array([0.0, -0.6, -0.1]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual_rotslide2': {'path': '/envs/robots/tiago/tiago_dual_mygym_rotslide2.urdf', 'position': np.array([0.2, -0.6, -0.1]), 'orientation': [0.0, 0.0, 0*np.pi]},
                              'tiago_dual_hand': {'path': '/envs/robots/tiago/tiago_dual_hand.urdf', 'position': np.array([0.0, -0.4, -0.2]), 'orientation': [0.0, 0.0, 0*np.pi]},
