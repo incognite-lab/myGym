@@ -447,7 +447,7 @@ def make_path(arg_dict: dict, record_format: str, model: bool):
     return video_path
 
 #str to vec3
-def _parse_vec3(s: str):
+def parse_vec3(s: str):
     if s is None:
         return None
     # "x y z" or "x,y,z" 
@@ -461,7 +461,6 @@ def apply_target_to_env(env, target_np: np.ndarray) -> bool:
     """
     change env if it is wrong
     """
-    # メソッドを持つタイプ
     for meth in ["set_target", "set_goal", "set_desired_goal"]:
         if hasattr(env, meth):
             try:
@@ -470,7 +469,7 @@ def apply_target_to_env(env, target_np: np.ndarray) -> bool:
             except Exception:
                 pass
 
-    # 属性で持つタイプ（wrapped / unwrapped も試す）
+
     for obj in [env, getattr(env, "unwrapped", None)]:
         if obj is None:
             continue
@@ -527,7 +526,7 @@ def test_model(
         is_successful = 0
         distance_error = 0
         # modify position to user setting
-        target_np=_parse_vec3(arg_dict.get("target",None))
+        target_np=parse_vec3(arg_dict.get("target",None))
         if target_np is not None:
             ok=apply_target_to_env(env,target_np)
             if not ok:
