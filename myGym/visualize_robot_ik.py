@@ -9,6 +9,87 @@ from myGym.utils.helpers import get_workspace_dict
 import importlib.resources as pkg_resources
 import os
 
+def save_robot_dict_to_helpers(rd, helpers_path):
+    """Save updated robot dictionary back to helpers.py file."""
+    # Read the current file
+    with open(helpers_path, 'r') as f:
+        lines = f.readlines()
+    
+    # Find the start and end of get_robot_dict function
+    start_idx = None
+    end_idx = None
+    brace_count = 0
+    in_r_dict = False
+    
+    for i, line in enumerate(lines):
+        if 'def get_robot_dict():' in line:
+            start_idx = i
+        if start_idx is not None and 'r_dict =' in line and '{' in line:
+            in_r_dict = True
+            brace_count = line.count('{') - line.count('}')
+        elif in_r_dict:
+            brace_count += line.count('{') - line.count('}')
+            if brace_count == 0:
+                end_idx = i
+                break
+    
+    if start_idx is None or end_idx is None:
+        print("Error: Could not find r_dict in helpers.py")
+        return False
+    
+    # Generate new r_dict string
+    new_r_dict_lines = ["    r_dict =   {"]
+    
+    # Define the order of keys for consistent output
+    key_order = ['path', 'position', 'orientation', 'default_joint_ori', 'ee_pos', 'ee_ori']
+    
+    for key, value in rd.items():
+        parts = []
+        
+        # Sort keys according to defined order, then alphabetically for any remaining
+        sorted_keys = sorted(value.keys(), key=lambda k: (key_order.index(k) if k in key_order else len(key_order), k))
+        
+        for k in sorted_keys:
+            v = value[k]
+            if k == 'position':
+                parts.append(f"'{k}': np.array({list(v)})")
+            elif k in ['default_joint_ori', 'ee_pos', 'ee_ori']:
+                parts.append(f"'{k}': {v}")
+            elif k == 'orientation':
+                # Format orientation with np.pi if present
+                formatted_v = str(v)
+                if 1.5707 in v or abs(v[2] - 1.5707963267948966) < 0.0001:
+                    # Replace with np.pi/2
+                    formatted_list = [v[0], v[1], 'np.pi/2' if abs(v[2] - 1.5707963267948966) < 0.0001 else v[2]]
+                    formatted_v = str(formatted_list).replace("'np.pi/2'", "np.pi/2").replace('"np.pi/2"', 'np.pi/2')
+                elif 3.14159 in v or abs(v[2] - np.pi) < 0.0001:
+                    formatted_list = [v[0], v[1], 'np.pi' if abs(v[2] - np.pi) < 0.0001 else v[2]]
+                    formatted_v = str(formatted_list).replace("'np.pi'", "np.pi").replace('"np.pi"', 'np.pi')
+                else:
+                    # Check for multiplies of pi
+                    for mult in [0.5, 0.35, 0.4, 0.2, 1.0]:
+                        if abs(v[2] - mult * np.pi) < 0.0001:
+                            formatted_list = [v[0], v[1], f'{mult}*np.pi']
+                            formatted_v = str(formatted_list).replace(f"'{mult}*np.pi'", f"{mult}*np.pi").replace(f'"{mult}*np.pi"', f'{mult}*np.pi')
+                            break
+                parts.append(f"'{k}': {formatted_v}")
+            else:
+                parts.append(f"'{k}': {repr(v)}")
+        
+        line_str = f"'{key}': {{" + ", ".join(parts) + "}"
+        new_r_dict_lines.append("                             " + line_str + ",")
+    
+    new_r_dict_lines.append("                             }")
+    
+    # Replace the old r_dict with new one
+    new_lines = lines[:start_idx+1] + [line + '\n' for line in new_r_dict_lines] + lines[end_idx+1:]
+    
+    # Write back to file
+    with open(helpers_path, 'w') as f:
+        f.writelines(new_lines)
+    
+    return True
+
 def apply_ik_solution(robot_id, ik_solution, joint_idxs):
     """Apply the IK solution to the robot joints."""
     joint_values = []
@@ -343,11 +424,46 @@ def main():
     orientation_diff_text_id = None # Initialize debug text ID tracker
     position_diff_text_id = None # Initialize position difference text ID tracker
     
+    # Get path to helpers.py
+    helpers_path = os.path.join(os.path.dirname(__file__), 'utils', 'helpers.py')
     
     try:
         while True:
             # Check keyboard events first to potentially switch targets
             keys = p.getKeyboardEvents()
+            
+            # Check if 't' key is pressed to save current configuration
+            if ord('t') in keys and keys[ord('t')] & p.KEY_WAS_TRIGGERED:
+                if selected_key and selected_key in rdict:
+                    # Get current joint values
+                    joint_values = []
+                    for joint_idx in joint_idxs:
+                        joint_state = p.getJointState(robot_id, joint_idx)
+                        joint_values.append(round(joint_state[0], 2))
+                    print(f"Current joint values: {joint_values}")
+                    
+                    # Add default_joint_ori to robot dict first
+                    rdict[selected_key]['default_joint_ori'] = joint_values
+                    
+                    # Get end effector pose
+                    link_state = p.getLinkState(robot_id, end_effector_index)
+                    ee_pos = [round(x, 4) for x in link_state[0]]
+                    ee_quat = link_state[1]
+                    ee_ori = [round(x, 4) for x in p.getEulerFromQuaternion(ee_quat)]
+                    print(f"End effector position: {ee_pos}")
+                    print(f"End effector orientation (euler): {ee_ori}")
+                    
+                    # Store ee_pos and ee_ori in robot dict
+                    rdict[selected_key]['ee_pos'] = ee_pos
+                    rdict[selected_key]['ee_ori'] = ee_ori
+                    
+                    # Save to helpers.py
+                    if save_robot_dict_to_helpers(rdict, helpers_path):
+                        print(f"Updated helpers.py with default_joint_ori, ee_pos, and ee_ori for {selected_key}")
+                    else:
+                        print("Failed to update helpers.py")
+                else:
+                    print("No robot key selected, cannot save to helpers.py")
             
             # Check if 'c' key is pressed to close the gripper (set gripper joints to 0)
             if ord('c') in keys and keys[ord('c')] & p.KEY_WAS_TRIGGERED:

@@ -308,7 +308,7 @@
 	<joint name="endeffector_joint" type="fixed">
     	<parent link="gripper"/>
     	<child link="endeffector"/>
-    	<origin rpy="1.57 0 1.57 " xyz="0.03 0.0 -0.05"/>
+    	<origin rpy="3.14 1.57 0" xyz="0.03 0.0 -0.05"/>
 	</joint>
 
 	<link name="r_middlefinger">
