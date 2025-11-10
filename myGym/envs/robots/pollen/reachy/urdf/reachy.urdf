@@ -173,25 +173,69 @@
       </geometry>
     </collision>
   </link>
-  <link name="endeffector">
-    	<visual>
-      		<origin rpy="0 0 0" xyz="0 0.0 0"/> <!-- Updated position -->
-      		<geometry>
-        		<cylinder length="0.05" radius="0.002"/>
-      		</geometry>
-			<material name="blue">
-      			<color rgba="0 0 1 0.5"/> <!-- RGBA: Red Green Blue Alpha (opacity) -->
-    		</material>
-    	</visual>
-        <inertial>
-		    <mass value="0.0000332"/>
-		    <inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
-		</inertial>
-  	</link>
-	<joint name="endeffector_joint" type="fixed">
+    <link name="ee_x_axis">
+    <visual>
+    <origin xyz="0.03 0 0" rpy="0 1.57079632679 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="red">
+      <color rgba="1 0 0 1"/>
+    </material>
+  </visual>
+    </link>
+    <link name="ee_y_axis">
+  <visual>
+    <origin xyz="0 0.03 0" rpy="-1.57079632679 0 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="green">
+      <color rgba="0 1 0 1"/>
+    </material>
+  </visual>
+    </link>
+    <link name="ee_z_axis">
+  <visual>
+    <origin xyz="0 0 0.03" rpy="0 0 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="blue">
+      <color rgba="0 0 1 1"/>
+    </material>
+  </visual>
+</link>
+    <link name="endeffector">
+  <visual>
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+    <geometry>
+      <sphere radius="0.005"/>
+    </geometry>
+    <material name="yellow">
+      <color rgba="1 1 0 1"/>
+    </material>
+  </visual>
+</link>
+<joint name="endeffector_joint" type="fixed">
     	<parent link="gripper"/>
     	<child link="endeffector"/>
-    	<origin rpy="0 0 -1.57" xyz="0.0 0.0 -0.12"/>
+    	<origin rpy="0 0 -1.57" xyz="0.0 0.0 -0.12"/> 
+	</joint>
+	<joint name="ee_z_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_z_axis"/>
+    	<origin rpy="3.14 0 0" xyz="0.0 -0.0 -0.12"/>
+	</joint>
+    	<joint name="ee_x_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_x_axis"/>
+    	<origin rpy="3.14 0 0" xyz="0.0 -0.0 -0.12"/>
+	</joint>
+    <joint name="ee_y_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_y_axis"/>
+    	<origin rpy="3.14 0 0" xyz="0.0 -0.0 -0.12"/>
 	</joint>
 
 

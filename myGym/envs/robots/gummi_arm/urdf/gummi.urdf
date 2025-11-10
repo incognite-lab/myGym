@@ -758,7 +758,7 @@
   </link>
   <joint
     name="forearm_roll"
-    type="continuous">
+    type="revolute">
     <origin
       xyz="0.043506 -0.00023376 -0.019876"
       rpy="0 0 0" />
@@ -769,11 +769,13 @@
     <axis
       xyz="-1 0 0" />
     <limit
+      lower="-3.14"
+      upper="3.14"  
       effort="0"
       velocity="1" />
   </joint>
   <link
-    name="wrist">
+    name="gripper">
     <inertial>
       <origin
         xyz="0.0484512742480244 0.0139768664666073 0.000956995637939325"
@@ -821,7 +823,7 @@
     <parent
       link="lowerarm" />
     <child
-      link="wrist" />
+      link="gripper" />
     <axis
       xyz="0 1 0" />
     <limit
@@ -835,30 +837,70 @@
   different rates, set the mimic tag to something different. it allows for an
   offset and a multiplication rate. check ros docs for details
   -->
-  <joint name="gripper_rjoint" type="revolute">
-    <origin rpy="0 0 0" xyz="0 0 0"/>
-    <parent link="wrist"/>
-    <child link="gripper"/>
-    <axis xyz="0 1 0"/>
-    <limit effort="0" lower="0" upper="2" velocity="0"/>
-  </joint>
-  <link 
-    name="gripper">
-    <inertial>
-      <origin
-        xyz="0.0 0.0 0.0"
-        rpy="0 0 0" />
-      <mass
-        value="0.001" />
-      <inertia
-        ixx="3.56498343502738E-08"
-        ixy="-7.51978011656011E-09"
-        ixz="7.65091950170785E-08"
-        iyy="1.38099634070148E-06"
-        iyz="2.95085409823962E-09"
-        izz="1.34584197546666E-06" />
-    </inertial>
-  </link>
+    <link name="ee_x_axis">
+    <visual>
+    <origin xyz="0.03 0 0" rpy="0 1.57079632679 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="red">
+      <color rgba="1 0 0 1"/>
+    </material>
+  </visual>
+    </link>
+    <link name="ee_y_axis">
+  <visual>
+    <origin xyz="0 0.03 0" rpy="-1.57079632679 0 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="green">
+      <color rgba="0 1 0 1"/>
+    </material>
+  </visual>
+    </link>
+    <link name="ee_z_axis">
+  <visual>
+    <origin xyz="0 0 0.03" rpy="0 0 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="blue">
+      <color rgba="0 0 1 1"/>
+    </material>
+  </visual>
+</link>
+    <link name="endeffector">
+  <visual>
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+    <geometry>
+      <sphere radius="0.005"/>
+    </geometry>
+    <material name="yellow">
+      <color rgba="1 1 0 1"/>
+    </material>
+  </visual>
+</link>
+<joint name="endeffector_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="endeffector"/>
+    	<origin rpy="-3.14 0 0" xyz="0.1 -0.0 0.03"/> 
+	</joint>
+	<joint name="ee_z_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_z_axis"/>
+    	<origin rpy="0 0 -1.57" xyz="0.1 -0.0 0.03"/>
+	</joint>
+    	<joint name="ee_x_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_x_axis"/>
+    	<origin rpy="0 0 -1.57" xyz="0.1 -0.0 0.03"/>
+	</joint>
+    <joint name="ee_y_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_y_axis"/>
+    	<origin rpy="0 0 -1.57" xyz="0.1 -0.0 0.03"/>
+	</joint>
   <link
     name="i1">
     <inertial>
@@ -906,7 +948,7 @@
       xyz="0.059922 -0.031986 0.0029515"
       rpy="-0.79367 0.12795 -0.91441" />
     <parent
-      link="wrist" />
+      link="gripper" />
     <child
       link="i1" />
     <axis
@@ -920,7 +962,7 @@
 
   </joint>
   <link
-    name="endeffector"> <!--i2-->
+    name="i2"> <!--i2-->
     <inertial>
       <origin
         xyz="0.029386051121549 0.00499999330192313 0.000893559269171462"
@@ -966,9 +1008,9 @@
       xyz="0.12886 -0.0060786 -0.0024749"
       rpy="-6.9389E-16 -8.4436E-17 -0.12109" />
     <parent
-      link="wrist" />
+      link="gripper" />
     <child
-      link="endeffector" />
+      link="i2" />
     <axis
       xyz="0 -1 0" />
     <limit
@@ -1026,7 +1068,7 @@
       xyz="0.13223 0.0086295 -0.0025"
       rpy="-1.0408E-15 -5.7778E-30 -5.5511E-15" />
     <parent
-      link="wrist" />
+      link="gripper" />
     <child
       link="i3" />
     <axis
@@ -1086,7 +1128,7 @@
       xyz="0.13046 0.023543 -0.0025"
       rpy="-1.0408E-15 1.4051E-16 0.13418" />
     <parent
-      link="wrist" />
+      link="gripper" />
     <child
       link="i4" />
     <axis
@@ -1146,7 +1188,7 @@
       xyz="0.12703 0.037692 -0.0025"
       rpy="1.9429E-14 -3.8109E-15 0.19369" />
     <parent
-      link="wrist" />
+      link="gripper" />
     <child
       link="i5" />
     <axis
