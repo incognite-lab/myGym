@@ -1,4 +1,4 @@
-import zmq, json, time, argparse, os, re, shlex, subprocess, sys
+import zmq, json, time, argparse, os, re, shlex, subprocess, sys, commentjson
 import numpy as np
 
 def run_test_and_get_npy(test_script: str, test_args: str = "", cwd: str = None) -> str:
@@ -98,6 +98,13 @@ def make_roundtrip(traj: np.ndarray) -> np.ndarray:
 
     return np.vstack([traj, pause_block, reverse])
 
+def parse_vec3(s: str):
+    s = s.replace(","," ")
+    vals = [float(t) for t in s.split() if t.strip()]
+    if len(vals) != 3:
+        raise ValueError("target expects 3 values, got: {s}")
+    return np.asarray(vals, dtype = float)
+
 def main():
     parser = argparse.ArgumentParser(description="Run test.py (optional), load joint_trajectory.npy, and send via ZMQ.")
     g = parser.add_mutually_exclusive_group(required=False)
@@ -113,6 +120,20 @@ def main():
     parser.add_argument("--hz", type=float, default=50.0, help="Assumed playback rate on the robot side to convert seconds to samples")
 
     args = parser.parse_args()
+    path="/home/student/Documents/myGym/myGym/trained_models/tiago_dual_fix/A/joints_ppo_1/train.json"
+    target_np=parse_vec3(args.get("target",None))
+    #if target is None Robot will reach to 0,0,0
+    with open(path,"r") as f:
+        config = commentjson.load(f)
+    config["task_objects"][0]["goal"]["sampling_area"][0] = target_np[0]
+    config["task_objects"][0]["goal"]["sampling_area"][1] = target_np[0]
+    config["task_objects"][0]["goal"]["sampling_area"][2] = target_np[1]
+    config["task_objects"][0]["goal"]["sampling_area"][3] = target_np[1]
+    config["task_objects"][0]["goal"]["sampling_area"][4] = target_np[2]
+    config["task_objects"][0]["goal"]["sampling_area"][5] = target_np[2]
+
+    with open(path,"w") as f:
+        commentjson.dump(config, f, indent=4)
 
     if args.test_script:
         npy_path = run_test_and_get_npy(args.test_script, args.test_args, args.cwd)

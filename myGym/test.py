@@ -250,6 +250,7 @@ def test_env(env: object, arg_dict: dict) -> None:
                             np.round(np.array(positions[0]), 2) if positions[0] is not None else None,
                             np.round(np.array(positions[1]), 2) if positions[1] is not None else None,
                             np.round(np.array(positions[2]), 2) if positions[2] is not None else None]
+            print(f"[INFO] current result",current_result)
         for t in range(arg_dict["max_episode_steps"]):
             if arg_dict["control"] == "slider":
                 action = []
@@ -481,7 +482,7 @@ def apply_target_to_env(env, target_np: np.ndarray) -> bool:
                 except Exception:
                     pass
     return False
-
+    
 def test_model(
         env: Any,
         model=None,
@@ -535,7 +536,7 @@ def test_model(
                 obs=env._get_obs() if hasattr(env,"_get_obs") else obs
             except Exception:
                 pass
-            
+        print(f"[INFO] current target:",target_np)    
         ##Definition of Storage Variables
         run_tag = datetime.now().strftime("%Y%m%d_%H%M%S")
         save_dir = os.path.join(model_logdir, "rollouts", run_tag, f"ep_{e:03d}")
@@ -650,7 +651,10 @@ def main() -> None:
     arg_dict, commands = get_arguments(parser)
     parameters = {}
     args = parser.parse_args()
-        
+
+    print(arg_dict)
+
+
     for key, arg in arg_dict.items():
         if type(arg_dict[key]) == list:
             if len(arg_dict[key]) > 1 and key != "robot_init" and key != "end_effector_orn":
