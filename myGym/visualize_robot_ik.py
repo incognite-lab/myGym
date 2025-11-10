@@ -41,7 +41,7 @@ def save_robot_dict_to_helpers(rd, helpers_path):
     new_r_dict_lines = ["    r_dict =   {"]
     
     # Define the order of keys for consistent output
-    key_order = ['path', 'position', 'orientation', 'default_joint_ori', 'ee_pos', 'ee_ori']
+    key_order = ['path', 'position', 'orientation', 'default_joint_ori', 'ee_pos', 'ee_ori', 'ee_quat_ori']
     
     for key, value in rd.items():
         parts = []
@@ -53,7 +53,7 @@ def save_robot_dict_to_helpers(rd, helpers_path):
             v = value[k]
             if k == 'position':
                 parts.append(f"'{k}': np.array({list(v)})")
-            elif k in ['default_joint_ori', 'ee_pos', 'ee_ori']:
+            elif k in ['default_joint_ori', 'ee_pos', 'ee_ori', 'ee_quat_ori']:
                 parts.append(f"'{k}': {v}")
             elif k == 'orientation':
                 # Format orientation with np.pi if present
@@ -194,7 +194,7 @@ def main():
             print("No workspaces available.")
             return
         print("Available workspaces:")
-        for i, wk in enumerate(ws_keys):
+        for i, wk in enumerate(ws_keys, 1):
             print(f"[{i}] {wk}")
         while True:
             wsel = input("Select workspace index (q to quit): ").strip().lower()
@@ -202,8 +202,8 @@ def main():
                 return
             if wsel.isdigit():
                 widx = int(wsel)
-                if 0 <= widx < len(ws_keys):
-                    selected_workspace = ws_keys[widx]
+                if 1 <= widx <= len(ws_keys):
+                    selected_workspace = ws_keys[widx - 1]
                     break
             print("Invalid selection.")
         ws_info = ws_dict[selected_workspace]
@@ -222,7 +222,7 @@ def main():
         # Robot selection after workspace
         robots = sorted(rdict.keys())
         print("Available robots:")
-        for i, rk in enumerate(robots):
+        for i, rk in enumerate(robots, 1):
             print(f"[{i}] {rk}")
         while True:
             rsel = input("Select robot index (q to quit): ").strip().lower()
@@ -230,8 +230,8 @@ def main():
                 return
             if rsel.isdigit():
                 ridx = int(rsel)
-                if 0 <= ridx < len(robots):
-                    selected_key = robots[ridx]
+                if 1 <= ridx <= len(robots):
+                    selected_key = robots[ridx - 1]
                     rinfo = rdict[selected_key]
                     rel_path = rinfo['path'].lstrip('/')
                     candidate = os.path.join(base_dir, rel_path)
@@ -255,7 +255,7 @@ def main():
             print("No robots available.")
             return
         print("Available robots:")
-        for i, rk in enumerate(robots):
+        for i, rk in enumerate(robots, 1):
             print(f"[{i}] {rk}")
         while True:
             sel = input("Select robot index (q to quit): ").strip().lower()
@@ -263,8 +263,8 @@ def main():
                 return
             if sel.isdigit():
                 idx = int(sel)
-                if 0 <= idx < len(robots):
-                    selected_key = robots[idx]
+                if 1 <= idx <= len(robots):
+                    selected_key = robots[idx - 1]
                     info = rdict[selected_key]
                     rel_path = info['path'].lstrip('/')
                     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -324,7 +324,7 @@ def main():
             print(f"Warning: Workspace URDF not found: {workspace_urdf_path}")
         
         # Load floor
-        floor_path = os.path.join(currentdir, "rooms/plane.urdf")
+        floor_path = os.path.join(currentdir, "rooms/plane_universal.urdf")
         if os.path.exists(floor_path):
             floor_id = p.loadURDF(floor_path, transform['position'], 
                                  p.getQuaternionFromEuler(transform['orientation']), 
@@ -388,27 +388,61 @@ def main():
     # Find gripper joint indices
     gripper_idxs, gripper_low_limits, gripper_up_limits = find_gripper_joints(robot_id)
 
+    # Get initial end effector position and orientation
+    link_state = p.getLinkState(robot_id, end_effector_index)
+    ee_initial_pos = link_state[0]
+    ee_initial_quat = link_state[1]
+    ee_initial_euler = p.getEulerFromQuaternion(ee_initial_quat)
+    
+    print(f"Initial end effector position: {ee_initial_pos}")
+    print(f"Initial end effector orientation (euler): {ee_initial_euler}")
 
-    # Box control variables
-    box_size = 0.03
-    box_initial_pos = p.getLinkState(robot_id, end_effector_index)
-    print(f"Initial end effector position: {box_initial_pos[0]}")
+    # Get target position and orientation from r_dict if available
+    target_initial_pos = ee_initial_pos
+    target_initial_euler = ee_initial_euler
+    
+    if selected_key and selected_key in rdict:
+        robot_info = rdict[selected_key]
+        if 'ee_pos' in robot_info:
+            target_initial_pos = robot_info['ee_pos']
+            print(f"Using stored ee_pos as target: {target_initial_pos}")
+        if 'ee_ori' in robot_info:
+            target_initial_euler = robot_info['ee_ori']
+            print(f"Using stored ee_ori as target: {target_initial_euler}")
+        elif 'ee_quat_ori' in robot_info:
+            target_initial_quat = robot_info['ee_quat_ori']
+            target_initial_euler = p.getEulerFromQuaternion(target_initial_quat)
+            print(f"Using stored ee_quat_ori as target: {target_initial_quat}")
+
+    # Create visual target box
+    box_size = 0.02
+    box_visual_shape = p.createVisualShape(
+        p.GEOM_BOX,
+        halfExtents=[box_size/2, box_size/2, box_size/2],
+        rgbaColor=[1, 0, 0, 0.5]  # Red semi-transparent (initial)
+    )
     box_id = p.createMultiBody(
-        baseMass=0, # Set mass to 0 if it's only visual
-        baseCollisionShapeIndex=-1, # No collision shape
-        baseVisualShapeIndex=p.createVisualShape(p.GEOM_BOX, halfExtents=[box_size/2]*3, rgbaColor=[1, 0.0, 0.0, 0.8]), # Visual shape only
-        basePosition=box_initial_pos)
+        baseMass=0,
+        baseCollisionShapeIndex=-1,  # No collision
+        baseVisualShapeIndex=box_visual_shape,
+        basePosition=target_initial_pos,
+        baseOrientation=p.getQuaternionFromEuler(target_initial_euler)
+    )
+    print(f"Created target box at position: {target_initial_pos}, orientation: {target_initial_euler}")
 
-    # Create sliders for  box position control
-    x_slider = p.addUserDebugParameter("Box X", -1, 1.0, box_initial_pos[0][0]+0.1)
-    y_slider = p.addUserDebugParameter("Box Y", -1, 1, box_initial_pos[0][1]+0.1)
-    z_slider = p.addUserDebugParameter("Box Z", -1, 1, box_initial_pos[0][2])
+    # Thresholds for error checking
+    POSITION_THRESHOLD = 0.05  # meters
+    ORIENTATION_THRESHOLD_QUAT_DOT = 0.99905  # corresponds to ~5 degrees
 
-    # Create additional init sliders for Yaw, Pitch, Roll
-    roll_slider = p.addUserDebugParameter("Box Roll", -np.pi, np.pi, 0)
-    pitch_slider = p.addUserDebugParameter("Box Pitch", -np.pi, np.pi, 0)
-    yaw_slider = p.addUserDebugParameter("Box Yaw", -np.pi, np.pi, 0)
+    # Create sliders for box position control - initialized with target pose
+    x_slider = p.addUserDebugParameter("Target X", -1, 1.0, target_initial_pos[0])
+    y_slider = p.addUserDebugParameter("Target Y", -1, 1, target_initial_pos[1])
+    z_slider = p.addUserDebugParameter("Target Z", -1, 1, target_initial_pos[2])
 
+    # Create additional init sliders for Yaw, Pitch, Roll - initialized with target orientation
+    roll_slider = p.addUserDebugParameter("Target Roll", -np.pi, np.pi, target_initial_euler[0])
+    pitch_slider = p.addUserDebugParameter("Target Pitch", -np.pi, np.pi, target_initial_euler[1])
+    yaw_slider = p.addUserDebugParameter("Target Yaw", -np.pi, np.pi, target_initial_euler[2])
 
     # Main simulation loop
     p.setRealTimeSimulation(1)
@@ -449,17 +483,20 @@ def main():
                     link_state = p.getLinkState(robot_id, end_effector_index)
                     ee_pos = [round(x, 4) for x in link_state[0]]
                     ee_quat = link_state[1]
+                    ee_quat_ori = [round(x, 4) for x in ee_quat]
                     ee_ori = [round(x, 4) for x in p.getEulerFromQuaternion(ee_quat)]
                     print(f"End effector position: {ee_pos}")
                     print(f"End effector orientation (euler): {ee_ori}")
+                    print(f"End effector orientation (quaternion): {ee_quat_ori}")
                     
-                    # Store ee_pos and ee_ori in robot dict
+                    # Store ee_pos, ee_ori, and ee_quat_ori in robot dict
                     rdict[selected_key]['ee_pos'] = ee_pos
                     rdict[selected_key]['ee_ori'] = ee_ori
+                    rdict[selected_key]['ee_quat_ori'] = ee_quat_ori
                     
                     # Save to helpers.py
                     if save_robot_dict_to_helpers(rdict, helpers_path):
-                        print(f"Updated helpers.py with default_joint_ori, ee_pos, and ee_ori for {selected_key}")
+                        print(f"Updated helpers.py with default_joint_ori, ee_pos, ee_ori, and ee_quat_ori for {selected_key}")
                     else:
                         print("Failed to update helpers.py")
                 else:
@@ -496,11 +533,41 @@ def main():
             yaw = p.readUserDebugParameter(yaw_slider)
             target_orientation_quat = p.getQuaternionFromEuler([roll, pitch, yaw])
             target_orientation_euler = [roll, pitch, yaw]
-            # Update the visual position of the first box (red)
-            p.resetBasePositionAndOrientation(box_id, target_pos, [0,0,0,1])
-            # Keep the second box (black) at its slider position for reference
-            box2_pos_ref = [ p.readUserDebugParameter(x_slider), p.readUserDebugParameter(y_slider), p.readUserDebugParameter(z_slider)]
+            
+            # --- Get current state of the end effector AFTER applying IK ---
+            link_state = p.getLinkState(robot_id, end_effector_index)
+            ee_pos = link_state[0] # World position
+            actual_orientation_quat = link_state[1] # Actual world orientation (quaternion)
+            actual_orientation_euler = p.getEulerFromQuaternion(actual_orientation_quat)
 
+            # --- Calculate Position and Orientation Errors ---
+            # Position error (Euclidean distance)
+            pos_diff_vec = np.array(target_pos) - np.array(ee_pos)
+            pos_distance = np.linalg.norm(pos_diff_vec)
+            
+            # Orientation error (quaternion dot product)
+            # Normalize quaternions
+            target_quat_norm = np.array(target_orientation_quat) / np.linalg.norm(target_orientation_quat)
+            actual_quat_norm = np.array(actual_orientation_quat) / np.linalg.norm(actual_orientation_quat)
+            quat_dot = abs(np.dot(target_quat_norm, actual_quat_norm))
+            
+            # Check thresholds
+            position_within_threshold = pos_distance <= POSITION_THRESHOLD
+            orientation_within_threshold = quat_dot >= ORIENTATION_THRESHOLD_QUAT_DOT
+            
+            # Determine box color based on errors
+            if position_within_threshold and orientation_within_threshold:
+                box_color = [0, 1, 0, 0.5]  # Green - both within limits
+            elif not position_within_threshold and not orientation_within_threshold:
+                box_color = [1, 0, 0, 0.5]  # Red - both exceed limits
+            else:
+                box_color = [0, 0, 1, 0.5]  # Blue - one exceeds limit
+            
+            # Update box color
+            p.changeVisualShape(box_id, -1, rgbaColor=box_color)
+            
+            # Update the visual target box position and orientation
+            p.resetBasePositionAndOrientation(box_id, target_pos, target_orientation_quat)
 
             # Apply IK first using the determined target
 
@@ -508,7 +575,7 @@ def main():
             #print(f"IK Solution: {ik_solution}", end="\r")
             apply_ik_solution(robot_id, ik_solution, joint_idxs)
 
-            # Get current state of the end effector AFTER applying IK
+            # Get current state of the end effector AFTER applying IK (update for visualization)
             link_state = p.getLinkState(robot_id, end_effector_index)
             ee_pos = link_state[0] # World position
             actual_orientation_quat = link_state[1] # Actual world orientation (quaternion)
@@ -530,7 +597,7 @@ def main():
                                 ee_pos[2] - z_axis_direction_desired[2] * line_length]
 
             # Draw the new red line (Desired Orientation)
-            orientation_line_id = p.addUserDebugLine(ee_pos, line_end_desired, [1, 0, 0], 5) # Red line
+            #orientation_line_id = p.addUserDebugLine(ee_pos, line_end_desired, [1, 0, 0], 5) # Red line
 
             # --- Calculate and Display Orientation Difference ---
             # Quaternion difference

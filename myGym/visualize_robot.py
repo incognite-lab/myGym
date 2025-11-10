@@ -39,7 +39,7 @@ def save_robot_dict_to_helpers(rd, helpers_path):
     new_r_dict_lines = ["    r_dict =   {"]
     
     # Define the order of keys for consistent output
-    key_order = ['path', 'position', 'orientation', 'default_joint_ori', 'ee_pos', 'ee_ori']
+    key_order = ['path', 'position', 'orientation', 'default_joint_ori', 'ee_pos', 'ee_ori', 'ee_quat_ori']
     
     for key, value in rd.items():
         parts = []
@@ -51,7 +51,7 @@ def save_robot_dict_to_helpers(rd, helpers_path):
             v = value[k]
             if k == 'position':
                 parts.append(f"'{k}': np.array({list(v)})")
-            elif k in ['default_joint_ori', 'ee_pos', 'ee_ori']:
+            elif k in ['default_joint_ori', 'ee_pos', 'ee_ori', 'ee_quat_ori']:
                 parts.append(f"'{k}': {v}")
             elif k == 'orientation':
                 # Format orientation with np.pi if present
@@ -154,7 +154,7 @@ def main():
         print(f"Warning: Workspace URDF not found: {workspace_urdf_path}")
     
     # Load floor
-    floor_path = os.path.join(currentdir, "rooms/plane.urdf")
+    floor_path = os.path.join(currentdir, "rooms/plane_universal.urdf")
     if os.path.exists(floor_path):
         floor_id = p.loadURDF(floor_path, transform['position'], 
                              p.getQuaternionFromEuler(transform['orientation']), 
@@ -318,17 +318,20 @@ def main():
                     link_state = p.getLinkState(robot_id, end_effector_index)
                     ee_pos = [round(x, 4) for x in link_state[0]]
                     ee_quat = link_state[1]
+                    ee_quat_ori = [round(x, 4) for x in ee_quat]
                     ee_ori = [round(x, 4) for x in p.getEulerFromQuaternion(ee_quat)]
                     print(f"End effector position: {ee_pos}")
                     print(f"End effector orientation (euler): {ee_ori}")
+                    print(f"End effector orientation (quaternion): {ee_quat_ori}")
                     
-                    # Store ee_pos and ee_ori in robot dict
+                    # Store ee_pos, ee_ori, and ee_quat_ori in robot dict
                     rd[selected_robot]['ee_pos'] = ee_pos
                     rd[selected_robot]['ee_ori'] = ee_ori
+                    rd[selected_robot]['ee_quat_ori'] = ee_quat_ori
 
                 # Save to helpers.py
                 if save_robot_dict_to_helpers(rd, helpers_path):
-                    print(f"Updated helpers.py with default_joint_ori, ee_pos, and ee_ori for {selected_robot}")
+                    print(f"Updated helpers.py with default_joint_ori, ee_pos, ee_ori, and ee_quat_ori for {selected_robot}")
                 else:
                     print("Failed to update helpers.py")
             
