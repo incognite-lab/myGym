@@ -379,6 +379,8 @@ class GymEnv(CameraEnv):
         Returns:
             :return self._observation: (list) Observation data of the environment
         """
+        
+        ##リセットに関数を追加する。ターゲットが指定されている場合は、のような条件分岐をする。
         #super().reset(seed=seed)
         if not only_subtask:
             self.robot.reset(random_robot=random_robot)
@@ -634,7 +636,10 @@ class GymEnv(CameraEnv):
 
     def _place_object(self, obj_info):
         fixed = True if obj_info["fixed"] == 1 else False
-        pos = env_object.EnvObject.get_random_object_position(obj_info["sampling_area"])
+        if hasattr(self,"fixed_target"):
+            pos = self.fixed_target
+        else:
+            pos = env_object.EnvObject.get_random_object_position(obj_info["sampling_area"])
         orn = env_object.EnvObject.get_random_object_orientation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
         object = env_object.EnvObject(obj_info["urdf"], pos, orn, pybullet_client=self.p, fixed=fixed)
         if self.color_dict: object.set_color(self.color_of_object(object))

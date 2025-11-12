@@ -529,6 +529,7 @@ def test_model(
         # modify position to user setting
         target_np=parse_vec3(arg_dict.get("target",None))
         if target_np is not None:
+            env.fixed_target = target_np
             ok=apply_target_to_env(env,target_np)
             if not ok:
                 print("[WARN] Could not set target on this env; using default/random target.")
