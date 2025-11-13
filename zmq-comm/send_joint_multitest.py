@@ -153,19 +153,19 @@ def main():
             run_args = (base_args + " " if base_args else "") + f"--target {target}"
             print(f"[INFO] === Sim {idx}/{len(targets)}: target {target} ===")
 
-            #path="/home/student/Documents/myGym/myGym/trained_models/tiago_dual_fix/A/joints_ppo_1/train.json"
-            #target_np=parse_vec3(target)
-            #with open(path,"r") as f:
-            #    config = commentjson.load(f)
-            #config["task_objects"][0]["goal"]["sampling_area"][0] = target_np[0]
-            #config["task_objects"][0]["goal"]["sampling_area"][1] = target_np[0]
-            #config["task_objects"][0]["goal"]["sampling_area"][2] = target_np[1]
-            #config["task_objects"][0]["goal"]["sampling_area"][3] = target_np[1]
-            #config["task_objects"][0]["goal"]["sampling_area"][4] = target_np[2]
-            #config["task_objects"][0]["goal"]["sampling_area"][5] = target_np[2]
+            path="/home/student/Documents/myGym/myGym/trained_models/tiago_dual_fix/A/joints_ppo_1/train.json"
+            target_np=parse_vec3(target)
+            with open(path,"r") as f:
+                config = commentjson.load(f)
+            config["task_objects"][0]["goal"]["sampling_area"][0] = target_np[0]
+            config["task_objects"][0]["goal"]["sampling_area"][1] = target_np[0]
+            config["task_objects"][0]["goal"]["sampling_area"][2] = target_np[1]
+            config["task_objects"][0]["goal"]["sampling_area"][3] = target_np[1]
+            config["task_objects"][0]["goal"]["sampling_area"][4] = target_np[2]
+            config["task_objects"][0]["goal"]["sampling_area"][5] = target_np[2]
 
-            #with open(path,"w") as f:
-            #    commentjson.dump(config, f, indent=4)
+            with open(path,"w") as f:
+                commentjson.dump(config, f, indent=4)
 
 
             npy_path = run_test_and_get_npy(args.test_script, run_args, args.cwd)
