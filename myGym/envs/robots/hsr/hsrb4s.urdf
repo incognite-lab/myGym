@@ -85,7 +85,7 @@ POSSIBILITY OF SUCH DAMAGE.
       </geometry>
     </collision>
   </link>
-  <joint name="base_roll_rjoint" type="continuous">
+  <joint name="base_roll_rjoint" type="fixed">
     <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
     <axis xyz="0.0 0.0 1.0"/>
     <limit effort="34.46" velocity="2.5"/>
@@ -100,7 +100,7 @@ POSSIBILITY OF SUCH DAMAGE.
       <inertia ixx="0.07671000" ixy="-0.01005000" ixz="0.00174900" iyy="0.09057000" iyz="0.00154900" izz="0.14500000"/>
     </inertial>
   </link>
-  <joint name="base_r_drive_wheel_rjoint" type="continuous">
+  <joint name="base_r_drive_wheel_rjoint" type="fixed">
     <origin rpy="0.0 0.0 0.0" xyz="-0.11 -0.133 0.04"/>
     <axis xyz="0.0 1.0 0.0"/>
     <limit effort="11.067" velocity="20.8"/>
@@ -128,7 +128,7 @@ POSSIBILITY OF SUCH DAMAGE.
       <inertia ixx="0.015" ixy="0" ixz="0" iyy="0.015" iyz="0" izz="0.015"/>
     </inertial>
   </link>
-  <joint name="base_l_drive_wheel_rjoint" type="continuous">
+  <joint name="base_l_drive_wheel_rjoint" type="fixed">
     <origin rpy="0.0 0.0 0.0" xyz="-0.11 0.133 0.04"/>
     <axis xyz="0.0 1.0 0.0"/>
     <limit effort="11.067" velocity="20.8"/>
@@ -156,7 +156,7 @@ POSSIBILITY OF SUCH DAMAGE.
       <inertia ixx="0.015" ixy="0" ixz="0" iyy="0.015" iyz="0" izz="0.015"/>
     </inertial>
   </link>
-  <joint name="base_r_passive_wheel_x_frame_rjoint" type="continuous">
+  <joint name="base_r_passive_wheel_x_frame_rjoint" type="fixed">
     <origin rpy="0.0 0.0 0.0" xyz="0.1495                 -0.055                 0.03"/>
     <axis xyz="1.0 0.0 0.0"/>
     <limit effort="1.0" velocity="3.0"/>
@@ -171,7 +171,7 @@ POSSIBILITY OF SUCH DAMAGE.
       <inertia ixx="0.015" ixy="0" ixz="0" iyy="0.015" iyz="0" izz="0.015"/>
     </inertial>
   </link>
-  <joint name="base_r_passive_wheel_y_frame_rjoint" type="continuous">
+  <joint name="base_r_passive_wheel_y_frame_rjoint" type="fixed">
     <axis xyz="0.0 1.0 0.0"/>
     <limit effort="8.85" velocity="10.0"/>
     <parent link="base_r_passive_wheel_x_frame"/>
@@ -184,7 +184,7 @@ POSSIBILITY OF SUCH DAMAGE.
       <inertia ixx="0.015" ixy="0" ixz="0" iyy="0.015" iyz="0" izz="0.015"/>
     </inertial>
   </link>
-  <joint name="base_r_passive_wheel_z_rjoint" type="continuous">
+  <joint name="base_r_passive_wheel_z_rjoint" type="fixed">
     <axis xyz="0.0 0.0 1.0"/>
     <limit effort="8.85" velocity="10.0"/>
     <parent link="base_r_passive_wheel_y_frame"/>
@@ -208,7 +208,7 @@ POSSIBILITY OF SUCH DAMAGE.
       <inertia ixx="0.015" ixy="0" ixz="0" iyy="0.015" iyz="0" izz="0.015"/>
     </inertial>
   </link>
-  <joint name="base_l_passive_wheel_x_frame_rjoint" type="continuous">
+  <joint name="base_l_passive_wheel_x_frame_rjoint" type="fixed">
     <origin rpy="0.0 0.0 0.0" xyz="0.1495                 0.055                 0.03"/>
     <axis xyz="1.0 0.0 0.0"/>
     <limit effort="1.0" velocity="3.0"/>
@@ -223,7 +223,7 @@ POSSIBILITY OF SUCH DAMAGE.
       <inertia ixx="0.015" ixy="0" ixz="0" iyy="0.015" iyz="0" izz="0.015"/>
     </inertial>
   </link>
-  <joint name="base_l_passive_wheel_y_frame_rjoint" type="continuous">
+  <joint name="base_l_passive_wheel_y_frame_rjoint" type="fixed">
     <axis xyz="0.0 1.0 0.0"/>
     <limit effort="8.85" velocity="10.0"/>
     <parent link="base_l_passive_wheel_x_frame"/>
@@ -236,7 +236,7 @@ POSSIBILITY OF SUCH DAMAGE.
       <inertia ixx="0.015" ixy="0" ixz="0" iyy="0.015" iyz="0" izz="0.015"/>
     </inertial>
   </link>
-  <joint name="base_l_passive_wheel_z_rjoint" type="continuous">
+  <joint name="base_l_passive_wheel_z_rjoint" type="fixed">
     <axis xyz="0.0 0.0 1.0"/>
     <limit effort="8.85" velocity="10.0"/>
     <parent link="base_l_passive_wheel_y_frame"/>
@@ -418,7 +418,7 @@ POSSIBILITY OF SUCH DAMAGE.
       </geometry>
     </visual>
   </link>
-  <joint name="head_l_stereo_camera_gazebo_frame_rjoint" type="fixed">
+  <joint name="head_l_stereo_camera_gazebo_frame_joint" type="fixed">
     <origin rpy="1.5707963268 -1.5707963268 0.0" xyz="0 0 0"/>
     <parent link="head_l_stereo_camera_link"/>
     <child link="head_l_stereo_camera_gazebo_frame"/>
@@ -437,13 +437,13 @@ POSSIBILITY OF SUCH DAMAGE.
       </geometry>
     </visual>
   </link>
-  <joint name="head_r_stereo_camera_gazebo_frame_rjoint" type="fixed">
+  <joint name="head_r_stereo_camera_gazebo_frame_joint" type="fixed">
     <origin rpy="1.5707963268 -1.5707963268 0.0" xyz="0 0 0"/>
     <parent link="head_r_stereo_camera_link"/>
     <child link="head_r_stereo_camera_gazebo_frame"/>
   </joint>
   <link name="head_r_stereo_camera_gazebo_frame"/>
-  <joint name="head_center_camera_frame_rjoint" type="fixed">
+  <joint name="head_center_camera_frame_joint" type="fixed">
     <origin rpy="-1.5707963268 0.0 -1.5707963268" xyz="0.0195 0.0 0.061"/>
     <parent link="head_tilt_link"/>
     <child link="head_center_camera_frame"/>

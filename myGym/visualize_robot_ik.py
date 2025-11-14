@@ -303,7 +303,7 @@ def main():
     # Load workspace and plane (unless already loaded in workspace mode)
     if not args.workspace:
         ws_dict = get_workspace_dict()
-        workspace_key = "table_uni"
+        workspace_key = "table_complex"
         workspace_info = ws_dict[workspace_key]
         
         # Load scene
