@@ -219,6 +219,90 @@ def delete_file_interactive(file_path, file_type="file"):
             print("  Invalid input. Please enter 'y' (yes), 'n' (no), or 'q' (quit).")
 
 
+def group_files_by_folder(file_list):
+    """
+    Group files by their parent folder.
+    
+    Args:
+        file_list: List of file paths
+        
+    Returns:
+        Dictionary mapping folder paths to lists of files in that folder
+    """
+    folder_dict = {}
+    
+    for file_path in file_list:
+        folder = os.path.dirname(file_path)
+        if folder not in folder_dict:
+            folder_dict[folder] = []
+        folder_dict[folder].append(file_path)
+    
+    return folder_dict
+
+
+def delete_folder_interactive(folder_path, files_in_folder, file_type="file"):
+    """
+    Interactively ask user if they want to delete all files in a folder.
+    
+    Args:
+        folder_path: Path to the folder
+        files_in_folder: List of file paths in this folder
+        file_type: Type of files (for display purposes)
+        
+    Returns:
+        Tuple of (deleted_count, skipped_count), or None to quit
+    """
+    print(f"\n{'='*60}")
+    print(f"Folder: {folder_path}")
+    print(f"Contains {len(files_in_folder)} unused {file_type} file(s):")
+    print("-" * 60)
+    
+    total_size = 0
+    for file_path in files_in_folder:
+        full_path = os.path.join(PROJECT_ROOT, file_path)
+        if os.path.exists(full_path):
+            file_size = os.path.getsize(full_path)
+            size_kb = file_size / 1024
+            total_size += file_size
+            print(f"  {os.path.basename(file_path)} ({size_kb:.2f} KB)")
+        else:
+            print(f"  {os.path.basename(file_path)} (not found)")
+    
+    total_size_kb = total_size / 1024
+    print(f"\nTotal size: {total_size_kb:.2f} KB")
+    
+    while True:
+        response = input(f"\nDelete all {len(files_in_folder)} files in this folder? [y/n/q]: ").strip().lower()
+        
+        if response == 'q':
+            return None  # Signal to quit
+        elif response == 'y':
+            deleted_count = 0
+            failed_count = 0
+            
+            for file_path in files_in_folder:
+                full_path = os.path.join(PROJECT_ROOT, file_path)
+                if not os.path.exists(full_path):
+                    print(f"  ⚠ Not found: {os.path.basename(file_path)}")
+                    failed_count += 1
+                    continue
+                
+                try:
+                    os.remove(full_path)
+                    print(f"  ✓ Deleted: {os.path.basename(file_path)}")
+                    deleted_count += 1
+                except Exception as e:
+                    print(f"  ✗ Error deleting {os.path.basename(file_path)}: {e}")
+                    failed_count += 1
+            
+            return (deleted_count, failed_count)
+        elif response == 'n':
+            print(f"  ⊘ Skipped folder: {folder_path}")
+            return (0, len(files_in_folder))
+        else:
+            print("  Invalid input. Please enter 'y' (yes), 'n' (no), or 'q' (quit).")
+
+
 def interactive_cleanup(files_list, file_type="file"):
     """
     Interactively delete files from a list.
@@ -245,6 +329,40 @@ def interactive_cleanup(files_list, file_type="file"):
             skipped_count += 1
     
     return deleted_count, skipped_count
+
+
+def interactive_cleanup_by_folder(files_list, file_type="file"):
+    """
+    Interactively delete files grouped by folder.
+    
+    Args:
+        files_list: List of file paths to potentially delete
+        file_type: Type of files (for display)
+        
+    Returns:
+        Tuple of (deleted_count, skipped_count)
+    """
+    # Group files by folder
+    folder_dict = group_files_by_folder(files_list)
+    
+    print(f"\nFiles grouped into {len(folder_dict)} folder(s)")
+    
+    total_deleted = 0
+    total_skipped = 0
+    
+    for folder_path in sorted(folder_dict.keys()):
+        files_in_folder = folder_dict[folder_path]
+        result = delete_folder_interactive(folder_path, files_in_folder, file_type)
+        
+        if result is None:  # User chose to quit
+            print("\nDeletion process terminated by user.")
+            break
+        else:
+            deleted, skipped = result
+            total_deleted += deleted
+            total_skipped += skipped
+    
+    return total_deleted, total_skipped
 
 
 def main():
@@ -318,10 +436,10 @@ def main():
                     for mesh in unused_meshes:
                         print(f"  {mesh}")
                     
-                    confirm = input(f"\nDelete {len(unused_meshes)} unused mesh files one by one? [y/n]: ").strip().lower()
+                    confirm = input(f"\nDelete {len(unused_meshes)} unused mesh files folder by folder? [y/n]: ").strip().lower()
                     
                     if confirm == 'y':
-                        deleted, skipped = interactive_cleanup(unused_meshes, "Mesh")
+                        deleted, skipped = interactive_cleanup_by_folder(unused_meshes, "Mesh")
                         
                         print("\n" + "=" * 60)
                         print(f"Mesh Cleanup Summary:")

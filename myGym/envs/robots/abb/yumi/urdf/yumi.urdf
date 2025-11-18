@@ -568,17 +568,17 @@
 	<joint name="ee_z_axis_joint" type="fixed">
     	<parent link="gripper"/>
     	<child link="ee_z_axis"/>
-    	<origin rpy="3.14 0 0" xyz="0.0 0.0 0.12"/>
+    	<origin rpy="0 0 0" xyz="0.0 0.0 0.12"/>
 	</joint>
     	<joint name="ee_x_axis_joint" type="fixed">
     	<parent link="gripper"/>
     	<child link="ee_x_axis"/>
-    	<origin rpy="3.14 0 0" xyz="0.0 0.0 0.12"/>
+    	<origin rpy="0 0 0" xyz="0.0 0.0 0.12"/>
 	</joint>
     <joint name="ee_y_axis_joint" type="fixed">
     	<parent link="gripper"/>
     	<child link="ee_y_axis"/>
-    	<origin rpy="3.14 0 0" xyz="0.0 0.0 0.12"/>
+    	<origin rpy="0 0 0" xyz="0.0 0.0 0.12"/>
 	</joint>
   <!-- joint between base and right finger -->
   <joint name="gripper_r_gjoint" type="prismatic">

@@ -133,7 +133,7 @@ def main():
     
     # Get workspace dictionary
     ws_dict = get_workspace_dict()
-    workspace_key = "table_uni"
+    workspace_key = "table_complex"
     workspace_info = ws_dict[workspace_key]
     
     # Load scene

@@ -552,11 +552,11 @@
   </link>
   <joint name="LGripper_joint" type="fixed">
     <parent link="l_wrist"/>
-    <child link="gripper"/>
+    <child link="lgrip"/>
     <origin rpy="-3.14 0.0 -1.57" xyz="0.07 0.0 -0.01802319018"/>
     <axis xyz="0 0 0"/>
   </joint>
-  <link name="gripper">
+  <link name="lgrip">
     <inertial>
       <mass value="2e-03"/>
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
@@ -725,12 +725,12 @@
 
   <joint name="RWristYaw_rjoint" type="revolute">
     <parent link="RForeArm"/>
-    <child link="r_wrist"/>
+    <child link="gripper"/>
     <origin rpy="0 0 0" xyz="0.15 0 0"/>
     <axis xyz="1.0 0 0"/>
     <limit effort="0.2014" lower="-1.82387" upper="1.82387" velocity="17.3835"/>
   </joint>
-  <link name="r_wrist">
+  <link name="gripper">
     <inertial>
       <mass value="0.27555"/>
       <inertia ixx="0.000151643" ixy="-1.06629e-05" ixz="2.89509e-06" iyy="0.000431099" iyz="3.13715e-06" izz="0.000456172"/>
@@ -749,25 +749,69 @@
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </collision>
   </link>
-  <link name="endeffector">
-    	<visual>
-      		<origin rpy="0 0 0" xyz="0 0.0 0"/> <!-- Updated position -->
-      		<geometry>
-        		<cylinder length="0.05" radius="0.002"/>
-      		</geometry>
-			<material name="blue">
-      			<color rgba="0 0 1 0.5"/> <!-- RGBA: Red Green Blue Alpha (opacity) -->
-    		</material>
-    	</visual>
-        <inertial>
-		    <mass value="0.0000332"/>
-		    <inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
-		</inertial>
-  	</link>
-	<joint name="endeffector_joint" type="fixed">
-    	<parent link="r_wrist"/>
+  <link name="ee_x_axis">
+    <visual>
+    <origin xyz="0.03 0 0" rpy="0 1.57079632679 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="red">
+      <color rgba="1 0 0 1"/>
+    </material>
+  </visual>
+    </link>
+    <link name="ee_y_axis">
+  <visual>
+    <origin xyz="0 0.03 0" rpy="-1.57079632679 0 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="green">
+      <color rgba="0 1 0 1"/>
+    </material>
+  </visual>
+    </link>
+    <link name="ee_z_axis">
+  <visual>
+    <origin xyz="0 0 0.03" rpy="0 0 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="blue">
+      <color rgba="0 0 1 1"/>
+    </material>
+  </visual>
+</link>
+    <link name="endeffector">
+  <visual>
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+    <geometry>
+      <sphere radius="0.005"/>
+    </geometry>
+    <material name="yellow">
+      <color rgba="1 1 0 1"/>
+    </material>
+  </visual>
+</link>
+<joint name="endeffector_joint" type="fixed">
+    	<parent link="gripper"/>
     	<child link="endeffector"/>
     	<origin rpy="0 0 0" xyz="0.07 0.0 -0.04"/>
+	</joint>
+	<joint name="ee_z_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_z_axis"/>
+    	<origin rpy="-3.14 0 1.57" xyz="0.07 0.0 -0.04"/>
+	</joint>
+    	<joint name="ee_x_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_x_axis"/>
+    	<origin rpy="-3.14 0 1.57" xyz="0.07 0.0 -0.04"/>
+	</joint>
+    <joint name="ee_y_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_y_axis"/>
+    	<origin rpy="-3.14 0 1.57" xyz="0.07 0.0 -0.04"/>
 	</joint>
   <link name="SonarBack_frame">
     <inertial>
@@ -944,7 +988,7 @@
     </inertial>
   </link>
   <joint name="RHand/Touch/Back_sensor_fixedjoint" type="fixed">
-    <parent link="r_wrist"/>
+    <parent link="gripper"/>
     <child link="RHandTouchBack_frame"/>
     <origin rpy="1.5708 -1.5708 -3.14159" xyz="0.0523 0 0.0304"/>
     <axis xyz="0 0 0"/>
@@ -1203,12 +1247,12 @@
     </collision>
   </link>
   <joint name="RFinger41_gjoint" type="revolute">
-    <parent link="r_wrist"/>
+    <parent link="gripper"/>
     <child link="RFinger41_link"/>
     <origin rpy="1.74402 1.04064 -0.0683394" xyz="0.074 -0.0309 0"/>
     <axis xyz="0 0 1.0"/>
     <mimic joint="RHand" multiplier="0.872665" offset="0"/>
-    <limit effort="0.144" lower="0.0" upper="0.872665" velocity="12.56"/>
+    <limit effort="0.144" lower="0.0" upper="1.57" velocity="12.56"/>
   </joint>
   <link name="LFinger42_link">
     <inertial>
@@ -1311,12 +1355,12 @@
     </collision>
   </link>
   <joint name="RFinger31_gjoint" type="revolute">
-    <parent link="r_wrist"/>
+    <parent link="gripper"/>
     <child link="RFinger31_link"/>
     <origin rpy="1.67523 1.04483 0.029316" xyz="0.0833 -0.0123 0.004"/>
     <axis xyz="0 0 1.0"/>
     <mimic joint="RHand" multiplier="0.872665" offset="0"/>
-    <limit effort="0.144" lower="0.0" upper="0.872665" velocity="12.56"/>
+    <limit effort="0.144" lower="0.0" upper="1.57" velocity="12.56"/>
   </joint>
   <link name="LFinger21_link">
     <inertial>
@@ -1554,12 +1598,12 @@
     </collision>
   </link>
   <joint name="RFinger21_gjoint" type="revolute">
-    <parent link="r_wrist"/>
+    <parent link="gripper"/>
     <child link="RFinger21_link"/>
     <origin rpy="1.5708 1.0472 0.061086" xyz="0.0873 0.0073 0.006"/>
     <axis xyz="0 0 1.0"/>
     <mimic joint="RHand" multiplier="0.872665" offset="0"/>
-    <limit effort="0.144" lower="0.0" upper="0.872665" velocity="12.56"/>
+    <limit effort="0.144" lower="0.0" upper="1.57" velocity="12.56"/>
   </joint>
   <link name="LFinger41_link">
     <inertial>
@@ -1662,12 +1706,12 @@
     </collision>
   </link>
   <joint name="RFinger11_gjoint" type="revolute">
-    <parent link="r_wrist"/>
+    <parent link="gripper"/>
     <child link="RFinger11_link"/>
     <origin rpy="1.39757 1.04064 0.0334335" xyz="0.0821 0.0268 0.004"/>
     <axis xyz="0 0 1.0"/>
     <mimic joint="RHand" multiplier="0.872665" offset="0"/>
-    <limit effort="0.144" lower="0.0" upper="0.872665" velocity="12.56"/>
+    <limit effort="0.144" lower="0.0" upper="1.57" velocity="12.56"/>
   </joint>
   <link name="LFinger23_link"><!-- LFinger23_link-->
     <inertial>
@@ -1906,7 +1950,7 @@
     </collision>
   </link>
   <joint name="RThumb1" type="fixed">
-    <parent link="r_wrist"/>
+    <parent link="gripper"/>
     <child link="RThumb1_link"/>
     <!-- <origin rpy="-1.18323 0.60626 -0.533978" xyz="0.0482 0.0357 -0.0199"/> -->
     <origin rpy="-0.58323 0.80626 -0.533978" xyz="0.0482 0.0357 -0.0199"/>
