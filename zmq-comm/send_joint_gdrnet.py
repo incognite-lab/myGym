@@ -125,32 +125,6 @@ def strip_existing_target(args_str: str) -> str:
     pattern = r"(?:^|\s)--target\s+([^\s]+\s[,\s]\s[^\s]+\s[,\s]\s[^\s]+)"
     return re.sub(pattern, " ", args_str or "").strip()
 
-def get_target_from_zmq(endpoint, name=None, timeout=3.0):
-    ctx = zmq.Context.instance()
-    s = ctx.socket(zmq.SUB)
-    s.connect(endpoint)
-    s.setsockopt(zmq.SUBSCRIBE, b"")
-    s.RCVTIMEO = int(timeout * 1000)
-    t0 = time.time()
-    while True:
-        try:
-            msg = s.recv_string()
-            data = json.loads(msg)  # list of dicts
-            if not isinstance(data, list) or not data:
-                continue
-            objs = data
-            if name:
-                objs = [o for o in objs if str(o.get("name","")).startswith(name)]
-                if not objs:
-                    continue
-            pos = objs[0].get("position")
-            if pos and len(pos) >= 3:
-                return np.array(pos[:3], dtype=float)
-        except zmq.error.Again:
-            return None
-        if time.time() - t0 > timeout:
-            return None
-
 def main():
     parser = argparse.ArgumentParser(description="Run test.py (optional), load joint_trajectory.npy, and send via ZMQ.")
     g = parser.add_mutually_exclusive_group(required=False)
@@ -167,56 +141,39 @@ def main():
     
     #parser.add_argument("--targets", default=None, help="Multiple targets as a single string")
     parser.add_argument("--targets-file", default=os.path.abspath(os.path.join(os.path.dirname(__file__), "../zmq-comm/targets.txt")), help="Path to a text file with reach position")
-    #GDRnet
-    parser.add_argument("--gdr-sub", default="tcp://127.0.0.1:5557", help="ZMQ endpoint, e.g., tcp://127.0.0.1:5557")
-    parser.add_argument("--gdr-name", default="apple", help="Object name prefix to pick, e.g., apple")
-    parser.add_argument("--gdr-timeout", type=float, default=3.0, help="Seconds to wait")
     args = parser.parse_args()
 
     if args.test_script:
         targets = read_targets_file(args.targets_file)
         base_args = strip_existing_target(args.test_args)
-        targets_gdr=get_target_from_zmq(args.gdr_sub,args.gdr_name,args.gdr_timeout)    
         #stack all trajectory
         all_trajs = []
-        if targets_gdr is not None:  
+        for idx, target in enumerate(targets, 1):
+            #tstr = f"{tgt[0]:.6f} {tgt[1]:.6f} {tgt[2]:.6f}"
+            run_args = (base_args + " " if base_args else "") + f"--target {target}"
+            print(f"[INFO] === Sim {idx}/{len(targets)}: target {target} ===")
+
+            path="/home/student/Documents/myGym/myGym/trained_models/tiago_dual_fix/A/joints_ppo_1/train.json"
+            target_np=parse_vec3(target)#####
             with open(path,"r") as f:
                 config = commentjson.load(f)
-            config["task_objects"][0]["goal"]["sampling_area"][0] = targets_gdr[0]
-            config["task_objects"][0]["goal"]["sampling_area"][1] = targets_gdr[0]
-            config["task_objects"][0]["goal"]["sampling_area"][2] = targets_gdr[1]
-            config["task_objects"][0]["goal"]["sampling_area"][3] = targets_gdr[1]
-            config["task_objects"][0]["goal"]["sampling_area"][4] = targets_gdr[2]
-            config["task_objects"][0]["goal"]["sampling_area"][5] = targets_gdr[2]
+            config["task_objects"][0]["goal"]["sampling_area"][0] = target_np[0]
+            config["task_objects"][0]["goal"]["sampling_area"][1] = target_np[0]
+            config["task_objects"][0]["goal"]["sampling_area"][2] = target_np[1]
+            config["task_objects"][0]["goal"]["sampling_area"][3] = target_np[1]
+            config["task_objects"][0]["goal"]["sampling_area"][4] = target_np[2]
+            config["task_objects"][0]["goal"]["sampling_area"][5] = target_np[2]
 
             with open(path,"w") as f:
                 commentjson.dump(config, f, indent=4)
-        else: 
-            for idx, target in enumerate(targets, 1):
-                #tstr = f"{tgt[0]:.6f} {tgt[1]:.6f} {tgt[2]:.6f}"
-                run_args = (base_args + " " if base_args else "") + f"--target {target}"
-                print(f"[INFO] === Sim {idx}/{len(targets)}: target {target} ===")
 
-                path="/home/student/Documents/myGym/myGym/trained_models/tiago_dual_fix/A/joints_ppo_1/train.json"
-                target_np=parse_vec3(target)
-                with open(path,"r") as f:
-                    config = commentjson.load(f)
-                config["task_objects"][0]["goal"]["sampling_area"][0] = target_np[0]
-                config["task_objects"][0]["goal"]["sampling_area"][1] = target_np[0]
-                config["task_objects"][0]["goal"]["sampling_area"][2] = target_np[1]
-                config["task_objects"][0]["goal"]["sampling_area"][3] = target_np[1]
-                config["task_objects"][0]["goal"]["sampling_area"][4] = target_np[2]
-                config["task_objects"][0]["goal"]["sampling_area"][5] = target_np[2]
 
-                with open(path,"w") as f:
-                    commentjson.dump(config, f, indent=4)
-                    
-                npy_path = run_test_and_get_npy(args.test_script, run_args, args.cwd)
-                traj = load_traj(npy_path)  
-                traj = make_roundtrip(traj)
-                all_trajs.append(traj)
-            big_traj = np.vstack(all_trajs)
-            resp = send_over_zmq(big_traj, args.zmq)
+            npy_path = run_test_and_get_npy(args.test_script, run_args, args.cwd)
+            traj = load_traj(npy_path)  
+            traj = make_roundtrip(traj)
+            all_trajs.append(traj)
+        big_traj = np.vstack(all_trajs)
+        resp = send_over_zmq(big_traj, args.zmq)
     else:
         npy_path = args.npy
         if not os.path.exists(npy_path):
