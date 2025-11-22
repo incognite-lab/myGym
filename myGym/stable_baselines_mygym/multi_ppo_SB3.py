@@ -198,7 +198,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             self.decider = DeciderPolicy(obs_dim=obs_dim, num_networks=self.models_num)
             self.env.reset()
             # Reset decider hidden state at the start of an episode
-            self.decider.reset_hidden()
             if hasattr(self.env, 'reward'):
                 print("Setting decider model")
                 self.env.reward.decider_model = self.decider
@@ -216,8 +215,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
         super()._setup_model()
         self.env.reset()
-        if hasattr(self.env.unwrapped, 'network_switcher') and self.env.unwrapped.network_switcher == "decider":
-            self.decider.reset_hidden()
 
         # Initialize schedules for policy/value clipping
         self.clip_range = get_schedule_fn(self.clip_range)
@@ -342,6 +339,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
         # Multiprocessing
         if isinstance(owner, list):
+            print("GOT HERE")
             owner = np.array(owner)
             actions = np.zeros((self.n_envs, self.action_space.shape[0]))
 
@@ -366,7 +364,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                         network_idx = self.current_network_idx
 
                     real_env.reward.current_network = network_idx
-                    # print(f"[Decider] Selected network: {network_idx}")
+                    print(f"[Decider] Selected network: {network_idx}")
                 model = self.models[i]
                 indices = np.where(owner == i)
                 action_i, state_i = model.policy.predict(observation, state, episode_start, deterministic)
@@ -392,10 +390,12 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                         self.lock_until_step = self.step_counter + 150
                         print(
                             f"[Decider] Lock-in single: selected network {self.current_network_idx} until {self.lock_until_step} step")
+                    print(f"Decider {self.current_network_idx}")
                     network_idx = self.current_network_idx
 
                 real_env.reward.current_network = network_idx
-
+            else:
+                print("NO BITCHES??")
             model = self.models[owner]
             actions, state = model.policy.predict(observation, state, episode_start, deterministic)
         return actions, state
@@ -461,14 +461,95 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                         print("[Decider] Skipping empty batch")
                         return
 
+                    #for o, r in zip(obs_batch, rew_batch):
+                    #    self.decider.store(o.cpu().numpy(), owner, owner, r.item(), self.curent_subpolicy_steps, self.subpolicy_success_flaf, (owner != self.previous_owner))
+
+                    # ---- decider store ----
                     for o, r in zip(obs_batch, rew_batch):
-                        self.decider.store(o.cpu().numpy(), owner, r.item())
+                        try:
+                            # reward object for the first env (works with DummyVecEnv / SubprocVecEnv)
+                            reward_obj = None
+                            # if env is VecEnv with .envs list (SB3 DummyVecEnv / SubprocVecEnv)
+                            if hasattr(self.env, "envs") and len(self.env.envs) > 0:
+                                # prefer unwrapped reward on envs[0]
+                                env0 = self.env.envs[0]
+                                reward_obj = getattr(env0, "reward", None) or getattr(env0, "unwrapped",
+                                                                                      None) and getattr(env0.unwrapped,
+                                                                                                        "reward", None)
+                            else:
+                                # single-environment case
+                                reward_obj = getattr(self.env, "reward", None) or getattr(self.env.unwrapped, "reward",
+                                                                                          None)
+
+                            # defaults / fallbacks
+                            ret = None
+                            steps_spent = None
+                            success_flag = False
+                            switched_flag = False
+                            # current network index that acted (owner variable is available in scope)
+                            current_network_idx = owner
+
+                            # If the reward object supplies flushed last_subpolicy_* values (from on_subpolicy_end)
+                            if reward_obj is not None:
+                                ret = getattr(reward_obj, "last_subpolicy_return", None)
+                                steps_spent = getattr(reward_obj, "last_subpolicy_steps", None)
+                                success_flag = bool(getattr(reward_obj, "last_subpolicy_success", False))
+                                switched_flag = bool(getattr(reward_obj, "last_subpolicy_switched", False))
+                                # attempt to get the index of the subpolicy that just ran (if reward exposes it)
+                                if getattr(reward_obj, "last_subpolicy_idx", None) is not None:
+                                    current_network_idx = int(reward_obj.last_subpolicy_idx)
+                                elif getattr(reward_obj, "current_network", None) is not None:
+                                    # fallback to current_network recorded on reward
+                                    current_network_idx = int(reward_obj.current_network)
+
+                            # Fallback to single-step reward if flushed cumulative value is missing
+                            if ret is None:
+                                # r is a tensor float for this timestep. Use that as a minimal signal.
+                                ret = float(r.item() if hasattr(r, "item") else float(r))
+                                if steps_spent is None:
+                                    steps_spent = 1
+
+                            # Ensure numeric types
+                            ret = float(ret)
+                            steps_spent = int(steps_spent) if steps_spent is not None else 1
+
+                            # Observation: prefer pre-flush observation; o is tensor -> numpy
+                            obs_np = o.cpu().numpy()
+
+                            # Call decider.store with full signature (works even if decider's store has defaults)
+                            self.decider.store(
+                                obs=obs_np,
+                                selected_action_idx=int(current_network_idx),
+                                subpolicy_idx=int(current_network_idx),
+                                return_=ret,
+                                steps_spent=steps_spent,
+                                success=bool(success_flag),
+                                switched=bool(switched_flag)
+                            )
+
+                            # Clear flushed values to avoid double-logging (optional but safe)
+                            if reward_obj is not None:
+                                try:
+                                    reward_obj.last_subpolicy_return = None
+                                    reward_obj.last_subpolicy_steps = None
+                                    reward_obj.last_subpolicy_success = None
+                                    reward_obj.last_subpolicy_switched = None
+                                    # and last_subpolicy_idx if you used it
+                                    if hasattr(reward_obj, "last_subpolicy_idx"):
+                                        reward_obj.last_subpolicy_idx = None
+                                except Exception:
+                                    pass
+
+                        except Exception as e:
+                            # don't crash training for decider logging issues
+                            print("Warning: decider.store skipped due to:", repr(e))
+                    # ---- end decider.store loop ----
 
                     decider_stats = self.decider.update()
                     if decider_stats:
                         self.logger.record("trained_models/decider_loss", decider_stats["loss"])
                         self.logger.record("trained_models/decider_entropy", decider_stats["entropy"])
-                        self.logger.record("trained_models/decider_baseline", decider_stats["baseline"])
+
 
                 # Choose appropriate submodel
                 model = self.models[owner]

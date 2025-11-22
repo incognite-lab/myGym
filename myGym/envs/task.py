@@ -347,14 +347,9 @@ class TaskModule():
         self.last_distance = self.current_norm_distance
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
-        #if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
-        #    if len(self.env.robot.magnetized_objects) == 0 and self.env.episode_steps > 5:
-        #        self.end_episode_success()
-        #    else:
-        #        self.env.episode_over = False
+
         if finished:
             if self.task_type == "dice_throw":
-                
                 if finished == 1:
                     self.end_episode_fail("Finished with wrong dice result thrown")
                 return finished

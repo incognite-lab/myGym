@@ -14,7 +14,7 @@ from sklearn.model_selection import ParameterGrid
 import pandas as pd
 import commentjson
 
-from myGym import oraculum
+from myGym.oraculum import Oraculum
 from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env, task_objects_replacement
 
 clear = lambda: os.system('clear')
@@ -269,7 +269,11 @@ def test_env(env: object, arg_dict: dict) -> list:
                     else:
                         action = [0, 0, 0]
             if arg_dict["control"] == "oraculum":
-                action = oraculum.perform_oraculum_task(t, env, arg_dict, action, info)
+                grip_limits = env.unwrapped.robot.gjoints_limits
+                oracle = Oraculum(env, info, "absolute_gripper", grip_limits)
+                action = oracle.perform_oraculum_task(t, env, action, info)
+
+                #action = oraculum.perform_oraculum_task(t, env, arg_dict, action, info)
             elif arg_dict["control"] == "keyboard":
                 keypress = p.getKeyboardEvents()
                 action = detect_key(keypress, arg_dict, action)
@@ -517,7 +521,6 @@ def main() -> None:
                 break
             i+=1
         results.to_csv(filename, index = False)
-
 
 
 if __name__ == "__main__":

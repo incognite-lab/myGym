@@ -38,17 +38,19 @@
     "yolact_path"   :null,
     "yolact_config" :null,
     #Train
+    "network_switcher": "decider",
     "train_framework"   :"pytorch",
     "algo"              :"multippo",
     "num_networks"      :2,
     "max_episode_steps" :512,
     "algo_steps"        :512,
-    "steps"             :30000000,
-    "pretrained_model"  :null,
+    "steps"             :1000000,
+    "pretrained_model"  :"././trained_models/tiago_dual/AG\\joints_gripper_multippo_1",
+    //"pretrained_model" : null,
     "multiprocessing"   :null,
     #Evaluation
-    "eval_freq"     :500000,
-    "eval_episodes" :50,
+    "eval_freq"     :20000,
+    "eval_episodes" :5,
     #Saving and logging
     "logdir"    :"trained_models/AG",
     "record"    :0

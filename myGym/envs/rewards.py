@@ -26,7 +26,7 @@ class Reward:
         self.network_rewards = [0] * self.num_networks
 
     def network_switch_control(self, observation):
-        #maybe remove this condition
+        # maybe remove this condition
         if self.env.num_networks <= 1:
             print("Cannot switch networks in a single-network scenario")
         else:
@@ -112,9 +112,19 @@ class Protorewards(Reward):
         self.closegr_threshold = self.env.robot.closegr_threshold
         self.near_threshold = 0.05
         self.lift_threshold = 0.1
+        # self.above_offset = [0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0]
         self.above_offset = 0.02
         self.reward_name = None
         self.iter = 1
+
+        # decider things
+        self._current_subpolicy_return = 0.0
+        self._current_subpolicy_steps = 0
+        self._current_subpolicy_success = False
+        self.last_subpolicy_return = None  # flushed-out value for decider.store
+        self.last_subpolicy_steps = None
+        self.last_subpolicy_success = None
+        self.last_subpolicy_switched = None
 
     def compute(self, observation=None):
         # inherit and define your sequence of protoactions here
@@ -377,6 +387,9 @@ class Protorewards(Reward):
 # ATOMIC ACTIONS - Examples of 1-5 protorewards
 
 class A(Protorewards):
+    def __init__(self, env, task=None):
+        super().__init__(env, task)
+        self.network_names = ["approach"]
 
     def reset(self):
         super().reset()
@@ -405,10 +418,17 @@ class A(Protorewards):
 
 
 class AaG(Protorewards):
+    def __init__(self, env, task=None):
+        super().__init__(env, task)
+        self.network_names = ["approach", "grasp"]
 
     def reset(self):
         super().reset()
         self.network_names = ["approach", "grasp"]
+
+    def apply_switch_penalty(self, penalty_value):
+        self.last_reward -= penalty_value
+        print(f"[Penalty] Applied switch penalty of {penalty_value}")
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -417,12 +437,44 @@ class AaG(Protorewards):
             owner]
         reward = [self.approach_compute, self.grasp_compute][owner](*target)
         if self.env.episode_terminated:
-            reward += 0.2  # Adding reward for succesful finish of episode
+            reward += 0.5  # Adding reward for succesful finish of episode
+
+
         #self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 2
+
+        #decider
+        self._current_subpolicy_return += reward
+        self._current_subpolicy_steps += 1
+        if self.gripper_approached_object(object_position, goal_position):
+            if self.gripper_opened(gripper_states):
+                switched = True
+                self._current_subpolicy_success = True
+
+        if self.current_network == 1:
+            if self.gripper_approached_object(gripper_position, object_position):
+                if self.gripper_closed(gripper_states):
+                    switched = True
+                    self._current_subpolicy_success = True
+                    self.task.check_goal()
+
+       # if hasattr(self.env, "decider_model"):
+        #    self.env.reward.decider_model.store(observation, owner, owner, reward, self._current_subpolicy_steps, self._current_subpolicy_success, switched)
         return reward
+
+    # when network switch or subtask end happens (crucial)
+    def on_subpolicy_end(self, switched=False):
+        # flush accumulators for decider usage in gym_env.step() code above
+        self.last_subpolicy_return = self._current_subpolicy_return
+        self.last_subpolicy_steps = self._current_subpolicy_steps
+        self.last_subpolicy_success = self._current_subpolicy_success
+        self.last_subpolicy_switched = switched
+        # reset running accumulators
+        self._current_subpolicy_return = 0.0
+        self._current_subpolicy_steps = 0
+        self._current_subpolicy_success = False
 
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -446,7 +498,11 @@ class AaG(Protorewards):
         return self.current_network
 
 
+
 class AaGaM(Protorewards):
+    def __init__(self, env, task=None):
+        super().__init__(env, task)
+        self.network_names = ["approach", "grasp", "move"]
 
     def reset(self):
         super().reset()
@@ -501,6 +557,9 @@ class AaGaR(Protorewards):
     Uses the 'rotate_compute' protoreward for the third step.
     """
 
+    def __init__(self, env, task=None):
+        super().__init__(env, task)
+        self.network_names = ["approach", "grasp", "rotate"]
 
     def reset(self):
         super().reset()
@@ -579,6 +638,9 @@ class AaGaR(Protorewards):
 
 
 class AaGaMaD(Protorewards):
+    def __init__(self, env, task=None):
+        super().__init__(env, task)
+        self.network_names = ["approach", "grasp", "move", "drop"]
 
     def reset(self):
         super().reset()
@@ -632,6 +694,9 @@ class AaGaMaD(Protorewards):
 
 
 class AaGaMaDaW(Protorewards):
+    def __init__(self, env, task=None):
+        super().__init__(env, task)
+        self.network_names = ["approach", "grasp", "move", "drop", "withdraw"]
 
     def apply_switch_penalty(self, penalty_value):
         self.last_reward -= penalty_value
@@ -707,6 +772,9 @@ class AaGaMaDaW(Protorewards):
 
 
 class AaGaRaDaW(Protorewards):
+    def __init__(self, env, task=None):
+        super().__init__(env, task)
+        self.network_names = ["approach", "grasp", "rotate", "drop", "withdraw"]
 
     def reset(self):
         super().reset()
@@ -785,6 +853,9 @@ class AaGaFaDaW(Protorewards):
     Uses the 'follow_compute' protoreward for the third step.
     """
 
+    def __init__(self, env, task=None):
+        super().__init__(env, task)
+        self.network_names = ["approach", "grasp", "follow", "drop", "withdraw"]
 
     def reset(self):
         super().reset()
@@ -900,6 +971,9 @@ class AaGaTaDaW(Protorewards):
     Uses the 'transform_compute' protoreward for the third step.
     """
 
+    def __init__(self, env, task=None):
+        super().__init__(env, task)
+        self.network_names = ["approach", "grasp", "transform", "drop", "withdraw"]
 
     def reset(self):
         super().reset()

@@ -1,6 +1,4 @@
 import argparse
-import importlib.resources as pkg_resources
-import commentjson
 import copy
 import importlib.resources as pkg_resources
 import json
@@ -9,6 +7,7 @@ import random
 import time
 from typing import Callable
 
+import commentjson
 import gymnasium as gym
 import numpy as np
 
@@ -74,6 +73,8 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "max_ep_steps": arg_dict["max_episode_steps"],
                      "gui_on": arg_dict["gui"]
                      }
+    if "network_switcher" in arg_dict.keys():
+        env_arguments["network_switcher"] = arg_dict["network_switcher"]
 
     if arg_dict["algo"] == "her":
         env = gym.make(arg_dict["env_name"], **env_arguments, obs_space="dict")  # her needs obs as a dict
@@ -170,6 +171,118 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     else:
         model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0](*model_args, **model_kwargs)
 
+    # ------------------- Force-attach Decider (paste here, right after model is created) -------------------
+    try:
+        from myGym.stable_baselines_mygym.decider import DeciderPolicy, flatten_obs_any
+    except Exception:
+        DeciderPolicy = None
+
+    try:
+        # choose an env reference that exists in this scope (prefer vec_env if present)
+        env_for_attach = None
+        if 'vec_env' in locals() and vec_env is not None:
+            # vec_env might be DummyVecEnv or similar
+            env_for_attach = vec_env
+        elif 'env' in locals() and env is not None:
+            env_for_attach = env
+        else:
+            # fallback to model.env if present
+            env_for_attach = getattr(model, "env", None)
+
+        # unwrap to concrete env0 if it's a VecEnv
+        if env_for_attach is not None and hasattr(env_for_attach, "envs") and len(env_for_attach.envs) > 0:
+            env0 = env_for_attach.envs[0]
+        else:
+            env0 = env_for_attach
+
+        reward_obj = None
+        if env0 is not None:
+            reward_obj = getattr(env0, "reward", None) or getattr(getattr(env0, "unwrapped", None), "reward", None)
+
+        if reward_obj is None:
+            print(">>> WARNING: could not find reward object to attach decider.")
+        else:
+            # ensure the attribute exists (safe default)
+            if not hasattr(reward_obj, "decider_model") or getattr(reward_obj, "decider_model", None) is None:
+                if DeciderPolicy is None:
+                    print(">>> WARNING: DeciderPolicy import failed; cannot create decider.")
+                else:
+                    # determine obs_dim
+                    obs_dim = getattr(reward_obj, "decider_obs_dim", None)
+                    if obs_dim is None:
+                        # infer from a sample observation, fallback to 1
+                        obs_dim = 1
+                        try:
+                            sample_obs = None
+                            if hasattr(env0, "get_observation"):
+                                sample_obs = env0.get_observation()
+                            elif hasattr(env0, "observation_space") and getattr(env0, "observation_space") is not None:
+                                # try to sample a dummy observation (best effort)
+                                try:
+                                    sample_obs = env0.observation_space.sample()
+                                except Exception:
+                                    sample_obs = None
+                            if sample_obs is not None:
+                                flat = flatten_obs_any(sample_obs)
+                                obs_dim = int(flat.shape[0]) if flat is not None else obs_dim
+                        except Exception:
+                            obs_dim = obs_dim
+
+                    # determine num_networks
+                    network_names = getattr(reward_obj, "network_names", None)
+                    if network_names is not None and hasattr(network_names, "__len__"):
+                        num_nets = int(len(network_names))
+                    else:
+                        # fallback to env-provided value or 1
+                        num_nets = int(getattr(env0, "num_networks", getattr(env0, "n_networks", 1)))
+
+                    # finally attach DeciderPolicy
+                    reward_obj.decider_model = DeciderPolicy(obs_dim=obs_dim, num_networks=num_nets)
+                    print(">>> Decider model CREATED and attached to reward (train.py).")
+            else:
+                print(">>> Decider model already present on reward — keeping it.")
+    except Exception as e:
+        print(">>> Warning while attaching decider (train.py):", repr(e))
+    # -------------------------------------------------------------------------------------------------------
+
+    # ------------------- Ensure model.decider references reward.decider_model -------------------
+    try:
+        # 'model' should be the MultiPPO instance you just created or loaded
+        if 'model' in locals() and model is not None:
+            # decide which object has the reward we attached the decider to (env0 from earlier block)
+            env_for_attach = None
+            if 'vec_env' in locals() and vec_env is not None:
+                env_for_attach = vec_env
+            elif 'env' in locals() and env is not None:
+                env_for_attach = env
+            elif hasattr(model, "env"):
+                env_for_attach = model.env
+
+            if env_for_attach is not None and hasattr(env_for_attach, "envs") and len(env_for_attach.envs) > 0:
+                env0 = env_for_attach.envs[0]
+            else:
+                env0 = env_for_attach
+
+            reward_obj = None
+            if env0 is not None:
+                reward_obj = getattr(env0, "reward", None) or getattr(getattr(env0, "unwrapped", None), "reward", None)
+
+            # If reward_obj has decider_model, attach it to model.decider (so self.decider is not None)
+            if reward_obj is not None and hasattr(reward_obj, "decider_model") and reward_obj.decider_model is not None:
+                # attach to model (MultiPPO object) so model.predict uses it as self.decider
+                try:
+                    setattr(model, "decider", reward_obj.decider_model)
+                    print(">>> Attached reward.decider_model to model.decider (train.py).")
+                except Exception as e:
+                    print(">>> Warning: failed to attach decider to model:", repr(e))
+            else:
+                print(">>> Warning: reward_obj.decider_model missing — decider not attached to model.")
+        else:
+            print(">>> Warning: 'model' not found in locals; cannot attach decider to model.")
+    except Exception as e:
+        print(">>> Exception while attaching decider to model:", repr(e))
+    # ------------------------------------------------------------------------------------------
+
     if arg_dict["algo"] == "gail":
         # Multi processing: (using MPI)
         if arg_dict["train_framework"] == 'tensorflow':
@@ -232,8 +345,8 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    # Environmentr
-    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_AGMDW_RDDL.json",
+    # Environment
+    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_AG_RDDL.json",
                         help="Config file path")
     parser.add_argument("-n", "--env_name", type=str, help="Environment name")
     parser.add_argument("-ws", "--workspace", type=str, help="Workspace name")
@@ -316,8 +429,8 @@ def get_parser():
                              "and exit the program (without the actual training taking place). Expected values are \"description\" "
                              "(generate a task description) or \"new_tasks\" (generate new tasks)")
 
-    parser.add_argument("-ns", "--network_switcher", default="gt",
-                        help="How does a robot switch to next network (gt or keyboard)")
+    #parser.add_argument("-ns", "--network_switcher", default="gt",
+    #                    help="How does a robot switch to next network (gt or keyboard)")
 
     return parser
 
@@ -413,8 +526,8 @@ def main():
         return
 
     if not os.path.isabs(arg_dict["logdir"]):
-    #Automatic argument assigment from task type
-    arg_dict = automatic_argument_assignment(arg_dict)
+        # automatic argument assigment from task type
+        arg_dict = automatic_argument_assignment(arg_dict)
 
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])

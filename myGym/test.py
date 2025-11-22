@@ -5,6 +5,7 @@ from typing import Dict, Any
 import cv2
 import imageio
 import numpy as np
+import pandas as pd
 import pybullet as p
 import pybullet_data
 from numpy import matrix
@@ -209,11 +210,6 @@ def test_env(env: object, arg_dict: dict) -> None:
             else:
                 for i in range(env.action_space.shape[0]):
                     joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
-
-    #p.addUserDebugParameter("Lateral Friction", 0, 100, 0)
-    #p.addUserDebugParameter("Spinning Friction", 0, 100, 0)
-    #p.addUserDebugParameter("Linear Damping", 0, 100, 0)
-    #p.addUserDebugParameter("Angular Damping", 0, 100, 0)
 
     if arg_dict["vsampling"]:
         visualize_sampling_area(arg_dict)

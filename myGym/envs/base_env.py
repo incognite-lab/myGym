@@ -253,7 +253,7 @@ class BaseEnv(gym.Env):
         if "virtual" in obj_name:
             return "virtual.urdf"
         for file in self.all_objects_filenames:
-            if '/' + obj_name + '.' in file:
+            if '/' + obj_name + '.' in file or '\\' + obj_name + '.' in file:
                 return file
         if self.dataset:
             print("Did not find an urdf for {}, if it is a robot, it is OK".format(obj_name))

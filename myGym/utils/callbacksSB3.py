@@ -241,7 +241,12 @@ class CustomEvalCallback(EvalCallback):
             if self.log_path is not None:
                 self.evaluations_results["evaluation_after_{}_steps".format(actual_calls)] = results
                 filename = "evaluation_results.json"
-                with open(os.path.join(self.log_path, filename), 'w') as f:
+                eval_path = os.path.join(self.log_path, filename)
+                if os.path.exists(eval_path) and os.path.getsize(eval_path) > 0:
+                    write_mode = 'a'
+                else:
+                    write_mode = 'w'
+                with open(eval_path, write_mode) as f:
                     json.dump(self.evaluations_results, f, indent=4)
                 print("Evaluation stored after {} calls.".format(actual_calls))
         return True
@@ -485,7 +490,12 @@ class MultiPPOEvalCallback(EvalCallback):
             if self.log_path is not None:
                 self.evaluations_results["evaluation_after_{}_steps".format(actual_calls+self.starting_steps)] = results
                 filename = "evaluation_results.json"
-                with open(os.path.join(self.log_path, filename), 'w') as f:
+                eval_path = os.path.join(self.log_path, filename)
+                if os.path.exists(eval_path) and os.path.getsize(eval_path) > 0:
+                    write_mode = 'a'
+                else:
+                    write_mode = 'w'
+                with open(eval_path, write_mode) as f:
                     json.dump(self.evaluations_results, f, indent=4)
                 print("Evaluation stored after {} calls.".format(actual_calls + self.starting_steps))
         return True
@@ -726,7 +736,12 @@ class PPOEvalCallback(EvalCallback):
             if self.log_path is not None:
                 self.evaluations_results["evaluation_after_{}_steps".format(actual_calls)] = results
                 filename = "evaluation_results.json"
-                with open(os.path.join(self.log_path, filename), 'w') as f:
+                eval_path = os.path.join(self.log_path, filename)
+                if os.path.exists(eval_path) and os.path.getsize(eval_path) > 0:
+                    write_mode = 'a'
+                else:
+                    write_mode = 'w'
+                with open(eval_path, write_mode) as f:
                     json.dump(self.evaluations_results, f, indent=4)
                 print("Evaluation stored after {} calls.".format(actual_calls))
         return True
