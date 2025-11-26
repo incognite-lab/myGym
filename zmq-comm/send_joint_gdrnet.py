@@ -143,49 +143,63 @@ def main():
     parser.add_argument("--targets-file", default=os.path.abspath(os.path.join(os.path.dirname(__file__), "../zmq-comm/targets.txt")), help="Path to a text file with reach position")
     args = parser.parse_args()
 
-    if args.test_script:
-        targets = read_targets_file(args.targets_file)
-        base_args = strip_existing_target(args.test_args)
-        #stack all trajectory
-        all_trajs = []
-        for idx, target in enumerate(targets, 1):
-            #tstr = f"{tgt[0]:.6f} {tgt[1]:.6f} {tgt[2]:.6f}"
-            run_args = (base_args + " " if base_args else "") + f"--target {target}"
-            print(f"[INFO] === Sim {idx}/{len(targets)}: target {target} ===")
+    path="/home/student/Documents/myGym/myGym/trained_models/tiago_dual_fix/A/joints_ppo_1/train.json"
+    print("[INFO] Check single-line targets file:",args.target_file)
 
-            path="/home/student/Documents/myGym/myGym/trained_models/tiago_dual_fix/A/joints_ppo_1/train.json"
-            target_np=parse_vec3(target)#####
-            with open(path,"r") as f:
-                config = commentjson.load(f)
-            config["task_objects"][0]["goal"]["sampling_area"][0] = target_np[0]
-            config["task_objects"][0]["goal"]["sampling_area"][1] = target_np[0]
-            config["task_objects"][0]["goal"]["sampling_area"][2] = target_np[1]
-            config["task_objects"][0]["goal"]["sampling_area"][3] = target_np[1]
-            config["task_objects"][0]["goal"]["sampling_area"][4] = target_np[2]
-            config["task_objects"][0]["goal"]["sampling_area"][5] = target_np[2]
+    last_mtime = None #Last Reload time of targets.txt
 
-            with open(path,"w") as f:
-                commentjson.dump(config, f, indent=4)
+    try:
+        while True:
+            if os.path.exists(args.targets_file):
+                try:
+                    mtime = os.path.getmtime(args.targets_file)
+                except OSError:
+                    time.sleep(0.05)
+                    continue
+                if(last_mtime is None) or (mtime > last_mtime):
+                    last_mtime = mtime
 
+                    #Read one line from file
+                    with open(args.targets_file, "r") as f:
+                        line = f.read().strip()
+                    if not line:
+                        print("[WARN] targets.txt empty")
+                        time.sleep(0.05)
+                        continue
+                    target_np = parse_vec3(line)
+                    print("[INFO] Parsed target:",target_np)
 
-            npy_path = run_test_and_get_npy(args.test_script, run_args, args.cwd)
-            traj = load_traj(npy_path)  
-            traj = make_roundtrip(traj)
-            all_trajs.append(traj)
-        big_traj = np.vstack(all_trajs)
-        resp = send_over_zmq(big_traj, args.zmq)
-    else:
-        npy_path = args.npy
-        if not os.path.exists(npy_path):
-            raise FileNotFoundError(f"[ERROR] npy not found: {npy_path}") 
+                    #Rewrite train.json
+                    with open(path,"r") as f:
+                        config = commentjson(f)
+                    
+                    config["task_objects"][0]["goal"]["sampling_area"][0] = target_np[0]
+                    config["task_objects"][0]["goal"]["sampling_area"][1] = target_np[0]
+                    config["task_objects"][0]["goal"]["sampling_area"][2] = target_np[1]
+                    config["task_objects"][0]["goal"]["sampling_area"][3] = target_np[1]
+                    config["task_objects"][0]["goal"]["sampling_area"][4] = target_np[2]
+                    config["task_objects"][0]["goal"]["sampling_area"][5] = target_np[2]
+                    
+                    with open(path, "w") as f:
+                        commentjson.dump(config, f, indent = 4)
 
-        traj = load_traj(npy_path)
-        #print("[INFO] Loaded trajectory with shape:", traj.shape)
-        traj=make_roundtrip(traj)
-        print("[INFO] Round trip added. New shape", traj.shape)
-        resp = send_over_zmq(traj, args.zmq)
-        print("resp:", resp)
+                    print("[INFO] train.json Update")
 
+                    base_args = strip_existing_target(args.test_args)
+                    run_args = (base_args + " " if base_args else "") + f"--target {line}"
+                    npy_path = run_test_and_get_npy(args.test_script, run_args, args.cwd)
+                    traj = load_traj(npy_path)  
+                    traj = make_roundtrip(traj)
+                    resp = send_over_zmq(traj, args.zmq)
+                    print("resp:", resp)
+
+            time.sleep(0.05)
+    except KeyboardInterrupt:
+        print("\n[INFO] Stopped watching")
+        
 
 if __name__ == "__main__":
     main()
+
+
+
