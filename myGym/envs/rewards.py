@@ -32,6 +32,19 @@ class Reward:
         else:
             if self.env.network_switcher == "gt" or self.env.network_switcher == "decider":
                 self.current_network = self.decide(observation)
+
+                try:
+                    # Show which network Decider selected
+                    self.env.p.addUserDebugText(
+                        text=f"DeciderNetwork: {self.current_network}",
+                        textPosition=[0.7, 0.55, 0.3],  # GUI location
+                        textSize=1.2,
+                        lifeTime=0.3,
+                        textColorRGB=[1, 1, 0]  # yellow text
+                    )
+                except Exception as e:
+                    print(f"failed due {e}")
+
             elif self.env.network_switcher == "keyboard":
                 keypress = self.env.p.getKeyboardEvents()
                 if 107 in keypress.keys() and keypress[107] == 1:  # K
@@ -203,7 +216,8 @@ class Protorewards(Reward):
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) + ((gripdist - self.last_grip_dist) * 0.5)
+        reward = (self.last_approach_dist - dist) * 0.8 + ((gripdist - self.last_grip_dist) * 0.3)
+        #print(f"APPROACH REWARD: {reward}")
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -237,7 +251,8 @@ class Protorewards(Reward):
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) * 0.2 + ((self.last_grip_dist - gripdist) * 2)
+        reward = (self.last_approach_dist - dist) * 0.6 + ((self.last_grip_dist - gripdist) * 3.0)
+        #print(f"GRASP REWARD: {reward}")
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -252,7 +267,7 @@ class Protorewards(Reward):
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) * 0.2 + ((gripdist - self.last_grip_dist) * 5)
+        reward = (self.last_approach_dist - dist) * 0.2 + ((gripdist - self.last_grip_dist) * 3.0)
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -269,7 +284,8 @@ class Protorewards(Reward):
             self.last_move_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_move_dist - dist) + (self.last_grip_dist - gripdist) * 0.2
+        reward = (self.last_move_dist - dist) * 0.7 + (self.last_grip_dist - gripdist) * 1.0
+        #print(f"MOVE REWARD: {reward}")
         self.last_move_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -369,7 +385,7 @@ class Protorewards(Reward):
     def gripper_closed(self, gripper_states):
         if sum(gripper_states) <= self.closegr_threshold:
             try:
-                #self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
+                # self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
                 self.env.robot.set_magnetization(True)
                 return True
             except:
@@ -403,7 +419,7 @@ class A(Protorewards):
         if self.env.episode_terminated:
             reward += 0.2  # Adding reward for successful finish of episode
         self.last_owner = owner
-        #self.disp_reward(reward, owner)
+        # self.disp_reward(reward, owner)
         self.rewards_history.append(reward)
         self.rewards_num = 1
         return reward
@@ -427,8 +443,8 @@ class AaG(Protorewards):
         self.network_names = ["approach", "grasp"]
 
     def apply_switch_penalty(self, penalty_value):
-        self.last_reward -= penalty_value
-        print(f"[Penalty] Applied switch penalty of {penalty_value}")
+        self.network_rewards[self.current_network] -= penalty_value
+        print(f"[Penalty] Applied switch penalty of {penalty_value}: {self.network_rewards[self.current_network]}")
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -437,30 +453,26 @@ class AaG(Protorewards):
             owner]
         reward = [self.approach_compute, self.grasp_compute][owner](*target)
         if self.env.episode_terminated:
-            reward += 0.5  # Adding reward for succesful finish of episode
+            reward += 0.5  # Adding reward for successful finish of episode
 
-
-        #self.disp_reward(reward, owner)
+        # self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 2
 
-        #decider
-        self._current_subpolicy_return += reward
+        # decider
         self._current_subpolicy_steps += 1
         if self.gripper_approached_object(object_position, goal_position):
             if self.gripper_opened(gripper_states):
-                switched = True
                 self._current_subpolicy_success = True
 
         if self.current_network == 1:
             if self.gripper_approached_object(gripper_position, object_position):
                 if self.gripper_closed(gripper_states):
-                    switched = True
                     self._current_subpolicy_success = True
                     self.task.check_goal()
 
-       # if hasattr(self.env, "decider_model"):
+        # if hasattr(self.env, "decider_model"):
         #    self.env.reward.decider_model.store(observation, owner, owner, reward, self._current_subpolicy_steps, self._current_subpolicy_success, switched)
         return reward
 
@@ -480,23 +492,22 @@ class AaG(Protorewards):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
         if self.env.network_switcher == "decider":
-            if self.gripper_closed(gripper_states):
-                self.task.check_goal()
             self.task.check_episode_steps()
+            if self.gripper_approached_object(object_position, goal_position) and self.gripper_closed(gripper_states):
+                self.task.check_goal()
             return self.env.reward.decider_model.predict(observation)
-
-        if self.env.network_switcher == "keyboard":
+        elif self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
         else:
-            if self.gripper_approached_object(object_position, goal_position):
-                if self.gripper_opened(gripper_states):
-                    self.current_network = 1
-        if self.current_network == 1:
-            if self.gripper_closed(gripper_states):
-                self.task.check_goal()
-        self.task.check_episode_steps()
-        return self.current_network
-
+            if self.current_network == 0:
+                if self.gripper_approached_object(object_position, goal_position):
+                    if self.gripper_opened(gripper_states):
+                        self.current_network = 1
+            if self.current_network == 1:
+                if self.gripper_closed(gripper_states):
+                    self.task.check_goal()
+            self.task.check_episode_steps()
+            return self.current_network
 
 
 class AaGaM(Protorewards):
@@ -508,6 +519,10 @@ class AaGaM(Protorewards):
         super().reset()
         self.network_names = ["approach", "grasp", "move"]
 
+    def apply_switch_penalty(self, penalty_value):
+        self.last_reward -= penalty_value
+        print(f"[Penalty] Applied switch penalty of {penalty_value}")
+
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
@@ -516,23 +531,54 @@ class AaGaM(Protorewards):
              [object_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute][owner](*target)
         if self.env.episode_terminated:
-            reward += 0.2  # Adding reward for succesful finish of episode
-        #self.disp_reward(reward, owner)
+            reward += 0.5  # Adding reward for successful finish of episode
+
+        # self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 3
+
+        # decider
+        self._current_subpolicy_steps += 1
+        if self.gripper_approached_object(object_position, goal_position):
+            if self.gripper_opened(gripper_states):
+                self._current_subpolicy_success = True
+
+        if self.current_network == 1:
+            if self.gripper_approached_object(gripper_position, object_position):
+                if self.gripper_closed(gripper_states):
+                    self._current_subpolicy_success = True
+        if self.current_network == 2:
+            if self.gripper_approached_object(gripper_position, object_position):
+                if self.gripper_closed(gripper_states):
+                    if self.object_near_goal(object_position, goal_position):
+                        self._current_subpolicy_success = True
+                        self.task.check_goal()
         return reward
+
+    # when network switch or subtask end happens (crucial)
+    def on_subpolicy_end(self, switched=False):
+        # flush accumulators for decider usage in gym_env.step() code above
+        self.last_subpolicy_return = self._current_subpolicy_return
+        self.last_subpolicy_steps = self._current_subpolicy_steps
+        self.last_subpolicy_success = self._current_subpolicy_success
+        self.last_subpolicy_switched = switched
+        # reset running accumulators
+        self._current_subpolicy_return = 0.0
+        self._current_subpolicy_steps = 0
+        self._current_subpolicy_success = False
 
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
         if self.env.network_switcher == "decider":
             # if self.object_near_goal(object_position, goal_position):
-            self.task.check_goal()
             self.task.check_episode_steps()
+            if self.gripper_approached_object(object_position, goal_position) and self.gripper_closed(gripper_states):
+                if self.object_near_goal(object_position, goal_position):
+                    self.task.check_goal()
             return self.env.reward.decider_model.predict(observation)
-
-        if self.env.network_switcher == "keyboard":
+        elif self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
         else:
             if self.current_network == 0:
@@ -543,12 +589,11 @@ class AaGaM(Protorewards):
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_closed(gripper_states):
                         self.current_network = 2
-        if self.current_network == 2:
-            if self.object_near_goal(object_position, goal_position):
-                self.task.check_goal()
-        self.task.check_episode_steps()
-        return self.current_network
-
+            if self.current_network == 2:
+                if self.object_near_goal(object_position, goal_position):
+                    self.task.check_goal()
+            self.task.check_episode_steps()
+            return self.current_network
 
 
 class AaGaR(Protorewards):
@@ -575,7 +620,7 @@ class AaGaR(Protorewards):
         target = [
             [gripper_position, object_position, gripper_states],  # approach
             [gripper_position, object_position, gripper_states],  # grasp
-            [object_position, goal_position, gripper_states]                      # rotate
+            [object_position, goal_position, gripper_states]  # rotate
         ][owner]
 
         # List of protoreward functions corresponding to network_names
@@ -593,7 +638,7 @@ class AaGaR(Protorewards):
             reward += 0.2
 
         # Display, log, and update history
-        #self.disp_reward(reward, owner)
+        # self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 3  # Total number of networks is 3
@@ -656,7 +701,7 @@ class AaGaMaD(Protorewards):
         reward = [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute][owner](*target)
         if self.env.episode_terminated:
             reward += 0.2  # Adding reward for succesful finish of episode
-        #self.disp_reward(reward, owner)
+        # self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 4
@@ -728,7 +773,7 @@ class AaGaMaDaW(Protorewards):
         if hasattr(self.env, "decider_model"):
             self.env.reward.decider_model.store(observation, owner, reward)
 
-        #self.disp_reward(reward, owner)
+        # self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5
@@ -787,7 +832,7 @@ class AaGaRaDaW(Protorewards):
         # Updated target list for the new sequence of protorewards
         target = [[gripper_position, object_position, gripper_states],  # approach
                   [gripper_position, object_position, gripper_states],  # grasp
-                  [object_position, goal_position, gripper_states],                     # rotate (takes object, goal)
+                  [object_position, goal_position, gripper_states],  # rotate (takes object, goal)
                   [gripper_position, object_position, gripper_states],  # drop
                   [gripper_position, goal_position, gripper_states]][owner]  # withdraw
         # Updated list of protoreward functions to call
@@ -797,7 +842,7 @@ class AaGaRaDaW(Protorewards):
                 *target)
         if self.env.episode_terminated:
             reward += 0.2  # Adding reward for succesful finish of episode
-        #self.disp_reward(reward, owner)
+        # self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5  # Still 5 networks
@@ -844,7 +889,6 @@ class AaGaRaDaW(Protorewards):
 
         self.task.check_episode_steps()
         return self.current_network
-
 
 
 class AaGaFaDaW(Protorewards):
@@ -912,7 +956,7 @@ class AaGaFaDaW(Protorewards):
             reward += 0.2
 
         # Display, log, and update history
-        #self.disp_reward(reward, owner)
+        # self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5  # Total number of networks remains 5
@@ -962,7 +1006,6 @@ class AaGaFaDaW(Protorewards):
         # Check for episode step limits
         self.task.check_episode_steps()
         return self.current_network
-
 
 
 class AaGaTaDaW(Protorewards):
@@ -1033,7 +1076,7 @@ class AaGaTaDaW(Protorewards):
             reward += 0.2
 
         # Display, log, and update history
-        #self.disp_reward(reward, owner)
+        # self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5  # Total number of networks remains 5

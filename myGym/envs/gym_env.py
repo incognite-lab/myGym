@@ -595,7 +595,7 @@ class GymEnv(CameraEnv):
                 if (sub_idx is not None) and (return_ is not None):
                     decider.store(obs_for_decider, chosen_action, subpolicy_idx=sub_idx,
                                   return_=return_, steps_spent=steps_spent,
-                                  success_flag=success_flag, switched=switched_flag)
+                                  success=success_flag, switched=switched_flag)
         except Exception as e:
             print("Decider.store() skipped due to:", e)
 

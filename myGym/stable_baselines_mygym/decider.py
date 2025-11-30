@@ -56,18 +56,18 @@ class DeciderPolicy(th.nn.Module):
                  obs_dim: int = None, # if None, auto-detect on first predict/store
                  num_networks: int = 2,
                  hidden_sizes=(128,64),
-                 lr=3e-4,
-                 buffer_size=4096,
-                 batch_size=128,
+                 lr=1e-4,
+                 buffer_size=8192,
+                 batch_size=256, #256
                  gamma=0.99,
-                 baseline_beta=0.995,
-                 success_bonus=5.0,
+                 baseline_beta=0.99,
+                 success_bonus=3.0,
                  time_penalty=0.002,
-                 switch_penalty=0.05,
-                 entropy_coef=0.01,
-                 min_batch_for_update=32,
+                 switch_penalty=0.01,
+                 entropy_coef=0.05,
+                 min_batch_for_update=64, #32
                  max_grad_norm=5.0,
-                 temperature=1.0):
+                 temperature=2.0):
         super().__init__()
         self._obs_dim_given = obs_dim
         self.obs_dim = obs_dim
@@ -135,6 +135,13 @@ class DeciderPolicy(th.nn.Module):
             if deterministic:
                 return int(th.argmax(probs).item())
             return int(Categorical(probs).sample().item())
+
+    def decay_temperature(self, factor=0.996, min_temp=0.5):
+        """
+        Explicitly decay temperature
+        """
+        self.temperature *= factor
+        self.temperature = max(self.temperature, min_temp)
 
     def get_probabilities(self, obs):
         flat = flatten_obs_any(obs) if isinstance(obs, (dict, list, tuple)) else np.asarray(obs, dtype=np.float32).ravel()

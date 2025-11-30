@@ -97,7 +97,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             policy: Union[str, Type[ActorCriticPolicy]],
             env: Union[GymEnv, str],
             learning_rate: Union[float, Schedule] = 3e-4,
-            n_steps: int = 2048,
+            n_steps: int = 512,
             n_models: int = 1,
             batch_size: int = 64,
             n_epochs: int = 10,
@@ -189,7 +189,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         self.step_counter = 0
         self.switch_penalty_active = False
         self.last_network_idx = None
-        self.switch_penalty_coef = 0.01  # adjust if needed
+        self.switch_penalty_coef = 0.007  # adjust if needed
         self.switch_to_penalty_step = 90000  # switch mode after 100k steps
 
         # Initialize Decider if selected
@@ -358,9 +358,10 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     else:
                         if self.current_network_idx is None or self.step_counter >= self.lock_until_step:
                             self.current_network_idx = self.decider.predict(observation)
-                            self.lock_until_step = self.step_counter + 150
+                            self.lock_until_step = self.step_counter + 20
                             print(
                                 f"[Decider] Lock-in multi: selected network {self.current_network_idx} until {self.lock_until_step} step")
+                        print(f"Decider multiprocessing {self.current_network_idx}")
                         network_idx = self.current_network_idx
 
                     real_env.reward.current_network = network_idx
@@ -386,16 +387,27 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     print(f"[Decider] Selected network: {network_idx}")
                 else:
                     if self.current_network_idx is None or self.step_counter >= self.lock_until_step:
-                        self.current_network_idx = self.decider.predict(observation)
-                        self.lock_until_step = self.step_counter + 150
-                        print(
-                            f"[Decider] Lock-in single: selected network {self.current_network_idx} until {self.lock_until_step} step")
-                    print(f"Decider {self.current_network_idx}")
+                        reward_obj = real_env.reward
+                        old_idx = self.current_network_idx
+                        new_idx = self.decider.predict(observation)
+
+                        # flushing when switched to a new subpolicy
+                        if old_idx is not None and old_idx != new_idx:
+                            if hasattr(reward_obj, "on_subpolicy_end"):
+                                #print("FLUSHING")
+                                reward_obj.on_subpolicy_end(switched=True)
+
+                        self.current_network_idx = new_idx
+                        self.lock_until_step = self.step_counter + 20
+                        #print(
+                        #    f"[Decider] Lock-in single: selected network {self.current_network_idx} until {self.lock_until_step} step")
+
+                    #print(f"Decider {self.current_network_idx}")
                     network_idx = self.current_network_idx
 
                 real_env.reward.current_network = network_idx
             else:
-                print("NO BITCHES??")
+                print("NO DECIDER??")
             model = self.models[owner]
             actions, state = model.policy.predict(observation, state, episode_start, deterministic)
         return actions, state
@@ -422,9 +434,11 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             (used in recurrent policies)
         """
         owner = self.approved(observation)
-        owner = owner[0]
+        if isinstance(owner, (list, np.ndarray, tuple)):
+            owner = owner[0]
         model = self.models[owner]
         action, state = model.policy.predict(observation, state, episode_start, deterministic)
+
         return action, state
 
     def train(self) -> None:
@@ -549,6 +563,9 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     if decider_stats:
                         self.logger.record("trained_models/decider_loss", decider_stats["loss"])
                         self.logger.record("trained_models/decider_entropy", decider_stats["entropy"])
+                        if self.decider.temperature > 0.1 and self._n_updates % 100 == 0:
+                            self.decider.decay_temperature()
+                        self.logger.record("trained_models/decider_temp", self.decider.temperature)
 
 
                 # Choose appropriate submodel
@@ -798,6 +815,32 @@ class MultiPPOSB3(OnPolicyAlgorithm):
 
         model.models_num = num_models
         model._setup_model()
+
+        # --- Ensure Decider exists after loading a pretrained MultiPPO model ---
+        try:
+            # If the environment requests decider-based switching, create and attach a DeciderPolicy
+            if hasattr(env.unwrapped, 'network_switcher') and env.unwrapped.network_switcher == "decider":
+                obs_dim = model.observation_space.shape[0]
+                # create a new decider model compatible with the loaded MultiPPO model count
+                from myGym.stable_baselines_mygym.decider import DeciderPolicy
+                model.decider = DeciderPolicy(obs_dim=obs_dim, num_networks=model.models_num)
+                # Reset runtime lock state so Decider will pick immediately after load
+                model.current_network_idx = None
+                model.lock_until_step = 0
+                model.step_counter = 0
+                # Attach decider to the env reward so reward.decide() can call it
+                if hasattr(env, 'get_attr'):  # vec envs
+                    try:
+                        env.get_attr("reward")[0].decider_model = model.decider
+                    except Exception:
+                        pass
+                elif hasattr(env, 'reward'):
+                    env.reward.decider_model = model.decider
+                print("Decider re-initialized and attached after model load.")
+        except Exception as e:
+            print(f"Warning: failed to re-init decider after load: {e}")
+        # --- end decider re-init ---
+
         i = 0
         for submodel in model.models:
             params = load[i][1]

@@ -21,6 +21,7 @@ os.environ["VECLIB_MAXIMUM_THREADS"] = "4"  # export VECLIB_MAXIMUM_THREADS=4
 os.environ["NUMEXPR_NUM_THREADS"] = "6"  # export NUMEXPR_NUM_THREADS=6
 
 try:
+    from stable_baselines3.common.callbacks import BaseCallback
     from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor
     from stable_baselines3.common.monitor import Monitor
     from stable_baselines3.common.env_util import make_vec_env
@@ -119,14 +120,16 @@ def configure_implemented_combos(env, model_logdir, arg_dict):
     implemented_combos = {"ppo": {}, "sac": {}, "td3": {}, "a2c": {}, "multippo": {}}
 
     implemented_combos["ppo"]["pytorch"] = [PPO_P, ('MlpPolicy', env),
-                                            {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir,
+                                            {"n_steps": arg_dict["algo_steps"], "verbose": 1,
+                                             "tensorboard_log": model_logdir,
                                              "device": "cpu"}]
     implemented_combos["sac"]["pytorch"] = [SAC_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
     implemented_combos["td3"]["pytorch"] = [TD3_P, ('MlpPolicy', env), {"verbose": 1, "tensorboard_log": model_logdir}]
     implemented_combos["a2c"]["pytorch"] = [A2C_P, ('MlpPolicy', env), {"n_steps": arg_dict["algo_steps"], "verbose": 1,
                                                                         "tensorboard_log": model_logdir}]
     implemented_combos["multippo"]["pytorch"] = [MultiPPOSB3, ("MlpPolicy", env),
-                                                 {"n_steps": arg_dict["algo_steps"], "verbose": 1, "tensorboard_log": model_logdir,
+                                                 {"n_steps": arg_dict["algo_steps"], "verbose": 1,
+                                                  "tensorboard_log": model_logdir,
                                                   "device": "cpu", "n_models": arg_dict["num_networks"]}]
     return implemented_combos
 
@@ -139,8 +142,9 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     arg_dict["pretrained_model"] = model_logdir
     seed = arg_dict.get("seed", None)
     steps = 0
+
+    # creating train.json when training from scratch
     if not pretrained_model:
-        # creating train.json when training from scratch
         with open(conf_pth, "w") as f:
             json.dump(arg_dict, f, indent=4)
         with open(os.path.join(model_logdir, "trained_steps.txt"), "a+") as f:
@@ -152,6 +156,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             line = lines[-1]
             steps = int(line)
         model_logdir = pretrained_model
+
     model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
     model_kwargs = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][2]
     if seed is not None:
@@ -168,6 +173,36 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
             vec_env = env
         model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(pretrained_model, vec_env,
                                                                                           device="cpu")
+
+        # === FIX: Reset decider state when loading pretrained model ===
+        try:
+            print(">>> Resetting Decider after loading pretrained model")
+
+            # Reset runtime decider state so it will pick immediately
+            if hasattr(model, "current_network_idx"):
+                model.current_network_idx = None
+            if hasattr(model, "lock_until_step"):
+                model.lock_until_step = 0
+            if hasattr(model, "step_counter"):
+                model.step_counter = 0
+
+            # If using DeciderPolicy, ensure reward has decider_model
+            if 'vec_env' in locals():
+                env0 = vec_env.envs[0]
+            else:
+                env0 = env
+
+            reward_obj = getattr(env0, "reward", None)
+            if reward_obj is not None and hasattr(reward_obj, "decider_model"):
+                model.decider = reward_obj.decider_model
+                print(">>> Attached decider_model from reward to model.decider")
+            else:
+                print(">>> WARNING: reward does not contain decider_model")
+
+        except Exception as e:
+            print(">>> Error while resetting decider:", e)
+        # ==============================================================
+
     else:
         model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0](*model_args, **model_kwargs)
 
@@ -247,9 +282,9 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 
     # ------------------- Ensure model.decider references reward.decider_model -------------------
     try:
-        # 'model' should be the MultiPPO instance you just created or loaded
+        # 'model' should be the MultiPPO instance just created or loaded
         if 'model' in locals() and model is not None:
-            # decide which object has the reward we attached the decider to (env0 from earlier block)
+            # decide which object has the reward attached the decider to (env0 from earlier block)
             env_for_attach = None
             if 'vec_env' in locals() and vec_env is not None:
                 env_for_attach = vec_env
@@ -346,7 +381,7 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
 def get_parser():
     parser = argparse.ArgumentParser()
     # Environment
-    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_AG_RDDL.json",
+    parser.add_argument("-cfg", "--config", type=str, default="./configs/train_AGM_RDDL.json",
                         help="Config file path")
     parser.add_argument("-n", "--env_name", type=str, help="Environment name")
     parser.add_argument("-ws", "--workspace", type=str, help="Workspace name")
@@ -429,7 +464,7 @@ def get_parser():
                              "and exit the program (without the actual training taking place). Expected values are \"description\" "
                              "(generate a task description) or \"new_tasks\" (generate new tasks)")
 
-    #parser.add_argument("-ns", "--network_switcher", default="gt",
+    # parser.add_argument("-ns", "--network_switcher", default="gt",
     #                    help="How does a robot switch to next network (gt or keyboard)")
 
     return parser
@@ -495,13 +530,13 @@ def process_natural_language_command(cmd, env,
         msg = f"Unknown natural language command: {cmd}"
         raise Exception(msg)
 
-def automatic_argument_assignment(arg_dict):
 
+def automatic_argument_assignment(arg_dict):
     task_type_str = arg_dict.get("task_type")
     if task_type_str and isinstance(task_type_str, str):
         arg_dict["num_networks"] = len(task_type_str)
         arg_dict["reward"] = arg_dict["task_type"]
-        arg_dict["logdir"] = "./trained_models/"  + arg_dict["robot"] + "/" + arg_dict["task_type"]
+        arg_dict["logdir"] = "./trained_models/" + arg_dict["robot"] + "/" + arg_dict["task_type"]
         arg_dict["algo_steps"] = arg_dict["max_episode_steps"]
         print("Number of networks from task type is:", arg_dict["num_networks"])
         print("Reward type set to:", arg_dict["reward"])
@@ -511,8 +546,9 @@ def automatic_argument_assignment(arg_dict):
         arg_dict["num_networks"] = 1
         arg_dict["reward"] = "None"
 
-     # Default if task_type is missing, None, not a string, or empty
+    # Default if task_type is missing, None, not a string, or empty
     return arg_dict
+
 
 def main():
     parser = get_parser()
