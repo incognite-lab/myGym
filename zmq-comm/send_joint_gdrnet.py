@@ -1,6 +1,6 @@
-import zmq, json, time, argparse, os, re, shlex, subprocess, sys, commentjson
+import zmq, json, time, argparse, os, re, shlex, subprocess, sys
+import commentjson
 import numpy as np
-
 def run_test_and_get_npy(test_script: str, test_args: str = "", cwd: str = None) -> str:
     """
     execute test.py
@@ -59,10 +59,11 @@ def load_traj(npy_path: str) -> np.ndarray:
     traj = np.load(npy_path)
     if traj.ndim != 2:
         raise ValueError(f"Expected 2D array, got shape {traj.shape}")
-
+    """
     if traj.shape[1] < 7:
         raise ValueError(f"Trajectory has only {traj.shape[1]} columns; need at least 7.")
     traj = traj[:, :7]
+    """
     return traj
 
 def send_over_zmq(traj: np.ndarray, zmq_addr: str) -> dict:
@@ -76,7 +77,7 @@ def send_over_zmq(traj: np.ndarray, zmq_addr: str) -> dict:
 
     msg = {
         "cmd": "send",
-        "joint_names": [f"arm_right_{i}_joint" for i in range(1, 8)],
+        "joint_names": ["torso_lift_joint"]+ [f"arm_right_{i}_joint" for i in range(1, 8)]+ ["gripper_right_left_finger_gjoint", "gripper_right_right_finger_gjoint",],
         "data": data,
     }
 
@@ -88,8 +89,8 @@ def make_roundtrip(traj: np.ndarray) -> np.ndarray:
     """
     reach -> pause in final position -> reverse
     """
-    if traj.ndim != 2 or traj.shape[1] != 7:
-        raise ValueError("traj must be [T,7]")
+    #if traj.ndim != 2 or traj.shape[1] != 7:
+    #    raise ValueError("traj must be [T,7]")
     
     n_pause = 30
     last = traj[-1][None,:]
@@ -129,7 +130,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run test.py (optional), load joint_trajectory.npy, and send via ZMQ.")
     g = parser.add_mutually_exclusive_group(required=False)
     g.add_argument("--npy", help="Path to an existing joint_trajectory.npy")
-    g.add_argument("--test-script",default=os.path.abspath(os.path.join(os.path.dirname(__file__), "../myGym/test.py")), help="Path to test.py (to run and capture the produced joint_trajectory.npy)")
+    g.add_argument("--test-script",default=os.path.abspath(os.path.join(os.path.dirname(__file__), "../myGym/test_AG.py")), help="Path to test.py (to run and capture the produced joint_trajectory.npy)")
     #absolute path
     parser.add_argument("--test-args", default="", help="Arguments passed to test.py (as a single quoted string).")
     parser.add_argument("--cwd", default=os.path.abspath(os.path.join(os.path.dirname(__file__), "../myGym/")), help="Working directory to run test.py in.")
@@ -143,8 +144,8 @@ def main():
     parser.add_argument("--targets-file", default=os.path.abspath(os.path.join(os.path.dirname(__file__), "../zmq-comm/targets.txt")), help="Path to a text file with reach position")
     args = parser.parse_args()
 
-    path="/home/student/Documents/myGym/myGym/trained_models/tiago_dual_fix/A/joints_ppo_1/train.json"
-    print("[INFO] Check single-line targets file:",args.target_file)
+    path="/home/student/Documents/myGym/myGym/trained_models/tiago_dual_fix/AG/joints_gripper_ppo/train.json"
+    ##print("[INFO] Check single-line targets file:",args.target_file)
 
     last_mtime = None #Last Reload time of targets.txt
 
@@ -171,7 +172,7 @@ def main():
 
                     #Rewrite train.json
                     with open(path,"r") as f:
-                        config = commentjson(f)
+                        config = commentjson.load(f)
                     
                     config["task_objects"][0]["goal"]["sampling_area"][0] = target_np[0]
                     config["task_objects"][0]["goal"]["sampling_area"][1] = target_np[0]
@@ -186,7 +187,7 @@ def main():
                     print("[INFO] train.json Update")
 
                     base_args = strip_existing_target(args.test_args)
-                    run_args = (base_args + " " if base_args else "") + f"--target {line}"
+                    run_args = (base_args + " " if base_args else "") #+ f"--target {line}"
                     npy_path = run_test_and_get_npy(args.test_script, run_args, args.cwd)
                     traj = load_traj(npy_path)  
                     traj = make_roundtrip(traj)

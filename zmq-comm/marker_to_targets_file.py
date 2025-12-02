@@ -35,6 +35,7 @@ class MarkerTargetWriter:
             f.write(line)
 
         rospy.loginfo("wrote_file: %s", line.strip())
+        rospy.loginfo("object: %s", marker.ns)
 
     # def marker_cb(self, marker):
 

@@ -302,6 +302,25 @@ class TiagoTrajectoryController(object):
             rospy.loginfo("Waiting for action server: %s", self.action_name)
             if not self.client.wait_for_server(rospy.Duration(15)):
                 raise RuntimeError("No action server: %s" % self.action_name)
+        ## Gripper controller ----------------------------------------------------------------------------------
+        gripper_base_ns = 'gripper_%s_controller' % self.arm_side
+        self.gripper_action_name = gripper_base_ns + '/follow_joint_trajectory'
+        
+        self.gripper_client = actionlib.SimpleActionClient(
+            self.gripper_action_name,
+            FollowJointTrajectoryAction,
+        )
+        if no_wait_server:
+            rospy.loginfo("Not waiting for GRIPPER action server:%s", self.gripper_action_name)
+        else:
+            rospy.loginfo("Waiting for GRIPPER action server:%s", self.gripper_action_name)
+            try:
+                self.gripper_client.wait_for_server(rospy.Duration(5.0))
+            except rospy.ROSException:
+                rospy.logwarn("No gripper action server at %s (gripper will nout move)", self.gripper_action_name)
+                self.gripper_client = None
+                
+        ##-------------------------------------------------------------------------------------------------------
 
         # Publishers for visualization
         self.disp_pub = rospy.Publisher('/move_group/display_planned_path', DisplayTrajectory, queue_size=1)
@@ -392,6 +411,12 @@ class TiagoTrajectoryController(object):
         if cmd == 'send':
             joint_names = data.get('joint_names', None)
             positions = data.get('data', None)
+            # DebugLog
+            rospy.loginfo("ZMQ recv: %d joints, %d points", len(joint_names), len(positions))
+            if positions:
+                rospy.loginfo("first point len = %d", len(positions[0]))
+            rospy.loginfo("joint_name = %s", joint_names)
+            
             if not positions or not joint_names:
                 return {"ok": False, "err": "empty trajectory or names"}
 
@@ -665,6 +690,7 @@ class TiagoTrajectoryController(object):
         # preview (RViz) + print to console
         # self.visualize(traj, collisions)
         self._print_trajectory(arm_traj)
+        self._print_trajectory(gripper_traj)
 
         if preview_only:
             return True, "preview_only"
@@ -693,6 +719,16 @@ class TiagoTrajectoryController(object):
                                   feedback_cb=self._feedback_cb)
             rospy.loginfo("Goal sent: %d points (v_max=%.2f, a_max=%.2f, dt_min=%.2f)",
                           len(pts), v_max, a_max, dt_min)
+            ## GRIPPER goal-------------------------------------------------------------------------------------
+            if self.gripper_client is not None and gripper_traj is not None and len(gripper_traj.points) > 0:
+                try:
+                    gripper_goal = FollowJointTrajectoryGoal()
+                    gripper_goal.trajectory = gripper_traj
+                    self.gripper_client.send_goal(gripper_goal)
+                    rospy.loginfo("Sent GRIPPER trajectory with %d points.", len(gripper_traj.points))
+                except Exception as e:
+                    rospy.loginfo("Failed to send gripper trajectory: %s", e)
+            ##-------------------------------------------------------------------------------------------------
         return True, "goal_sent"
 
     # ---- action client callbacks & helpers ----

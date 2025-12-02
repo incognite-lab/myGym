@@ -1,4 +1,5 @@
-import zmq, json, time, argparse, os, re, shlex, subprocess, sys, commentjson
+import zmq, json, time, argparse, os, re, shlex, subprocess, sys
+import commentjson
 import numpy as np
 
 def run_test_and_get_npy(test_script: str, test_args: str = "", cwd: str = None) -> str:
@@ -150,7 +151,7 @@ def main():
         all_trajs = []
         for idx, target in enumerate(targets, 1):
             #tstr = f"{tgt[0]:.6f} {tgt[1]:.6f} {tgt[2]:.6f}"
-            run_args = (base_args + " " if base_args else "") + f"--target {target}"
+            run_args = (base_args + " " if base_args else "") #+ f"--target {target}"
             print(f"[INFO] === Sim {idx}/{len(targets)}: target {target} ===")
 
             path="/home/student/Documents/myGym/myGym/trained_models/tiago_dual_fix/A/joints_ppo_1/train.json"
