@@ -185,28 +185,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         self.target_kl = target_kl
         self.models = []
         self.current_network_idx = None
-        self.lock_until_step = 0
         self.step_counter = 0
-        self.switch_penalty_active = False
         self.last_network_idx = None
-        self.switch_penalty_coef = 0.007  # adjust if needed
-        self.switch_to_penalty_step = 90000  # switch mode after 100k steps
-
-        # Initialize Decider if selected
-        if hasattr(env.unwrapped, 'network_switcher') and env.unwrapped.network_switcher == "decider":
-            obs_dim = self.observation_space.shape[0]
-            self.decider = DeciderPolicy(obs_dim=obs_dim, num_networks=self.models_num)
-            self.env.reset()
-            # Reset decider hidden state at the start of an episode
-            if hasattr(self.env, 'reward'):
-                print("Setting decider model")
-                self.env.reward.decider_model = self.decider
-            else:
-                env.unwrapped.reward.decider_model = self.decider
-                print("Decider model set")
-        else:
-            print("NO DECIDER SELECTED, USING DEFAULT NETWORK SWITCHING. \n")
-            self.decider = None
 
         if _init_setup_model:
             self._setup_model()
@@ -321,96 +301,53 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             deterministic: bool = False,
     ) -> Tuple[np.ndarray, Optional[Tuple[np.ndarray, ...]]]:
         """
-        Get the policy action from an observation (and optional hidden state).
-        Includes sugar-coating to handle different observations (e.g. normalizing images).
-
-        :param observation: the input observation
-        :param state: The last hidden states (can be None, used in recurrent policies)
-        :param episode_start: The last masks (can be None, used in recurrent policies)
-            this corresponds to beginning of episodes,
-            where the hidden states of the RNN must be reset.
-        :param deterministic: Whether to return deterministic actions.
-        :return: the model's action and the next hidden state
-            (used in recurrent policies)
+        Get the policy action from an observation.
+        In this version, the active subpolicy index is obtained via
+        self.approved(), which internally calls Reward.network_switch_control(),
+        which in turn may call the Decider in 'decider' mode.
         """
-        self.step_counter += 1
+
         owner = self.approved(observation)
-        real_env = self.env.envs[0].unwrapped
 
-        # Multiprocessing
-        if isinstance(owner, list):
-            print("GOT HERE")
+        # Multiprocessing (VecEnv)
+        if isinstance(owner, list) or isinstance(owner, np.ndarray):
             owner = np.array(owner)
-            actions = np.zeros((self.n_envs, self.action_space.shape[0]))
+            actions = np.zeros((self.n_envs, self.action_space.shape[0]), dtype=np.float32)
 
-            for i in range(np.max(owner) + 1):
-                if self.decider is not None:
-                    if self.step_counter >= self.switch_to_penalty_step:
-                        # print("SWITCHING TO PENALTY MODE")
-                        self.switch_penalty_active = True
+            for i in range(self.models_num):
+                idxs = np.where(owner == i)[0]
+                if idxs.size == 0:
+                    continue
 
-                    if self.switch_penalty_active:
-                        network_idx = self.decider.predict(observation)
-                        if self.last_network_idx is not None and network_idx != self.last_network_idx:
-                            if hasattr(real_env.reward, "apply_switch_penalty"):
-                                real_env.reward.apply_switch_penalty(self.switch_penalty_coef)
-                        self.last_network_idx = network_idx
-                    else:
-                        if self.current_network_idx is None or self.step_counter >= self.lock_until_step:
-                            self.current_network_idx = self.decider.predict(observation)
-                            self.lock_until_step = self.step_counter + 20
-                            print(
-                                f"[Decider] Lock-in multi: selected network {self.current_network_idx} until {self.lock_until_step} step")
-                        print(f"Decider multiprocessing {self.current_network_idx}")
-                        network_idx = self.current_network_idx
-
-                    real_env.reward.current_network = network_idx
-                    print(f"[Decider] Selected network: {network_idx}")
                 model = self.models[i]
-                indices = np.where(owner == i)
-                action_i, state_i = model.policy.predict(observation, state, episode_start, deterministic)
-                actions[indices] = action_i[indices]
 
-        # Single process
-        else:
-            if self.decider is not None:
-                if self.step_counter >= self.switch_to_penalty_step:
-                    # print("SWITCHING TO PENALTY MODE")
-                    self.switch_penalty_active = True
-
-                if self.switch_penalty_active:
-                    network_idx = self.decider.predict(observation)
-                    if self.last_network_idx is not None and network_idx != self.last_network_idx:
-                        if hasattr(real_env.reward, "apply_switch_penalty"):
-                            real_env.reward.apply_switch_penalty(self.switch_penalty_coef)
-                    self.last_network_idx = network_idx
-                    print(f"[Decider] Selected network: {network_idx}")
+                # slice observations for this sub-batch
+                if isinstance(observation, dict):
+                    obs_i = {k: v[idxs] for k, v in observation.items()}
                 else:
-                    if self.current_network_idx is None or self.step_counter >= self.lock_until_step:
-                        reward_obj = real_env.reward
-                        old_idx = self.current_network_idx
-                        new_idx = self.decider.predict(observation)
+                    obs_i = observation[idxs]
 
-                        # flushing when switched to a new subpolicy
-                        if old_idx is not None and old_idx != new_idx:
-                            if hasattr(reward_obj, "on_subpolicy_end"):
-                                #print("FLUSHING")
-                                reward_obj.on_subpolicy_end(switched=True)
+                act_i, state_i = model.policy.predict(
+                    obs_i,
+                    state,
+                    episode_start[idxs] if episode_start is not None else None,
+                    deterministic,
+                )
+                actions[idxs] = act_i
 
-                        self.current_network_idx = new_idx
-                        self.lock_until_step = self.step_counter + 20
-                        #print(
-                        #    f"[Decider] Lock-in single: selected network {self.current_network_idx} until {self.lock_until_step} step")
+            return actions, state
 
-                    #print(f"Decider {self.current_network_idx}")
-                    network_idx = self.current_network_idx
-
-                real_env.reward.current_network = network_idx
+        # Single environment
+        else:
+            # owner may be scalar or 1-element list/array
+            if isinstance(owner, (list, tuple, np.ndarray)):
+                owner = int(owner[0])
             else:
-                print("NO DECIDER??")
+                owner = int(owner)
+
             model = self.models[owner]
             actions, state = model.policy.predict(observation, state, episode_start, deterministic)
-        return actions, state
+            return actions, state
 
     def eval_predict(
             self,
@@ -451,6 +388,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             policy.set_training_mode(True)
             # Update optimizer learning rate
             self._update_learning_rate(policy.optimizer)
+
         # Compute current clip range
         clip_range = self.clip_range(self._current_progress_remaining)  # type: ignore[operator]
         # Optional: clip range for the value function
@@ -468,117 +406,96 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             # Do a complete pass on the rollout buffer
             for rollout_data, owner in self.rollout_buffer.get(self.batch_size):
                 actions = rollout_data.actions
-                if self.decider:
+
+                # ----------------- DECIDER UPDATE BLOCK -----------------
+                if getattr(self, "decider", None) is not None:
                     obs_batch = rollout_data.observations
-                    rew_batch = rollout_data.returns
                     if obs_batch.shape[0] == 0:
-                        print("[Decider] Skipping empty batch")
-                        return
+                        # just skip if minibatch is empty for some reason
+                        decider_stats = None
+                    else:
+                        # find reward object in the (possibly vectorized) env
+                        reward_obj = None
+                        if hasattr(self.env, "get_attr"):
+                            # VecEnv / VecMonitor / SubprocVecEnv / DummyVecEnv
+                            try:
+                                reward_list = self.env.get_attr("reward")
+                                if reward_list and len(reward_list) > 0:
+                                    reward_obj = reward_list[0]
+                            except Exception:
+                                reward_obj = None
+                        else:
+                            # single env fallback
+                            reward_obj = getattr(self.env, "reward", None) or \
+                                         getattr(getattr(self.env, "unwrapped", None), "reward", None)
 
-                    #for o, r in zip(obs_batch, rew_batch):
-                    #    self.decider.store(o.cpu().numpy(), owner, owner, r.item(), self.curent_subpolicy_steps, self.subpolicy_success_flaf, (owner != self.previous_owner))
+                        decider_stats = None
+                        if reward_obj is not None and getattr(reward_obj, "finished_segments", None):
+                            # we now expect segments of the form:
+                            # (ret, steps, success, subpolicy_idx, switched, grasp_from_far, obs_seg)
+                            for (ret_seg, steps_seg, success_seg, subpolicy_idx_seg,
+                                 switched_seg, grasp_from_far_seg, obs_seg) in reward_obj.finished_segments:
+                                self.decider.store(
+                                    obs=obs_seg,
+                                    selected_action_idx=int(subpolicy_idx_seg),
+                                    subpolicy_idx=int(subpolicy_idx_seg),
+                                    return_=float(ret_seg),
+                                    steps_spent=int(steps_seg),
+                                    success=bool(success_seg),
+                                    switched=bool(switched_seg),
+                                    grasp_from_far=bool(grasp_from_far_seg),
+                                )
 
-                    # ---- decider store ----
-                    for o, r in zip(obs_batch, rew_batch):
-                        try:
-                            # reward object for the first env (works with DummyVecEnv / SubprocVecEnv)
-                            reward_obj = None
-                            # if env is VecEnv with .envs list (SB3 DummyVecEnv / SubprocVecEnv)
-                            if hasattr(self.env, "envs") and len(self.env.envs) > 0:
-                                # prefer unwrapped reward on envs[0]
-                                env0 = self.env.envs[0]
-                                reward_obj = getattr(env0, "reward", None) or getattr(env0, "unwrapped",
-                                                                                      None) and getattr(env0.unwrapped,
-                                                                                                        "reward", None)
-                            else:
-                                # single-environment case
-                                reward_obj = getattr(self.env, "reward", None) or getattr(self.env.unwrapped, "reward",
-                                                                                          None)
+                            # clear segments and last_* to avoid reusing them
+                            reward_obj.finished_segments = []
+                            reward_obj.last_subpolicy_return = None
+                            reward_obj.last_subpolicy_steps = None
+                            reward_obj.last_subpolicy_success = None
+                            reward_obj.last_subpolicy_switched = None
+                            if hasattr(reward_obj, "last_subpolicy_idx"):
+                                reward_obj.last_subpolicy_idx = None
 
-                            # defaults / fallbacks
-                            ret = None
-                            steps_spent = None
-                            success_flag = False
-                            switched_flag = False
-                            # current network index that acted (owner variable is available in scope)
-                            current_network_idx = owner
+                            # only update if we actually added new segments this pass
+                            if hasattr(self.decider, "global_step"):
+                                self.decider.global_step = self.num_timesteps
+                            decider_stats = self.decider.update()
 
-                            # If the reward object supplies flushed last_subpolicy_* values (from on_subpolicy_end)
-                            if reward_obj is not None:
-                                ret = getattr(reward_obj, "last_subpolicy_return", None)
-                                steps_spent = getattr(reward_obj, "last_subpolicy_steps", None)
-                                success_flag = bool(getattr(reward_obj, "last_subpolicy_success", False))
-                                switched_flag = bool(getattr(reward_obj, "last_subpolicy_switched", False))
-                                # attempt to get the index of the subpolicy that just ran (if reward exposes it)
-                                if getattr(reward_obj, "last_subpolicy_idx", None) is not None:
-                                    current_network_idx = int(reward_obj.last_subpolicy_idx)
-                                elif getattr(reward_obj, "current_network", None) is not None:
-                                    # fallback to current_network recorded on reward
-                                    current_network_idx = int(reward_obj.current_network)
-
-                            # Fallback to single-step reward if flushed cumulative value is missing
-                            if ret is None:
-                                # r is a tensor float for this timestep. Use that as a minimal signal.
-                                ret = float(r.item() if hasattr(r, "item") else float(r))
-                                if steps_spent is None:
-                                    steps_spent = 1
-
-                            # Ensure numeric types
-                            ret = float(ret)
-                            steps_spent = int(steps_spent) if steps_spent is not None else 1
-
-                            # Observation: prefer pre-flush observation; o is tensor -> numpy
-                            obs_np = o.cpu().numpy()
-
-                            # Call decider.store with full signature (works even if decider's store has defaults)
-                            self.decider.store(
-                                obs=obs_np,
-                                selected_action_idx=int(current_network_idx),
-                                subpolicy_idx=int(current_network_idx),
-                                return_=ret,
-                                steps_spent=steps_spent,
-                                success=bool(success_flag),
-                                switched=bool(switched_flag)
-                            )
-
-                            # Clear flushed values to avoid double-logging (optional but safe)
-                            if reward_obj is not None:
-                                try:
-                                    reward_obj.last_subpolicy_return = None
-                                    reward_obj.last_subpolicy_steps = None
-                                    reward_obj.last_subpolicy_success = None
-                                    reward_obj.last_subpolicy_switched = None
-                                    # and last_subpolicy_idx if you used it
-                                    if hasattr(reward_obj, "last_subpolicy_idx"):
-                                        reward_obj.last_subpolicy_idx = None
-                                except Exception:
-                                    pass
-
-                        except Exception as e:
-                            # don't crash training for decider logging issues
-                            print("Warning: decider.store skipped due to:", repr(e))
-                    # ---- end decider.store loop ----
-
-                    decider_stats = self.decider.update()
-                    if decider_stats:
+                    if decider_stats is not None:
+                        print(
+                            f"[Decider] t={self.num_timesteps} "
+                            f"loss={decider_stats['loss']:.3f} "
+                            f"ent={decider_stats['entropy']:.3f} "
+                            f"freqs={decider_stats['action_freqs']}"
+                        )
                         self.logger.record("trained_models/decider_loss", decider_stats["loss"])
                         self.logger.record("trained_models/decider_entropy", decider_stats["entropy"])
-                        if self.decider.temperature > 0.1 and self._n_updates % 100 == 0:
+
+                        # log usage frequencies per subpolicy
+                        if "action_freqs" in decider_stats:
+                            for i, f in enumerate(decider_stats["action_freqs"]):
+                                self.logger.record(f"trained_models/decider_action_freq_{i}", f)
+
+                        # optional temperature decay after some PPO updates
+                        if self._n_updates > 5000 and self.decider.temperature > 1.1 and self._n_updates % 2000 == 0:
                             self.decider.decay_temperature()
                         self.logger.record("trained_models/decider_temp", self.decider.temperature)
 
+                        # log running baselines per subpolicy
+                        for i, b in enumerate(decider_stats["baseline_means"]):
+                            self.logger.record(f"trained_models/decider_baseline_{i}", b)
+                # ----------------- END DECIDER UPDATE BLOCK -----------------
 
-                # Choose appropriate submodel
+                # choose appropriate submodel
                 model = self.models[owner]
 
                 if isinstance(self.action_space, spaces.Discrete):
-                    # Convert discrete action from float to long
+                    # convert discrete action from float to long
                     actions = rollout_data.actions.long().flatten()
                 values, log_prob, entropy = model.policy.evaluate_actions(rollout_data.observations, actions)
                 values = values.flatten()
-                # Normalize advantage
+                # normalize advantage
                 advantages = rollout_data.advantages
-                # Normalization does not make sense if mini batchsize == 1, see GH issue #325
+                # normalization does not make sense if mini batchsize == 1, see GH issue #325
                 if self.normalize_advantage and len(advantages) > 1:
                     advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
@@ -620,9 +537,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 loss = policy_loss + self.ent_coef * entropy_loss + self.vf_coef * value_loss
 
                 # Calculate approximate form of reverse KL Divergence for early stopping
-                # see issue #417: https://github.com/DLR-RM/stable-baselines3/issues/417
-                # and discussion in PR #419: https://github.com/DLR-RM/stable-baselines3/pull/419
-                # and Schulman blog: http://joschu.net/blog/kl-approx.html
                 with th.no_grad():
                     log_ratio = log_prob - rollout_data.old_log_prob
                     approx_kl_div = th.mean((th.exp(log_ratio) - 1) - log_ratio).cpu().numpy()
@@ -640,9 +554,11 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                 # Clip grad norm
                 th.nn.utils.clip_grad_norm_(model.policy.parameters(), self.max_grad_norm)
                 model.policy.optimizer.step()
+
             self._n_updates += 1
             if not continue_training:
                 break
+
         explained_vars = []
         owner_sizes = self.rollout_buffer.owner_sizes
         for i in range(self.models_num):
@@ -675,6 +591,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         self.logger.record("train/clip_range", clip_range)
         if self.clip_range_vf is not None:
             self.logger.record("train/clip_range_vf", clip_range_vf)
+
 
     def learn(
             self: SelfPPO,

@@ -7,6 +7,9 @@ import numpy as np
 GREEN = [0, 125, 0]
 RED = [125, 0, 0]
 
+INITIAL_LOCK = 20
+MIN_LOCK = 8
+LOCK_DECAY_STEPS = 200_000  # after this many global steps, MIN_LOCK is reached
 
 class Reward:
     """
@@ -21,41 +24,86 @@ class Reward:
         self.env = env
         self.task = task
         self.rewards_history = []
-        self.current_network = 0
+        if getattr(self.env, "network_switcher", "gt") == "decider":
+            self.current_network = None
+        else:
+            self.current_network = 0
         self.num_networks = env.num_networks
+        self.global_step = 0
         self.network_rewards = [0] * self.num_networks
 
     def network_switch_control(self, observation):
         # maybe remove this condition
-        if self.env.num_networks <= 1:
-            print("Cannot switch networks in a single-network scenario")
-        else:
-            if self.env.network_switcher == "gt" or self.env.network_switcher == "decider":
+        self.global_step += 1
+        if getattr(self.env, "num_networks", 1) <= 1:
+            self.current_network = 0
+            return self.current_network
+
+        if self.env.network_switcher == "gt":
+            # ground-truth switching: use internal rules
+            self.current_network = self.decide(observation)
+
+        elif self.env.network_switcher == "decider":
+            # decider-based: current_network is set from MultiPPOSB3.predict()
+            decider = getattr(self, "decider_model", None)
+            if decider is None:
+                print("NO DECIDER (NETWORK SWITCH CONTROL)")
                 self.current_network = self.decide(observation)
-
-                try:
-                    # Show which network Decider selected
-                    self.env.p.addUserDebugText(
-                        text=f"DeciderNetwork: {self.current_network}",
-                        textPosition=[0.7, 0.55, 0.3],  # GUI location
-                        textSize=1.2,
-                        lifeTime=0.3,
-                        textColorRGB=[1, 1, 0]  # yellow text
-                    )
-                except Exception as e:
-                    print(f"failed due {e}")
-
-            elif self.env.network_switcher == "keyboard":
-                keypress = self.env.p.getKeyboardEvents()
-                if 107 in keypress.keys() and keypress[107] == 1:  # K
-                    if self.current_network < self.num_networks - 1:
-                        self.current_network += 1
-                elif 106 in keypress.keys() and keypress[106] == 1:  # J
-                    if self.current_network > 0:
-                        self.current_network -= 1
             else:
-                raise NotImplementedError("Currently only implemented ground truth ('gt') network switcher")
-        return self.current_network
+                step = getattr(self.env, "episode_steps", 0)
+
+                # current lock length based on global_step
+                progress = min(1.0, self.global_step / LOCK_DECAY_STEPS)
+                lock_len = int(INITIAL_LOCK - progress * (INITIAL_LOCK - MIN_LOCK))
+
+                # first-time selection
+                if self.current_network is None:
+                    new_idx = int(decider.predict(observation))
+                    self.current_network = new_idx
+                    self.decider_lock_until_step = step + lock_len
+                    self._current_decider_obs = observation
+                    #print(f"[Reward/Decider] first lock-in: net={new_idx} until step {self.decider_lock_until_step}")
+                # allowed to reconsider after lock expires
+                elif step >= getattr(self, "decider_lock_until_step", 0):
+                    old_idx = self.current_network
+                    new_idx = int(decider.predict(observation))
+                    self._current_decider_obs = observation
+
+                    # If actually switched, close the previous segment for the decider
+                    if hasattr(self, "on_subpolicy_end") and old_idx is not None and new_idx != old_idx:
+                        try:
+                            self.on_subpolicy_end(switched=True)
+                        except TypeError:
+                            # in case on_subpolicy_end has no 'switched' arg (older class)
+                            self.on_subpolicy_end()
+
+                    self.current_network = new_idx
+                    self.decider_lock_until_step = step + lock_len
+                    #print(f"[Reward/Decider] lock-in: net={new_idx} until step {self.decider_lock_until_step}")
+            try:
+                # show which network decider selected
+                self.env.p.addUserDebugText(
+                    text=f"DeciderNetwork: {self.current_network}",
+                    textPosition=[0.7, 0.55, 0.3],
+                    textSize=1.2,
+                    lifeTime=0.3,
+                    textColorRGB=[1, 1, 0]  # yellow
+                )
+            except Exception as e:
+                print(f"failed due {e}")
+
+        elif self.env.network_switcher == "keyboard":
+            keypress = self.env.p.getKeyboardEvents()
+            if 107 in keypress.keys() and keypress[107] == 1:  # K
+                if self.current_network < self.num_networks - 1:
+                    self.current_network += 1
+            elif 106 in keypress.keys() and keypress[106] == 1:  # J
+                if self.current_network > 0:
+                    self.current_network -= 1
+        else:
+            raise NotImplementedError("Currently only implemented ground truth ('gt') network switcher")
+
+        return int(self.current_network)
 
     def compute(self, observation=None):
         raise NotImplementedError
@@ -108,7 +156,10 @@ class Protorewards(Reward):
         self.last_leave_dist = None
         self.prev_object_position = None
         self.was_near = False
-        self.current_network = 0
+        if getattr(self.env, "network_switcher", "gt") == "decider":
+            self.current_network = None
+        else:
+            self.current_network = 0
         self.eval_network_rewards = self.network_rewards
         self.network_rewards = [0] * self.num_networks
         self.has_left = False
@@ -123,14 +174,13 @@ class Protorewards(Reward):
         self.withdraw_threshold = 0.3
         self.opengr_threshold = self.env.robot.opengr_threshold
         self.closegr_threshold = self.env.robot.closegr_threshold
-        self.near_threshold = 0.05
+        self.near_threshold = 0.07
         self.lift_threshold = 0.1
-        # self.above_offset = [0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0]
         self.above_offset = 0.02
         self.reward_name = None
         self.iter = 1
 
-        # decider things
+        # decider integration state
         self._current_subpolicy_return = 0.0
         self._current_subpolicy_steps = 0
         self._current_subpolicy_success = False
@@ -138,6 +188,11 @@ class Protorewards(Reward):
         self.last_subpolicy_steps = None
         self.last_subpolicy_success = None
         self.last_subpolicy_switched = None
+        self.last_subpolicy_idx = None      # index of the subpolicy that just finished
+        self.finished_segments = []         # list[(ret, steps, success, idx, switched)]
+        self.decider_lock_until_step = 0   # env.episode_steps threshold for next possible switch
+        self._current_decider_obs = None
+
 
     def compute(self, observation=None):
         # inherit and define your sequence of protoactions here
@@ -216,31 +271,11 @@ class Protorewards(Reward):
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) * 0.8 + ((gripdist - self.last_grip_dist) * 0.3)
-        #print(f"APPROACH REWARD: {reward}")
+        reward = (self.last_approach_dist - dist) + (gripdist - self.last_grip_dist) * 0.2
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
         self.reward_name = "approach"
-        return reward
-
-    def withdraw_compute(self, gripper, object, gripper_states):
-        self.env.robot.set_magnetization(False)
-        dist = self.task.calc_distance(gripper[:3], object[:3])
-        gripdist = sum(gripper_states)
-        if self.last_approach_dist is None:
-            self.last_approach_dist = dist
-        if self.last_grip_dist is None:
-            self.last_grip_dist = gripdist
-        if dist >= self.withdraw_threshold:  # rewarding only up to distance which should finish the task
-            reward = 0  # This is done so that robot doesn't learn to drop object out of goal and then get the biggest
-            # reward by withdrawing without finishing the task
-        else:
-            reward = (dist - self.last_approach_dist) + ((gripdist - self.last_grip_dist) * 0.2)
-        self.last_approach_dist = dist
-        self.last_grip_dist = gripdist
-        self.network_rewards[self.current_network] += reward
-        self.reward_name = "withdraw"
         return reward
 
     def grasp_compute(self, gripper, object, gripper_states):
@@ -251,27 +286,11 @@ class Protorewards(Reward):
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) * 0.6 + ((self.last_grip_dist - gripdist) * 3.0)
-        #print(f"GRASP REWARD: {reward}")
+        reward = (self.last_approach_dist - dist) * 0.2 + (self.last_grip_dist - gripdist) * 10
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
         self.reward_name = "grasp"
-        return reward
-
-    def drop_compute(self, gripper, object, gripper_states):
-        self.env.robot.set_magnetization(True)
-        dist = self.task.calc_distance(gripper[:3], object[:3])
-        gripdist = sum(gripper_states)
-        if self.last_approach_dist is None:
-            self.last_approach_dist = dist
-        if self.last_grip_dist is None:
-            self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) * 0.2 + ((gripdist - self.last_grip_dist) * 3.0)
-        self.last_approach_dist = dist
-        self.last_grip_dist = gripdist
-        self.network_rewards[self.current_network] += reward
-        self.reward_name = "drop"
         return reward
 
     def move_compute(self, object, goal, gripper_states):
@@ -284,12 +303,46 @@ class Protorewards(Reward):
             self.last_move_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_move_dist - dist) * 0.7 + (self.last_grip_dist - gripdist) * 1.0
-        #print(f"MOVE REWARD: {reward}")
+
+        reward = (self.last_move_dist - dist) + (self.last_grip_dist - gripdist) * 0.1
         self.last_move_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
         self.reward_name = "move"
+        return reward
+
+    def drop_compute(self, gripper, object, gripper_states):
+        self.env.robot.set_magnetization(True)
+        dist = self.task.calc_distance(gripper[:3], object[:3])
+        gripdist = sum(gripper_states)
+        if self.last_approach_dist is None:
+            self.last_approach_dist = dist
+        if self.last_grip_dist is None:
+            self.last_grip_dist = gripdist
+        reward = (self.last_approach_dist - dist) * 0.2 + (gripdist - self.last_grip_dist) * 10.0
+        self.last_approach_dist = dist
+        self.last_grip_dist = gripdist
+        self.network_rewards[self.current_network] += reward
+        self.reward_name = "drop"
+        return reward
+
+    def withdraw_compute(self, gripper, object, gripper_states):
+        self.env.robot.set_magnetization(False)
+        dist = self.task.calc_distance(gripper[:3], object[:3])
+        gripdist = sum(gripper_states)
+        if self.last_approach_dist is None:
+            self.last_approach_dist = dist
+        if self.last_grip_dist is None:
+            self.last_grip_dist = gripdist
+        if dist >= self.withdraw_threshold:  # rewarding only up to distance which should finish the task
+            reward = 0  # This is done so that robot doesn't learn to drop object out of goal and then get the biggest
+                        # reward by withdrawing without finishing the task
+        else:
+            reward = (dist - self.last_approach_dist) + (gripdist - self.last_grip_dist) * 0.2
+        self.last_approach_dist = dist
+        self.last_grip_dist = gripdist
+        self.network_rewards[self.current_network] += reward
+        self.reward_name = "withdraw"
         return reward
 
     def rotate_compute(self, object, goal, gripper_states):
@@ -393,8 +446,9 @@ class Protorewards(Reward):
         return False
 
     def object_near_goal(self, object, goal):
-        goal[2] += self.above_offset
-        distance = self.task.calc_distance(goal, object)
+        goal_local = goal.copy()
+        goal_local[2] += self.above_offset
+        distance = self.task.calc_distance(goal_local, object)
         if distance < self.near_threshold:
             return True
         return False
@@ -419,7 +473,6 @@ class A(Protorewards):
         if self.env.episode_terminated:
             reward += 0.2  # Adding reward for successful finish of episode
         self.last_owner = owner
-        # self.disp_reward(reward, owner)
         self.rewards_history.append(reward)
         self.rewards_num = 1
         return reward
@@ -442,18 +495,12 @@ class AaG(Protorewards):
         super().reset()
         self.network_names = ["approach", "grasp"]
 
-    def apply_switch_penalty(self, penalty_value):
-        self.network_rewards[self.current_network] -= penalty_value
-        print(f"[Penalty] Applied switch penalty of {penalty_value}: {self.network_rewards[self.current_network]}")
-
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
         target = [[object_position, goal_position, gripper_states], [object_position, goal_position, gripper_states]][
             owner]
         reward = [self.approach_compute, self.grasp_compute][owner](*target)
-        if self.env.episode_terminated:
-            reward += 0.5  # Adding reward for successful finish of episode
 
         # self.disp_reward(reward, owner)
         self.last_owner = owner
@@ -461,53 +508,73 @@ class AaG(Protorewards):
         self.rewards_num = 2
 
         # decider
-        self._current_subpolicy_steps += 1
-        if self.gripper_approached_object(object_position, goal_position):
-            if self.gripper_opened(gripper_states):
-                self._current_subpolicy_success = True
+        if self.env.network_switcher == "decider":
+            if self.env.episode_terminated:
+                if hasattr(self, "on_subpolicy_end"):
+                    self.on_subpolicy_end(switched=False)
 
-        if self.current_network == 1:
-            if self.gripper_approached_object(gripper_position, object_position):
-                if self.gripper_closed(gripper_states):
-                    self._current_subpolicy_success = True
-                    self.task.check_goal()
+            self._current_subpolicy_steps += 1
+            self._current_subpolicy_return += reward
 
-        # if hasattr(self.env, "decider_model"):
-        #    self.env.reward.decider_model.store(observation, owner, owner, reward, self._current_subpolicy_steps, self._current_subpolicy_success, switched)
+            if self.current_network == 0:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_opened(gripper_states):
+                        self._current_subpolicy_success = True
+
+            elif self.current_network == 1:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        self._current_subpolicy_success = True
         return reward
 
     # when network switch or subtask end happens (crucial)
-    def on_subpolicy_end(self, switched=False):
-        # flush accumulators for decider usage in gym_env.step() code above
+    def on_subpolicy_end(self, switched: bool = False):
+        """
+        Called whenever a subpolicy segment ends (either because we switched
+        to another subpolicy or the episode ended).
+
+        Accumulates a segment into finished_segments and also updates the
+        last_subpolicy_* fields for backward compatibility.
+        """
+        # append full segment to list for Decider
+        seg = (
+            self._current_subpolicy_return,
+            self._current_subpolicy_steps,
+            self._current_subpolicy_success,
+            self.current_network,
+            switched,
+        )
+        if hasattr(self, "finished_segments"):
+            self.finished_segments.append(seg)
+
+        # keep single "last_*" copy (in case something still uses it)
         self.last_subpolicy_return = self._current_subpolicy_return
         self.last_subpolicy_steps = self._current_subpolicy_steps
         self.last_subpolicy_success = self._current_subpolicy_success
         self.last_subpolicy_switched = switched
-        # reset running accumulators
+        self.last_subpolicy_idx = self.current_network
+
+        # reset accumulators for the next segment
         self._current_subpolicy_return = 0.0
         self._current_subpolicy_steps = 0
         self._current_subpolicy_success = False
 
+
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
-        if self.env.network_switcher == "decider":
-            self.task.check_episode_steps()
-            if self.gripper_approached_object(object_position, goal_position) and self.gripper_closed(gripper_states):
-                self.task.check_goal()
-            return self.env.reward.decider_model.predict(observation)
-        elif self.env.network_switcher == "keyboard":
+        if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
-        else:
+        elif self.env.network_switcher == "gt":
             if self.current_network == 0:
-                if self.gripper_approached_object(object_position, goal_position):
+                if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_opened(gripper_states):
                         self.current_network = 1
-            if self.current_network == 1:
-                if self.gripper_closed(gripper_states):
-                    self.task.check_goal()
-            self.task.check_episode_steps()
-            return self.current_network
+        if self.current_network == 1:
+            if self.gripper_closed(gripper_states):
+                self.task.check_goal()
+        self.task.check_episode_steps()
+        return self.current_network
 
 
 class AaGaM(Protorewards):
@@ -515,72 +582,107 @@ class AaGaM(Protorewards):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "move"]
 
+        self.grasp_far_threshold = 0.06
+        self._current_segment_start_dist = 0.0
+
     def reset(self):
         super().reset()
         self.network_names = ["approach", "grasp", "move"]
 
-    def apply_switch_penalty(self, penalty_value):
-        self.last_reward -= penalty_value
-        print(f"[Penalty] Applied switch penalty of {penalty_value}")
-
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
+
+        if self._current_subpolicy_steps == 0:
+            # first step of the current subpolicy segment
+            # distance between gripper and object at segment start
+            g = np.asarray(gripper_position, dtype=np.float32)
+            o = np.asarray(object_position, dtype=np.float32)
+            dist = np.linalg.norm(g[:3] - o[:3])
+            self._current_segment_start_dist = float(dist)
+
         target = \
             [[gripper_position, object_position, gripper_states], [gripper_position, object_position, gripper_states],
              [object_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute][owner](*target)
-        if self.env.episode_terminated:
-            reward += 0.5  # Adding reward for successful finish of episode
 
-        # self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 3
 
         # decider
-        self._current_subpolicy_steps += 1
-        if self.gripper_approached_object(object_position, goal_position):
-            if self.gripper_opened(gripper_states):
-                self._current_subpolicy_success = True
+        if self.env.network_switcher == "decider":
+            self._current_subpolicy_steps += 1
+            self._current_subpolicy_return += reward
 
-        if self.current_network == 1:
-            if self.gripper_approached_object(gripper_position, object_position):
-                if self.gripper_closed(gripper_states):
-                    self._current_subpolicy_success = True
-        if self.current_network == 2:
-            if self.gripper_approached_object(gripper_position, object_position):
-                if self.gripper_closed(gripper_states):
-                    if self.object_near_goal(object_position, goal_position):
+            if self.current_network == 0:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_opened(gripper_states):
                         self._current_subpolicy_success = True
-                        self.task.check_goal()
+
+            elif self.current_network == 1:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        self._current_subpolicy_success = True
+
+            elif self.current_network == 2:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        if self.object_near_goal(object_position, goal_position):
+                            self._current_subpolicy_success = True
+
+            if self.env.episode_terminated:
+                if hasattr(self, "on_subpolicy_end"):
+                    self.on_subpolicy_end(switched=False)
         return reward
 
     # when network switch or subtask end happens (crucial)
-    def on_subpolicy_end(self, switched=False):
-        # flush accumulators for decider usage in gym_env.step() code above
+    def on_subpolicy_end(self, switched: bool = False):
+        """
+        Called whenever a subpolicy segment ends (either because we switched
+        to another subpolicy or the episode ended).
+
+        Accumulates a segment into finished_segments and also updates the
+        last_subpolicy_* fields for backward compatibility.
+        """
+        # flag segments where grasp was used from too far
+        if self.current_network == 1:
+            grasp_from_far = float(self._current_segment_start_dist > self.grasp_far_threshold)
+        else:
+            grasp_from_far = 0.0
+
+        # append full segment to list for Decider
+        seg = (
+            self._current_subpolicy_return,
+            self._current_subpolicy_steps,
+            self._current_subpolicy_success,
+            self.current_network,
+            switched,
+            grasp_from_far,
+            self._current_decider_obs,
+        )
+        if hasattr(self, "finished_segments"):
+            self.finished_segments.append(seg)
+
+        # keep single "last_*" copy (in case something still uses it)
         self.last_subpolicy_return = self._current_subpolicy_return
         self.last_subpolicy_steps = self._current_subpolicy_steps
         self.last_subpolicy_success = self._current_subpolicy_success
         self.last_subpolicy_switched = switched
-        # reset running accumulators
+        self.last_subpolicy_idx = self.current_network
+
+        # reset accumulators for the next segment
         self._current_subpolicy_return = 0.0
         self._current_subpolicy_steps = 0
         self._current_subpolicy_success = False
+        self._current_segment_start_dist = 0.0
 
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
-        if self.env.network_switcher == "decider":
-            # if self.object_near_goal(object_position, goal_position):
-            self.task.check_episode_steps()
-            if self.gripper_approached_object(object_position, goal_position) and self.gripper_closed(gripper_states):
-                if self.object_near_goal(object_position, goal_position):
-                    self.task.check_goal()
-            return self.env.reward.decider_model.predict(observation)
-        elif self.env.network_switcher == "keyboard":
+        if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
-        else:
+        elif self.env.network_switcher == "gt":
             if self.current_network == 0:
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_opened(gripper_states):
@@ -589,11 +691,11 @@ class AaGaM(Protorewards):
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_closed(gripper_states):
                         self.current_network = 2
-            if self.current_network == 2:
-                if self.object_near_goal(object_position, goal_position):
-                    self.task.check_goal()
-            self.task.check_episode_steps()
-            return self.current_network
+        if self.current_network == 2:
+            if self.object_near_goal(object_position, goal_position):
+                self.task.check_goal()
+        self.task.check_episode_steps()
+        return self.current_network
 
 
 class AaGaR(Protorewards):
@@ -642,20 +744,39 @@ class AaGaR(Protorewards):
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 3  # Total number of networks is 3
+
+        # decider
+        if self.env.network_switcher == "decider":
+            if self.env.episode_terminated:
+                if hasattr(self, "on_subpolicy_end"):
+                    self.on_subpolicy_end(switched=False)
+
+            self._current_subpolicy_steps += 1
+            self._current_subpolicy_return += reward
+
+            if self.current_network == 0:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_opened(gripper_states):
+                        self._current_subpolicy_success = True
+
+            elif self.current_network == 1:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        self._current_subpolicy_success = True
+
+            elif self.current_network == 2:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        if self.object_near_goal(object_position, goal_position):
+                            self._current_subpolicy_success = True
         return reward
 
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
-        if self.env.network_switcher == "decider":
-            if self.object_near_goal(object_position, goal_position):
-                self.task.check_goal()
-            self.task.check_episode_steps()
-            return self.env.reward.decider_model.predict(observation)
-
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
-        else:
+        elif self.env.network_switcher == "gt":
             # Ground truth logic for switching networks based on predicates
             if self.current_network == 0:  # approach
                 # Switch to grasp if gripper is near object and open
@@ -699,26 +820,49 @@ class AaGaMaD(Protorewards):
                   [object_position, goal_position, gripper_states],
                   [gripper_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute][owner](*target)
+
         if self.env.episode_terminated:
             reward += 0.2  # Adding reward for succesful finish of episode
-        # self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 4
+
+        # decider
+        if self.env.network_switcher == "decider":
+            if self.env.episode_terminated:
+                if hasattr(self, "on_subpolicy_end"):
+                    self.on_subpolicy_end(switched=False)
+
+            self._current_subpolicy_steps += 1
+            self._current_subpolicy_return += reward
+
+            if self.current_network == 0:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_opened(gripper_states):
+                        self._current_subpolicy_success = True
+
+            elif self.current_network == 1:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        self._current_subpolicy_success = True
+
+            elif self.current_network == 2:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        if self.object_near_goal(object_position, goal_position):
+                            self._current_subpolicy_success = True
+            elif self.current_network == 3:
+                if self.object_near_goal(object_position, goal_position):
+                    if self.gripper_opened(gripper_states):
+                        self._current_subpolicy_success = True
         return reward
 
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
-        if self.env.network_switcher == "decider":
-            # if self.gripper_opened(gripper_states):
-            self.task.check_goal()
-            self.task.check_episode_steps()
-            return self.env.reward.decider_model.predict(observation)
-
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
-        else:
+        elif self.env.network_switcher == "gt":
             if self.current_network == 0:
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_opened(gripper_states):
@@ -731,7 +875,6 @@ class AaGaMaD(Protorewards):
                 if self.object_near_goal(object_position, goal_position):
                     self.current_network = 3
         if self.current_network == 3:
-            # if self.gripper_approached_object(gripper_position, object_position):
             if self.gripper_opened(gripper_states):
                 self.task.check_goal()
         self.task.check_episode_steps()
@@ -743,16 +886,11 @@ class AaGaMaDaW(Protorewards):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "move", "drop", "withdraw"]
 
-    def apply_switch_penalty(self, penalty_value):
-        self.last_reward -= penalty_value
-        print(f"[Penalty] Applied switch penalty of {penalty_value}")
-
     def reset(self):
         super().reset()
         self.network_names = ["approach", "grasp", "move", "drop", "withdraw"]
 
     def compute(self, observation=None):
-
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = getattr(self, "current_network", self.decide(observation))
 
@@ -770,28 +908,53 @@ class AaGaMaDaW(Protorewards):
         if self.env.episode_terminated:
             reward += 1.0  # Adding reward for successful finish of episode
 
-        if hasattr(self.env, "decider_model"):
-            self.env.reward.decider_model.store(observation, owner, reward)
-
-        # self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5
         self.last_reward = reward
+
+        # decider
+        if self.env.network_switcher == "decider":
+            if self.env.episode_terminated:
+                if hasattr(self, "on_subpolicy_end"):
+                    self.on_subpolicy_end(switched=False)
+
+            self._current_subpolicy_steps += 1
+            self._current_subpolicy_return += reward
+
+            if self.current_network == 0:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_opened(gripper_states):
+                        self._current_subpolicy_success = True
+
+            elif self.current_network == 1:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        self._current_subpolicy_success = True
+
+            elif self.current_network == 2:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        if self.object_near_goal(object_position, goal_position):
+                            self._current_subpolicy_success = True
+                            self.task.check_goal()
+            elif self.current_network == 3:
+                if self.object_near_goal(object_position, goal_position):
+                    if self.gripper_opened(gripper_states):
+                        self._current_subpolicy_success = True
+            elif self.current_network == 4:
+                if self.object_near_goal(object_position, goal_position):
+                    if self.gripper_withdraw_object(gripper_position, object_position):
+                        if self.gripper_opened(gripper_states):
+                            self._current_subpolicy_success = True
         return reward
 
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
-        if self.env.network_switcher == "decider":
-            if self.gripper_withdraw_object(gripper_position, object_position):
-                self.task.check_goal()
-            self.task.check_episode_steps()
-            return self.env.reward.decider_model.predict(observation)
-
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
-        else:
+        elif self.env.network_switcher == "gt":
             if self.current_network == 0:
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_opened(gripper_states):
@@ -851,15 +1014,9 @@ class AaGaRaDaW(Protorewards):
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
-        if self.env.network_switcher == "decider":
-            if self.gripper_withdraw_object(gripper_position, object_position):
-                self.task.check_goal()
-            self.task.check_episode_steps()
-            return self.env.reward.decider_model.predict(observation)
-
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
-        else:
+        elif self.env.network_switcher == "gt":
             # Logic for switching networks based on predicates
             if self.current_network == 0:  # approach
                 if self.gripper_approached_object(gripper_position, object_position):
@@ -965,15 +1122,9 @@ class AaGaFaDaW(Protorewards):
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
-        if self.env.network_switcher == "decider":
-            if self.gripper_withdraw_object(gripper_position, object_position):
-                self.task.check_goal()
-            self.task.check_episode_steps()
-            return self.env.reward.decider_model.predict(observation)
-
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
-        else:
+        elif self.env.network_switcher == "gt":
             # Ground truth logic for switching networks based on predicates
             if self.current_network == 0:  # approach
                 # Switch to grasp if gripper is near object and open
@@ -1085,15 +1236,9 @@ class AaGaTaDaW(Protorewards):
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
 
-        if self.env.network_switcher == "decider":
-            if self.gripper_withdraw_object(gripper_position, object_position):
-                self.task.check_goal()
-            self.task.check_episode_steps()
-            return self.env.reward.decider_model.predict(observation)
-
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
-        else:
+        elif self.env.network_switcher == "gt":
             # Ground truth logic for switching networks based on predicates
             if self.current_network == 0:  # approach
                 # Switch to grasp if gripper is near object and open

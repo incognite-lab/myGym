@@ -563,41 +563,9 @@ class GymEnv(CameraEnv):
             info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
         if terminated or truncated:
+            if hasattr(self.unwrapped.reward, "on_subpolicy_end"):
+                self.unwrapped.reward.on_subpolicy_end(switched=False)
             self.successful_finish(info)  # Maybe only change to 'if terminated'? Probably not
-
-        try:
-            decider = None
-            if hasattr(self, "reward") and hasattr(self.reward, "decider_model"):
-                decider = self.reward.decider_model
-            elif hasattr(self.unwrapped, "reward") and hasattr(self.unwrapped.reward, "decider_model"):
-                decider = self.unwrapped.reward.decider_model
-
-            if decider is not None:
-                # compute return for the last subpolicy (must track this in reward or env)
-                # e.g.: if maintain `self.env.current_subpolicy_return` and `self.env.current_subpolicy_steps`
-                sub_idx = getattr(self, "current_network", None)  # or wherever current network index is stored
-                # fallback names: your reward class seems to use .current_network
-                if sub_idx is None and hasattr(self.unwrapped, "reward"):
-                    sub_idx = getattr(self.unwrapped.reward, "current_network", None)
-
-                # get last-subpolicy cumulative return and steps from reward (@TODO: may need to add these)
-                return_ = getattr(self.unwrapped.reward, "last_subpolicy_return", None)
-                steps_spent = getattr(self.unwrapped.reward, "last_subpolicy_steps", 1)
-                success_flag = getattr(self.unwrapped.reward, "last_subpolicy_success", False)
-                switched_flag = getattr(self.unwrapped, "last_subpolicy_switched", False)
-
-                # observations: use observation before reset
-                obs_for_decider = self._observation.copy()
-
-                # action chosen by decider if available, otherwise sub_idx
-                chosen_action = sub_idx
-
-                if (sub_idx is not None) and (return_ is not None):
-                    decider.store(obs_for_decider, chosen_action, subpolicy_idx=sub_idx,
-                                  return_=return_, steps_spent=steps_spent,
-                                  success=success_flag, switched=switched_flag)
-        except Exception as e:
-            print("Decider.store() skipped due to:", e)
 
         if self.task.subtask_over:
             self.reset(only_subtask=True)
