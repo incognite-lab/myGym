@@ -492,6 +492,7 @@ def test_model(
         deterministic: bool = False
 ) -> None:
     env.reset()
+    
     try:
         #TODO: maybe this if else is unnecessary?
         if "multi" in arg_dict["algo"]:
@@ -524,6 +525,16 @@ def test_model(
     for e in range(arg_dict["eval_episodes"]):
         done = False
         obs, info = env.reset()
+        
+        p.addUserDebugLine([0,0,0],[0,0,0.5], lineWidth=3)
+        for i in range(p.getNumBodies()):
+            name = p.getBodyInfo(i)[0].decode("utf-8")
+            print(i,name)
+        
+        #tiago_id = 0
+        #base_pos, base_orn = p.getBasePositionAndOrientation(tiago_id)
+        #print("Tiago base in mygym world", base_pos,base_orn)
+    
         is_successful = 0
         distance_error = 0
         # modify position to user setting

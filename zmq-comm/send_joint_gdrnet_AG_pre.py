@@ -144,7 +144,7 @@ def main():
     parser.add_argument("--targets-file", default=os.path.abspath(os.path.join(os.path.dirname(__file__), "../zmq-comm/targets.txt")), help="Path to a text file with reach position")
     args = parser.parse_args()
 
-    path="/home/student/Documents/myGym/myGym/trained_models/tiago_dual_fix/A/joints_ppo_1/train.json"
+    path="/home/student/Documents/myGym/myGym/trained_models/tiago_dual_fix/AG/joints_gripper_ppo/train.json"
     ##print("[INFO] Check single-line targets file:",args.target_file)
 
     last_mtime = None #Last Reload time of targets.txt
@@ -157,15 +157,9 @@ def main():
                 except OSError:
                     time.sleep(0.05)
                     continue
-                if last_mtime is None:
+                if(last_mtime is None) or (mtime > last_mtime):
                     last_mtime = mtime
-                    print("[INFO] targets.txt detected. Waiting for updates")
-                    time.sleep(0.05)
-                
-                if mtime > last_mtime:
-                    last_mtime = mtime
-                    print("[INFO] Detected update in targets.txt")
-                    
+
                     #Read one line from file
                     with open(args.targets_file, "r") as f:
                         line = f.read().strip()

@@ -3,6 +3,10 @@ import rospy
 from visualization_msgs.msg import Marker
 import numpy as np
 import os
+import tf
+from geometry_msgs.msg import PoseStamped
+
+
 
 class MarkerTargetWriter:
     def __init__(self, target_file, topic_name="/gdrnet_meshes_estimated"):
@@ -13,6 +17,10 @@ class MarkerTargetWriter:
         self.stable_count = 0          # 連続で同じ座標が来た回数
         self.REQUIRED_STABLE = 5       # 何フレーム続いたら「確定」とするか
         self.POS_EPS = 0.01            # 許容誤差 [m]
+        
+        #TF
+        self.listener = tf.TransformListener()
+        rospy.sleep(1.0)
 
         self.sub = rospy.Subscriber(topic_name, Marker,
                                     self.get_marker, queue_size=1)
@@ -20,13 +28,45 @@ class MarkerTargetWriter:
         rospy.loginfo("MarkerTargetWriter started.")
         rospy.loginfo("  subscribing topic : %s", topic_name)
         rospy.loginfo("  writing target to : %s", self.target_file)
+        
+    # gripper_link to base_footprint
+    def _transform_to_base(self, marker):
+        rospy.loginfo("Detected object: %s", marker.ns)
+        # Marker -> PoseStamped（元のframe_idは marker.header.frame_id = "gripper_link"）
+        pose_gripper = PoseStamped()
+        #pose_gripper.header = marker.header
+        pose_gripper.header.stamp = rospy.Time(0)
+        pose_gripper.header.frame_id = "gripper_right_link"
+        
+        pose_gripper.pose = marker.pose
 
-    def get_marker(self,marker):
-        #get all
-        p = marker.pose.position
+        target_frame = "xtion_rgb_optical_frame"   # Tiago camera
+
+        try:
+            pose_base = self.listener.transformPose(target_frame, pose_gripper)
+        except (tf.LookupException,
+                tf.ConnectivityException,
+                tf.ExtrapolationException) as e:
+            rospy.logwarn("TF transform failed: %s", str(e))
+            return None
+
+        p = pose_base.pose.position
+        
+        rospy.loginfo("target in %s: x=%.3f y=%.3f z=%.3f",
+                    target_frame, p.x, p.y, p.z)
+        return p
+
+
+    def get_marker(self, marker):
+        p = self._transform_to_base(marker)
+        if p is None:
+            return  
+
         x, y, z = p.x, p.y, p.z
+        z_c = p.z
+        z_m = -z_c
+        line = f"{x:.6f} {y:.6f} {z_m:.6f}\n"
 
-        line = f"{x:.6f}, {y:.6f}, {z:.6f}\n"
         dirname = os.path.dirname(self.target_file)
         if dirname:
             os.makedirs(dirname, exist_ok=True)
@@ -35,7 +75,7 @@ class MarkerTargetWriter:
             f.write(line)
 
         rospy.loginfo("wrote_file: %s", line.strip())
-        rospy.loginfo("object: %s", marker.ns)
+
 
     # def marker_cb(self, marker):
 
