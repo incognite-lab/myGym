@@ -89,39 +89,36 @@ def calculate_home_joint_angles(robot_id, end_effector_idx, joint_idxs, home_pos
 
 
 def reset_robot_with_joint_angles(robot_id, joint_idxs, joint_angles):
-    """Reset robot joints to specified angles using motor commands.
+    """Reset robot joints to specified angles by directly setting joint states.
     
     Args:
         robot_id: PyBullet robot ID
         joint_idxs: List of controllable joint indices
         joint_angles: List of target joint angles
     """
-    # Set motor commands to move to target joint angles
-    p.setJointMotorControlArray(
-        bodyUniqueId=robot_id,
-        jointIndices=joint_idxs,
-        controlMode=p.POSITION_CONTROL,
-        targetPositions=joint_angles,
-        forces=[100] * len(joint_idxs),
-        targetVelocities=[0.1] * len(joint_idxs)
-    )
-    
-    # Run simulation for 50 steps to let motors reach target
-    for _ in range(100):
-        p.stepSimulation()
-        #time.sleep(0.1)
+    # Directly reset joint states to target angles
+    for joint_idx, angle in zip(joint_idxs, joint_angles):
+        p.resetJointState(robot_id, joint_idx, angle)
 
 
-def reset_robot_to_home(robot_id, end_effector_idx, joint_idxs, home_position=[0.0, 0.0, 3]):
-    """Reset robot to home position by moving end effector to specified position.
+def reset_robot_to_home(robot_id, end_effector_idx, joint_idxs, robot_info):
+    """Reset robot to home position using default_joint_ori from robot info.
     
     Args:
         robot_id: PyBullet robot ID
         end_effector_idx: End effector link index
         joint_idxs: List of controllable joint indices
-        home_position: Target home position for end effector [x, y, z]
+        robot_info: Robot information dictionary containing default_joint_ori
     """
-    joint_angles = calculate_home_joint_angles(robot_id, end_effector_idx, joint_idxs, home_position)
+    # Get default joint orientations from robot info
+    default_joint_ori = robot_info.get('default_joint_ori', [0.0] * len(joint_idxs))
+    
+    # Ensure we have enough values for all joints
+    if len(default_joint_ori) < len(joint_idxs):
+        print(f"Warning: default_joint_ori has {len(default_joint_ori)} values but need {len(joint_idxs)}, padding with zeros")
+        default_joint_ori = list(default_joint_ori) + [0.0] * (len(joint_idxs) - len(default_joint_ori))
+    
+    joint_angles = default_joint_ori[:len(joint_idxs)]
     reset_robot_with_joint_angles(robot_id, joint_idxs, joint_angles)
     return joint_angles
 
@@ -187,14 +184,14 @@ def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target
         jointIndices=joint_idxs,
         controlMode=p.POSITION_CONTROL,
         targetPositions=target_positions,
-        forces=[100] * len(joint_idxs),
-        targetVelocities=[0.1] * len(joint_idxs)
+        forces=[50] * len(joint_idxs),
+        targetVelocities=[1] * len(joint_idxs)
     )
     
     # Run simulation for 100 steps to let motors reach target
     for _ in range(300):
         p.stepSimulation()
-        #time.sleep(0.1)
+        #time.sleep(0.01)
     
     # Check for collisions with all robot links
     #num_joints = p.getNumJoints(robot_id)
@@ -592,7 +589,7 @@ def test_robot_reachability(robot_key, r_dict, args):
     
     # Get workspace dictionary and determine which workspace to use
     ws_dict = get_workspace_dict()
-    workspace_key = "table_uni"  # default
+    workspace_key = "table_complex"  # default
     
     # Check if robot name is partially in any workspace key
     #for ws_key in ws_dict.keys():
@@ -700,9 +697,9 @@ def test_robot_reachability(robot_key, r_dict, args):
     print(f"End effector link index: {end_effector_idx}")
     
     # Reset robot to home position
-    home_position = [0.3, 0.2, 0.5]
-    print(f"Resetting robot to home position: {home_position}")
-    init_joint_angles = reset_robot_to_home(robot_id, end_effector_idx, joint_idxs, home_position)
+    print(f"Resetting robot to home position using default_joint_ori")
+    init_joint_angles = reset_robot_to_home(robot_id, end_effector_idx, joint_idxs, robot_info)
+    print(f"Home joint angles: {init_joint_angles}")
     
     # Prepare orientation if needed
     target_orientation = None

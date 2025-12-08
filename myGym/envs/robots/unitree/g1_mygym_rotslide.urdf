@@ -45,7 +45,7 @@
     <child link="pelvis"/>
     <parent link="base_footprint2"/>
     <axis xyz="0 0 1"/>
-    <limit effort="16" lower="-1.1780972451" upper="1.57079632679" velocity="1.95"/>
+    <limit effort="16" lower="-3.14" upper="3.14" velocity="1.95"/>
   </joint>
 
   <link name="pelvis">
