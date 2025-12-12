@@ -6,6 +6,11 @@ import os
 import tf
 from geometry_msgs.msg import PoseStamped
 
+from object_detector_msgs.srv import detectron2_service_server, estimate_pointing_gesture, estimate_poses
+from robokudo_msgs.msg import GenericImgProcAnnotatorAction, GenericImgProcAnnotatorResult, GenericImgProcAnnotatorFeedback, GenericImgProcAnnotatorGoal
+import actionlib
+from sensor_msgs.msg import Image, RegionOfInterest
+
 
 
 class MarkerTargetWriter:
@@ -15,7 +20,7 @@ class MarkerTargetWriter:
         # 安定化用
         self.last_pos = None           # 直前の座標
         self.stable_count = 0          # 連続で同じ座標が来た回数
-        self.REQUIRED_STABLE = 5       # 何フレーム続いたら「確定」とするか
+        #self.REQUIRED_STABLE = 5       # 何フレーム続いたら「確定」とするか
         self.POS_EPS = 0.01            # 許容誤差 [m]
         
         #TF
@@ -36,11 +41,11 @@ class MarkerTargetWriter:
         pose_gripper = PoseStamped()
         #pose_gripper.header = marker.header
         pose_gripper.header.stamp = rospy.Time(0)
-        pose_gripper.header.frame_id = "gripper_right_link"
+        pose_gripper.header.frame_id = "xtion_rgb_optical_frame"
         
         pose_gripper.pose = marker.pose
 
-        target_frame = "xtion_rgb_optical_frame"   # Tiago camera
+        target_frame = "base_footprint"   # Tiago camera
 
         try:
             pose_base = self.listener.transformPose(target_frame, pose_gripper)
@@ -51,6 +56,7 @@ class MarkerTargetWriter:
             return None
 
         p = pose_base.pose.position
+        #p = pose_gripper.pose.position
         
         rospy.loginfo("target in %s: x=%.3f y=%.3f z=%.3f",
                     target_frame, p.x, p.y, p.z)
@@ -63,9 +69,11 @@ class MarkerTargetWriter:
             return  
 
         x, y, z = p.x, p.y, p.z
-        z_c = p.z
-        z_m = -z_c
-        line = f"{x:.6f} {y:.6f} {z_m:.6f}\n"
+        y_c = x
+        x_c = -y
+        #z_c = p.z
+        #z_m = -z_c
+        line = f"{x_c:.6f} {y_c - 0.2:.6f} {z - 1.0:.6f}\n"
 
         dirname = os.path.dirname(self.target_file)
         if dirname:
@@ -119,7 +127,7 @@ def main():
                                 "/home/student/Documents/myGym/zmq-comm/targets.txt")
 
     # where test_obj_det_dev.py published
-    topic_name = rospy.get_param("~marker_topic", "/gdrnet_meshes_estimated")
+    topic_name = rospy.get_param("~marker_topic", "/gdrnet_meshes")
 
     MarkerTargetWriter(target_file, topic_name)
     #print("wait")
