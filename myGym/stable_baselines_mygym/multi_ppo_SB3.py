@@ -476,7 +476,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                                 self.logger.record(f"trained_models/decider_action_freq_{i}", f)
 
                         # optional temperature decay after some PPO updates
-                        if self._n_updates > 5000 and self.decider.temperature > 1.1 and self._n_updates % 2000 == 0:
+                        if self._n_updates > 5000 and self.decider.temperature > 1.1 and self._n_updates % 1000 == 0:
                             self.decider.decay_temperature()
                         self.logger.record("trained_models/decider_temp", self.decider.temperature)
 

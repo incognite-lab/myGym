@@ -149,7 +149,8 @@ class CustomEvalCallback(EvalCallback):
                 is_successful = not info['f']
 
                 if evaluation_env.unwrapped.reward.current_network != last_network:
-                    srewardsteps.put([last_network], steps - last_steps)
+                    # srewardsteps.put([last_network], steps - last_steps)
+                    srewardsteps[last_network] += (steps - last_steps)
                     srewardsuccess.put([last_network], 1)
                     last_network = evaluation_env.unwrapped.reward.current_network
                     last_steps = steps
@@ -167,7 +168,8 @@ class CustomEvalCallback(EvalCallback):
                 if self.physics_engine == "mujoco" and self.gui_on:  # Rendering for mujoco engine
                     evaluation_env.render()
                 steps += 1
-            srewardsteps.put([last_network], steps - last_steps)
+            # srewardsteps.put([last_network], steps - last_steps)
+            srewardsteps[last_network] += (steps - last_steps)
             if is_successful:
                 srewardsuccess.put([last_network], 1)
             subrewards.append(evaluation_env.unwrapped.reward.network_rewards)
@@ -392,7 +394,8 @@ class MultiPPOEvalCallback(EvalCallback):
 
                 if current_network != last_network:
                     if not done:
-                        srewardsteps.put([last_network], steps - last_steps)
+                        # srewardsteps.put([last_network], steps - last_steps)
+                        srewardsteps[last_network] += (steps - last_steps)
                         srewardsuccess.put([last_network], 1)
                         last_network = current_network
                         last_steps = steps
@@ -410,7 +413,8 @@ class MultiPPOEvalCallback(EvalCallback):
                 steps += 1
 
             #Save all gathered eval episode values
-            srewardsteps.put([last_network], steps - last_steps)
+            # srewardsteps.put([last_network], steps - last_steps)
+            srewardsteps[last_network] += (steps - last_steps)
             if is_successful:
                 srewardsuccess.put([last_network], 1)
             if isinstance(self.eval_env, VecEnv):
@@ -636,7 +640,8 @@ class PPOEvalCallback(EvalCallback):
                 is_successful = not info['f']
                 if current_network != last_network:
                     if not done:
-                        srewardsteps.put([last_network], steps - last_steps)
+                        # srewardsteps.put([last_network], steps - last_steps)
+                        srewardsteps[last_network] += (steps - last_steps)
                         srewardsuccess.put([last_network], 1)
                         last_network = current_network
                         last_steps = steps
@@ -656,7 +661,8 @@ class PPOEvalCallback(EvalCallback):
                 env_reward = self.eval_env.get_attr("reward")[0]
             else:
                 env_reward = self.eval_env.unwrapped.reward
-            srewardsteps.put([last_network], steps - last_steps)
+            # srewardsteps.put([last_network], steps - last_steps)
+            srewardsteps[last_network] += (steps - last_steps)
             if is_successful:
                 srewardsuccess.put([last_network], 1)
 

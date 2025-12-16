@@ -93,7 +93,7 @@ def configure_env(arg_dict: Dict[str, Any], model_logdir: str = None, for_train:
         "color_dict": arg_dict.get("color_dict", {}),
         "visgym": arg_dict["visgym"],
         "reward": arg_dict["reward"],
-        "logdir": arg_dict["logdir"],
+        "logdir": model_logdir if model_logdir is not None else arg_dict["logdir"],
         "vae_path": arg_dict["vae_path"],
         "yolact_path": arg_dict["yolact_path"],
         "yolact_config": arg_dict["yolact_config"],
@@ -106,7 +106,6 @@ def configure_env(arg_dict: Dict[str, Any], model_logdir: str = None, for_train:
 
     obs_space = "dict" if arg_dict["algo"] == "her" else "default"
     env = gym.make(arg_dict["env_name"], **env_arguments, obs_space=obs_space)
-
     # Set max episode steps for non-HER environments
     if arg_dict["algo"] != "her":
         env.spec.max_episode_steps = 512
@@ -640,7 +639,8 @@ def main():
                 add += 1
     else:
         # renewing training: logdir is the parent of the checkpoint
-        model_logdir = os.path.dirname(arg_dict["pretrained_model"])
+        model_logdir = arg_dict["pretrained_model"]
+        # model_logdir = os.path.dirname(arg_dict["pretrained_model"])
 
     # environment setup (vectorized or single)
     if arg_dict["multiprocessing"] and int(arg_dict["multiprocessing"]) > 0:
@@ -648,7 +648,7 @@ def main():
         print(f"Initializing {NUM_CPU} vectorized environments...")
         env = SubprocVecEnv([make_env(arg_dict, i, model_logdir=model_logdir) for i in range(NUM_CPU)])
         # VecMonitor is applied inside make_env for SubprocVecEnv, but we need it here for the wrapper:
-        # env = VecMonitor(env, model_logdir)
+        env = VecMonitor(env, model_logdir)
     else:
         env = configure_env(arg_dict, model_logdir, for_train=True)
 

@@ -7,9 +7,10 @@ import numpy as np
 GREEN = [0, 125, 0]
 RED = [125, 0, 0]
 
-INITIAL_LOCK = 20
+INITIAL_LOCK = 30
 MIN_LOCK = 8
-LOCK_DECAY_STEPS = 200_000  # after this many global steps, MIN_LOCK is reached
+LOCK_DECAY_STEPS = 400_000  # after this many global steps, MIN_LOCK is reached
+WARMUP_STEPS = 150_000 # change to 0 if training with pretrained model
 
 class Reward:
     """
@@ -24,20 +25,72 @@ class Reward:
         self.env = env
         self.task = task
         self.rewards_history = []
+
         if getattr(self.env, "network_switcher", "gt") == "decider":
             self.current_network = None
         else:
             self.current_network = 0
+
         self.num_networks = env.num_networks
         self.global_step = 0
         self.network_rewards = [0] * self.num_networks
 
+        self._last_decider_choice = None
+        # GT-warmup -> Decider handoff (coverage by successful segments)
+        self._decider_warmup_done = False
+        self._decider_warmup_success_counts = np.zeros(self.num_networks, dtype=np.int32)
+
     def network_switch_control(self, observation):
-        # maybe remove this condition
         self.global_step += 1
+
         if getattr(self.env, "num_networks", 1) <= 1:
             self.current_network = 0
+            self._last_decider_choice = 0
             return self.current_network
+
+        # Always compute decider prediction (even during warmup) for logging/debug
+        if getattr(self.env, "network_switcher", "gt") == "decider":
+            decider = getattr(self, "decider_model", None)
+            if decider is not None:
+                try:
+                    self._last_decider_choice = int(decider.predict(observation))
+                except Exception:
+                    self._last_decider_choice = self.current_network
+
+        # GT warmup until each subpolicy produced >=1 successful segment
+        if self.env.network_switcher == "decider" and not getattr(self, "_decider_warmup_done", False):
+            # still warming up if some policies have 0 successful segments, and we are below the cap
+            need_coverage = np.any(self._decider_warmup_success_counts == 0) and (self.global_step < WARMUP_STEPS)
+            if need_coverage:
+                old_idx = int(self.current_network) if self.current_network is not None else 0
+
+                # use GT logic for switching, but keep env.network_switcher="decider" outside this call
+                orig = self.env.network_switcher
+                try:
+                    self.env.network_switcher = "gt"
+                    new_idx = self.decide(observation)
+                finally:
+                    self.env.network_switcher = orig
+
+                if new_idx is None:
+                    new_idx = old_idx
+                new_idx = int(new_idx)
+
+                # if GT caused a switch, close the previous segment so it gets recorded/counts
+                if new_idx != old_idx and hasattr(self, "on_subpolicy_end"):
+                    if getattr(self, "_current_subpolicy_steps", 0) > 0:
+                        try:
+                            self.on_subpolicy_end(switched=True)
+                        except TypeError:
+                            self.on_subpolicy_end()
+
+                self.current_network = new_idx
+                self._last_decider_choice = new_idx
+                return int(self.current_network)
+
+            # coverage achieved OR cap reached -> allow decider logic from now on
+            self._decider_warmup_done = True
+            print(f"Decider warmup is finished at step {self.global_step}")
 
         if self.env.network_switcher == "gt":
             # ground-truth switching: use internal rules
@@ -49,6 +102,9 @@ class Reward:
             if decider is None:
                 print("NO DECIDER (NETWORK SWITCH CONTROL)")
                 self.current_network = self.decide(observation)
+                if self.current_network is None:
+                    self.current_network = 0
+                self._last_decider_choice = int(self.current_network)
             else:
                 step = getattr(self.env, "episode_steps", 0)
 
@@ -60,13 +116,15 @@ class Reward:
                 if self.current_network is None:
                     new_idx = int(decider.predict(observation))
                     self.current_network = new_idx
+                    self._last_decider_choice = new_idx
                     self.decider_lock_until_step = step + lock_len
                     self._current_decider_obs = observation
-                    #print(f"[Reward/Decider] first lock-in: net={new_idx} until step {self.decider_lock_until_step}")
+                    print(f"[Reward/Decider] first lock-in: net={new_idx} until step {self.decider_lock_until_step}")
                 # allowed to reconsider after lock expires
                 elif step >= getattr(self, "decider_lock_until_step", 0):
                     old_idx = self.current_network
                     new_idx = int(decider.predict(observation))
+                    self._last_decider_choice = new_idx
                     self._current_decider_obs = observation
 
                     # If actually switched, close the previous segment for the decider
@@ -74,12 +132,11 @@ class Reward:
                         try:
                             self.on_subpolicy_end(switched=True)
                         except TypeError:
-                            # in case on_subpolicy_end has no 'switched' arg (older class)
                             self.on_subpolicy_end()
 
                     self.current_network = new_idx
                     self.decider_lock_until_step = step + lock_len
-                    #print(f"[Reward/Decider] lock-in: net={new_idx} until step {self.decider_lock_until_step}")
+                    print(f"[Reward/Decider] lock-in: net={new_idx} until step {self.decider_lock_until_step}")
             try:
                 # show which network decider selected
                 self.env.p.addUserDebugText(
@@ -92,6 +149,26 @@ class Reward:
             except Exception as e:
                 print(f"failed due {e}")
 
+        elif self.env.network_switcher == "cycle_fixed":
+            step = int(getattr(self.env, "episode_steps", 0))
+
+            max_ep = int(getattr(self.env, "max_episode_steps", 0) or 0)
+            if max_ep <= 0:
+                max_ep = 512
+
+            # init at episode start
+            if step == 0 or not hasattr(self, "cycle_budgets") or len(self.cycle_budgets) != self.num_networks:
+                base = max_ep // max(1, self.num_networks)
+                rem = max_ep % max(1, self.num_networks)
+                self.cycle_budgets = [base + (1 if i < rem else 0) for i in range(self.num_networks)]
+                self.current_network = 0
+                self.cycle_next_switch_step = self.cycle_budgets[0]
+                self.cycle_idx = 0
+            while step >= self.cycle_next_switch_step and self.cycle_idx < self.num_networks - 1:
+                self.cycle_idx += 1
+                self.current_network = self.cycle_idx
+                self.cycle_next_switch_step += self.cycle_budgets[self.cycle_idx]
+
         elif self.env.network_switcher == "keyboard":
             keypress = self.env.p.getKeyboardEvents()
             if 107 in keypress.keys() and keypress[107] == 1:  # K
@@ -101,7 +178,12 @@ class Reward:
                 if self.current_network > 0:
                     self.current_network -= 1
         else:
-            raise NotImplementedError("Currently only implemented ground truth ('gt') network switcher")
+            raise NotImplementedError("Currently only implemented ground truth ('gt'), decider and cycle_fixed network switchers")
+
+        if self.current_network is None:
+            self.current_network = 0
+        if self._last_decider_choice is None:
+            self._last_decider_choice = int(self.current_network)
 
         return int(self.current_network)
 
@@ -156,10 +238,16 @@ class Protorewards(Reward):
         self.last_leave_dist = None
         self.prev_object_position = None
         self.was_near = False
+
         if getattr(self.env, "network_switcher", "gt") == "decider":
-            self.current_network = None
+            # during GT warmup we must start from a valid index so GT predicates can advance
+            if getattr(self, "_decider_warmup_done", False):
+                self.current_network = None
+            else:
+                self.current_network = 0
         else:
             self.current_network = 0
+
         self.eval_network_rewards = self.network_rewards
         self.network_rewards = [0] * self.num_networks
         self.has_left = False
@@ -188,11 +276,25 @@ class Protorewards(Reward):
         self.last_subpolicy_steps = None
         self.last_subpolicy_success = None
         self.last_subpolicy_switched = None
-        self.last_subpolicy_idx = None      # index of the subpolicy that just finished
-        self.finished_segments = []         # list[(ret, steps, success, idx, switched)]
-        self.decider_lock_until_step = 0   # env.episode_steps threshold for next possible switch
+        self.last_subpolicy_idx = None  # index of the subpolicy that just finished
+        self.finished_segments = []  # list[(ret, steps, success, idx, switched)]
+        self.decider_lock_until_step = 0  # env.episode_steps threshold for next possible switch
         self._current_decider_obs = None
+        self._gt_log = []
+        self._last_gt_log_step = -1
+        self._last_decider_choice = None
+        # cycle_fixed baseline state (per-episode)
+        if getattr(self.env, "network_switcher", "gt") == "cycle_fixed":
+            k = int(getattr(self.env, "cycle_fixed_steps", 0) or 0)
+            if k <= 0:
+                max_ep = int(getattr(self.env, "max_episode_steps", 0) or 0)
+                if max_ep <= 0:
+                    max_ep = 512
+                k = max(1, max_ep // max(1, self.num_networks))
 
+            self.current_network = 0
+            self.cycle_fixed_k = k
+            self.cycle_next_switch_step = k
 
     def compute(self, observation=None):
         # inherit and define your sequence of protoactions here
@@ -303,7 +405,6 @@ class Protorewards(Reward):
             self.last_move_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-
         reward = (self.last_move_dist - dist) + (self.last_grip_dist - gripdist) * 0.1
         self.last_move_dist = dist
         self.last_grip_dist = gripdist
@@ -336,7 +437,7 @@ class Protorewards(Reward):
             self.last_grip_dist = gripdist
         if dist >= self.withdraw_threshold:  # rewarding only up to distance which should finish the task
             reward = 0  # This is done so that robot doesn't learn to drop object out of goal and then get the biggest
-                        # reward by withdrawing without finishing the task
+            # reward by withdrawing without finishing the task
         else:
             reward = (dist - self.last_approach_dist) + (gripdist - self.last_grip_dist) * 0.2
         self.last_approach_dist = dist
@@ -453,6 +554,55 @@ class Protorewards(Reward):
             return True
         return False
 
+    # when network switch or subtask end happens (crucial)
+    def on_subpolicy_end(self, switched: bool = False):
+        """
+        Called whenever a subpolicy segment ends (either because we switched
+        to another subpolicy or the episode ended).
+
+        Accumulates a segment into finished_segments and also updates the
+        last_subpolicy_* fields for backward compatibility.
+        """
+        # flag segments where grasp was used from too far
+        if self.current_network == 1:
+            grasp_from_far = float(self._current_segment_start_dist > self.grasp_far_threshold)
+        else:
+            grasp_from_far = 0.0
+
+        # append full segment to list for Decider
+        seg = (
+            self._current_subpolicy_return,
+            self._current_subpolicy_steps,
+            self._current_subpolicy_success,
+            self.current_network,
+            switched,
+            grasp_from_far,
+            self._current_decider_obs,
+        )
+        if hasattr(self, "finished_segments"):
+            self.finished_segments.append(seg)
+
+        # keep single "last_*" copy (in case something still uses it)
+        self.last_subpolicy_return = self._current_subpolicy_return
+        self.last_subpolicy_steps = self._current_subpolicy_steps
+        self.last_subpolicy_success = self._current_subpolicy_success
+        self.last_subpolicy_switched = switched
+        self.last_subpolicy_idx = self.current_network
+
+        # warmup coverage accounting: count successful segments per policy
+        if not getattr(self, "_decider_warmup_done", False):
+            try:
+                idx = int(self.current_network) if self.current_network is not None else 0
+                self._decider_warmup_success_counts[idx] += int(bool(self._current_subpolicy_success))
+            except Exception:
+                pass
+
+        # reset accumulators for the next segment
+        self._current_subpolicy_return = 0.0
+        self._current_subpolicy_steps = 0
+        self._current_subpolicy_success = False
+        self._current_segment_start_dist = 0.0
+
 
 # ATOMIC ACTIONS - Examples of 1-5 protorewards
 
@@ -490,6 +640,8 @@ class AaG(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp"]
+        self.grasp_far_threshold = 0.055
+        self._current_segment_start_dist = 0.0
 
     def reset(self):
         super().reset()
@@ -498,6 +650,14 @@ class AaG(Protorewards):
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
+
+        if self._current_subpolicy_steps == 0:
+            # distance between gripper and object at segment start
+            g = np.asarray(gripper_position, dtype=np.float32)
+            o = np.asarray(object_position, dtype=np.float32)
+            dist = np.linalg.norm(g[:3] - o[:3])
+            self._current_segment_start_dist = float(dist)
+
         target = [[object_position, goal_position, gripper_states], [object_position, goal_position, gripper_states]][
             owner]
         reward = [self.approach_compute, self.grasp_compute][owner](*target)
@@ -509,10 +669,6 @@ class AaG(Protorewards):
 
         # decider
         if self.env.network_switcher == "decider":
-            if self.env.episode_terminated:
-                if hasattr(self, "on_subpolicy_end"):
-                    self.on_subpolicy_end(switched=False)
-
             self._current_subpolicy_steps += 1
             self._current_subpolicy_return += reward
 
@@ -520,49 +676,18 @@ class AaG(Protorewards):
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_opened(gripper_states):
                         self._current_subpolicy_success = True
-
             elif self.current_network == 1:
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_closed(gripper_states):
                         self._current_subpolicy_success = True
+
+            if self.env.episode_terminated:
+                if hasattr(self, "on_subpolicy_end"):
+                    self.on_subpolicy_end(switched=False)
         return reward
-
-    # when network switch or subtask end happens (crucial)
-    def on_subpolicy_end(self, switched: bool = False):
-        """
-        Called whenever a subpolicy segment ends (either because we switched
-        to another subpolicy or the episode ended).
-
-        Accumulates a segment into finished_segments and also updates the
-        last_subpolicy_* fields for backward compatibility.
-        """
-        # append full segment to list for Decider
-        seg = (
-            self._current_subpolicy_return,
-            self._current_subpolicy_steps,
-            self._current_subpolicy_success,
-            self.current_network,
-            switched,
-        )
-        if hasattr(self, "finished_segments"):
-            self.finished_segments.append(seg)
-
-        # keep single "last_*" copy (in case something still uses it)
-        self.last_subpolicy_return = self._current_subpolicy_return
-        self.last_subpolicy_steps = self._current_subpolicy_steps
-        self.last_subpolicy_success = self._current_subpolicy_success
-        self.last_subpolicy_switched = switched
-        self.last_subpolicy_idx = self.current_network
-
-        # reset accumulators for the next segment
-        self._current_subpolicy_return = 0.0
-        self._current_subpolicy_steps = 0
-        self._current_subpolicy_success = False
-
 
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
-
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
         elif self.env.network_switcher == "gt":
@@ -581,8 +706,7 @@ class AaGaM(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "move"]
-
-        self.grasp_far_threshold = 0.06
+        self.grasp_far_threshold = 0.055
         self._current_segment_start_dist = 0.0
 
     def reset(self):
@@ -593,8 +717,27 @@ class AaGaM(Protorewards):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
 
+        if self.env.network_switcher == "decider":
+            # log GT vs Decider once per env step
+            step = int(getattr(self.env, "episode_steps", 0))
+            if step != int(getattr(self, "_last_gt_log_step", -1)):
+                # hypothetical GT transition from *current_network* (does not mutate)
+                gt_choice = int(self.current_network if self.current_network is not None else 0)
+
+                if gt_choice == 0:
+                    if self.gripper_approached_object(gripper_position, object_position) and self.gripper_opened(
+                            gripper_states):
+                        gt_choice = 1
+                elif gt_choice == 1:
+                    if self.gripper_approached_object(gripper_position, object_position) and self.gripper_closed(
+                            gripper_states):
+                        gt_choice = 2
+                dec_choice = int(getattr(self, "_last_decider_choice", self.current_network if self.current_network is not None else 0))
+
+                self._gt_log.append((step, gt_choice, dec_choice))
+                self._last_gt_log_step = step
+
         if self._current_subpolicy_steps == 0:
-            # first step of the current subpolicy segment
             # distance between gripper and object at segment start
             g = np.asarray(gripper_position, dtype=np.float32)
             o = np.asarray(object_position, dtype=np.float32)
@@ -632,50 +775,16 @@ class AaGaM(Protorewards):
                             self._current_subpolicy_success = True
 
             if self.env.episode_terminated:
+                os.makedirs(self.env.logdir, exist_ok=True)
+                save_path = os.path.join(self.env.logdir, "gt_vs_decider.txt")
+                with open(save_path, "a") as f:
+                    for step, gt, dec in self._gt_log:
+                        f.write(f"{self.env.episode_number},{step},{gt},{dec}\n")
+                self._gt_log = []
+
                 if hasattr(self, "on_subpolicy_end"):
                     self.on_subpolicy_end(switched=False)
         return reward
-
-    # when network switch or subtask end happens (crucial)
-    def on_subpolicy_end(self, switched: bool = False):
-        """
-        Called whenever a subpolicy segment ends (either because we switched
-        to another subpolicy or the episode ended).
-
-        Accumulates a segment into finished_segments and also updates the
-        last_subpolicy_* fields for backward compatibility.
-        """
-        # flag segments where grasp was used from too far
-        if self.current_network == 1:
-            grasp_from_far = float(self._current_segment_start_dist > self.grasp_far_threshold)
-        else:
-            grasp_from_far = 0.0
-
-        # append full segment to list for Decider
-        seg = (
-            self._current_subpolicy_return,
-            self._current_subpolicy_steps,
-            self._current_subpolicy_success,
-            self.current_network,
-            switched,
-            grasp_from_far,
-            self._current_decider_obs,
-        )
-        if hasattr(self, "finished_segments"):
-            self.finished_segments.append(seg)
-
-        # keep single "last_*" copy (in case something still uses it)
-        self.last_subpolicy_return = self._current_subpolicy_return
-        self.last_subpolicy_steps = self._current_subpolicy_steps
-        self.last_subpolicy_success = self._current_subpolicy_success
-        self.last_subpolicy_switched = switched
-        self.last_subpolicy_idx = self.current_network
-
-        # reset accumulators for the next segment
-        self._current_subpolicy_return = 0.0
-        self._current_subpolicy_steps = 0
-        self._current_subpolicy_success = False
-        self._current_segment_start_dist = 0.0
 
     def decide(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -707,6 +816,8 @@ class AaGaR(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "rotate"]
+        self.grasp_far_threshold = 0.055
+        self._current_segment_start_dist = 0.0
 
     def reset(self):
         super().reset()
@@ -716,6 +827,14 @@ class AaGaR(Protorewards):
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
+
+        if self._current_subpolicy_steps == 0:
+            # first step of the current subpolicy segment
+            # distance between gripper and object at segment start
+            g = np.asarray(gripper_position, dtype=np.float32)
+            o = np.asarray(object_position, dtype=np.float32)
+            dist = np.linalg.norm(g[:3] - o[:3])
+            self._current_segment_start_dist = float(dist)
 
         # Define targets for each protoreward function
         # Note: rotate_compute needs object_position and goal_position
@@ -735,10 +854,6 @@ class AaGaR(Protorewards):
         # Calculate reward using the function for the current network owner
         reward = reward_func_list[owner](*target)
 
-        # Add bonus for successful episode termination
-        if self.env.episode_terminated:
-            reward += 0.2
-
         # Display, log, and update history
         # self.disp_reward(reward, owner)
         self.last_owner = owner
@@ -747,10 +862,6 @@ class AaGaR(Protorewards):
 
         # decider
         if self.env.network_switcher == "decider":
-            if self.env.episode_terminated:
-                if hasattr(self, "on_subpolicy_end"):
-                    self.on_subpolicy_end(switched=False)
-
             self._current_subpolicy_steps += 1
             self._current_subpolicy_return += reward
 
@@ -769,6 +880,9 @@ class AaGaR(Protorewards):
                     if self.gripper_closed(gripper_states):
                         if self.object_near_goal(object_position, goal_position):
                             self._current_subpolicy_success = True
+        if self.env.episode_terminated:
+            if hasattr(self, "on_subpolicy_end"):
+                self.on_subpolicy_end(switched=False)
         return reward
 
     def decide(self, observation=None):
@@ -807,6 +921,8 @@ class AaGaMaD(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "move", "drop"]
+        self.grasp_far_threshold = 0.055
+        self._current_segment_start_dist = 0.0
 
     def reset(self):
         super().reset()
@@ -815,24 +931,29 @@ class AaGaMaD(Protorewards):
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
+
+        if self._current_subpolicy_steps == 0:
+            # first step of the current subpolicy segment
+            # distance between gripper and object at segment start
+            g = np.asarray(gripper_position, dtype=np.float32)
+            o = np.asarray(object_position, dtype=np.float32)
+            dist = np.linalg.norm(g[:3] - o[:3])
+            self._current_segment_start_dist = float(dist)
+
         target = [[gripper_position, object_position, gripper_states],
                   [gripper_position, object_position, gripper_states],
                   [object_position, goal_position, gripper_states],
                   [gripper_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute][owner](*target)
 
-        if self.env.episode_terminated:
-            reward += 0.2  # Adding reward for succesful finish of episode
+        # if self.env.episode_terminated:
+        #     reward += 0.2  # Adding reward for succesful finish of episode
         self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 4
 
         # decider
         if self.env.network_switcher == "decider":
-            if self.env.episode_terminated:
-                if hasattr(self, "on_subpolicy_end"):
-                    self.on_subpolicy_end(switched=False)
-
             self._current_subpolicy_steps += 1
             self._current_subpolicy_return += reward
 
@@ -855,6 +976,9 @@ class AaGaMaD(Protorewards):
                 if self.object_near_goal(object_position, goal_position):
                     if self.gripper_opened(gripper_states):
                         self._current_subpolicy_success = True
+        if self.env.episode_terminated:
+            if hasattr(self, "on_subpolicy_end"):
+                self.on_subpolicy_end(switched=False)
         return reward
 
     def decide(self, observation=None):
@@ -885,6 +1009,8 @@ class AaGaMaDaW(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "move", "drop", "withdraw"]
+        self.grasp_far_threshold = 0.055
+        self._current_segment_start_dist = 0.0
 
     def reset(self):
         super().reset()
@@ -893,6 +1019,14 @@ class AaGaMaDaW(Protorewards):
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = getattr(self, "current_network", self.decide(observation))
+
+        if self._current_subpolicy_steps == 0:
+            # first step of the current subpolicy segment
+            # distance between gripper and object at segment start
+            g = np.asarray(gripper_position, dtype=np.float32)
+            o = np.asarray(object_position, dtype=np.float32)
+            dist = np.linalg.norm(g[:3] - o[:3])
+            self._current_segment_start_dist = float(dist)
 
         target = [[gripper_position, object_position, gripper_states],
                   [gripper_position, object_position, gripper_states],
@@ -905,8 +1039,8 @@ class AaGaMaDaW(Protorewards):
                 owner](
                 *target)
 
-        if self.env.episode_terminated:
-            reward += 1.0  # Adding reward for successful finish of episode
+        # if self.env.episode_terminated:
+        #     reward += 1.0  # Adding reward for successful finish of episode
 
         self.last_owner = owner
         self.rewards_history.append(reward)
@@ -915,10 +1049,6 @@ class AaGaMaDaW(Protorewards):
 
         # decider
         if self.env.network_switcher == "decider":
-            if self.env.episode_terminated:
-                if hasattr(self, "on_subpolicy_end"):
-                    self.on_subpolicy_end(switched=False)
-
             self._current_subpolicy_steps += 1
             self._current_subpolicy_return += reward
 
@@ -947,6 +1077,9 @@ class AaGaMaDaW(Protorewards):
                     if self.gripper_withdraw_object(gripper_position, object_position):
                         if self.gripper_opened(gripper_states):
                             self._current_subpolicy_success = True
+        if self.env.episode_terminated:
+            if hasattr(self, "on_subpolicy_end"):
+                self.on_subpolicy_end(switched=False)
         return reward
 
     def decide(self, observation=None):
@@ -983,6 +1116,8 @@ class AaGaRaDaW(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "rotate", "drop", "withdraw"]
+        self.grasp_far_threshold = 0.055
+        self._current_segment_start_dist = 0.0
 
     def reset(self):
         super().reset()
@@ -992,6 +1127,15 @@ class AaGaRaDaW(Protorewards):
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
+
+        if self._current_subpolicy_steps == 0:
+            # first step of the current subpolicy segment
+            # distance between gripper and object at segment start
+            g = np.asarray(gripper_position, dtype=np.float32)
+            o = np.asarray(object_position, dtype=np.float32)
+            dist = np.linalg.norm(g[:3] - o[:3])
+            self._current_segment_start_dist = float(dist)
+
         # Updated target list for the new sequence of protorewards
         target = [[gripper_position, object_position, gripper_states],  # approach
                   [gripper_position, object_position, gripper_states],  # grasp
@@ -1003,8 +1147,8 @@ class AaGaRaDaW(Protorewards):
             [self.approach_compute, self.grasp_compute, self.rotate_compute, self.drop_compute, self.withdraw_compute][
                 owner](
                 *target)
-        if self.env.episode_terminated:
-            reward += 0.2  # Adding reward for succesful finish of episode
+        # if self.env.episode_terminated:
+        #     reward += 0.2  # Adding reward for succesful finish of episode
         # self.disp_reward(reward, owner)
         self.last_owner = owner
         self.rewards_history.append(reward)
@@ -1057,6 +1201,8 @@ class AaGaFaDaW(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "follow", "drop", "withdraw"]
+        self.grasp_far_threshold = 0.055
+        self._current_segment_start_dist = 0.0
 
     def reset(self):
         super().reset()
@@ -1066,6 +1212,14 @@ class AaGaFaDaW(Protorewards):
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
+
+        if self._current_subpolicy_steps == 0:
+            # first step of the current subpolicy segment
+            # distance between gripper and object at segment start
+            g = np.asarray(gripper_position, dtype=np.float32)
+            o = np.asarray(object_position, dtype=np.float32)
+            dist = np.linalg.norm(g[:3] - o[:3])
+            self._current_segment_start_dist = float(dist)
 
         # --- Get Trajectory for Follow ---
         # NOTE: Assumes the task object has a method or attribute to get the relevant trajectory
@@ -1168,6 +1322,8 @@ class AaGaTaDaW(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "transform", "drop", "withdraw"]
+        self.grasp_far_threshold = 0.055
+        self._current_segment_start_dist = 0.0
 
     def reset(self):
         super().reset()
@@ -1177,6 +1333,14 @@ class AaGaTaDaW(Protorewards):
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
         owner = self.decide(observation)
+
+        if self._current_subpolicy_steps == 0:
+            # first step of the current subpolicy segment
+            # distance between gripper and object at segment start
+            g = np.asarray(gripper_position, dtype=np.float32)
+            o = np.asarray(object_position, dtype=np.float32)
+            dist = np.linalg.norm(g[:3] - o[:3])
+            self._current_segment_start_dist = float(dist)
 
         # --- Get Trajectory for Transform ---
         # NOTE: Assumes the task object has a method or attribute to get the relevant trajectory
