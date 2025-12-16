@@ -483,7 +483,23 @@ def apply_target_to_env(env, target_np: np.ndarray) -> bool:
                 except Exception:
                     pass
     return False
-    
+
+def get_pb(env):
+    e = env
+    for _ in range(10):
+        if hasattr(e, "unwrapped"):
+            e = e.unwrapped
+        if hasattr(e, "env"):
+            e = e.env
+        else:
+            break
+
+    for attr in ["_p", "p", "bullet_client", "bc", "client"]:
+        if hasattr(e, attr):
+            return getattr(e, attr), e
+
+    import pybullet as p
+    return p, e
 def test_model(
         env: Any,
         model=None,
@@ -525,6 +541,23 @@ def test_model(
     for e in range(arg_dict["eval_episodes"]):
         done = False
         obs, info = env.reset()
+        
+        pb, _ = get_pb(env)
+        obj_id = 3  # ← apple (baseLinkName=apple)
+
+        pos, orn = pb.getBasePositionAndOrientation(obj_id)
+        pb.resetBaseVelocity(obj_id, [0, 0, 0], [0, 0, 0])
+
+        pb.createConstraint(
+            parentBodyUniqueId=obj_id,
+            parentLinkIndex=-1,
+            childBodyUniqueId=-1,
+            childLinkIndex=-1,
+            jointType=pb.JOINT_FIXED,
+            jointAxis=[0, 0, 0],
+            parentFramePosition=[0, 0, 0],
+            childFramePosition=pos,
+        )
         is_successful = 0
         distance_error = 0
         # modify position to user setting
@@ -571,6 +604,9 @@ def test_model(
             if q is not None and gq is not None:
                 q_arr = np.array(q + gq, dtype=float).ravel()
                 #print("q_shape:", q_arr.shape)
+                #safety clamp for gripper joints
+                q_arr[-2:] = np.maximum(q_arr[-2:], 0.032)
+                
                 joint_traj.append(q_arr)
                 
             try:

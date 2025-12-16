@@ -6,10 +6,10 @@ import os
 import tf
 from geometry_msgs.msg import PoseStamped
 
-from object_detector_msgs.srv import detectron2_service_server, estimate_pointing_gesture, estimate_poses
-from robokudo_msgs.msg import GenericImgProcAnnotatorAction, GenericImgProcAnnotatorResult, GenericImgProcAnnotatorFeedback, GenericImgProcAnnotatorGoal
-import actionlib
-from sensor_msgs.msg import Image, RegionOfInterest
+#from object_detector_msgs.srv import detectron2_service_server, estimate_pointing_gesture, estimate_poses
+#from robokudo_msgs.msg import GenericImgProcAnnotatorAction, GenericImgProcAnnotatorResult, GenericImgProcAnnotatorFeedback, GenericImgProcAnnotatorGoal
+#import actionlib
+#from sensor_msgs.msg import Image, RegionOfInterest
 
 
 
@@ -48,6 +48,7 @@ class MarkerTargetWriter:
         target_frame = "base_footprint"   # Tiago camera
 
         try:
+            #pose_camera = self.listener.transformPose("camera_origin", pose_gripper)
             pose_base = self.listener.transformPose(target_frame, pose_gripper)
         except (tf.LookupException,
                 tf.ConnectivityException,
@@ -73,7 +74,7 @@ class MarkerTargetWriter:
         x_c = -y
         #z_c = p.z
         #z_m = -z_c
-        line = f"{x_c:.6f} {y_c - 0.2:.6f} {z - 1.0:.6f}\n"
+        line = f"{x_c -0.1:.6f} {y_c - 0.2:.6f} {z - 1.0:.6f}\n"#difined manualy
 
         dirname = os.path.dirname(self.target_file)
         if dirname:

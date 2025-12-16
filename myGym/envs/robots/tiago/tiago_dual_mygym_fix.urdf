@@ -201,6 +201,22 @@
       </geometry>
     </collision>
   </link>
+    <link name="camera_origin">
+  <visual>
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+    <geometry>
+      <sphere radius="0.005"/>
+    </geometry>
+    <material name="yellow">
+      <color rgba="1 1 0 1"/>
+    </material>
+  </visual>
+</link>
+<joint name="camera_origin_joint" type="fixed">
+    	<parent link="head_2_link"/>
+    	<child link="camera_origin"/>
+    	<origin rpy="0 0 0" xyz="0.11 0.08 0.0"/>
+	</joint>
   <joint name="head_2_joint" type="fixed">
     <parent link="head_1_link"/>
     <child link="head_2_link"/>
