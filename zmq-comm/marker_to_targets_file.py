@@ -37,7 +37,7 @@ class MarkerTargetWriter:
     # gripper_link to base_footprint
     def _transform_to_base(self, marker):
         rospy.loginfo("Detected object: %s", marker.ns)
-        # Marker -> PoseStamped（元のframe_idは marker.header.frame_id = "gripper_link"）
+        # Marker -> PoseStamped（frame_id is marker.header.frame_id = "gripper_link"）
         pose_gripper = PoseStamped()
         #pose_gripper.header = marker.header
         pose_gripper.header.stamp = rospy.Time(0)

@@ -458,30 +458,30 @@ def parse_vec3(s: str):
         raise ValueError(f"--target expects 3 values, got {len(vals)}: {s}")
     return np.asarray(vals, dtype=float)
 
-def apply_target_to_env(env, target_np: np.ndarray) -> bool:
-    """
-    change env if it is wrong
-    """
-    for meth in ["set_target", "set_goal", "set_desired_goal"]:
-        if hasattr(env, meth):
-            try:
-                getattr(env, meth)(target_np)
-                return True
-            except Exception:
-                pass
+# def apply_target_to_env(env, target_np: np.ndarray) -> bool:
+#     """
+#     change env if it is wrong
+#     """
+#     for meth in ["set_target", "set_goal", "set_desired_goal"]:
+#         if hasattr(env, meth):
+#             try:
+#                 getattr(env, meth)(target_np)
+#                 return True
+#             except Exception:
+#                 pass
 
 
-    for obj in [env, getattr(env, "unwrapped", None)]:
-        if obj is None:
-            continue
-        for name in ["target", "goal", "desired_goal"]:
-            if hasattr(obj, name):
-                try:
-                    setattr(obj, name, np.asarray(target_np, dtype=float))
-                    return True
-                except Exception:
-                    pass
-    return False
+#     for obj in [env, getattr(env, "unwrapped", None)]:
+#         if obj is None:
+#             continue
+#         for name in ["target", "goal", "desired_goal"]:
+#             if hasattr(obj, name):
+#                 try:
+#                     setattr(obj, name, np.asarray(target_np, dtype=float))
+#                     return True
+#                 except Exception:
+#                     pass
+#     return False
     
 def test_model(
         env: Any,
@@ -539,16 +539,16 @@ def test_model(
         distance_error = 0
         # modify position to user setting
         target_np=parse_vec3(arg_dict.get("target",None))
-        if target_np is not None:
-            #env.fixed_target = target_np
-            ok=apply_target_to_env(env,target_np)
-            if not ok:
-                print("[WARN] Could not set target on this env; using default/random target.")
-            try:
-                obs=env._get_obs() if hasattr(env,"_get_obs") else obs
-            except Exception:
-                pass
-        print(f"[INFO] current target:",target_np)    
+        # if target_np is not None:
+        #     #env.fixed_target = target_np
+        #     ok=apply_target_to_env(env,target_np)
+        #     if not ok:
+        #         print("[WARN] Could not set target on this env; using default/random target.")
+        #     try:
+        #         obs=env._get_obs() if hasattr(env,"_get_obs") else obs
+        #     except Exception:
+        #         pass
+        # print(f"[INFO] current target:",target_np)    
         ##Definition of Storage Variables
         run_tag = datetime.now().strftime("%Y%m%d_%H%M%S")
         save_dir = os.path.join(model_logdir, "rollouts", run_tag, f"ep_{e:03d}")
