@@ -7,8 +7,44 @@ from typing import Any, Dict, List, Tuple, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import yaml
+
+# Color mapping for algorithms
+color_map: Dict[str, str] = {
+    "ppo": "red",
+    "ppo2": "green",
+    "multippo": "aquamarine",
+    "acktr": "yellow",
+    "multiacktr": "magenta",
+    "sac": "salmon",
+    "ddpg": "blue",
+    "a2c": "grey",
+    "acer": "brown",
+    "trpo": "gold",
+    "multippo2": "limegreen"
+}
+
+# Action dictionary
+dict_acts: Dict[str, str] = {
+    "A": "approach", "G": "grasp", "M": "move", "D": "drop",
+    "W": "withdraw", "R": "rotate", "T": "transform",
+    "F": "find", "r": "reach", "L": "leave"
+}
+
+# Color mapping for actions
+color_map_acts: Dict[str, str] = {
+    "approach": "#339dff",  # muted blue
+    "withdraw": "#faa22e",  # muted orange
+    "grasp": "#10e600",  # muted green
+    "drop": "#f1160e",  # muted red
+    "move": "#a838ff",  # muted purple
+    "rotate": "#745339",  # muted brown
+    "transform": "#f787d3",  # muted pink
+    "follow": "#99acb8",  # muted gray
+    "reach": "#fff35c",  # muted yellow
+    "find": "#339dff",  # muted blue
+    "leave": "#faa22e"  # muted orange
+}
 
 
 # robust JSON loading
@@ -136,44 +172,6 @@ def read_eval_timeseries(eval_path: str) -> List[Dict[str, Any]]:
     return records
 
 
-# Color mapping for algorithms
-color_map: Dict[str, str] = {
-    "ppo": "red",
-    "ppo2": "green",
-    "multippo": "aquamarine",
-    "acktr": "yellow",
-    "multiacktr": "magenta",
-    "sac": "salmon",
-    "ddpg": "blue",
-    "a2c": "grey",
-    "acer": "brown",
-    "trpo": "gold",
-    "multippo2": "limegreen"
-}
-
-# Action dictionary
-dict_acts: Dict[str, str] = {
-    "A": "approach", "G": "grasp", "M": "move", "D": "drop",
-    "W": "withdraw", "R": "rotate", "T": "transform",
-    "F": "find", "r": "reach", "L": "leave"
-}
-
-# Color mapping for actions
-color_map_acts: Dict[str, str] = {
-    "approach": "#339dff",  # muted blue
-    "withdraw": "#faa22e",  # muted orange
-    "grasp": "#10e600",  # muted green
-    "drop": "#f1160e",  # muted red
-    "move": "#a838ff",  # muted purple
-    "rotate": "#745339",  # muted brown
-    "transform": "#f787d3",  # muted pink
-    "follow": "#99acb8",  # muted gray
-    "reach": "#fff35c",  # muted yellow
-    "find": "#339dff",  # muted blue
-    "leave": "#faa22e"  # muted orange
-}
-
-
 def cut_before_last_slash(logdir: str) -> str:
     """Cut all strings prior to and including the last '/' in the given string."""
     parts = logdir.replace("\\", "/").rsplit('/', 1)
@@ -236,11 +234,14 @@ def get_arguments() -> argparse.Namespace:
     """Parse and return command-line arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--pth",
-                        default="C:/Users/xosti/sofia/PycharmProjects/myGym/myGym/trained_models/tiago_dual/AGM/joints_gripper_multippo_6",
+                        default="C:/Users/xosti/sofia/PycharmProjects/myGym/myGym/trained_models/tiago_dual/AGM/joints_gripper_multippo_22",
                         type=str)
     parser.add_argument("--robot", default=["kuka", "panda"], nargs='*', type=str)
     parser.add_argument("--algo", default=["multiacktr", "multippo2", "ppo2", "ppo", "acktr", "sac", "ddpg",
                                            "a2c", "acer", "trpo", "multippo"], nargs='*', type=str)
+    parser.add_argument("--gt_bin", default=100, type=int,
+                        help="Bin size (in global training steps) for GT vs Decider plot.")
+
     return parser.parse_args()
 
 
@@ -276,17 +277,18 @@ def ax_fill(ax: plt.Axes, steps: np.ndarray, meanvalue: np.ndarray, data: List[n
         meanvalue - np.std(np.take(data, index, 0), 0),
         meanvalue + np.std(np.take(data, index, 0), 0),
         color=color,
-        alpha=0.15
+        alpha=0.2
     )
 
 
-def plot_gt_vs_decider_bar(exp_dir: str,
-                           acts: List[str],
-                           out_dir: str,
-                           cfg_raw: Dict[str, Any]) -> None:
+def plot_gt_vs_decider_over_time(exp_dir: str,
+                                          acts: List[str],
+                                          out_dir: str,
+                                          cfg_raw: Dict[str, Any],
+                                          bin_size: int = 100_000) -> None:
     gt_file = os.path.join(exp_dir, "gt_vs_decider.txt")
     if not os.path.isfile(gt_file):
-        print(f"No gt_vs_decider.txt in {exp_dir}, skipping GT vs Decider plot.")
+        print(f"No gt_vs_decider.txt in {exp_dir}, skipping.")
         return
 
     try:
@@ -295,55 +297,114 @@ def plot_gt_vs_decider_bar(exp_dir: str,
         print(f"Could not load {gt_file}: {e}")
         return
 
+    if data.size == 0:
+        print("gt_vs_decider.txt is empty.")
+        return
     if data.ndim == 1:
         data = data[None, :]
 
     # columns: episode, step, gt, dec
-    gt = data[:, 2]
-    dec = data[:, 3]
+    steps = data[:, 1].astype(np.int64)
+    gt = data[:, 2].astype(np.int64)
+    dec = data[:, 3].astype(np.int64)
 
-    num_networks = len(acts)
-    total = len(gt)
-    if total == 0:
-        print("gt_vs_decider.txt is empty.")
+    K = len(acts)
+    if K == 0:
+        print("No acts parsed from task_type.")
         return
 
-    gt_counts = np.array([(gt == i).sum() for i in range(num_networks)], dtype=float)
-    dec_counts = np.array([(dec == i).sum() for i in range(num_networks)], dtype=float)
+    # filter invalid indices
+    valid = (gt >= 0) & (gt < K) & (dec >= 0) & (dec < K)
+    steps, gt, dec = steps[valid], gt[valid], dec[valid]
+    if len(steps) == 0:
+        print("No valid rows in gt_vs_decider.txt after filtering.")
+        return
 
-    gt_pct = gt_counts / total * 100.0
-    dec_pct = dec_counts / total * 100.0
+    # bins
+    start = (int(steps.min()) // bin_size) * bin_size
+    end = ((int(steps.max()) // bin_size) + 1) * bin_size
+    edges = np.arange(start, end + 1, bin_size, dtype=np.int64)
+    nbins = len(edges) - 1
+    centers = (edges[:-1] + edges[1:]) / 2.0
 
-    x = np.arange(num_networks)
-    width = 0.35
+    bin_idx = np.clip((steps - start) // bin_size, 0, nbins - 1).astype(np.int64)
 
-    fig = plt.figure(figsize=(10, 6))
+    gt_counts = np.zeros((nbins, K), dtype=np.int64)
+    dec_counts = np.zeros((nbins, K), dtype=np.int64)
+    totals = np.zeros(nbins, dtype=np.int64)
+
+    for i in range(len(steps)):
+        b = bin_idx[i]
+        gt_counts[b, gt[i]] += 1
+        dec_counts[b, dec[i]] += 1
+        totals[b] += 1
+
+    # to percent; empty bins stay 0
+    gt_pct = np.zeros((nbins, K), dtype=np.float32)
+    dec_pct = np.zeros((nbins, K), dtype=np.float32)
+    nz = totals > 0
+    gt_pct[nz] = (gt_counts[nz] / totals[nz, None]) * 100.0
+    dec_pct[nz] = (dec_counts[nz] / totals[nz, None]) * 100.0
+
+    # plot: for each bin, two stacked bars (GT and Decider)
+    fig = plt.figure(figsize=(16, 7))
     ax = fig.add_subplot(1, 1, 1)
-
-    ax.bar(x - width / 2, gt_pct, width, label="GT", color="lightgray", edgecolor="black")
-
-    bar_colors = [color_map_acts.get(a, "black") for a in acts]
-    bars_dec = ax.bar(x + width / 2, dec_pct, width, label="Decider", color=bar_colors, edgecolor="black")
-
-    ax.set_xticks(x)
-    ax.set_xticklabels(acts, fontsize=12)
-    ax.set_ylabel("Selection frequency (%)")
     ax.set_ylim(0, 100)
 
-    ax.set_title(f"GT vs Decider network choices\nalgo: {cfg_raw.get('algo')}, task: {cfg_raw.get('task_type')}")
+    # bar width = half-bin (so GT+Decider fit inside one bin)
+    bin_w = float(bin_size)
+    w = bin_w * 0.42  # each of the two bars
+    x_gt = centers - w * 0.55
+    x_dec = centers + w * 0.55
 
-    for i, b in enumerate(bars_dec):
-        diff = dec_pct[i] - gt_pct[i]
-        ax.text(b.get_x() + b.get_width() / 2.0, b.get_height() + 1.0, f"{diff:+.1f}",
-                ha="center", va="bottom", fontsize=10)
+    bottom_gt = np.zeros(nbins, dtype=np.float32)
+    bottom_dec = np.zeros(nbins, dtype=np.float32)
 
-    ax.legend()
+    for a in range(K):
+        name = acts[a]
+        c = color_map_acts.get(name, "black")
+
+        ax.bar(x_gt, gt_pct[:, a], width=w, bottom=bottom_gt,
+               color=c, edgecolor="black", linewidth=0.5,
+               label=f"{name}" if a == 0 else None)  # legend handled separately
+
+        ax.bar(x_dec, dec_pct[:, a], width=w, bottom=bottom_dec,
+               color=c, edgecolor="black", linewidth=0.5)
+
+        bottom_gt += gt_pct[:, a]
+        bottom_dec += dec_pct[:, a]
+
+    # legend: one entry per action + a small GT/Decider indicator
+    # (action colors already encode action; we add proxy bars for GT/Decider)
+    from matplotlib.patches import Patch
+    action_patches = [Patch(facecolor=color_map_acts.get(a, "black"), edgecolor="black", label=a) for a in acts]
+    gt_patch = Patch(facecolor="white", edgecolor="black", label="GT (left bar)")
+    dec_patch = Patch(facecolor="white", edgecolor="black", hatch="////", label="Decider (right bar)")
+
+    # add hatch to decider bars to visually differentiate from GT
+    for container in ax.containers:
+        # containers come in draw order; we only want to hatch the Decider ones.
+        # easiest: hatch bars whose x is in x_dec range
+        for rect in container:
+            x = rect.get_x() + rect.get_width() / 2
+            if np.any(np.isclose(x, x_dec, atol=w * 0.6)):
+                rect.set_hatch("////")
+
+    ax.legend(handles=action_patches + [gt_patch, dec_patch], fontsize=10, loc="center right")
+
+    ax.set_title(
+        f"GT vs Decider action frequencies per {bin_size} steps (stacked)\n"
+        f"algo: {cfg_raw.get('algo')}, task: {cfg_raw.get('task_type')}"
+    )
+    ax.set_xlabel("Training steps")
+    ax.set_ylabel("Selection frequency (%)")
+
     fig.tight_layout()
-
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, f"{cut_before_last_slash(cfg_raw.get('logdir', 'exp'))}_gt_vs_decider.png")
+    out_path = os.path.join(out_dir, f"{cut_before_last_slash(cfg_raw.get('logdir','exp'))}_gt_vs_decider_binned_stacked.png")
     fig.savefig(out_path, dpi=150)
-    print(f"GT vs Decider figure saved to {out_path}")
+    print(f"GT vs Decider (binned stacked) figure saved to {out_path}")
+
 
 
 def main() -> None:
@@ -619,7 +680,7 @@ def main() -> None:
             ax.text(0.5, 0.5, "No 'mean subgoal steps' in evaluation logs",
                     ha="center", va="center", transform=ax.transAxes)
 
-        ax_set(ax, f"Subgoal steps over episode for algo: {algo}, task: {cfg.get('task_type', '')}", "Mean steps (%)")
+        ax_set(ax, f"Subgoal steps over episode for algo: {algo}, task: {cfg.get('task_type', '')}", "Meansteps, %")
 
     # Set titles for axes
     ax_set(ax1, 'Success rate', 'Successful episodes (%)')
@@ -628,22 +689,19 @@ def main() -> None:
     ax_set(ax4, 'Mean distance error', 'Error')
     ax_set(ax5, 'Finished subgoals in %', 'Subgoals')
 
-    fig1.tight_layout()
-    fig2.tight_layout()
-
     # GT vs Decider
     try:
         if last_cfg is not None:
             task = last_cfg.get("task_type", "")
             acts = [dict_acts[c] for c in str(task) if c in dict_acts]
-            plot_gt_vs_decider_bar(experiment_dirs[0], acts, out_dir, last_cfg)
+            plot_gt_vs_decider_over_time(experiment_dirs[0], acts, out_dir, last_cfg, args.gt_bin)
     except Exception as e:
         print(f"Failed to create GT vs Decider plot: {e}")
 
     # Save figures
-    logdir_name = cut_before_last_slash(last_cfg.get("logdir", "experiment")) if last_cfg else "experiment"
-    fig1_path = os.path.join(out_dir, f"{logdir_name}_train.png")
-    fig2_path = os.path.join(out_dir, f"{logdir_name}_goals.png")
+    logdir = cut_before_last_slash(last_cfg.get("logdir", "experiment")) if last_cfg else "experiment"
+    fig1_path = os.path.join(out_dir, f"{logdir}_train.png")
+    fig2_path = os.path.join(out_dir, f"{logdir}_goals.png")
     fig1.savefig(fig1_path, dpi=150)
     fig2.savefig(fig2_path, dpi=150)
     print(f"Figures saved to:\n  {fig1_path}\n  {fig2_path}")

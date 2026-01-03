@@ -15,9 +15,55 @@ from tqdm.auto import tqdm
 
 from myGym.utils.helpers import PrintEveryNCalls
 import time
-np.set_printoptions(suppress = True)
 
-#TODO: CustomEvalCallback might not be used - maybe delete
+np.set_printoptions(suppress=True)
+
+
+def load_eval_results_maybe_concatenated(path: str) -> dict:
+    """
+    Load evaluation_results.json as a dict.
+
+    Supports:
+      - normal JSON dict files
+      - concatenated JSON dicts produced by mistakenly appending with json.dump: {...}{...}{...}
+
+    Later dicts override earlier keys.
+    """
+    if not os.path.exists(path) or os.path.getsize(path) == 0:
+        return {}
+
+    with open(path, "r", encoding="utf-8") as f:
+        txt = f.read()
+
+    dec = json.JSONDecoder()
+    idx = 0
+    merged = {}
+
+    while idx < len(txt):
+        while idx < len(txt) and txt[idx].isspace():
+            idx += 1
+        if idx >= len(txt):
+            break
+
+        try:
+            obj, end = dec.raw_decode(txt, idx)
+        except json.JSONDecodeError:
+            # Try to recover by jumping to the next JSON object start.
+            nxt = txt.find("{", idx + 1)
+            if nxt == -1:
+                break
+            idx = nxt
+            continue
+
+        if isinstance(obj, dict):
+            merged.update(obj)
+
+        idx = end
+
+    return merged
+
+
+# TODO: CustomEvalCallback might not be used - maybe delete
 class CustomEvalCallback(EvalCallback):
     """
     Callback for evaluating an agent.
@@ -51,7 +97,7 @@ class CustomEvalCallback(EvalCallback):
                  record=False,
                  camera_id=0,
                  record_steps_limit=256,
-                 num_cpu=1):  # pybullet or mujoco
+                 num_cpu=1, starting_steps=0):  # pybullet or mujoco
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.algo_steps = algo_steps
@@ -75,7 +121,7 @@ class CustomEvalCallback(EvalCallback):
         self.num_cpu = num_cpu
         self.num_evals = 0
         self.printer = None
-
+        self.starting_steps = starting_steps
 
     def evaluate_policy(
             self,
@@ -96,7 +142,7 @@ class CustomEvalCallback(EvalCallback):
         print("---Evaluation----")
         for e in range(n_eval_episodes):
             # Avoid double reset, as VecEnv are reset automatically
-            if not isinstance(self.eval_env, VecEnv) or e ==0:
+            if not isinstance(self.eval_env, VecEnv) or e == 0:
                 if isinstance(self.eval_env, VecMonitor):
                     obs = self.eval_env.reset()
                 else:
@@ -154,9 +200,9 @@ class CustomEvalCallback(EvalCallback):
                     srewardsuccess.put([last_network], 1)
                     last_network = evaluation_env.unwrapped.reward.current_network
                     last_steps = steps
-                #distance_error = self.eval_env.env.unwrapped.reward.get_distance_error(info['o'])
+                # distance_error = self.eval_env.env.unwrapped.reward.get_distance_error(info['o'])
 
-                #print("distance_error", distance_error)
+                # print("distance_error", distance_error)
 
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
@@ -191,7 +237,7 @@ class CustomEvalCallback(EvalCallback):
         meansgoals = np.count_nonzero(srsu) / evaluation_env.unwrapped.reward.num_networks / n_eval_episodes * 100
         print("n_eval_episodes:", n_eval_episodes)
         results = {
-            "episode": "{}".format(self.n_calls*self.num_cpu),
+            "episode": "{}".format(self.n_calls * self.num_cpu),
             "n_eval_episodes": "{}".format(n_eval_episodes),
             "success_episodes_num": "{}".format(success_episodes_num),
             "success_rate": "{}".format(success_episodes_num / n_eval_episodes * 100),
@@ -225,7 +271,9 @@ class CustomEvalCallback(EvalCallback):
         if self.best_model_save_path is not None:
             os.makedirs(self.best_model_save_path, exist_ok=True)
         if self.log_path is not None:
-            os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
+            os.makedirs(self.log_path, exist_ok=True)
+            self._eval_path = os.path.join(self.log_path, "evaluation_results.json")
+            self.evaluations_results = load_eval_results_maybe_concatenated(self._eval_path)
 
     def _on_step(self) -> bool:
         self.num_cpu = 1 if self.num_cpu == 0 else self.num_cpu
@@ -241,16 +289,19 @@ class CustomEvalCallback(EvalCallback):
                                            deterministic=self.deterministic)
 
             if self.log_path is not None:
-                self.evaluations_results["evaluation_after_{}_steps".format(actual_calls)] = results
-                filename = "evaluation_results.json"
-                eval_path = os.path.join(self.log_path, filename)
-                if os.path.exists(eval_path) and os.path.getsize(eval_path) > 0:
-                    write_mode = 'a'
-                else:
-                    write_mode = 'w'
-                with open(eval_path, write_mode) as f:
+                global_calls = actual_calls + getattr(self, "starting_steps", 0)
+                step_key = f"evaluation_after_{global_calls}_steps"
+
+                if step_key in self.evaluations_results:
+                    print(f"Evaluation already stored after {global_calls} calls. Skipping.")
+                    return True
+
+                self.evaluations_results[step_key] = results
+                eval_path = getattr(self, "_eval_path", os.path.join(self.log_path, "evaluation_results.json"))
+                with open(eval_path, "w", encoding="utf-8") as f:
                     json.dump(self.evaluations_results, f, indent=4)
-                print("Evaluation stored after {} calls.".format(actual_calls))
+
+                print(f"Evaluation stored after {global_calls} calls.")
         return True
 
 
@@ -293,7 +344,7 @@ class MultiPPOEvalCallback(EvalCallback):
                  record=False,
                  camera_id=0,
                  record_steps_limit=256,
-                 num_cpu=1, starting_steps = 0):  # pybullet or mujoco
+                 num_cpu=1, starting_steps=0):  # pybullet or mujoco
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.algo_steps = algo_steps
@@ -344,10 +395,10 @@ class MultiPPOEvalCallback(EvalCallback):
             env_p = self.eval_env.unwrapped.p
             env_task = self.eval_env.unwrapped.task
 
-        for e in range(n_eval_episodes): #Iterate through eval episodes
+        for e in range(n_eval_episodes):  # Iterate through eval episodes
             debug = False
             obs = self.eval_env.reset()
-            obs = obs[0] #Use only first env for evaluation
+            obs = obs[0]  # Use only first env for evaluation
             done, state = False, None
             is_successful = 0
             distance_error = 0
@@ -358,17 +409,18 @@ class MultiPPOEvalCallback(EvalCallback):
             srewardsteps = np.zeros(env_reward.num_networks)
             srewardsuccess = np.zeros(env_reward.num_networks)
             print("Episode:", e)
-            while not done: #Carry out episode steps until the episode is done
+            while not done:  # Carry out episode steps until the episode is done
                 steps_sum += 1
                 if isinstance(self.eval_env, VecEnv):
-                    action, state = model.eval_predict(obs, deterministic=deterministic) #Predict action in first environment
+                    action, state = model.eval_predict(obs,
+                                                       deterministic=deterministic)  # Predict action in first environment
                     obs, reward, done, info, current_network = self.eval_env.eval_step(action)
                 else:
-                    action, state = model.predict(obs, deterministic = deterministic)
+                    action, state = model.predict(obs, deterministic=deterministic)
                     obs, reward, terminated, truncated, info = self.eval_env.step(action)
                     done = terminated or truncated
                     current_network = self.eval_env.unwrapped.reward.current_network
-                 #Special eval step (uses first env of vec env only)
+                # Special eval step (uses first env of vec env only)
                 if debug:
                     env_p.addUserDebugText(
                         f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']), 5))}",
@@ -377,17 +429,17 @@ class MultiPPOEvalCallback(EvalCallback):
                         f"Object:{matrix(np.around(np.array(info['o']['actual_state']), 5))}",
                         [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
                     env_p.addUserDebugText(f"Network:{env_reward.current_network}",
-                                                      [.8, .5, 0.25], textSize=1.0, lifeTime=0.05,
-                                                      textColorRGB=[0.0, 0.0, 1])
+                                           [.8, .5, 0.25], textSize=1.0, lifeTime=0.05,
+                                           textColorRGB=[0.0, 0.0, 1])
                     env_p.addUserDebugText(f"Subtask:{env_task.current_task}",
-                                                      [.8, .5, 0.35], textSize=1.0, lifeTime=0.05,
-                                                      textColorRGB=[0.4, 0.2, 1])
+                                           [.8, .5, 0.35], textSize=1.0, lifeTime=0.05,
+                                           textColorRGB=[0.4, 0.2, 1])
                     env_p.addUserDebugText(f"Episode:{e}",
-                                                      [.8, .5, 0.45], textSize=1.0, lifeTime=0.05,
-                                                      textColorRGB=[0.4, 0.2, .3])
+                                           [.8, .5, 0.45], textSize=1.0, lifeTime=0.05,
+                                           textColorRGB=[0.4, 0.2, .3])
                     env_p.addUserDebugText(f"Step:{steps}",
-                                                      [.8, .5, 0.55], textSize=1.0, lifeTime=0.5,
-                                                      textColorRGB=[0.2, 0.8, 1])
+                                           [.8, .5, 0.55], textSize=1.0, lifeTime=0.5,
+                                           textColorRGB=[0.2, 0.8, 1])
 
                 episode_reward += reward
                 is_successful = not info['f']
@@ -400,7 +452,8 @@ class MultiPPOEvalCallback(EvalCallback):
                         last_network = current_network
                         last_steps = steps
 
-                distance_error = env_reward.get_distance_error(info['o']) #Compute how far from goal is the gripper/object
+                distance_error = env_reward.get_distance_error(
+                    info['o'])  # Compute how far from goal is the gripper/object
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
                         render_info = self.eval_env.render(mode="rgb_array", camera_id=self.camera_id)
@@ -412,7 +465,7 @@ class MultiPPOEvalCallback(EvalCallback):
                     self.eval_env.render()
                 steps += 1
 
-            #Save all gathered eval episode values
+            # Save all gathered eval episode values
             # srewardsteps.put([last_network], steps - last_steps)
             srewardsteps[last_network] += (steps - last_steps)
             if is_successful:
@@ -443,7 +496,7 @@ class MultiPPOEvalCallback(EvalCallback):
         else:
             env_task = self.eval_env.unwrapped.task
         results = {
-            "episode": "{}".format(self.n_calls*self.num_cpu),
+            "episode": "{}".format(self.n_calls * self.num_cpu),
             "n_eval_episodes": "{}".format(n_eval_episodes),
             "success_episodes_num": "{}".format(success_episodes_num),
             "success_rate": "{}".format(success_episodes_num / n_eval_episodes * 100),
@@ -467,7 +520,6 @@ class MultiPPOEvalCallback(EvalCallback):
         print("Evaluation finished successfully")
         return results
 
-
     def _init_callback(self):
         # Does not work in some corner cases, where the wrapper is different
         if not type(self.training_env) is type(self.eval_env):
@@ -478,7 +530,9 @@ class MultiPPOEvalCallback(EvalCallback):
         if self.best_model_save_path is not None:
             os.makedirs(self.best_model_save_path, exist_ok=True)
         if self.log_path is not None:
-            os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
+            os.makedirs(self.log_path, exist_ok=True)
+            self._eval_path = os.path.join(self.log_path, "evaluation_results.json")
+            self.evaluations_results = load_eval_results_maybe_concatenated(self._eval_path)
 
     def _on_step(self) -> bool:
         self.num_cpu = 1 if self.num_cpu == 0 else self.num_cpu
@@ -492,18 +546,21 @@ class MultiPPOEvalCallback(EvalCallback):
                                            n_eval_episodes=self.n_eval_episodes,
                                            deterministic=self.deterministic)
             if self.log_path is not None:
-                self.evaluations_results["evaluation_after_{}_steps".format(actual_calls+self.starting_steps)] = results
-                filename = "evaluation_results.json"
-                eval_path = os.path.join(self.log_path, filename)
-                if os.path.exists(eval_path) and os.path.getsize(eval_path) > 0:
-                    write_mode = 'a'
-                else:
-                    write_mode = 'w'
-                with open(eval_path, write_mode) as f:
-                    json.dump(self.evaluations_results, f, indent=4)
-                print("Evaluation stored after {} calls.".format(actual_calls + self.starting_steps))
-        return True
+                global_calls = actual_calls + getattr(self, "starting_steps", 0)
+                step_key = f"evaluation_after_{global_calls}_steps"
 
+                if step_key in self.evaluations_results:
+                    print(f"Evaluation already stored after {global_calls} calls. Skipping.")
+                    return True
+
+                self.evaluations_results[step_key] = results
+                eval_path = getattr(self, "_eval_path", os.path.join(self.log_path, "evaluation_results.json"))
+                with open(eval_path, "w", encoding="utf-8") as f:
+                    json.dump(self.evaluations_results, f, indent=4)
+
+                print(f"Evaluation stored after {global_calls} calls.")
+
+        return True
 
 
 class PPOEvalCallback(EvalCallback):
@@ -540,7 +597,7 @@ class PPOEvalCallback(EvalCallback):
                  record=False,
                  camera_id=0,
                  record_steps_limit=256,
-                 num_cpu=1, starting_steps = 0):  # pybullet or mujoco
+                 num_cpu=1, starting_steps=0):  # pybullet or mujoco
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.algo_steps = algo_steps
@@ -625,17 +682,17 @@ class PPOEvalCallback(EvalCallback):
                         f"Object:{matrix(np.around(np.array(info['o']['actual_state']), 5))}",
                         [.8, .5, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
                     env_p.addUserDebugText(f"Network:{current_network}",
-                                                      [.8, .5, 0.25], textSize=1.0, lifeTime=0.5,
-                                                      textColorRGB=[0.0, 0.0, 1])
+                                           [.8, .5, 0.25], textSize=1.0, lifeTime=0.5,
+                                           textColorRGB=[0.0, 0.0, 1])
                     env_p.addUserDebugText(f"Subtask:{env_task.current_task}",
-                                                      [.8, .5, 0.35], textSize=1.0, lifeTime=0.5,
-                                                      textColorRGB=[0.4, 0.2, 1])
+                                           [.8, .5, 0.35], textSize=1.0, lifeTime=0.5,
+                                           textColorRGB=[0.4, 0.2, 1])
                     env_p.addUserDebugText(f"Episode:{e}",
-                                                      [.8, .5, 0.45], textSize=1.0, lifeTime=0.5,
-                                                      textColorRGB=[0.4, 0.2, .3])
+                                           [.8, .5, 0.45], textSize=1.0, lifeTime=0.5,
+                                           textColorRGB=[0.4, 0.2, .3])
                     env_p.addUserDebugText(f"Step:{steps}",
-                                                      [.8, .5, 0.55], textSize=1.0, lifeTime=0.5,
-                                                      textColorRGB=[0.2, 0.8, 1])
+                                           [.8, .5, 0.55], textSize=1.0, lifeTime=0.5,
+                                           textColorRGB=[0.2, 0.8, 1])
                 episode_reward += reward
                 is_successful = not info['f']
                 if current_network != last_network:
@@ -718,7 +775,9 @@ class PPOEvalCallback(EvalCallback):
         if self.best_model_save_path is not None:
             os.makedirs(self.best_model_save_path, exist_ok=True)
         if self.log_path is not None:
-            os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
+            os.makedirs(self.log_path, exist_ok=True)
+            self._eval_path = os.path.join(self.log_path, "evaluation_results.json")
+            self.evaluations_results = load_eval_results_maybe_concatenated(self._eval_path)
 
     def _on_step(self) -> bool:
         self.num_cpu = 1 if self.num_cpu == 0 else self.num_cpu
@@ -730,7 +789,7 @@ class PPOEvalCallback(EvalCallback):
         if not hasattr(self, "printer3"):
             self.printer3 = PrintEveryNCalls("self.n_calls: ", 20)
 
-        if self.eval_freq > 0 and actual_calls >= self.eval_freq*self.num_evals:
+        if self.eval_freq > 0 and actual_calls >= self.eval_freq * self.num_evals:
             # Sync training and eval env if there is VecNormalize
             self.num_evals += 1
             sync_envs_normalization(self.training_env, self.eval_env)
@@ -740,16 +799,20 @@ class PPOEvalCallback(EvalCallback):
                                            deterministic=self.deterministic)
 
             if self.log_path is not None:
-                self.evaluations_results["evaluation_after_{}_steps".format(actual_calls)] = results
-                filename = "evaluation_results.json"
-                eval_path = os.path.join(self.log_path, filename)
-                if os.path.exists(eval_path) and os.path.getsize(eval_path) > 0:
-                    write_mode = 'a'
-                else:
-                    write_mode = 'w'
-                with open(eval_path, write_mode) as f:
+                global_calls = actual_calls + getattr(self, "starting_steps", 0)
+                step_key = f"evaluation_after_{global_calls}_steps"
+
+                if step_key in self.evaluations_results:
+                    print(f"Evaluation already stored after {global_calls} calls. Skipping.")
+                    return True
+
+                self.evaluations_results[step_key] = results
+                eval_path = getattr(self, "_eval_path", os.path.join(self.log_path, "evaluation_results.json"))
+                with open(eval_path, "w", encoding="utf-8") as f:
                     json.dump(self.evaluations_results, f, indent=4)
-                print("Evaluation stored after {} calls.".format(actual_calls))
+
+                print(f"Evaluation stored after {global_calls} calls.")
+
         return True
 
 
@@ -779,7 +842,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
                  save_success_graph_every_steps=40_000,
                  save_model_every_steps=500_000,
                  success_graph_mean_past_episodes=30,
-                 multiprocessing=0, starting_steps=0, algo = "ppo"):
+                 multiprocessing=0, starting_steps=0, algo="ppo"):
         super(SaveOnBestTrainingRewardCallback, self).__init__(verbose)
         self.check_freq = check_freq
         self.logdir = logdir
@@ -799,16 +862,15 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
             self.num_cpu = multiprocessing
         else:
             self.num_cpu = 1
-        self.num_evals = 0 #Number of undergone evaluations
-
+        self.num_evals = 0  # Number of undergone evaluations
 
     def _on_step(self) -> bool:
         self.num_cpu = 1 if self.num_cpu == 0 else self.num_cpu
-        actual_calls = self.n_calls * self.num_cpu #self.n_calls doesn't calculate with multiproc
+        actual_calls = self.n_calls * self.num_cpu  # self.n_calls doesn't calculate with multiproc
         # DOESNT WORK WITH MULTIPROCESSING (?)
-        if actual_calls >= self.save_model_every_steps*self.num_evals: #Saving model just before evaluation
+        if actual_calls >= self.save_model_every_steps * self.num_evals:  # Saving model just before evaluation
             print("Saving model to {}".format(self.periodical_save_path))
-            self.model.save(self.periodical_save_path, steps = actual_calls + self.starting_steps)
+            self.model.save(self.periodical_save_path, steps=actual_calls + self.starting_steps)
             self.num_evals += 1
         if self.n_calls % self.check_freq == 0:
             # Retrieve training reward
@@ -821,10 +883,10 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
                 # Save the new best model (with the best average reward)
                 if average_reward > self.best_average_reward:
                     self.best_average_reward = average_reward
-                    self.model.save(self.save_path, steps = self.starting_steps + actual_calls, best = True)
+                    self.model.save(self.save_path, steps=self.starting_steps + actual_calls, best=True)
                 if self.engine == "mujoco":  # Mujoco has additional prints
                     # Temporal workaround multiprocessing
-                    if not self.num_cpu==1 and self.verbose > 0:
+                    if not self.num_cpu == 1 and self.verbose > 0:
                         # Current success rate over the last 'self.STATS_EVERY' episodes
                         current_success_rate = np.mean(self.env.successfull_failed_episodes[-self.STATS_EVERY:])
                         print(f"Best average reward: {self.best_average_reward:.2f} \
@@ -836,7 +898,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
         if self.engine == "mujoco":
             # Save graph of success rate every 'self.save_success_graph_every_steps'.
-            if actual_calls % self.save_success_graph_every_steps == 0 and self.num_cpu==1:
+            if actual_calls % self.save_success_graph_every_steps == 0 and self.num_cpu == 1:
                 # Save graph
                 generate_and_save_mean_graph_from_1_or_2arrays(
                     data_array_1=self.env.successfull_failed_episodes,
@@ -1006,7 +1068,3 @@ class SaveOnTopRewardCallback(BaseCallback):
                         submodel.save(self.save_path, i)
                     i += 1
         return True
-
-
-
-

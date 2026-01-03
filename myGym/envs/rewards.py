@@ -1,3 +1,4 @@
+import copy
 import os
 import time
 
@@ -7,10 +8,11 @@ import numpy as np
 GREEN = [0, 125, 0]
 RED = [125, 0, 0]
 
-INITIAL_LOCK = 30
+INITIAL_LOCK = 64
 MIN_LOCK = 8
-LOCK_DECAY_STEPS = 400_000  # after this many global steps, MIN_LOCK is reached
-WARMUP_STEPS = 150_000 # change to 0 if training with pretrained model
+LOCK_DECAY_STEPS = 1_000_000  # after this many global steps, MIN_LOCK is reached
+WARMUP_STEPS = 500_000  # cap for warmup
+
 
 class Reward:
     """
@@ -36,12 +38,24 @@ class Reward:
         self.network_rewards = [0] * self.num_networks
 
         self._last_decider_choice = None
+        self._current_segment_logp_old = None
         # GT-warmup -> Decider handoff (coverage by successful segments)
         self._decider_warmup_done = False
         self._decider_warmup_success_counts = np.zeros(self.num_networks, dtype=np.int32)
 
     def network_switch_control(self, observation):
         self.global_step += 1
+
+        # Helper: encode "unknown stage" as -1 (so _decider_obs can map it to the "unknown" slot)
+        def _stage_for_obs(stage_idx):
+            return int(stage_idx) if stage_idx is not None else -1
+
+        # Initialize segment-start obs (must be decider-formatted, not raw env obs)
+        if getattr(self, "_current_decider_obs", None) is None:
+            stage0 = _stage_for_obs(self.current_network)
+            self._current_decider_obs = copy.deepcopy(self._decider_obs(observation, stage0))
+            self._current_decider_stage_idx = stage0
+            self._current_segment_logp_old = None
 
         if getattr(self.env, "num_networks", 1) <= 1:
             self.current_network = 0
@@ -53,43 +67,57 @@ class Reward:
             decider = getattr(self, "decider_model", None)
             if decider is not None:
                 try:
-                    self._last_decider_choice = int(decider.predict(observation))
+                    stage_dbg = _stage_for_obs(self.current_network)
+                    obs_d = self._decider_obs(observation, stage_dbg)
+                    self._last_decider_choice = int(decider.peek_action(obs_d, deterministic=True, stage_idx=stage_dbg))
                 except Exception:
-                    self._last_decider_choice = self.current_network
+                    self._last_decider_choice = int(self.current_network) if self.current_network is not None else 0
 
-        # GT warmup until each subpolicy produced >=1 successful segment
+        # GT warmup until each subpolicy produced >=5 successful segment (cap by WARMUP_STEPS)
         if self.env.network_switcher == "decider" and not getattr(self, "_decider_warmup_done", False):
-            # still warming up if some policies have 0 successful segments, and we are below the cap
-            need_coverage = np.any(self._decider_warmup_success_counts == 0) and (self.global_step < WARMUP_STEPS)
+            need_coverage = np.any(self._decider_warmup_success_counts < 5) and (self.global_step < WARMUP_STEPS)
             if need_coverage:
                 old_idx = int(self.current_network) if self.current_network is not None else 0
 
-                # use GT logic for switching, but keep env.network_switcher="decider" outside this call
+                # Use GT logic for switching, but keep env.network_switcher="decider" outside this call
                 orig = self.env.network_switcher
                 try:
                     self.env.network_switcher = "gt"
-                    new_idx = self.decide(observation)
+                    self.current_network = old_idx  # ensure GT logic starts from correct state
+                    tmp = self.decide(observation)  # may mutate current_network internally
+                    new_idx = old_idx if tmp is None else int(tmp)
                 finally:
                     self.env.network_switcher = orig
+                    self.current_network = old_idx
 
-                if new_idx is None:
-                    new_idx = old_idx
-                new_idx = int(new_idx)
-
-                # if GT caused a switch, close the previous segment so it gets recorded/counts
+                # If GT caused a switch, close the previous segment so it gets recorded/counts
                 if new_idx != old_idx and hasattr(self, "on_subpolicy_end"):
+                    allowed, expected = self._allowed_actions_from_state(observation)
+                    switch_correct = float(new_idx in allowed)
+
                     if getattr(self, "_current_subpolicy_steps", 0) > 0:
-                        try:
-                            self.on_subpolicy_end(switched=True)
-                        except TypeError:
-                            self.on_subpolicy_end()
+                        self.on_subpolicy_end(switched=True)
+
+                    # New segment starts here: store segment-start obs with "stage = old_idx"
+                    self._current_decider_obs = copy.deepcopy(self._decider_obs(observation, old_idx))
+                    self._current_decider_stage_idx = old_idx
+                    self._current_segment_logp_old = None
+                    self._current_switch_correct = float(switch_correct)
 
                 self.current_network = new_idx
-                self._last_decider_choice = new_idx
                 return int(self.current_network)
 
-            # coverage achieved OR cap reached -> allow decider logic from now on
+            # Coverage achieved OR cap reached -> allow decider logic from now on
+            if getattr(self, "_current_subpolicy_steps", 0) > 0:
+                self.on_subpolicy_end(switched=True)
+
             self._decider_warmup_done = True
+            self.current_network = None
+            self.decider_lock_until_step = 0
+
+            # segment-start obs for first decider pick
+            self._current_decider_obs = copy.deepcopy(self._decider_obs(observation, 0))
+            self._current_decider_stage_idx = 0
             print(f"Decider warmup is finished at step {self.global_step}")
 
         if self.env.network_switcher == "gt":
@@ -97,54 +125,69 @@ class Reward:
             self.current_network = self.decide(observation)
 
         elif self.env.network_switcher == "decider":
-            # decider-based: current_network is set from MultiPPOSB3.predict()
             decider = getattr(self, "decider_model", None)
             if decider is None:
                 print("NO DECIDER (NETWORK SWITCH CONTROL)")
                 self.current_network = self.decide(observation)
                 if self.current_network is None:
                     self.current_network = 0
-                self._last_decider_choice = int(self.current_network)
             else:
                 step = getattr(self.env, "episode_steps", 0)
 
-                # current lock length based on global_step
                 progress = min(1.0, self.global_step / LOCK_DECAY_STEPS)
-                lock_len = int(INITIAL_LOCK - progress * (INITIAL_LOCK - MIN_LOCK))
+                lock_len = max(MIN_LOCK, int(INITIAL_LOCK - progress * (INITIAL_LOCK - MIN_LOCK)))
 
                 # first-time selection
                 if self.current_network is None:
-                    new_idx = int(decider.predict(observation))
+                    obs_d = self._decider_obs(observation, 0)
+                    new_idx, logp = decider.predict(obs_d, return_logp=True,
+                                                    stage_idx=0)
+                    self._current_decider_stage_idx = 0
+                    self._progress_stage = 0
+                    allowed, expected = self._allowed_actions_from_state(observation)
+                    self._current_switch_correct = float(new_idx in allowed)
+
                     self.current_network = new_idx
                     self._last_decider_choice = new_idx
                     self.decider_lock_until_step = step + lock_len
-                    self._current_decider_obs = observation
+
+                    self._current_decider_obs = copy.deepcopy(obs_d)
+                    self._current_decider_stage_idx = 0
+                    self._current_segment_logp_old = float(logp)
+
                     print(f"[Reward/Decider] first lock-in: net={new_idx} until step {self.decider_lock_until_step}")
+
                 # allowed to reconsider after lock expires
                 elif step >= getattr(self, "decider_lock_until_step", 0):
-                    old_idx = self.current_network
-                    new_idx = int(decider.predict(observation))
-                    self._last_decider_choice = new_idx
-                    self._current_decider_obs = observation
+                    old_idx = int(self.current_network)
+                    # stage = old_idx (the policy we are currently in, before switching)
+                    obs_d = self._decider_obs(observation, old_idx)
+                    new_idx, logp = decider.predict(obs_d, return_logp=True, stage_idx=old_idx)
+                    new_idx = int(new_idx)
 
-                    # If actually switched, close the previous segment for the decider
-                    if hasattr(self, "on_subpolicy_end") and old_idx is not None and new_idx != old_idx:
-                        try:
-                            self.on_subpolicy_end(switched=True)
-                        except TypeError:
-                            self.on_subpolicy_end()
+                    allowed, expected = self._allowed_actions_from_state(observation)
+                    switch_correct = float(new_idx in allowed)
+
+                    self._last_decider_choice = new_idx
+
+                    self.on_subpolicy_end(switched=(new_idx != old_idx))
+
+                    # New segment starts here: store segment-start obs with stage=old_idx
+                    self._current_decider_obs = copy.deepcopy(obs_d)
+                    self._current_decider_stage_idx = old_idx
+                    self._current_segment_logp_old = float(logp)
+                    self._current_switch_correct = float(switch_correct)
 
                     self.current_network = new_idx
                     self.decider_lock_until_step = step + lock_len
                     print(f"[Reward/Decider] lock-in: net={new_idx} until step {self.decider_lock_until_step}")
             try:
-                # show which network decider selected
                 self.env.p.addUserDebugText(
                     text=f"DeciderNetwork: {self.current_network}",
                     textPosition=[0.7, 0.55, 0.3],
                     textSize=1.2,
                     lifeTime=0.3,
-                    textColorRGB=[1, 1, 0]  # yellow
+                    textColorRGB=[1, 1, 0]
                 )
             except Exception as e:
                 print(f"failed due {e}")
@@ -156,7 +199,6 @@ class Reward:
             if max_ep <= 0:
                 max_ep = 512
 
-            # init at episode start
             if step == 0 or not hasattr(self, "cycle_budgets") or len(self.cycle_budgets) != self.num_networks:
                 base = max_ep // max(1, self.num_networks)
                 rem = max_ep % max(1, self.num_networks)
@@ -178,7 +220,8 @@ class Reward:
                 if self.current_network > 0:
                     self.current_network -= 1
         else:
-            raise NotImplementedError("Currently only implemented ground truth ('gt'), decider and cycle_fixed network switchers")
+            raise NotImplementedError(
+                "Currently only implemented ground truth ('gt'), decider and cycle_fixed network switchers")
 
         if self.current_network is None:
             self.current_network = 0
@@ -186,6 +229,32 @@ class Reward:
             self._last_decider_choice = int(self.current_network)
 
         return int(self.current_network)
+
+    def _decider_obs(self, observation, stage_idx):
+        """
+        Return an obs object safe to feed into Decider:
+          adds _decider_stage_oh (one-hot length num_networks+1; last=unknown)
+        Does NOT mutate the original observation.
+        """
+        if observation is None:
+            return None
+
+        oh = np.zeros(self.num_networks + 1, dtype=np.float32)
+        if stage_idx is None:
+            oh[-1] = 1.0
+        else:
+            si = int(stage_idx)
+            if 0 <= si < self.num_networks:
+                oh[si] = 1.0
+            else:
+                oh[-1] = 1.0
+
+        if isinstance(observation, dict):
+            out = dict(observation)  # shallow copy
+            out["_decider_stage_oh"] = oh
+            return out
+
+        return {"obs": observation, "_decider_stage_oh": oh}
 
     def compute(self, observation=None):
         raise NotImplementedError
@@ -226,7 +295,6 @@ class Reward:
 class Protorewards(Reward):
 
     def reset(self):
-        self.last_owner = None
         self.last_find_dist = None
         self.last_approach_dist = None
         self.last_grip_dist = None
@@ -269,20 +337,19 @@ class Protorewards(Reward):
         self.iter = 1
 
         # decider integration state
+        self._progress_stage = 0           # expected next subpolicy to complete
         self._current_subpolicy_return = 0.0
         self._current_subpolicy_steps = 0
         self._current_subpolicy_success = False
-        self.last_subpolicy_return = None  # flushed-out value for decider.store
-        self.last_subpolicy_steps = None
-        self.last_subpolicy_success = None
-        self.last_subpolicy_switched = None
-        self.last_subpolicy_idx = None  # index of the subpolicy that just finished
         self.finished_segments = []  # list[(ret, steps, success, idx, switched)]
         self.decider_lock_until_step = 0  # env.episode_steps threshold for next possible switch
         self._current_decider_obs = None
         self._gt_log = []
         self._last_gt_log_step = -1
         self._last_decider_choice = None
+        self._current_switch_correct = 0.0
+        self._current_decider_stage_idx = None
+
         # cycle_fixed baseline state (per-episode)
         if getattr(self.env, "network_switcher", "gt") == "cycle_fixed":
             k = int(getattr(self.env, "cycle_fixed_steps", 0) or 0)
@@ -293,8 +360,12 @@ class Protorewards(Reward):
                 k = max(1, max_ep // max(1, self.num_networks))
 
             self.current_network = 0
-            self.cycle_fixed_k = k
             self.cycle_next_switch_step = k
+
+    def _gt_enabled(self) -> bool:
+        return (self.env.network_switcher == "gt") or (
+                self.env.network_switcher == "decider" and not getattr(self, "_decider_warmup_done", False)
+        )
 
     def compute(self, observation=None):
         # inherit and define your sequence of protoactions here
@@ -352,7 +423,7 @@ class Protorewards(Reward):
         return final_distance
 
     def get_positions(self, observation):
-        goal_position = observation["goal_state"]
+        goal_position = np.array(observation["goal_state"], dtype=np.float32, copy=True)
         object_position = observation["actual_state"]
         gripper_position = observation["additional_obs"]["endeff_xyz"]
         gripper_states = self.env.robot.get_gjoints_states()
@@ -405,7 +476,7 @@ class Protorewards(Reward):
             self.last_move_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_move_dist - dist) + (self.last_grip_dist - gripdist) * 0.1
+        reward = (self.last_move_dist - dist) + (self.last_grip_dist - gripdist) * 0.2
         self.last_move_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -554,6 +625,34 @@ class Protorewards(Reward):
             return True
         return False
 
+    def _allowed_actions_from_state(self, observation):
+        """
+        State-based allowed action set for switching correctness.
+        Designed for sequences starting with: approach (0), grasp (1), move/rotate/follow/transform (2).
+        Returns (allowed_set, expected_idx) or (None, None) if not applicable.
+        """
+        # Extract state
+        _, object_position, gripper_position, gripper_states = self.get_positions(observation)
+
+        # Predicates (use existing thresholds set in reset())
+        approached = bool(self.gripper_approached_object(gripper_position, object_position))
+        grip_sum = float(np.sum(gripper_states))
+        is_closed = grip_sum <= float(getattr(self, "closegr_threshold", 0.0))
+
+        # State-based "what should we do now?"
+        if not approached:
+            return {0}, 0
+
+        if not is_closed:
+            # close but allow micro-approach corrections
+            return {0, 1}, 1
+
+        # For AGM: keep doing stage2 unless done
+        allowed = {2}
+        expected = 2
+
+        return allowed, expected
+
     # when network switch or subtask end happens (crucial)
     def on_subpolicy_end(self, switched: bool = False):
         """
@@ -563,45 +662,68 @@ class Protorewards(Reward):
         Accumulates a segment into finished_segments and also updates the
         last_subpolicy_* fields for backward compatibility.
         """
-        # flag segments where grasp was used from too far
-        if self.current_network == 1:
-            grasp_from_far = float(self._current_segment_start_dist > self.grasp_far_threshold)
-        else:
-            grasp_from_far = 0.0
+        idx = int(self.current_network) if self.current_network is not None else 0
+        obs_copy = None if self._current_decider_obs is None else copy.deepcopy(self._current_decider_obs)
+
+        stage_idx = getattr(self, "_current_decider_stage_idx", None)
+        logp_old = getattr(self, "_current_segment_logp_old", None)
+
+        # Progress-gated success: only count "success" when it advances the episode.
+        ps = getattr(self, "_progress_stage", None)
+        try:
+            ps_i = int(ps) if ps is not None else None
+        except Exception:
+            ps_i = None
+
+        order_correct = bool(self._current_subpolicy_success) and (ps_i is None or idx == ps_i)
+        switch_correct = float(getattr(self, "_current_switch_correct", 0.0))
 
         # append full segment to list for Decider
         seg = (
             self._current_subpolicy_return,
             self._current_subpolicy_steps,
-            self._current_subpolicy_success,
-            self.current_network,
+            order_correct,
+            switch_correct,
+            idx,
             switched,
-            grasp_from_far,
-            self._current_decider_obs,
+            obs_copy,
+            stage_idx,
+            None if logp_old is None else float(logp_old),
         )
+
+        print(
+            f"[SEG END] idx={idx} switched={switched} "
+            f"ret={self._current_subpolicy_return:.3f} "
+            f"steps={self._current_subpolicy_steps} "
+            f"order_correct={order_correct} "
+            f"switch_correct={switch_correct} "
+            f"start_dist={getattr(self, '_current_segment_start_dist', 0.0):.4f}"
+        )
+
         if hasattr(self, "finished_segments"):
             self.finished_segments.append(seg)
-
-        # keep single "last_*" copy (in case something still uses it)
-        self.last_subpolicy_return = self._current_subpolicy_return
-        self.last_subpolicy_steps = self._current_subpolicy_steps
-        self.last_subpolicy_success = self._current_subpolicy_success
-        self.last_subpolicy_switched = switched
-        self.last_subpolicy_idx = self.current_network
 
         # warmup coverage accounting: count successful segments per policy
         if not getattr(self, "_decider_warmup_done", False):
             try:
-                idx = int(self.current_network) if self.current_network is not None else 0
                 self._decider_warmup_success_counts[idx] += int(bool(self._current_subpolicy_success))
+                print(f"SUCCESS COUNTS: {self._decider_warmup_success_counts}")
             except Exception:
                 pass
+
+        # Advance expected progress stage when the correct subpolicy succeeds.
+        if ps_i is not None and order_correct and ps_i < self.num_networks:
+            self._progress_stage = min(ps_i + 1, self.num_networks - 1)
 
         # reset accumulators for the next segment
         self._current_subpolicy_return = 0.0
         self._current_subpolicy_steps = 0
         self._current_subpolicy_success = False
         self._current_segment_start_dist = 0.0
+        self._current_decider_obs = None
+        self._current_decider_stage_idx = None
+        self._current_segment_logp_old = None
+        self._current_switch_correct = 0.0
 
 
 # ATOMIC ACTIONS - Examples of 1-5 protorewards
@@ -622,7 +744,6 @@ class A(Protorewards):
         reward = [self.approach_compute][owner](*target)
         if self.env.episode_terminated:
             reward += 0.2  # Adding reward for successful finish of episode
-        self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 1
         return reward
@@ -640,7 +761,6 @@ class AaG(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp"]
-        self.grasp_far_threshold = 0.055
         self._current_segment_start_dist = 0.0
 
     def reset(self):
@@ -663,7 +783,6 @@ class AaG(Protorewards):
         reward = [self.approach_compute, self.grasp_compute][owner](*target)
 
         # self.disp_reward(reward, owner)
-        self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 2
 
@@ -706,7 +825,6 @@ class AaGaM(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "move"]
-        self.grasp_far_threshold = 0.055
         self._current_segment_start_dist = 0.0
 
     def reset(self):
@@ -718,21 +836,37 @@ class AaGaM(Protorewards):
         owner = self.decide(observation)
 
         if self.env.network_switcher == "decider":
+            if self.current_network == 0:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_opened(gripper_states):
+                        self._current_subpolicy_success = True
+
+            elif self.current_network == 1:
+                if self.gripper_approached_object(gripper_position, object_position):
+                    if self.gripper_closed(gripper_states):
+                        self._current_subpolicy_success = True
+
+            elif self.current_network == 2:
+                if self.object_near_goal(object_position, goal_position):
+                    self._current_subpolicy_success = True
+
             # log GT vs Decider once per env step
             step = int(getattr(self.env, "episode_steps", 0))
             if step != int(getattr(self, "_last_gt_log_step", -1)):
                 # hypothetical GT transition from *current_network* (does not mutate)
+                is_open = (sum(gripper_states) >= self.opengr_threshold)
+                is_closed = (sum(gripper_states) <= self.closegr_threshold)
+
                 gt_choice = int(self.current_network if self.current_network is not None else 0)
 
                 if gt_choice == 0:
-                    if self.gripper_approached_object(gripper_position, object_position) and self.gripper_opened(
-                            gripper_states):
+                    if self.gripper_approached_object(gripper_position, object_position) and is_open:
                         gt_choice = 1
                 elif gt_choice == 1:
-                    if self.gripper_approached_object(gripper_position, object_position) and self.gripper_closed(
-                            gripper_states):
+                    if self.gripper_approached_object(gripper_position, object_position) and is_closed:
                         gt_choice = 2
-                dec_choice = int(getattr(self, "_last_decider_choice", self.current_network if self.current_network is not None else 0))
+                dec_choice = int(getattr(self, "_last_decider_choice",
+                                         self.current_network if self.current_network is not None else 0))
 
                 self._gt_log.append((step, gt_choice, dec_choice))
                 self._last_gt_log_step = step
@@ -749,7 +883,6 @@ class AaGaM(Protorewards):
              [object_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute][owner](*target)
 
-        self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 3
 
@@ -758,23 +891,11 @@ class AaGaM(Protorewards):
             self._current_subpolicy_steps += 1
             self._current_subpolicy_return += reward
 
-            if self.current_network == 0:
-                if self.gripper_approached_object(gripper_position, object_position):
-                    if self.gripper_opened(gripper_states):
-                        self._current_subpolicy_success = True
+            if self._current_subpolicy_success:
+                # next env step network_switch_control() will be allowed to switch
+                self.decider_lock_until_step = int(getattr(self.env, "episode_steps", 0))
 
-            elif self.current_network == 1:
-                if self.gripper_approached_object(gripper_position, object_position):
-                    if self.gripper_closed(gripper_states):
-                        self._current_subpolicy_success = True
-
-            elif self.current_network == 2:
-                if self.gripper_approached_object(gripper_position, object_position):
-                    if self.gripper_closed(gripper_states):
-                        if self.object_near_goal(object_position, goal_position):
-                            self._current_subpolicy_success = True
-
-            if self.env.episode_terminated:
+            if self.env.episode_terminated or getattr(self.env, "episode_truncated", False):
                 os.makedirs(self.env.logdir, exist_ok=True)
                 save_path = os.path.join(self.env.logdir, "gt_vs_decider.txt")
                 with open(save_path, "a") as f:
@@ -792,6 +913,7 @@ class AaGaM(Protorewards):
         if self.env.network_switcher == "keyboard":
             self.change_network_based_on_key()
         elif self.env.network_switcher == "gt":
+        #elif self._gt_enabled():
             if self.current_network == 0:
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_opened(gripper_states):
@@ -816,7 +938,6 @@ class AaGaR(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "rotate"]
-        self.grasp_far_threshold = 0.055
         self._current_segment_start_dist = 0.0
 
     def reset(self):
@@ -856,7 +977,6 @@ class AaGaR(Protorewards):
 
         # Display, log, and update history
         # self.disp_reward(reward, owner)
-        self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 3  # Total number of networks is 3
 
@@ -921,7 +1041,6 @@ class AaGaMaD(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "move", "drop"]
-        self.grasp_far_threshold = 0.055
         self._current_segment_start_dist = 0.0
 
     def reset(self):
@@ -948,7 +1067,6 @@ class AaGaMaD(Protorewards):
 
         # if self.env.episode_terminated:
         #     reward += 0.2  # Adding reward for succesful finish of episode
-        self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 4
 
@@ -1009,7 +1127,6 @@ class AaGaMaDaW(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "move", "drop", "withdraw"]
-        self.grasp_far_threshold = 0.055
         self._current_segment_start_dist = 0.0
 
     def reset(self):
@@ -1042,7 +1159,6 @@ class AaGaMaDaW(Protorewards):
         # if self.env.episode_terminated:
         #     reward += 1.0  # Adding reward for successful finish of episode
 
-        self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5
         self.last_reward = reward
@@ -1116,7 +1232,6 @@ class AaGaRaDaW(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "rotate", "drop", "withdraw"]
-        self.grasp_far_threshold = 0.055
         self._current_segment_start_dist = 0.0
 
     def reset(self):
@@ -1150,7 +1265,6 @@ class AaGaRaDaW(Protorewards):
         # if self.env.episode_terminated:
         #     reward += 0.2  # Adding reward for succesful finish of episode
         # self.disp_reward(reward, owner)
-        self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5  # Still 5 networks
         return reward
@@ -1201,7 +1315,6 @@ class AaGaFaDaW(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "follow", "drop", "withdraw"]
-        self.grasp_far_threshold = 0.055
         self._current_segment_start_dist = 0.0
 
     def reset(self):
@@ -1268,7 +1381,6 @@ class AaGaFaDaW(Protorewards):
 
         # Display, log, and update history
         # self.disp_reward(reward, owner)
-        self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5  # Total number of networks remains 5
         return reward
@@ -1322,7 +1434,6 @@ class AaGaTaDaW(Protorewards):
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = ["approach", "grasp", "transform", "drop", "withdraw"]
-        self.grasp_far_threshold = 0.055
         self._current_segment_start_dist = 0.0
 
     def reset(self):
@@ -1392,7 +1503,6 @@ class AaGaTaDaW(Protorewards):
 
         # Display, log, and update history
         # self.disp_reward(reward, owner)
-        self.last_owner = owner
         self.rewards_history.append(reward)
         self.rewards_num = 5  # Total number of networks remains 5
         return reward

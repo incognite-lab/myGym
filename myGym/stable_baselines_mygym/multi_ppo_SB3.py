@@ -184,9 +184,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         self.normalize_advantage = normalize_advantage
         self.target_kl = target_kl
         self.models = []
-        self.current_network_idx = None
         self.step_counter = 0
-        self.last_network_idx = None
 
         if _init_setup_model:
             self._setup_model()
@@ -204,6 +202,16 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             self.clip_range_vf = get_schedule_fn(self.clip_range_vf)
         for i in range(self.models_num):
             self.models.append(SubModel(self, i))
+
+        if hasattr(self.env.unwrapped, "network_switcher") and self.env.unwrapped.network_switcher == "decider":
+            from myGym.stable_baselines_mygym.decider import DeciderPolicy
+            self.decider = DeciderPolicy(obs_dim=None, num_networks=self.models_num)
+
+            # attach to reward
+            if hasattr(self.env, "get_attr"):  # VecEnv
+                self.env.get_attr("reward")[0].decider_model = self.decider
+            else:  # single env
+                self.env.unwrapped.reward.decider_model = self.decider
 
     def set_env(self, env) -> None:
         super().set_env(env)
@@ -286,8 +294,25 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             submodel_id = self.env.get_attr("reward")[0].network_switch_control(
                 self.env.get_attr("observation")[0]["task_objects"])
         elif isinstance(self.env, DummyVecEnv):
-            submodel_id = self.env.envs[0].unwrapped.reward.network_switch_control(
-                self.env.envs[0].unwrapped.observation["task_objects"])
+            env0 = self.env.envs[0].unwrapped
+
+            switch_obs = None
+
+            # Prefer the observation passed into predict()
+            if isinstance(observation, dict) and "task_objects" in observation:
+                switch_obs = observation["task_objects"]
+                # handle batched vec obs: take env 0
+                if isinstance(switch_obs, (list, tuple, np.ndarray)) and len(switch_obs) > 0:
+                    switch_obs = switch_obs[0]
+
+            # Fallback to env internal observation
+            if switch_obs is None:
+                switch_obs = getattr(env0, "observation", None)
+                if isinstance(switch_obs, dict) and "task_objects" in switch_obs:
+                    switch_obs = switch_obs["task_objects"]
+
+            return env0.reward.network_switch_control(switch_obs)
+
         else:
             submodel_id = self.env.unwrapped.reward.network_switch_control(
                 self.env.unwrapped.observation["task_objects"])
@@ -389,6 +414,101 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             # Update optimizer learning rate
             self._update_learning_rate(policy.optimizer)
 
+        # ----------------- DECIDER UPDATE BLOCK (ONCE PER train()) -----------------
+        if getattr(self, "decider", None) is not None:
+            # find reward object in the (possibly vectorized) env
+            reward_obj = None
+            if hasattr(self.env, "get_attr"):
+                try:
+                    reward_list = self.env.get_attr("reward")
+                    if reward_list and len(reward_list) > 0:
+                        reward_obj = reward_list[0]
+                except Exception:
+                    reward_obj = None
+            else:
+                reward_obj = getattr(self.env, "reward", None) or \
+                             getattr(getattr(self.env, "unwrapped", None), "reward", None)
+
+            decider_stats = None
+            if reward_obj is not None and getattr(reward_obj, "finished_segments", None):
+                warmup_active = not getattr(reward_obj, "_decider_warmup_done", True)
+
+                if not warmup_active and not getattr(self.decider, "_gt_labels_dropped", False):
+                    self.decider.drop_gt_labels()
+                    self.decider._gt_labels_dropped = True
+
+                for (ret_seg, steps_seg, success_seg, switch_correct_seg, subpolicy_idx_seg,
+                     switched_seg, obs_seg, stage_idx_seg, logp_old_seg) in reward_obj.finished_segments:
+
+                    bad = (
+                            obs_seg is None
+                            or (isinstance(obs_seg, dict) and len(obs_seg) == 0)
+                            or (isinstance(obs_seg, np.ndarray) and obs_seg.size == 0)
+                    )
+                    if bad:
+                        print(
+                            "[Decider] WARNING: finished_segments contains empty obs_seg. "
+                            f"type={type(obs_seg)} sub={subpolicy_idx_seg} ret={ret_seg} steps={steps_seg} "
+                            f"success={success_seg} switched={switched_seg}"
+                        )
+                        continue
+
+                    self.decider.store(
+                        obs=obs_seg,
+                        selected_action_idx=int(subpolicy_idx_seg),
+                        subpolicy_idx=int(subpolicy_idx_seg),
+                        return_=float(ret_seg),
+                        steps_spent=int(steps_seg),
+                        success=bool(success_seg),
+                        switch_correct=switch_correct_seg,
+                        switched=bool(switched_seg),
+                        gt_action=int(subpolicy_idx_seg) if (warmup_active or logp_old_seg is None) else None,
+                        stage_idx=stage_idx_seg,
+                        logp_old=logp_old_seg,
+                    )
+
+                # clear segments and last_* to avoid reusing them
+                reward_obj.finished_segments = []
+                reward_obj.last_subpolicy_return = None
+                reward_obj.last_subpolicy_steps = None
+                reward_obj.last_subpolicy_success = None
+                reward_obj.last_subpolicy_switched = None
+                if hasattr(reward_obj, "last_subpolicy_idx"):
+                    reward_obj.last_subpolicy_idx = None
+
+                if hasattr(self.decider, "global_step"):
+                    self.decider.global_step = self.num_timesteps
+                decider_stats = self.decider.update()
+
+            if decider_stats is not None:
+                print(
+                    f"[Decider] t={self.num_timesteps} "
+                    f"loss={decider_stats['loss']:.3f} "
+                    f"ent={decider_stats['entropy']:.3f} "
+                    f"freqs={decider_stats['action_freqs']} "
+                )
+                self.logger.record("trained_models/decider_loss", decider_stats["loss"])
+                self.logger.record("trained_models/decider_entropy", decider_stats["entropy"])
+
+                # log usage frequencies per subpolicy
+                if "action_freqs" in decider_stats:
+                    for i, f in enumerate(decider_stats["action_freqs"]):
+                        self.logger.record(f"trained_models/decider_action_freq_{i}", f)
+
+                # optional temperature decay after some PPO updates
+                warmup_done = bool(getattr(reward_obj, "_decider_warmup_done", True))
+                if warmup_done and self._n_updates > 5000 and self.decider.temperature > 0.9 and self._n_updates % 1000 == 0:
+                    self.decider.decay_temperature()
+                self.logger.record("trained_models/decider_temp", self.decider.temperature)
+
+                # log running baselines per subpolicy
+                for i, b in enumerate(decider_stats["baseline_means"]):
+                    self.logger.record(f"trained_models/decider_baseline_{i}", b)
+                self.logger.record("trained_models/decider_warmup_done",
+                                   float(getattr(reward_obj, "_decider_warmup_done", True)))
+
+        # ----------------- END DECIDER UPDATE BLOCK -----------------
+
         # Compute current clip range
         clip_range = self.clip_range(self._current_progress_remaining)  # type: ignore[operator]
         # Optional: clip range for the value function
@@ -407,84 +527,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             for rollout_data, owner in self.rollout_buffer.get(self.batch_size):
                 actions = rollout_data.actions
 
-                # ----------------- DECIDER UPDATE BLOCK -----------------
-                if getattr(self, "decider", None) is not None:
-                    obs_batch = rollout_data.observations
-                    if obs_batch.shape[0] == 0:
-                        # just skip if minibatch is empty for some reason
-                        decider_stats = None
-                    else:
-                        # find reward object in the (possibly vectorized) env
-                        reward_obj = None
-                        if hasattr(self.env, "get_attr"):
-                            # VecEnv / VecMonitor / SubprocVecEnv / DummyVecEnv
-                            try:
-                                reward_list = self.env.get_attr("reward")
-                                if reward_list and len(reward_list) > 0:
-                                    reward_obj = reward_list[0]
-                            except Exception:
-                                reward_obj = None
-                        else:
-                            # single env fallback
-                            reward_obj = getattr(self.env, "reward", None) or \
-                                         getattr(getattr(self.env, "unwrapped", None), "reward", None)
-
-                        decider_stats = None
-                        if reward_obj is not None and getattr(reward_obj, "finished_segments", None):
-                            # we now expect segments of the form:
-                            # (ret, steps, success, subpolicy_idx, switched, grasp_from_far, obs_seg)
-                            for (ret_seg, steps_seg, success_seg, subpolicy_idx_seg,
-                                 switched_seg, grasp_from_far_seg, obs_seg) in reward_obj.finished_segments:
-                                self.decider.store(
-                                    obs=obs_seg,
-                                    selected_action_idx=int(subpolicy_idx_seg),
-                                    subpolicy_idx=int(subpolicy_idx_seg),
-                                    return_=float(ret_seg),
-                                    steps_spent=int(steps_seg),
-                                    success=bool(success_seg),
-                                    switched=bool(switched_seg),
-                                    grasp_from_far=bool(grasp_from_far_seg),
-                                )
-
-                            # clear segments and last_* to avoid reusing them
-                            reward_obj.finished_segments = []
-                            reward_obj.last_subpolicy_return = None
-                            reward_obj.last_subpolicy_steps = None
-                            reward_obj.last_subpolicy_success = None
-                            reward_obj.last_subpolicy_switched = None
-                            if hasattr(reward_obj, "last_subpolicy_idx"):
-                                reward_obj.last_subpolicy_idx = None
-
-                            # only update if we actually added new segments this pass
-                            if hasattr(self.decider, "global_step"):
-                                self.decider.global_step = self.num_timesteps
-                            decider_stats = self.decider.update()
-
-                    if decider_stats is not None:
-                        print(
-                            f"[Decider] t={self.num_timesteps} "
-                            f"loss={decider_stats['loss']:.3f} "
-                            f"ent={decider_stats['entropy']:.3f} "
-                            f"freqs={decider_stats['action_freqs']}"
-                        )
-                        self.logger.record("trained_models/decider_loss", decider_stats["loss"])
-                        self.logger.record("trained_models/decider_entropy", decider_stats["entropy"])
-
-                        # log usage frequencies per subpolicy
-                        if "action_freqs" in decider_stats:
-                            for i, f in enumerate(decider_stats["action_freqs"]):
-                                self.logger.record(f"trained_models/decider_action_freq_{i}", f)
-
-                        # optional temperature decay after some PPO updates
-                        if self._n_updates > 5000 and self.decider.temperature > 1.1 and self._n_updates % 1000 == 0:
-                            self.decider.decay_temperature()
-                        self.logger.record("trained_models/decider_temp", self.decider.temperature)
-
-                        # log running baselines per subpolicy
-                        for i, b in enumerate(decider_stats["baseline_means"]):
-                            self.logger.record(f"trained_models/decider_baseline_{i}", b)
-                # ----------------- END DECIDER UPDATE BLOCK -----------------
-
                 # choose appropriate submodel
                 model = self.models[owner]
 
@@ -493,6 +535,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     actions = rollout_data.actions.long().flatten()
                 values, log_prob, entropy = model.policy.evaluate_actions(rollout_data.observations, actions)
                 values = values.flatten()
+
                 # normalize advantage
                 advantages = rollout_data.advantages
                 # normalization does not make sense if mini batchsize == 1, see GH issue #325
@@ -521,6 +564,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
                     values_pred = rollout_data.old_values + th.clamp(
                         values - rollout_data.old_values, -clip_range_vf, clip_range_vf
                     )
+
                 # Value loss using the TD(gae_lambda) target
                 value_loss = F.mse_loss(rollout_data.returns, values_pred)
                 value_losses.append(value_loss.item())
@@ -591,7 +635,6 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         self.logger.record("train/clip_range", clip_range)
         if self.clip_range_vf is not None:
             self.logger.record("train/clip_range_vf", clip_range_vf)
-
 
     def learn(
             self: SelfPPO,
@@ -737,10 +780,9 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         try:
             # If the environment requests decider-based switching, create and attach a DeciderPolicy
             if hasattr(env.unwrapped, 'network_switcher') and env.unwrapped.network_switcher == "decider":
-                obs_dim = model.observation_space.shape[0]
                 # create a new decider model compatible with the loaded MultiPPO model count
                 from myGym.stable_baselines_mygym.decider import DeciderPolicy
-                model.decider = DeciderPolicy(obs_dim=obs_dim, num_networks=model.models_num)
+                model.decider = DeciderPolicy(obs_dim=None, num_networks=model.models_num)
                 # Reset runtime lock state so Decider will pick immediately after load
                 model.current_network_idx = None
                 model.lock_until_step = 0

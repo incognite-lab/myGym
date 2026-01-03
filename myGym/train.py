@@ -223,17 +223,18 @@ def setup_decider_for_multi_ppo(model, env, vec_env, model_logdir: str, pretrain
     if not hasattr(reward_obj, "decider_model") or getattr(reward_obj, "decider_model", None) is None:
         # infer dimensions if decider is not present
         obs_dim = getattr(reward_obj, "decider_obs_dim", 1)
+        network_names = getattr(reward_obj, "network_names", None)
+        num_nets = int(len(network_names)) if network_names else int(getattr(env0, "num_networks", 1))
+
         if obs_dim == 1 and flatten_obs_any:
             try:
                 sample_obs = env0.observation_space.sample() if hasattr(env0,
                                                                         "observation_space") else env0.get_observation()
                 flat = flatten_obs_any(sample_obs)
-                obs_dim = int(flat.shape[0]) if flat is not None else 1
+                base_obs_dim = int(flat.shape[0]) if flat is not None else 1
+                obs_dim = base_obs_dim + (num_nets + 1)  # + stage one-hot (_decider_stage_oh)
             except Exception:
                 pass  # keep default 1
-
-        network_names = getattr(reward_obj, "network_names", None)
-        num_nets = int(len(network_names)) if network_names else int(getattr(env0, "num_networks", 1))
 
         reward_obj.decider_model = DeciderPolicy(obs_dim=obs_dim, num_networks=num_nets, log_path=decider_log_path)
         print(f">>> Decider model CREATED (obs_dim={obs_dim}, num_networks={num_nets}) and attached to reward.")
