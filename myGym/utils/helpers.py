@@ -19,6 +19,7 @@ def get_workspace_dict():
                                 'table':    {'urdf': 'table.urdf', 'texture': 'table.jpg',
                                             'transform': {'position':[0.0, 0.0, 0.0], 'orientation':[0.0, 0.0, 0.0]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.0]},
+                                            'rendercamera': [3, 70, -30, [0.0, 0.0, 0.0]],
                                             'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.5, 1.0], [1.8, 0.9, 1.0], [-1.8, 0.9, 1.0], [0., 0.85, 1.4],
                                                                     [0.0, 1.6, 0.8], [-0.0, -0.5, 0.8], [0.8, 0.9, 0.6], [-0.8, 0.9, 0.8], [0.0, 0.9, 1.]],
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.80, 1.],
@@ -27,6 +28,7 @@ def get_workspace_dict():
                                 'table_nico': {'urdf': 'table_nico.urdf', 'texture': 'table.jpg',
                                             'transform': {'position':[-0.0, -0.0, 0.0], 'orientation':[0.0, 0.0, 0.0]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.0]},
+                                            'rendercamera': [3, 70, -30, [0.0, 0.0, 0.0]],
                                             'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.5, 1.0], [1.8, 0.9, 1.0], [-1.8, 0.9, 1.0], [0., 0.85, 1.4],
                                                                     [0.0, 1.6, 0.8], [-0.0, -0.5, 0.8], [0.8, 0.9, 0.6], [-0.8, 0.9, 0.8], [0.0, 0.9, 1.]],
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.80, 1.],
@@ -35,11 +37,23 @@ def get_workspace_dict():
                                 'table_complex': {'urdf': 'table_complex.urdf', 'texture': 'table.jpg',
                                             'transform': {'position':[0.0, 0.0, 0.0], 'orientation':[0.0, 0.0, 0.0]},
                                             'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.0]},
+                                            'rendercamera': [3, 70, -30, [0.0, 0.0, 0.0]],
                                             'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.5, 1.0], [1.8, 0.9, 1.0], [-1.8, 0.9, 1.0], [0., 0.85, 1.4],
                                                                     [0.0, 1.6, 0.8], [-0.0, -0.5, 0.8], [0.8, 0.9, 0.6], [-0.8, 0.9, 0.8], [0.0, 0.9, 1.]],
                                                         'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.80, 1.],
                                                                    [0.0, 1.3, 0.5], [-0.0, -0.0, 0.6], [0.6, 0.9, 0.4], [-0.6, 0.9, 0.5], [0.0, 0.898, 0.8]]},
-                                            'borders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1]}}
+                                            'borders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1]},
+                                'table_tiago':    {'urdf': 'table.urdf', 'texture': 'table.jpg',
+                                            'transform': {'position':[0.0, 0.0, 0.0], 'orientation':[0.0, 0.0, 0.0]},
+                                            'robot': {'position': [0.0, 0.0, 0.0], 'orientation': [0.0, 0.0, 0.0]},
+                                            'rendercamera': [3, 70, -30, [0.0, 0.0, 0.0]],
+                                            'camera': {'position': [[0.0, 2.4, 1.0], [-0.0, -1.5, 1.0], [1.8, 0.9, 1.0], [-1.8, 0.9, 1.0], [0., 0.85, 1.4],
+                                                                    [0.0, 1.6, 0.8], [-0.0, -0.5, 0.8], [0.8, 0.9, 0.6], [-0.8, 0.9, 0.8], [0.0, 0.9, 1.]],
+                                                        'target': [[0.0, 2.1, 0.9], [-0.0, -0.8, 0.9], [1.4, 0.9, 0.88], [-1.4, 0.9, 0.88], [0.0, 0.80, 1.],
+                                                                   [0.0, 1.3, 0.5], [-0.0, -0.0, 0.6], [0.6, 0.9, 0.4], [-0.6, 0.9, 0.5], [0.0, 0.898, 0.8]]},
+                                            'borders':[-0.7, 0.7, 0.5, 1.3, 0.1, 0.1]}
+                            }
+    
     return ws_dict
 
 
@@ -57,7 +71,7 @@ def get_robot_dict():
                              'kuka_gripper': {'path': '/envs/robots/kuka_gripper/kuka_gripper.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-0.0, -0.38, 0.0, -1.46, 0.0, 2.05, -0.0, 0.79, -0.14, 0.75, 0.0], 'ee_pos': [0.2, 0.0, 0.7053], 'ee_ori': [0.0, 0.0, 0.0], 'ee_quat_ori': [0.0, 0.0, 0.0, 1.0]},
                              'leachy': {'path': '/envs/robots/pollen/reachy/urdf/leachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-0.46, 1.1, -1.57, -1.11, 1.53, 0.43, 0.0, 0.0], 'ee_pos': [0.457, 0.3629, 0.4495], 'ee_ori': [0.0433, 0.0434, 0.0087], 'ee_quat_ori': [0.0215, 0.0218, 0.0039, 0.9995]},
                              'nico_grasp': {'path': '/envs/robots/nico/nico_grasper.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-0.29, 0.66, 0.78, 1.32, 0.57, 0.79, -0.0, 0.0, -0.44], 'ee_pos': [0.1929, -0.2672, 0.2728], 'ee_ori': [0.03, -0.0444, 0.0099], 'ee_quat_ori': [0.0151, -0.0221, 0.0053, 0.9996]},
-                             'panda_lgripper': {'path': '/envs/robots/franka_emika/panda/urdf/panda1.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [2.97, 0.31, -2.84, -1.86, 1.66, 3.71, 1.91, 0.06, 0.06], 'ee_pos': [0.3266, -0.0004, 0.5331], 'ee_ori': [-0.0001, -0.0013, -0.0011], 'ee_quat_ori': [-0.0001, -0.0006, -0.0005, 1.0]},
+                             'panda': {'path': '/envs/robots/franka_emika/panda/urdf/panda1.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [2.97, 0.31, -2.84, -1.86, 1.66, 3.71, 1.91, 0.06, 0.06], 'ee_pos': [0.3266, -0.0004, 0.5331], 'ee_ori': [-0.0001, -0.0013, -0.0011], 'ee_quat_ori': [-0.0001, -0.0006, -0.0005, 1.0]},
                              'panda_boxgripper': {'path': '/envs/robots/franka_emika/panda/urdf/panda_cgripper.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-1.48, -0.36, 0.12, -1.93, 1.61, 3.48, 2.22, 0.1, 0.1], 'ee_pos': [0.3265, -0.0001, 0.4827], 'ee_ori': [0.0, -0.0012, -0.0003], 'ee_quat_ori': [0.0, -0.0006, -0.0002, 1.0]},
                              'panda_sgripper': {'path': '/envs/robots/franka_emika/panda_moveit/urdf/panda2.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [0.0, -0.77, 0.0, -1.14, 0.0, 0.41, 0.91, 0.04, 0.04], 'ee_pos': [-0.0047, 0.0, 0.8021], 'ee_ori': [-0.005, 0.04, 3.0211], 'ee_quat_ori': [-0.0201, -0.0013, 0.998, 0.0601]},
                              'panda_gripper': {'path': '/envs/robots/franka_emika/panda_bullet/panda.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-0.28, -0.84, 0.0, -1.3, -0.0, 0.45, 2.86, 0.07, 0.07], 'ee_pos': [0.0, -0.0, 0.7789], 'ee_ori': [0.0, 0.0, -0.0], 'ee_quat_ori': [0.0, 0.0, -0.0, 1.0]},

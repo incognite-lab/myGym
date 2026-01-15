@@ -15,12 +15,13 @@ import pandas as pd
 
 from myGym import oraculum
 from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env, automatic_argument_assignment
+from myGym.utils.helpers import get_workspace_dict
+
 
 clear = lambda: os.system('clear')
 
 AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
-
 
 def visualize_sampling_area(arg_dict: dict) -> None:
     task_object = arg_dict["task_objects"][0]
@@ -152,6 +153,11 @@ def n_pressed(last_call_time):
 
 
 def test_env(env: object, arg_dict: dict) -> None:
+    # Get camera position from workspace dict
+    ws_dict = get_workspace_dict()
+    workspace_name = arg_dict.get("workspace", "table")
+    CAMERA_POS = ws_dict.get(workspace_name, {}).get("rendercamera", [1.2, 0, -30, [0.0, 0.5, 0.05]])
+    
     obs, info = env.reset()
     results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Success"])
     current_result = None
@@ -172,7 +178,7 @@ def test_env(env: object, arg_dict: dict) -> None:
         arg_dict["control"] = "random"
 
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-    p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
+    p.resetDebugVisualizerCamera(*CAMERA_POS)
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
     last_call_time = time.time()
     if arg_dict["control"] == "slider":
@@ -455,6 +461,11 @@ def test_model(
         model_logdir: str = None,
         deterministic: bool = False
 ) -> None:
+    # Get camera position from workspace dict
+    ws_dict = get_workspace_dict()
+    workspace_name = arg_dict.get("workspace", "table")
+    CAMERA_POS = ws_dict.get(workspace_name, {}).get("rendercamera", [1.2, 0, -30, [0.0, 0.5, 0.05]])
+    
     env.reset()
     try:
         #TODO: maybe this if else is unnecessary?
@@ -482,7 +493,7 @@ def test_model(
     steps_sum = 0
     global done
 
-    p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
+    p.resetDebugVisualizerCamera(*CAMERA_POS)
     model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
     for e in range(arg_dict["eval_episodes"]):
         done = False
