@@ -31,7 +31,7 @@ class Robot:
     """
     def __init__(self,
                  robot='kuka',
-                 position=[-0.1, 0.0, 0.07], orientation=[0, 0, 0],
+                 position=[0.0, 0.0, 0.0], orientation=[0, 0, 0],
                  end_effector_index=None, gripper_index=None, 
                  init_joint_poses=None,
                  robot_action="step",
@@ -58,6 +58,7 @@ class Robot:
         self.max_force = max_force
         self.end_effector_index = end_effector_index
         self.gripper_index = gripper_index
+        self.init_position = init_joint_poses
         self.use_fixed_end_effector_orn = False #Set to false by default
         if fixed_end_effector_orn is not None:
             self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(fixed_end_effector_orn)
@@ -78,26 +79,35 @@ class Robot:
         self._load_robot()
         self.num_joints = self.p.getNumJoints(self.robot_uid)
         self._set_motors()
-        box_initial_pos = self.p.getLinkState(self.robot_uid, self.end_effector_index)
-        box_size = 0.03
-        # self.box_id = self.p.createMultiBody(
-        #     baseMass=0,  # Set mass to 0 if it's only visual
-        #     baseCollisionShapeIndex=-1,  # No collision shape
-        #     baseVisualShapeIndex=self.p.createVisualShape(self.p.GEOM_BOX, halfExtents=[box_size / 2] * 3,
-        #                                                   rgbaColor=[1, 0.0, 0.0, 0.8]),  # Visual shape only
-        #     basePosition=box_initial_pos)
+
         self.joints_limits, self.joints_ranges, self.joints_rest_poses, self.joints_max_force, self.joints_max_velo = self.get_joints_limits(self.motor_indices)
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
-        if "tiago" in self.name: #This needed to be added becuase tiago got initialized in a bad position and IK didn't work
-            self.init_joint_poses =  self.set_tiago_joints()
-            self.joints_poses = self.init_joint_poses
-        elif "nico" in self.name:
-            self.init_joint_poses = self.set_nico_joints()
-            self.joints_poses = self.init_joint_poses
-        else:
-            self.init_joint_poses = list(self._calculate_accurate_IK(init_joint_poses[:3]))
-            self.joint_poses = self.init_joint_poses
+        
+        default_joint_ori = self.robot_dict[self.name]['default_joint_ori']
+        default_ee_pos = self.robot_dict[self.name]['ee_pos']
+        default_ee_ori = self.robot_dict[self.name]['ee_quat_ori']
+        if len(default_joint_ori) > self.joints_num:
+                remaining_joints = default_joint_ori[self.joints_num:]
+                if len(remaining_joints) == self.gjoints_num:
+                    self.init_gjoint_poses = remaining_joints
+        # Initialize joint poses based on init_position type
+        if self.init_position == "default":
+            self.init_joint_poses = default_joint_ori[:self.joints_num]    
+        elif self.init_position == "default_pos":
+            self.init_joint_poses = list(self._calculate_accurate_IK(default_ee_pos))
+        elif self.init_position == "default_posori":
+            self.fixed_end_effector_orn = default_ee_ori
+            self.use_fixed_end_effector_orn = True
+            self.init_joint_poses = list(self._calculate_accurate_IK(default_ee_pos))
+        elif len(self.init_position) == 3:
+            # Calculate IK from provided numeric position values
+            self.init_joint_poses = list(self._calculate_accurate_IK(self.init_position[:3]))
+        elif len(self.init_position) == 6:
+            # Use first 3 values for position and last 4 for orientation quaternion
+            self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(self.init_position[3:6])
+            self.use_fixed_end_effector_orn = True
+            self.init_joint_poses = list(self._calculate_accurate_IK(self.init_position[:3]))
         # self.open_gripper = self.gripper_dict["open"] #action values which open the gripper
         # self.close_gripper = self.gripper_dict["close"] #action values which close the gripper
         # self.opengr_thresholds = self.gripper_dict["th_open"]

@@ -254,7 +254,7 @@ def get_parser():
     # Robot
     parser.add_argument("-b", "--robot", default=["kuka", "panda"], nargs='*',
                         help="Robot to train: kuka, panda, jaco ...")
-    parser.add_argument("-bi", "--robot_init", nargs="*", type=float, help="Initial robot's end-effector position")
+    parser.add_argument("-bi", "--robot_init", nargs="*", help="Initial robot's end-effector position")
     parser.add_argument("-ba", "--robot_action", type=str, help="Robot's action control: step - end-effector relative position, absolute - end-effector absolute position, joints - joints' coordinates")
     parser.add_argument("-mv", "--max_velocity", type=float, help="Maximum velocity of robotic arm")
     parser.add_argument("-mf", "--max_force", type=float, help="Maximum force of robotic arm")
@@ -311,7 +311,11 @@ def get_arguments(parser):
     for key, value in arg_dict.items():
         if value is not None and key != "config":
             if key in ["robot_init"] or key in ["end_effector_orn"]:
-                arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
+                # Keep strings like "default" or "default_pos" as is, convert numeric lists to float
+                if isinstance(arg_dict[key], str):
+                    pass  # Keep string values as is
+                else:
+                    arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
             elif type(value) is list and len(value) <= 1 and key != "task_objects":
                 arg_dict[key] = value[0]
     for key, value in vars(args).items():
@@ -324,6 +328,16 @@ def get_arguments(parser):
                     arg_dict[key] = task_objects_replacement(value, arg_dict[key], arg_dict["task_type"])
                     if len(value) == 1:
                         commands[key] = value[0]
+                elif key in ["robot_init", "end_effector_orn"]:
+                    # Handle string values like "default" or numeric lists
+                    if len(value) == 1 and isinstance(value[0], str):
+                        arg_dict[key] = value[0]  # Keep single string value
+                    else:
+                        # Convert to floats if numeric
+                        try:
+                            arg_dict[key] = [float(v) for v in value]
+                        except (ValueError, TypeError):
+                            arg_dict[key] = value  # Keep as is if conversion fails
                 elif type(value) is list and len(value) <= 1:
                     arg_dict[key] = value[0]
                 else:
