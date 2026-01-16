@@ -275,10 +275,10 @@ def main():
     # Main simulation loop
     p.setRealTimeSimulation(1)
     p.resetDebugVisualizerCamera(
-        cameraDistance=1.95,
-        cameraYaw=90,
-        cameraPitch=-15,
-        cameraTargetPosition=[0, 0, 0.3]
+        cameraDistance=3,
+        cameraYaw=70,
+        cameraPitch=-30,
+        cameraTargetPosition=[0, 0, 0.0]
     )
     
     # Get path to helpers.py
