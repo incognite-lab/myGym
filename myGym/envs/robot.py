@@ -215,6 +215,7 @@ class Robot:
         if random_robot:
             self.reset_random()
         else:
+            self.reset_gjoints(self.init_gjoint_poses)
             self.reset_joints(self.init_joint_poses)
 
     def reset_random(self):
@@ -245,6 +246,20 @@ class Robot:
         for jid in range(len(self.motor_indices)):
             self.p.resetJointState(self.robot_uid, self.motor_indices[jid], joint_poses[jid])
         self._run_motors(joint_poses)
+    
+    def reset_gjoints(self, joint_poses):
+        """
+        Reset joint motors to requested values
+
+        Parameters:
+            :param positions: (list) Values for individual joint motors
+        """
+        #if self.robot_action in ["absolute","step"]:
+        #    joint_poses = self._calculate_joint_poses(joint_poses)
+        #joint_poses = np.clip(joint_poses, self.gjoints_limits[0], self.gjoints_limits[1])
+        for jid in range(len(self.gripper_indices)):
+            self.p.resetJointState(self.robot_uid, self.gripper_indices[jid], joint_poses[jid])
+        #self._run_motors(joint_poses)
 
 
     def get_joints_limits(self,indices):
