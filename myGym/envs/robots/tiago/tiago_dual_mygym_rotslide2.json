@@ -1,0 +1,18 @@
+{
+  "arm": [
+    "baseslide_rjoint",
+    "baserot_rjoint",
+    "torso_lift_rjoint",
+    "arm_right_1_rjoint",
+    "arm_right_2_rjoint",
+    "arm_right_3_rjoint",
+    "arm_right_4_rjoint",
+    "arm_right_5_rjoint",
+    "arm_right_6_rjoint",
+    "arm_right_7_rjoint"
+  ],
+  "gripper": [
+    "gripper_right_right_finger_gjoint",
+    "gripper_right_left_finger_gjoint"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "arm": [
+    "shoulder_yaw_rjoint",
+    "shoulder_roll_rjoint",
+    "shoulder_pitch_rjoint",
+    "upperarm_roll_rjoint",
+    "elbow_rjoint",
+    "wrist_pitch_rjoint",
+    "i1f_rjoint",
+    "i2f_rjoint",
+    "i3f_rjoint",
+    "i4f_rjoint",
+    "i5f_rjoint"
+  ],
+  "gripper": []
+}

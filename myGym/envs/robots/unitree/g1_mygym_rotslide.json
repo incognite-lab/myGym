@@ -1,0 +1,21 @@
+{
+  "arm": [
+    "baseslide_rjoint",
+    "baserot_rjoint",
+    "waist_yaw_rjoint",
+    "waist_roll_rjoint",
+    "waist_pitch_rjoint",
+    "right_shoulder_pitch_rjoint",
+    "right_shoulder_roll_rjoint",
+    "right_shoulder_yaw_rjoint",
+    "right_elbow_rjoint",
+    "right_wrist_roll_rjoint",
+    "right_wrist_pitch_rjoint",
+    "right_wrist_yaw_rjoint"
+  ],
+  "gripper": [
+    "right_hand_thumb_1_gjoint",
+    "right_hand_middle_0_gjoint",
+    "right_hand_index_0_gjoint"
+  ]
+}

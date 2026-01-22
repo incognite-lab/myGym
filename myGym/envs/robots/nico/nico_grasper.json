@@ -1,0 +1,16 @@
+{
+  "arm": [
+    "r_shoulder_z_rjoint",
+    "r_shoulder_y_rjoint",
+    "r_arm_x_rjoint",
+    "r_elbow_y_rjoint",
+    "r_wrist_z_rjoint",
+    "r_wrist_x_rjoint"
+  ],
+  "gripper": [
+    "r_middlefingers_x_gjoint",
+    "r_litlefinger_x_gjoint",
+    "r_indexfinger_x_gjoint",
+    "r_thumb_z_gjoint"
+  ]
+}

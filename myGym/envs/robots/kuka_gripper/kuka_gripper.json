@@ -1,0 +1,9 @@
+{
+  "arm": [],
+  "gripper": [
+    "base_to_finger00_gjoint",
+    "finger00_to_finger01_gjoint",
+    "base_to_finger10_gjoint",
+    "finger10_to_finger11_gjoint"
+  ]
+}
