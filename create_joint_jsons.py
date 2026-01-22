@@ -72,11 +72,17 @@ def extract_joints_from_urdf(urdf_path):
         joint_pattern = r'<joint\s+name="([^"]+)"'
         matches = re.findall(joint_pattern, content)
         
+        # Use sets to track unique joints and preserve order
+        seen_rjoints = set()
+        seen_gjoints = set()
+        
         for joint_name in matches:
-            if joint_name.endswith('rjoint'):
+            if joint_name.endswith('rjoint') and joint_name not in seen_rjoints:
                 rjoints.append(joint_name)
-            elif joint_name.endswith('gjoint'):
+                seen_rjoints.add(joint_name)
+            elif joint_name.endswith('gjoint') and joint_name not in seen_gjoints:
                 gjoints.append(joint_name)
+                seen_gjoints.add(joint_name)
     
     except Exception as e:
         print(f"Error reading {urdf_path}: {e}")

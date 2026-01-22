@@ -12,9 +12,6 @@
     "base_l_passive_wheel_z_rjoint",
     "base_range_sensor_rjoint",
     "base_imu_frame_rjoint",
-    "base_r_drive_wheel_rjoint",
-    "base_l_drive_wheel_rjoint",
-    "base_roll_rjoint",
     "torso_lift_rjoint",
     "head_pan_rjoint",
     "head_tilt_rjoint",
@@ -23,8 +20,6 @@
     "head_center_camera_gazebo_frame_rjoint",
     "head_rgbd_sensor_rjoint",
     "head_rgbd_sensor_gazebo_frame_rjoint",
-    "head_pan_rjoint",
-    "head_tilt_rjoint",
     "arm_lift_rjoint",
     "wrist_roll_rjoint",
     "wrist_ft_sensor_frame_rjoint",
@@ -35,8 +30,6 @@
   ],
   "gripper": [
     "arm_lift_gjoint",
-    "arm_flex_gjoint",
-    "arm_roll_gjoint",
     "arm_flex_gjoint",
     "arm_roll_gjoint",
     "wrist_flex_gjoint",
@@ -51,7 +44,6 @@
     "hand_r_proximal_gjoint",
     "hand_r_spring_proximal_gjoint",
     "hand_r_mimic_distal_gjoint",
-    "hand_r_distal_gjoint",
-    "hand_r_spring_proximal_gjoint"
+    "hand_r_distal_gjoint"
   ]
 }
