@@ -230,7 +230,7 @@ def test_env(env: object, arg_dict: dict) -> None:
     if arg_dict["control"] == "random":
         action = env.action_space.sample()
     if arg_dict["control"] == "keyboard":
-        action = arg_dict["robot_init"]
+        action = env.action_space.sample().tolist()
         if "gripper" in arg_dict["robot_action"]:
             action.append(.1)
             action.append(.1)

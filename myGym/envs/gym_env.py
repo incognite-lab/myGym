@@ -331,10 +331,10 @@ class GymEnv(CameraEnv):
         Set action space dimensions and range
         """
         from gymnasium import spaces
-        action_dim = self.robot.get_action_dimension()
+        #action_dim = self.robot.get_action_dimension()
         if "step" in self.robot_action:
-            self.action_low = np.array([-1] * action_dim)
-            self.action_high = np.array([1] * action_dim)
+            self.action_low = np.array([-1] * 3)
+            self.action_high = np.array([1] * 3)
 
 
         elif "absolute" in self.robot_action:

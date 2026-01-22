@@ -76,7 +76,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_hip_pitch_joint" type="fixed">
+  <joint name="left_hip_pitch_rjoint" type="revolute">
     <origin xyz="0 0.064452 -0.1027" rpy="0 0 0"/>
     <parent link="pelvis"/>
     <child link="left_hip_pitch_link"/>
@@ -105,7 +105,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_hip_roll_joint" type="fixed">
+  <joint name="left_hip_roll_rjoint" type="fixed">
     <origin xyz="0 0.052 -0.030465" rpy="0 -0.1749 0"/>
     <parent link="left_hip_pitch_link"/>
     <child link="left_hip_roll_link"/>
@@ -134,7 +134,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_hip_yaw_joint" type="fixed">
+  <joint name="left_hip_yaw_rjoint" type="revolute">
     <origin xyz="0.025001 0 -0.12412" rpy="0 0 0"/>
     <parent link="left_hip_roll_link"/>
     <child link="left_hip_yaw_link"/>
@@ -192,7 +192,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="left_ankle_pitch_rjoint" type="fixed">
+  <joint name="left_ankle_pitch_rjoint" type="revolute">
     <origin xyz="0 -9.4445E-05 -0.30001" rpy="0 0 0"/>
     <parent link="left_knee_link"/>
     <child link="left_ankle_pitch_link"/>
@@ -268,7 +268,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_hip_pitch_rjoint" type="fixed">
+  <joint name="right_hip_pitch_rjoint" type="revolute">
     <origin xyz="0 -0.064452 -0.1027" rpy="0 0 0"/>
     <parent link="pelvis"/>
     <child link="right_hip_pitch_link"/>
@@ -326,7 +326,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_hip_yaw_rjoint" type="fixed">
+  <joint name="right_hip_yaw_rjoint" type="revolute">
     <origin xyz="0.025001 0 -0.12412" rpy="0 0 0"/>
     <parent link="right_hip_roll_link"/>
     <child link="right_hip_yaw_link"/>
@@ -355,7 +355,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_knee_joint" type="fixed">
+  <joint name="right_knee_rjoint" type="fixed">
     <origin xyz="-0.078273 -0.0021489 -0.17734" rpy="0 0.1749 0"/>
     <parent link="right_hip_yaw_link"/>
     <child link="right_knee_link"/>
@@ -384,7 +384,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_ankle_pitch_joint" type="fixed">
+  <joint name="right_ankle_pitch_rjoint" type="revolute">
     <origin xyz="0 9.4445E-05 -0.30001" rpy="0 0 0"/>
     <parent link="right_knee_link"/>
     <child link="right_ankle_pitch_link"/>
@@ -431,7 +431,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_ankle_roll_joint" type="fixed">
+  <joint name="right_ankle_roll_rjoint" type="fixed">
     <origin xyz="0 0 -0.017558" rpy="0 0 0"/>
     <parent link="right_ankle_pitch_link"/>
     <child link="right_ankle_roll_link"/>
@@ -456,7 +456,7 @@
       </material>
     </visual>
   </link>
-  <joint name="waist_yaw_rjoint" type="fixed">
+  <joint name="waist_yaw_rjoint" type="revolute">
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <parent link="pelvis"/>
     <child link="waist_yaw_link"/>
@@ -479,7 +479,7 @@
       </material>
     </visual>
   </link>
-  <joint name="waist_roll_rjoint" type="fixed">
+  <joint name="waist_roll_rjoint" type="revolute">
     <origin xyz="-0.0039635 0 0.044" rpy="0 0 0"/>
     <parent link="waist_yaw_link"/>
     <child link="waist_roll_link"/>
@@ -508,13 +508,14 @@
       </geometry>
     </collision>
   </link>
-  <joint name="waist_pitch_rjoint" type="fixed">
+  <joint name="waist_pitch_rjoint" type="revolute">
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <parent link="waist_roll_link"/>
     <child link="torso_link"/>
     <axis xyz="0 1 0"/>
     <limit lower="-0.52" upper="0.52" effort="50" velocity="37"/>
   </joint>
+
 
   <!-- Head -->
   <link name="head_link">
@@ -1234,14 +1235,16 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_palm_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
-<link name="ee_x_axis">
+   <link name="ee_x_axis">
     <visual>
     <origin xyz="0.03 0 0" rpy="0 1.57079632679 0"/>
     <geometry>
@@ -1328,12 +1331,14 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_thumb_0_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_hand_thumb_1_gjoint" type="revolute">
     <origin xyz="-0.0025 0.0193 0" rpy="0 0 0"/>
@@ -1356,13 +1361,15 @@
       <material name="white">
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
-    </visual>
+      </visual>
+    <!--
     <collision>
       <origin xyz="-0.001 0.032 0" rpy="0 0 0"/>
       <geometry>
         <box size="0.02 0.03 0.02"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_hand_thumb_2_joint" type="fixed">
     <origin xyz="0 0.0458 0" rpy="0 0 0"/>
@@ -1386,12 +1393,14 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_thumb_2_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_hand_middle_0_gjoint" type="revolute">
     <origin xyz="0.0777 -0.0016 -0.0285" rpy="0 0 0"/>
@@ -1415,12 +1424,14 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+     <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_middle_0_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_hand_middle_1_joint" type="fixed">
     <origin xyz="0.0458 0 0" rpy="0 0 0"/>
@@ -1444,12 +1455,14 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_middle_1_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_hand_index_0_gjoint" type="revolute">
     <origin xyz="0.0777 -0.0016 0.0285" rpy="0 0 0"/>
@@ -1473,12 +1486,14 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+     <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_index_0_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_hand_index_1_joint" type="fixed">
     <origin xyz="0.0458 0 0" rpy="0 0 0"/>
@@ -1502,11 +1517,13 @@
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="meshes/right_hand_index_1_link.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
 </robot>

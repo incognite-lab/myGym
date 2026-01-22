@@ -84,16 +84,11 @@ class Robot:
         if self.gripper_names:
             self.gjoints_limits, self.gjoints_ranges, self.gjoints_rest_poses, self.gjoints_max_force, self.gjoints_max_velo = self.get_joints_limits(self.gripper_indices)
         
-        default_joint_ori = self.robot_dict[self.name]['default_joint_ori']
-        default_ee_pos = self.robot_dict[self.name]['ee_pos']
-        default_ee_ori = self.robot_dict[self.name]['ee_quat_ori']
-        if len(default_joint_ori) > self.joints_num:
-                remaining_joints = default_joint_ori[self.joints_num:]
-                if len(remaining_joints) == self.gjoints_num:
-                    self.init_gjoint_poses = remaining_joints
+        default_ee_pos, default_ee_ori = self.load_default_joint_pos()
+        
         # Initialize joint poses based on init_position type
         if self.init_position == "default":
-            self.init_joint_poses = default_joint_ori[:self.joints_num]    
+            pass  # Already set above    
         elif self.init_position == "default_pos":
             self.init_joint_poses = list(self._calculate_accurate_IK(default_ee_pos))
         elif self.init_position == "default_posori":
@@ -119,6 +114,10 @@ class Robot:
         else:
             self.orientation_in_rew = False
         self.offset_quat = self.p.getQuaternionFromEuler((0, 0, 0))
+        self.get_action_dimension()
+        print(f"Robot {self.name} initialized with {self.joints_num} joints, {self.gjoints_num} gripper joints, total action dimension {self.action_dim}")
+        print(f"Joint indices: {self.motor_indices}")
+        print(f"Gripper indices: {self.gripper_indices}")
 
         
 
@@ -197,6 +196,29 @@ class Robot:
         if 'gripper' not in self.robot_action and self.gripper_indices:
             print("Gripper joints detected but not active gripper control. Setting gripper joints to fixed values")
 
+    def load_default_joint_pos(self):
+        """
+        Load default joint positions from robot dictionary and validate against actual joint counts.
+        Sets init_joint_poses and init_gjoint_poses.
+        
+        Returns:
+            :return default_ee_pos: Default end-effector position
+            :return default_ee_ori: Default end-effector orientation (quaternion)
+        """
+        default_joint_ori = self.robot_dict[self.name]['default_joint_ori']
+        default_ee_pos = self.robot_dict[self.name]['ee_pos']
+        default_ee_ori = self.robot_dict[self.name]['ee_quat_ori']
+        
+        if len(default_joint_ori) == self.joints_num + self.gjoints_num:
+            print("Using predefined poses")
+            remaining_joints = default_joint_ori[self.joints_num:]
+            self.init_gjoint_poses = remaining_joints
+            self.init_joint_poses = default_joint_ori[:self.joints_num]
+        else:
+            print(f"Error: default_joint_ori differs in number of joints. Expected {self.joints_num + self.gjoints_num}, got {len(default_joint_ori)}")
+            raise ValueError(f"default_joint_ori length mismatch: expected {self.joints_num + self.gjoints_num}, got {len(default_joint_ori)}")
+        
+        return default_ee_pos, default_ee_ori
 
     def touch_sensors_active(self, target_object):
         contact_points = self.p.getContactPoints(self.robot_uid, target_object.uid)
@@ -223,7 +245,7 @@ class Robot:
         Reset joint motors to random values within joint ranges
         """
         joint_poses = []
-        for jid in range(len(self.motor_indices)):
+        for jid in range(self.joints_num):
             joint_poses.append(np.random.uniform(self.joints_limits[0][jid], self.joints_limits[1][jid]))
         self.reset_joints(joint_poses)
 
@@ -231,7 +253,7 @@ class Robot:
         """
         Reset joint motors to zero values (robot in upright position)
         """
-        self.reset_joints(np.zeros((len(self.motor_indices))))
+        self.reset_joints(np.zeros((self.joints_num)))
 
     def reset_joints(self, joint_poses):
         """
@@ -243,7 +265,7 @@ class Robot:
         #if self.robot_action in ["absolute","step"]:
         #    joint_poses = self._calculate_joint_poses(joint_poses)
         joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
-        for jid in range(len(self.motor_indices)):
+        for jid in range(self.joints_num):
             self.p.resetJointState(self.robot_uid, self.motor_indices[jid], joint_poses[jid])
         self._run_motors(joint_poses)
     
@@ -290,10 +312,12 @@ class Robot:
             :return dimension: (int) The dimension of action data
         """
         if "absolute" in self.robot_action or "step" in self.robot_action:
-            dim = 3
+            self.action_dim = 3
         elif "joints" in self.robot_action:
-            dim = len(self.motor_indices)
-        return dim
+            self.action_dim = self.joints_num
+        if "gripper" in self.robot_action:
+            self.action_dim += self.gjoints_num
+        return self.action_dim
 
     def observe_all_links(self):
         """
@@ -345,25 +369,25 @@ class Robot:
         observation.extend(list(orn))
         return observation
 
-    def get_links_observation(self, num):
-        """
-        Get robot part of observation data
+    # def get_links_observation(self, num):
+    #     """
+    #     Get robot part of observation data
 
-        Returns: 
-            :return observation: (list) Position of all links (center of mass)
-        """
-        observation = []
-        if "kuka" in self.name:
-            for link in range(self.gripper_index-num, self.gripper_index):  
-            # for link in range(4, self.gripper_index):  
-                state = self.p.getLinkState(self.robot_uid, link)
-                pos = state[0]
-                observation.extend(list(pos))
-        else:
-            exit("not implemented for other arms than kuka")
+    #     Returns: 
+    #         :return observation: (list) Position of all links (center of mass)
+    #     """
+    #     observation = []
+    #     if "kuka" in self.name:
+    #         for link in range(self.gripper_index-num, self.gripper_index):  
+    #         # for link in range(4, self.gripper_index):  
+    #             state = self.p.getLinkState(self.robot_uid, link)
+    #             pos = state[0]
+    #             observation.extend(list(pos))
+    #     else:
+    #         exit("not implemented for other arms than kuka")
 
-        self.observed_links_num = num
-        return observation
+    #     self.observed_links_num = num
+    #     return observation
 
     def get_position(self):
         """
@@ -392,7 +416,7 @@ class Robot:
         """
         joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
         self.joints_state = []
-        for i in range(len(self.motor_indices)):
+        for i in range(self.joints_num):
             joint_info = self.p.getJointInfo(self.robot_uid, self.motor_indices[i])
             joint_type = joint_info[2]
             joint_name = joint_info[1]
@@ -476,7 +500,7 @@ class Robot:
                                                            self.end_effector_index,
                                                            end_effector_pos,
                                                            endeff_orientation)
-        joint_poses = np.clip(joint_poses[:len(self.motor_indices)], self.joints_limits[0], self.joints_limits[1])
+        joint_poses = np.clip(joint_poses[:self.joints_num], self.joints_limits[0], self.joints_limits[1])
         return joint_poses
 
     def _calculate_accurate_IK(self, end_effector_pos):
@@ -509,10 +533,10 @@ class Robot:
                                                             jointRanges=self.joints_ranges,
                                                             restPoses=self.joints_rest_poses)
                 #print("IK without fixed orn")
-            joint_poses = joint_poses[:len(self.motor_indices)]
+            joint_poses = joint_poses[:self.joints_num]
             joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
             #reset the joint state (ignoring all dynamics, not recommended to use during simulation)
-            for jid in range(len(self.motor_indices)):
+            for jid in range(self.joints_num):
                 self.p.resetJointState(self.robot_uid, self.motor_indices[jid], joint_poses[jid])
                    
             ls = self.p.getLinkState(self.robot_uid, self.end_effector_index)
@@ -699,31 +723,33 @@ class Robot:
             self.apply_action_joints(action)
         if "gripper" in self.robot_action:
             self._move_gripper(action[-(self.gjoints_num):])
-            if self.task_type in ["compositional", "AG", "AGM", "AGR", "AGMD", "AGMDW", "AGRDW", "AGFDW","AGTDW"]:
-                if env_objects["actual_state"] != self: #if self.use_magnet and ...
-                    gripper_states = self.get_gjoints_states()
-                    if sum(gripper_states) < self.closegr_threshold:
-                        self.gripper_active = True
-                        self.magnetize_object(env_objects["actual_state"])
-                    elif sum(gripper_states) > self.opengr_threshold:
-                        self.release_all_objects()
-                if len(self.magnetized_objects):
-                    for key, val in self.magnetized_objects.items():
-                        self.p.removeConstraint(val)
-                        if self.orientation_in_rew:
-                            object_ori = self.object_transform(self.get_orientation())
-                            constraint_id = self.p.createConstraint(key.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0],
-                                                                    [0, 0, 0],
-                                                                    self.get_position(),
-                                                                    parentFrameOrientation=object_ori, childFrameOrientation=object_ori)
-                            self.magnetized_objects[key] = constraint_id
-                            self.p.resetBasePositionAndOrientation(key.uid, self.end_effector_pos, object_ori)
-                        else:
-                            constraint_id = self.p.createConstraint(key.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0],
-                                                                    [0, 0, 0],
-                                                                    self.get_position())
-                            self.magnetized_objects[key] = constraint_id
-                            self.p.resetBasePositionAndOrientation(key.uid, self.end_effector_pos, key.get_orientation())
+            if env_objects["actual_state"] != self: #if self.use_magnet and ...
+                gripper_states = self.get_gjoints_states()
+                if sum(gripper_states) < self.closegr_threshold:
+                    self.gripper_active = True
+                    self.magnetize_object(env_objects["actual_state"])
+                elif sum(gripper_states) > self.opengr_threshold:
+                    self.release_all_objects()
+                print("Gripper states:", sum(gripper_states))
+                print("Close threshold:", self.closegr_threshold)
+                print("Open threshold:", self.opengr_threshold)
+            if len(self.magnetized_objects):
+                for key, val in self.magnetized_objects.items():
+                    self.p.removeConstraint(val)
+                    if self.orientation_in_rew:
+                        object_ori = self.object_transform(self.get_orientation())
+                        constraint_id = self.p.createConstraint(key.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0],
+                                                                [0, 0, 0],
+                                                                self.get_position(),
+                                                                parentFrameOrientation=object_ori, childFrameOrientation=object_ori)
+                        self.magnetized_objects[key] = constraint_id
+                        self.p.resetBasePositionAndOrientation(key.uid, self.end_effector_pos, object_ori)
+                    else:
+                        constraint_id = self.p.createConstraint(key.uid, -1, -1, -1, self.p.JOINT_FIXED, [0, 0, 0],
+                                                                [0, 0, 0],
+                                                                self.get_position())
+                        self.magnetized_objects[key] = constraint_id
+                        self.p.resetBasePositionAndOrientation(key.uid, self.end_effector_pos, key.get_orientation())
 
         else:
             if self.gjoints_num:
@@ -858,16 +884,6 @@ class Robot:
         """
         return self.robot_uid
 
-    def set_tiago_joints(self):
-        # Manually selected constant using slider
-        tiago_init = [0.121, -0.047, 0.023, 0.295, -0.064, -0.353, 1.918, 1.662, 0.419, -0.908, 0.088][11-len(self.motor_indices):]
-        for i, idx in enumerate(self.motor_indices):
-            self.p.resetJointState(self.robot_uid, idx, tiago_init[i])
-        self.init_joint_poses = tiago_init
-        self.joint_poses = self.init_joint_poses
-        return tiago_init
-
-
     def determine_opengr_threshold(self):
         min, max = self.gjoints_limits[0], self.gjoints_limits[1]
         return sum(min) + 0.95*(sum(max) - sum(min))
@@ -876,13 +892,6 @@ class Robot:
         min, max = self.gjoints_limits[0], self.gjoints_limits[1]
         return sum(min) + 0.01 * (sum(max) - sum(min))
 
-    def set_nico_joints(self):
-        # Manually selected constant using slider
-        nico_init = np.deg2rad([0.976, 16.582, 50.472, 86.261, 32.209, 22.263])
-        for i, idx in enumerate(self.motor_indices):
-            self.p.resetJointState(self.robot_uid, idx, nico_init[i])
-        self.init_joint_poses = nico_init
-        self.joint_poses = self.init_joint_poses
-        return nico_init
+
 
 

@@ -354,6 +354,10 @@ def main():
         if selected.selected_robot:
             if '-b' not in extra_args and '--b' not in extra_args:
                 extra_args += ['-b', selected.selected_robot]
+            if '-ct' not in extra_args and '--ct' not in extra_args:
+                extra_args += ['-ct', 'oraculum']
+            if '-ba' not in extra_args and '--ba' not in extra_args:
+                extra_args += ['-ba', 'absolute_gripper']
             selected.selected_robot = None  # reset after run
         run_test(selected.path, args.dry_run, g_val, extra_args)
         # clear mode flags so the next run doesn't reuse previous parameters
