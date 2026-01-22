@@ -72,7 +72,7 @@ def extract_joints_from_urdf(urdf_path):
         joint_pattern = r'<joint\s+name="([^"]+)"'
         matches = re.findall(joint_pattern, content)
         
-        # Use sets to track unique joints and preserve order
+        # Use sets to track unique joints (order is preserved by list append operations)
         seen_rjoints = set()
         seen_gjoints = set()
         
