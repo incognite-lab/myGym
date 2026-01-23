@@ -83,7 +83,7 @@ def main():
         '-p', '--plane',
         type=str,
         default='plane.urdf',
-        help='Plane URDF file to use (default: plane.urdf)'
+        help='Plane URDF file to use - can be a filename (searched in myGym/envs/rooms/) or absolute path (default: plane.urdf)'
     )
     parser.add_argument(
         '--no-gui',
@@ -96,7 +96,7 @@ def main():
     # Get the path to the objects directory
     try:
         currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
-    except:
+    except (AttributeError, TypeError, ModuleNotFoundError):
         # Fallback for older Python versions or different package structure
         currentdir = os.path.join(os.path.dirname(__file__), "envs")
     
@@ -136,11 +136,21 @@ def main():
     p.setGravity(0, 0, -9.81)
     
     # Load plane
-    plane_path = os.path.join(currentdir, "rooms", args.plane)
+    # Try to find the plane in the rooms directory, or use absolute path if provided
+    if os.path.isabs(args.plane):
+        plane_path = args.plane
+    else:
+        plane_path = os.path.join(currentdir, "rooms", args.plane)
+    
     if not os.path.exists(plane_path):
-        # Try with pybullet_data if not found
+        # Try with pybullet_data if not found in myGym
         print(f"Plane not found at {plane_path}, using PyBullet's default plane")
-        plane_id = p.loadURDF("plane.urdf")
+        try:
+            plane_id = p.loadURDF("plane.urdf")
+            print("Loaded PyBullet's default plane")
+        except Exception as e:
+            print(f"Error loading plane: {e}")
+            return 1
     else:
         plane_id = p.loadURDF(plane_path, useFixedBase=True)
         print(f"Loaded plane from: {plane_path}")
