@@ -5,7 +5,6 @@
 [![Generic badge](https://img.shields.io/badge/Physics-Bullet-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Env-Gymnasium-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Learning-Torch-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Docs-Yes-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://shields.io/)
 
 
