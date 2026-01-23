@@ -107,6 +107,7 @@ python myGym/show.py
 
 ```
 
+![alt text](myGym/images/workspaces/mygym310a.gif "Multireward")
 
 ## Unit Tests
 
@@ -142,6 +143,27 @@ python3 myGym/unittest/test_oraculum_configs.py
 ```
 
 For more details, see `myGym/unittest/README.md`.
+
+## Robots
+
+| Robot  |Type| Gripper  | DOF  | Parameter value |
+|---|---|---|---|---|
+| UR-3  | arm  | no gripper  |  6 | ur3  |
+| UR-5  | arm  | no gripper  |  6 | ur5  |
+| UR-10  | arm  | no gripper  |  6 | ur10  |
+| Kuka IIWA | arm  | magnetic, gripper  |  6 |  kuka |
+| Reachy  | arm  | passive palm  |  7 | reachy  |
+| Leachy  | arm  | passive palm  |  7 | leachy  |
+|  Franka-Emica | arm  | gripper  | 7  |  panda |
+| Jaco arm  | arm  |  two finger |  13 | jaco  |
+| Gummiarm  | arm  | passive palm  |  13 | gummi  |
+| Human Support Robot (HSR) | arm | gripper | 7 | hsr |
+| ABB Yumi  | dualarm  | two finger  |  12 | yumi  |
+| ReachyLeachy  | dualarm  | passive palms  |  14 | reachy_and_leachy |
+| Pepper  | humanoid | 5 fingers  |  20 | pepper  |
+| Tiago | humanoid  | 2 fingers  |  19 | tiago  |
+| Nico  | humanoid  | 4 fingers  |  14 | nico  |
+| G1  | humanoid  | 3 fingers  |  42 | g1  |
 
 ## Authors
 
