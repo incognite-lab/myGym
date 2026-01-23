@@ -4,7 +4,7 @@
 
 We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks with increasing complexity and test your network on them. 
 
-From version 3.10 there is SB3 and Gymnasium implemented and there is a basic set of protorewards to create any manipulation task from their combination. Their composition is semi automated and will be fully automated in next realese. It is possible to train multiple networks within one task and switch between them based on reward or adaptively. The number of networks is specified in config file.
+From version 3.10 there is SB3 and Gymnasium implemented and there is a basic set of protorewards to create any manipulation task from their combination. Their composition is semi automated and will be fully automated in next release. It is possible to train multiple networks within one task and switch between them based on reward or adaptively. The number of networks is specified in config file.
 
 
 [![Generic badge](https://img.shields.io/badge/OS-Linux-green.svg)](https://shields.io/)
@@ -30,7 +30,7 @@ Clone the repository:
 
 Create Python 3.10 conda env:
 
-`conda create -n  mygym Python=3.10`
+`conda create -n mygym Python=3.10`
 
 `conda activate mygym`
 
