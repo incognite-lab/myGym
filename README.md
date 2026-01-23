@@ -94,6 +94,50 @@ You can visualize the virtual gym env prior to the training.
 
 There will be the default workspace activated.  
 
+## Visualization Tools
+
+myGym includes several visualization utilities to help you explore and understand the environment:
+
+### Visualize All Objects
+
+View all available URDF objects in a grid layout:
+
+```bash
+python myGym/visualize_all_objects.py
+```
+
+This script:
+- Recursively finds all URDF files in `myGym/envs/objects` directory
+- Displays them in a square grid on a plane in PyBullet
+- Supports customization options:
+
+```bash
+# Custom spacing between objects (default: 0.3 meters)
+python myGym/visualize_all_objects.py --spacing 0.5
+
+# Use a different plane
+python myGym/visualize_all_objects.py --plane plane_old.urdf
+
+# Run without GUI (useful for testing)
+python myGym/visualize_all_objects.py --no-gui
+```
+
+### Visualize Robot
+
+Interactively visualize and control robot joints:
+
+```bash
+python myGym/visualize_robot.py
+```
+
+### Visualize Robot IK
+
+Visualize robot inverse kinematics:
+
+```bash
+python myGym/visualize_robot_ik.py
+```
+
 ## Unit Tests
 
 The repository includes unit tests in the `myGym/unittest/` directory:
