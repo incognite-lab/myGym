@@ -1,0 +1,7 @@
+{
+  "arm": [],
+  "gripper": [
+    "gripper_r_gjoint",
+    "gripper_l_gjoint"
+  ]
+}

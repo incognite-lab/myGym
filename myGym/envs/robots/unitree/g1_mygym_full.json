@@ -1,0 +1,41 @@
+{
+  "arm": [
+    "left_hip_pitch_rjoint",
+    "left_hip_roll_rjoint",
+    "left_hip_yaw_rjoint",
+    "left_knee_rjoint",
+    "left_ankle_pitch_rjoint",
+    "left_ankle_roll_rjoint",
+    "right_hip_pitch_rjoint",
+    "right_hip_roll_rjoint",
+    "right_hip_yaw_rjoint",
+    "right_knee_rjoint",
+    "right_ankle_pitch_rjoint",
+    "right_ankle_roll_rjoint",
+    "waist_yaw_rjoint",
+    "waist_roll_rjoint",
+    "waist_pitch_rjoint",
+    "left_shoulder_pitch_rjoint",
+    "left_shoulder_roll_rjoint",
+    "left_shoulder_yaw_rjoint",
+    "left_elbow_rjoint",
+    "left_wrist_roll_rjoint",
+    "left_wrist_pitch_rjoint",
+    "left_wrist_yaw_rjoint",
+    "right_shoulder_pitch_rjoint",
+    "right_shoulder_roll_rjoint",
+    "right_shoulder_yaw_rjoint",
+    "right_elbow_rjoint",
+    "right_wrist_roll_rjoint",
+    "right_wrist_pitch_rjoint",
+    "right_wrist_yaw_rjoint"
+  ],
+  "gripper": [
+    "left_hand_thumb_1_gjoint",
+    "left_hand_middle_0_gjoint",
+    "left_hand_index_0_gjoint",
+    "right_hand_thumb_1_gjoint",
+    "right_hand_middle_0_gjoint",
+    "right_hand_index_0_gjoint"
+  ]
+}

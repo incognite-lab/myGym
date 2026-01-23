@@ -1,0 +1,12 @@
+{
+  "arm": [
+    "shoulder_pan_rjoint",
+    "shoulder_lift_rjoint",
+    "elbow_rjoint",
+    "wrist_1_rjoint",
+    "wrist_2_rjoint",
+    "wrist_3_rjoint",
+    "ee_fixed_rjoint"
+  ],
+  "gripper": []
+}

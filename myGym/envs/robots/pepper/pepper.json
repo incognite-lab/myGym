@@ -1,0 +1,15 @@
+{
+  "arm": [
+    "RShoulderPitch_rjoint",
+    "RShoulderRoll_rjoint",
+    "RElbowYaw_rjoint",
+    "RElbowRoll_rjoint",
+    "RWristYaw_rjoint"
+  ],
+  "gripper": [
+    "RFinger41_gjoint",
+    "RFinger31_gjoint",
+    "RFinger21_gjoint",
+    "RFinger11_gjoint"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "arm": [],
+  "gripper": [
+    "robotiq_85_left_knuckle_gjoint",
+    "robotiq_85_right_knuckle_gjoint",
+    "robotiq_85_left_finger_gjoint",
+    "robotiq_85_right_finger_gjoint"
+  ]
+}
