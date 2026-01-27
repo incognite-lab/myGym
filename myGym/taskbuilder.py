@@ -99,9 +99,19 @@ class TaskBuilderGUI:
     def load_template(self):
         """Load the AG.json template configuration"""
         try:
+            if not self.template_path.exists():
+                raise FileNotFoundError(f"Template file not found: {self.template_path}")
             with open(self.template_path, 'r') as f:
                 self.config = commentjson.load(f)
             print(f"Loaded template from: {self.template_path}")
+        except FileNotFoundError as e:
+            messagebox.showerror("Template Not Found", 
+                               f"Cannot find AG.json template.\n\n{e}\n\nPlease ensure the template exists in the configs directory.")
+            self.config = {}
+        except json.JSONDecodeError as e:
+            messagebox.showerror("Invalid Template", 
+                               f"AG.json template has invalid JSON syntax.\n\n{e}")
+            self.config = {}
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load template: {e}")
             self.config = {}
@@ -244,7 +254,8 @@ class TaskBuilderGUI:
         elif isinstance(field_value, str) or field_value is None:
             # Text entry
             widget = ttk.Entry(parent, width=50)
-            widget.insert(0, str(field_value) if field_value is not None else "null")
+            display_value = field_value if field_value is not None else "null"
+            widget.insert(0, str(display_value))
             widget.grid(row=row, column=2, sticky=tk.W, padx=5, pady=2)
         else:
             # Default: text widget

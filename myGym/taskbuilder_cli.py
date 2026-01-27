@@ -72,11 +72,12 @@ class TaskBuilderCLI:
         for key, value in modifications.items():
             # Try to convert value to appropriate type
             try:
-                if value.lower() == 'null' or value.lower() == 'none':
+                value_lower = value.lower()
+                if value_lower == 'null' or value_lower == 'none':
                     config[key] = None
-                elif value.lower() == 'true':
+                elif value_lower == 'true':
                     config[key] = True
-                elif value.lower() == 'false':
+                elif value_lower == 'false':
                     config[key] = False
                 elif value.isdigit():
                     config[key] = int(value)

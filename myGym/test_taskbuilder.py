@@ -24,18 +24,10 @@ def test_imports():
     try:
         import commentjson
         print("  ✓ commentjson imported")
+        return True
     except ImportError as e:
         print(f"  ✗ commentjson import failed: {e}")
         return False
-    
-    try:
-        import json
-        print("  ✓ json imported")
-    except ImportError as e:
-        print(f"  ✗ json import failed: {e}")
-        return False
-    
-    return True
 
 def test_template_loading():
     """Test loading the AG.json template"""
@@ -146,6 +138,10 @@ def test_script_structure():
     
     # Read the script
     script_path = Path(__file__).parent / "taskbuilder.py"
+    if not script_path.exists():
+        print(f"  ✗ taskbuilder.py not found at {script_path}")
+        return False
+    
     with open(script_path, 'r') as f:
         content = f.read()
     
