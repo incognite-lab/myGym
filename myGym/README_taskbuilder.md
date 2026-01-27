@@ -1,12 +1,17 @@
-# TaskBuilder GUI
+# TaskBuilder - GUI and CLI
 
-A graphical user interface for creating, editing, and managing task configuration files in myGym.
+Tools for creating, editing, and managing task configuration files in myGym.
+
+## Two Interfaces Available
+
+1. **GUI (taskbuilder.py)**: Full graphical interface with dropdowns and help tooltips
+2. **CLI (taskbuilder_cli.py)**: Command-line interface for quick config generation
 
 ## Features
 
 - **Load Template**: Automatically loads AG.json as a template configuration
-- **Edit Parameters**: All parameters are available as dropdown menus or text fields
-- **Parameter Options**: Dropdown options are populated from:
+- **Edit Parameters**: All parameters available via GUI dropdowns or CLI arguments
+- **Parameter Options**: Options are populated from:
   - Available robots in `envs/robots/`
   - Available workspaces
   - train.py parameters and their comments
@@ -16,7 +21,9 @@ A graphical user interface for creating, editing, and managing task configuratio
 
 ## Usage
 
-### Running the GUI
+### Option 1: Graphical User Interface (GUI)
+
+#### Running the GUI
 
 ```bash
 cd myGym
@@ -30,9 +37,9 @@ chmod +x myGym/taskbuilder.py
 ./myGym/taskbuilder.py
 ```
 
-### Requirements
+#### GUI Requirements
 
-The TaskBuilder requires tkinter (Python's standard GUI library):
+The GUI requires tkinter (Python's standard GUI library):
 
 **On Ubuntu/Debian:**
 ```bash
@@ -44,6 +51,45 @@ tkinter is included with Python by default
 
 **On Windows:**
 tkinter is included with Python by default
+
+### Option 2: Command-Line Interface (CLI)
+
+The CLI is perfect for:
+- Headless servers without displays
+- Scripting and automation
+- Quick config generation
+- CI/CD pipelines
+
+#### CLI Usage Examples
+
+**Quick config creation with specific parameters:**
+```bash
+python3 myGym/taskbuilder_cli.py -o my_config.json \
+    --set robot=panda task_type=AGM algo=sac
+```
+
+**Interactive mode (prompts for key parameters):**
+```bash
+python3 myGym/taskbuilder_cli.py -i -o my_config.json
+```
+
+**Create from template with modifications:**
+```bash
+python3 myGym/taskbuilder_cli.py -t configs/AG.json -o custom.json \
+    --set robot=tiago_dual workspace=table_complex steps=20000000
+```
+
+**Show config before saving:**
+```bash
+python3 myGym/taskbuilder_cli.py -o test.json \
+    --set robot=nico algo=ppo --show
+```
+
+#### CLI Help
+
+```bash
+python3 myGym/taskbuilder_cli.py --help
+```
 
 ### Interface Overview
 
