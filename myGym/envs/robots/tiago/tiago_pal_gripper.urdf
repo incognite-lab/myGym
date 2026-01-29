@@ -1706,7 +1706,7 @@
       <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00001" iyz="0.0" izz="0.00001"/>
     </inertial>
   </link>
-  <joint name="gripper_tool_gjoint" type="fixed">
+  <joint name="gripper_tool_joint" type="fixed">
     <origin rpy="1.57079632679 1.57079632679 -1.57079632679" xyz="0.01 0 0"/>
     <parent link="arm_tool_link"/>
     <child link="gripper_tool_link"/>
@@ -1735,7 +1735,7 @@
   <gazebo reference="gripper_link">
     <material>Gazebo/White</material>
   </gazebo>
-  <joint name="gripper_gjoint" type="fixed">
+  <joint name="gripper_joint" type="fixed">
     <origin rpy="1.57079632679 1.57079632679 -1.57079632679" xyz="0.01 0 0"/>
     <parent link="arm_tool_link"/>
     <child link="gripper_link"/>
@@ -1808,7 +1808,7 @@
     <safety_controller k_position="20" k_velocity="20" soft_lower_limit="0.001" soft_upper_limit="0.044"/>
   </joint>
   <!-- Grasping frame -->
-  <joint name="gripper_grasping_frame_gjoint" type="fixed">
+  <joint name="gripper_grasping_frame_joint" type="fixed">
     <parent link="gripper_link"/>
     <child link="gripper"/>
     <origin rpy="-1.5708 1.5708 0" xyz="0 0 -0.12"/>
@@ -1820,24 +1820,6 @@
       <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00001" iyz="0.0" izz="0.00001"/>
     </inertial>
   </link>
-  <transmission name="gripper_left_finger_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <actuator name="gripper_left_finger_motor">
-      <mechanicalReduction>1.0</mechanicalReduction>
-    </actuator>
-    <joint name="gripper_left_finger_gjoint">
-      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-    </joint>
-  </transmission>
-  <transmission name="gripper_right_finger_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <actuator name="gripper_right_finger_motor">
-      <mechanicalReduction>1.0</mechanicalReduction>
-    </actuator>
-    <joint name="gripper_right_finger_gjoint">
-      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-    </joint>
-  </transmission>
     <link name="ee_x_axis">
     <visual>
     <origin xyz="0.03 0 0" rpy="0 1.57079632679 0"/>
