@@ -113,8 +113,6 @@ class Protorewards(Reward):
         self.grip_threshold = 0.1
         self.approached_threshold = 0.045
         self.withdraw_threshold = 0.3
-        self.opengr_threshold = self.env.robot.opengr_threshold
-        self.closegr_threshold = self.env.robot.closegr_threshold
         self.near_threshold = 0.05
         self.lift_threshold = 0.1
         self_above_threshold = 0.1
@@ -363,14 +361,16 @@ class Protorewards(Reward):
         return False
 
     def gripper_opened(self, gripper_states):
-        if sum(gripper_states) >= self.opengr_threshold:
+        gripper_status = self.env.robot.check_gripper_status(gripper_states)
+        if gripper_status == "open":
             self.env.robot.release_object(self.env.env_objects["actual_state"])
             self.env.robot.set_magnetization(False)
             return True
         return False
 
     def gripper_closed(self, gripper_states):
-        if sum(gripper_states) <= self.closegr_threshold:
+        gripper_status = self.env.robot.check_gripper_status(gripper_states)
+        if gripper_status == "close":
             try:
                 #self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
                 self.env.robot.set_magnetization(True)

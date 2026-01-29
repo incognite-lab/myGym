@@ -757,7 +757,7 @@
     </collision>
   </link>
   <joint
-    name="forearm_roll"
+    name="forearm_roll_rjoint"
     type="revolute">
     <origin
       xyz="0.043506 -0.00023376 -0.019876"

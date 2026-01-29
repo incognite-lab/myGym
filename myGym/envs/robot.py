@@ -46,7 +46,7 @@ class Robot:
         self.p = pybullet_client
         self.name = robot
         self.robot_dict = get_robot_dict()
-        # self.gripper_dict = get_gripper_dict()[self.name]
+        self.gripper_dict = get_gripper_dict()[self.name]
         self.robot_path = self.robot_dict[robot]['path']
         self.position = np.array(position) + self.robot_dict[robot].get('position',np.zeros(len(position)))
         self.p.setPhysicsEngineParameter(enableFileCaching=0)
@@ -103,12 +103,8 @@ class Robot:
             self.fixed_end_effector_orn = self.p.getQuaternionFromEuler(self.init_position[3:6])
             self.use_fixed_end_effector_orn = True
             self.init_joint_poses = list(self._calculate_accurate_IK(self.init_position[:3]))
-        # self.open_gripper = self.gripper_dict["open"] #action values which open the gripper
-        # self.close_gripper = self.gripper_dict["close"] #action values which close the gripper
-        # self.opengr_thresholds = self.gripper_dict["th_open"]
-        # self.closegr_thresholds = self.gripper_dict["th_closed"]
-        self.opengr_threshold = self.determine_opengr_threshold()
-        self.closegr_threshold = self.determine_closegr_threshold()
+        self.open_gripper = self.gripper_dict["open"] #action values which open the gripper
+        self.close_gripper = self.gripper_dict["close"] #action values which close the gripper
         if 'R' in reward_type:
             self.orientation_in_rew = True
         else:
@@ -300,8 +296,8 @@ class Robot:
             joints_limits_u.append(joint_info[9])
             joints_ranges.append(joint_info[9] - joint_info[8])
             joints_rest_poses.append((joint_info[9] + joint_info[8])/2)
-            joints_max_force.append(joint_info[10] if ("gjoint" in joint_info[1].decode("utf-8") or "pjoint" in joint_info[1].decode("utf-8")) else self.max_force)
-            joints_max_velo.append(joint_info[11] if "gjoint" in joint_info[1].decode("utf-8") else self.max_velocity)
+            joints_max_force.append(joint_info[10] )
+            joints_max_velo.append(joint_info[11])
         return [joints_limits_l, joints_limits_u], joints_ranges, joints_rest_poses, joints_max_force, joints_max_velo
 
     def get_action_dimension(self):
@@ -459,6 +455,7 @@ class Robot:
                                     controlMode=self.p.POSITION_CONTROL,
                                     targetPosition=action[i],
                                     force=self.gjoints_max_force[i],
+                                    maxVelocity=self.gjoints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3,
                                     # maxVelocity = self.gjoints_max_velo[i]
@@ -723,16 +720,17 @@ class Robot:
             self.apply_action_joints(action)
         if "gripper" in self.robot_action:
             self._move_gripper(action[-(self.gjoints_num):])
+            print("Gripper action:", action[-(self.gjoints_num):])
             if env_objects["actual_state"] != self: #if self.use_magnet and ...
                 gripper_states = self.get_gjoints_states()
-                if sum(gripper_states) < self.closegr_threshold:
+                gripper_status = self.check_gripper_status(gripper_states)
+                if gripper_status == "close":
                     self.gripper_active = True
                     self.magnetize_object(env_objects["actual_state"])
-                elif sum(gripper_states) > self.opengr_threshold:
+                elif gripper_status == "open":
                     self.release_all_objects()
-                print("Gripper states:", sum(gripper_states))
-                print("Close threshold:", self.closegr_threshold)
-                print("Open threshold:", self.opengr_threshold)
+                #print("Gripper states:", gripper_states)
+                print("Gripper status:", gripper_status)
             if len(self.magnetized_objects):
                 for key, val in self.magnetized_objects.items():
                     self.p.removeConstraint(val)
@@ -884,13 +882,39 @@ class Robot:
         """
         return self.robot_uid
 
-    def determine_opengr_threshold(self):
-        min, max = self.gjoints_limits[0], self.gjoints_limits[1]
-        return sum(min) + 0.95*(sum(max) - sum(min))
-
-    def determine_closegr_threshold(self):
-        min, max = self.gjoints_limits[0], self.gjoints_limits[1]
-        return sum(min) + 0.01 * (sum(max) - sum(min))
+    def check_gripper_status(self, gripper_values):
+        """
+        Check gripper status using Min-Max normalization.
+        Converts gripper joint values to a normalized 0-1 metric where 0 corresponds to
+        self.close_gripper and 1 corresponds to self.open_gripper.
+        
+        Parameters:
+            :param gripper_values: (list) Current gripper joint values
+        Returns:
+            :return status: (str) "close" if metric <= 0.1,
+                                 "open" if metric >= 0.9,
+                                 "neutral" otherwise
+        """
+        close_vec = np.array(self.close_gripper)
+        open_vec = np.array(self.open_gripper)
+        current_vec = np.array(gripper_values)
+        
+        # Min-Max normalization: 0 at close_gripper, 1 at open_gripper (element-wise)
+        range_vec = open_vec - close_vec
+        if np.allclose(range_vec, 0):
+            metric = 0.0
+        else:
+            # Element-wise normalization, then take mean
+            normalized = (current_vec - close_vec) / range_vec
+            metric = np.mean(np.clip(normalized, 0.0, 1.0))
+        print("Close vec:", close_vec, "Open vec:", open_vec, "Current vec:", current_vec)
+        print("Gripper metric:", metric)
+        if metric <= 0.1:
+            return "close"
+        elif metric >= 0.9:
+            return "open"
+        else:
+            return "neutral"
 
 
 
