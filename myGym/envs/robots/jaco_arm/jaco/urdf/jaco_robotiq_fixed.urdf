@@ -426,13 +426,13 @@
       <inertia ixx="0.000009" ixy="-0.000001" ixz="0.000000" iyx="-0.000001" iyy="0.000001" iyz="0.000000" izx="0.000000" izy="0.000000" izz="0.000010"/>
     </inertial>
   </link>
-  <joint name="robotiq_85_left_finger_gjoint" type="fixed">
+  <joint name="robotiq_85_left_finger_joint" type="fixed">
     <parent link="robotiq_85_left_knuckle_link"/>
     <child link="robotiq_85_left_finger_link"/>
     <origin rpy="0 0 0" xyz="-0.00408552455 -0.03148604435 0.0"/>
     <limit lower="-3.14" upper="3.14" velocity="1.0"/>
   </joint>
-  <joint name="robotiq_85_right_finger_gjoint" type="fixed">
+  <joint name="robotiq_85_right_finger_joint" type="fixed">
     <parent link="robotiq_85_right_knuckle_link"/>
     <child link="robotiq_85_right_finger_link"/>
     <origin rpy="0 0 0" xyz="-0.00408552455 -0.03148604435 0.0"/>
@@ -524,14 +524,14 @@
       <inertia ixx="0.000039" ixy="0.000000" ixz="0.000000" iyx="0.000000" iyy="0.000005" iyz="0.000000" izx="0.000000" izy="0.000000" izz="0.000035"/>
     </inertial>
   </link>
-  <joint name="robotiq_85_left_finger_tip_joint" type="fixed"> <!--revolute-->
+  <joint name="robotiq_85_left_finger_tip_gjoint" type="revolute"> <!--revolute-->
     <parent link="robotiq_85_left_inner_knuckle_link"/>
     <child link="robotiq_85_left_finger_tip_link"/>
     <axis xyz="0 0 1"/>
     <origin rpy="0.0 0.0 0.0" xyz="0.04303959807 -0.03759940821 0.0"/>
     <limit lower="-0.8757" upper="0.0" velocity="1.0"/>
   </joint>
-  <joint name="robotiq_85_right_finger_tip_joint" type="fixed"> <!--revolute-->
+  <joint name="robotiq_85_right_finger_tip_gjoint" type="revolute"> <!--revolute-->
     <parent link="robotiq_85_right_inner_knuckle_link"/>
     <child link="robotiq_85_right_finger_tip_link"/>
     <axis xyz="0 0 1"/>

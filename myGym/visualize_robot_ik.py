@@ -6,6 +6,7 @@ import numpy as np
 from numpy import rad2deg, deg2rad, set_printoptions, array, linalg, round, any, mean
 from myGym.utils.helpers import get_robot_dict
 from myGym.utils.helpers import get_workspace_dict
+from myGym.utils.helpers import get_gripper_dict
 import importlib.resources as pkg_resources
 import os
 
@@ -103,6 +104,7 @@ def apply_ik_solution(robot_id, ik_solution, joint_idxs):
             force= 500
         )
         joint_values.append(f"{p.getJointInfo(robot_id, joint_idx)[1].decode('utf-8')}: {joint_pos:.4f} rad ({joint_pos*57.2958:.2f}°)")
+    
     return joint_values
 
 def find_gripper_joints(robot_id):
@@ -502,20 +504,46 @@ def main():
                 else:
                     print("No robot key selected, cannot save to helpers.py")
             
-            # Check if 'c' key is pressed to close the gripper (set gripper joints to 0)
-            if ord('c') in keys and keys[ord('c')] & p.KEY_WAS_TRIGGERED:
-                # Move gripper joints to their individual lower limits
-                print("Closing gripper (moving to lower joint limits)")
-                apply_ik_solution(robot_id, gripper_low_limits, gripper_idxs)
-                print(gripper_low_limits)
-                # grasper.perform_grasp()
+            # Check if 'c' key is pressed to open the gripper (set gripper joints to open values from helpers.py)
+            if ord('o') in keys and keys[ord('o')] & p.KEY_WAS_TRIGGERED:
+                # Get gripper dictionary and open values for selected robot
+                gd = get_gripper_dict()
+                if selected_key and selected_key in gd and 'open' in gd[selected_key]:
+                    open_values = gd[selected_key]['open']
+                    print(f"Opening gripper for {selected_key} (using open values from helpers.py): {open_values}")
+                    apply_ik_solution(robot_id, open_values, gripper_idxs)
+                    # Step simulation for 40 steps
+                    for _ in range(40):
+                        p.stepSimulation()
+                        time.sleep(0.01)
+                else:
+                    print(f"No open values found for robot '{selected_key}' in gripper dict, using lower limits")
+                    apply_ik_solution(robot_id, gripper_low_limits, gripper_idxs)
+                    print(gripper_low_limits)
+                    # Step simulation for 40 steps
+                    for _ in range(40):
+                        p.stepSimulation()
+                        time.sleep(0.01)
 
-            if ord('d') in keys and keys[ord('d')] & p.KEY_WAS_TRIGGERED:
-                # Move gripper joints to their individual upper limits
-                print("Opening gripper (moving to upper joint limits)")
-                apply_ik_solution(robot_id, gripper_up_limits, gripper_idxs)
-                print(gripper_up_limits)
-                # grasper.perform_drop()
+            if ord('c') in keys and keys[ord('c')] & p.KEY_WAS_TRIGGERED:
+                # Get gripper dictionary and close values for selected robot
+                gd = get_gripper_dict()
+                if selected_key and selected_key in gd and 'close' in gd[selected_key]:
+                    close_values = gd[selected_key]['close']
+                    print(f"Closing gripper for {selected_key} (using close values from helpers.py): {close_values}")
+                    apply_ik_solution(robot_id, close_values, gripper_idxs)
+                    # Step simulation for 40 steps
+                    for _ in range(40):
+                        p.stepSimulation()
+                        time.sleep(0.01)
+                else:
+                    print(f"No close values found for robot '{selected_key}' in gripper dict, using upper limits")
+                    apply_ik_solution(robot_id, gripper_up_limits, gripper_idxs)
+                    # Step simulation for 40 steps
+                    for _ in range(40):
+                        p.stepSimulation()
+                        time.sleep(0.01)
+                    print(gripper_up_limits)
             
             if ord('m') in keys and keys[ord('m')] & p.KEY_WAS_TRIGGERED:
                 grasper.move_arm([0.35,-0.4,0.2], args.ori, args.side)

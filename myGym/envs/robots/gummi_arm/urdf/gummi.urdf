@@ -942,7 +942,7 @@
     </collision>
   </link>
   <joint
-    name="i1f_rjoint"
+    name="i1f_gjoint"
     type="revolute">
     <origin
       xyz="0.059922 -0.031986 0.0029515"
@@ -1002,7 +1002,7 @@
     </collision>
   </link>
   <joint
-    name="i2f_rjoint"
+    name="i2f_gjoint"
     type="revolute">
     <origin
       xyz="0.12886 -0.0060786 -0.0024749"
@@ -1062,7 +1062,7 @@
     </collision>
   </link>
   <joint
-    name="i3f_rjoint"
+    name="i3f_gjoint"
     type="revolute">
     <origin
       xyz="0.13223 0.0086295 -0.0025"
@@ -1122,7 +1122,7 @@
     </collision>
   </link>
   <joint
-    name="i4f_rjoint"
+    name="i4f_gjoint"
     type="revolute">
     <origin
       xyz="0.13046 0.023543 -0.0025"
@@ -1182,7 +1182,7 @@
     </collision>
   </link>
   <joint
-    name="i5f_rjoint"
+    name="i5f_gjoint"
     type="revolute">
     <origin
       xyz="0.12703 0.037692 -0.0025"
