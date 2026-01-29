@@ -3,9 +3,51 @@ import pybullet_data
 import argparse
 import time
 import numpy as np
-from utils.helpers import get_robot_dict, get_workspace_dict
+from utils.helpers import get_robot_dict, get_workspace_dict, get_gripper_dict
 import importlib.resources as pkg_resources
 import os
+
+def save_gripper_dict_to_helpers(gd, helpers_path):
+    """Save updated gripper dictionary back to helpers.py file."""
+    # Read the current file
+    with open(helpers_path, 'r') as f:
+        lines = f.readlines()
+    
+    # Find the start and end of get_gripper_dict function
+    start_idx = None
+    return_idx = None
+    
+    for i, line in enumerate(lines):
+        if 'def get_gripper_dict():' in line:
+            start_idx = i
+        if start_idx is not None and 'return g_dict' in line:
+            return_idx = i
+            break
+    
+    if start_idx is None or return_idx is None:
+        print("Error: Could not find get_gripper_dict or return statement in helpers.py")
+        return False
+    
+    # Generate new g_dict string
+    new_g_dict_lines = ['    g_dict ={']
+    
+    for robot_name, gripper_data in gd.items():
+        line_parts = []
+        for key, value in gripper_data.items():
+            line_parts.append(f'"{key}": {value}')
+        line_str = ', '.join(line_parts)
+        new_g_dict_lines.append(f'             "{robot_name}": {{{line_str}}},')
+    
+    new_g_dict_lines.append('             }')
+    
+    # Replace the old g_dict with new one, keeping the return statement
+    new_lines = lines[:start_idx+1] + [line + '\n' for line in new_g_dict_lines] + lines[return_idx:]
+    
+    # Write back to file
+    with open(helpers_path, 'w') as f:
+        f.writelines(new_lines)
+    
+    return True
 
 def save_robot_dict_to_helpers(rd, helpers_path):
     """Save updated robot dictionary back to helpers.py file."""
@@ -284,6 +326,9 @@ def main():
     # Get path to helpers.py
     helpers_path = os.path.join(os.path.dirname(__file__), 'utils', 'helpers.py')
     
+    # Get gripper dictionary
+    gd = get_gripper_dict()
+    
     try:
         while True:
             # Update box position from sliders
@@ -296,6 +341,75 @@ def main():
             
             # Check keyboard events
             keys = p.getKeyboardEvents()
+            
+            if ord('o') in keys and keys[ord('o')] & p.KEY_WAS_TRIGGERED:
+                # Save gripper open values
+                gjoint_values = []
+                gjoint_names = []
+                for joint_idx, slider_id in sliders:
+                    joint_info = p.getJointInfo(robot_id, joint_idx)
+                    joint_name = joint_info[1].decode("utf-8")
+                    if 'gjoint' in joint_name:
+                        value_deg = p.readUserDebugParameter(slider_id)
+                        joint_type = joint_info[2]
+                        if joint_type == p.JOINT_REVOLUTE:
+                            value = value_deg * 0.0174533  # Convert degrees to radians
+                        else:
+                            value = value_deg
+                        gjoint_values.append(round(value, 2))
+                        gjoint_names.append(joint_name)
+                
+                if gjoint_values:
+                    print(f"Gripper joints found: {gjoint_names}")
+                    print(f"Gripper open values: {gjoint_values}")
+                    
+                    # Update gripper dict with open values
+                    if selected_robot not in gd:
+                        gd[selected_robot] = {}
+                    gd[selected_robot]['open'] = gjoint_values
+                    
+                    # Save to helpers.py
+                    if save_gripper_dict_to_helpers(gd, helpers_path):
+                        print(f"Updated helpers.py with gripper open values for {selected_robot}")
+                    else:
+                        print("Failed to update helpers.py")
+                else:
+                    print("No gripper joints (containing 'gjoint') found in robot")
+            
+            if ord('c') in keys and keys[ord('c')] & p.KEY_WAS_TRIGGERED:
+                # Save gripper closed values
+                gjoint_values = []
+                gjoint_names = []
+                for joint_idx, slider_id in sliders:
+                    joint_info = p.getJointInfo(robot_id, joint_idx)
+                    joint_name = joint_info[1].decode("utf-8")
+                    if 'gjoint' in joint_name:
+                        value_deg = p.readUserDebugParameter(slider_id)
+                        joint_type = joint_info[2]
+                        if joint_type == p.JOINT_REVOLUTE:
+                            value = value_deg * 0.0174533  # Convert degrees to radians
+                        else:
+                            value = value_deg
+                        gjoint_values.append(round(value, 2))
+                        gjoint_names.append(joint_name)
+                
+                if gjoint_values:
+                    print(f"Gripper joints found: {gjoint_names}")
+                    print(f"Gripper closed values: {gjoint_values}")
+                    
+                    # Update gripper dict with closed values
+                    if selected_robot not in gd:
+                        gd[selected_robot] = {}
+                    gd[selected_robot]['close'] = gjoint_values
+                    
+                    # Save to helpers.py
+                    if save_gripper_dict_to_helpers(gd, helpers_path):
+                        print(f"Updated helpers.py with gripper closed values for {selected_robot}")
+                    else:
+                        print("Failed to update helpers.py")
+                else:
+                    print("No gripper joints (containing 'gjoint') found in robot")
+            
             if ord('t') in keys and keys[ord('t')] & p.KEY_WAS_TRIGGERED:
                 # Print current joint values
                 joint_values = []
