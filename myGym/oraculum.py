@@ -3,19 +3,17 @@ from typing import Any, Dict, Optional
 import numpy as np
 
 # Constants
-GRIPPER_OPEN = 1
-GRIPPER_CLOSED = 0
 DEFAULT_WITHDRAW_OFFSET = np.array([0.0, 0.0, 0.35])
 
 class Oraculum:
 
-    def __init__(self, env: Any,  info: Dict[str, Any], robot_action: str, gripper_limits):
+    def __init__(self, env: Any,  info: Dict[str, Any], robot_action: str, gripper_open, gripper_closed):
         self._env = env
         # self._max_episode_steps = max_steps
         self._info = info
         self._robot_action = robot_action
-        self._gripper_closed = gripper_limits[0]
-        self._gripper_open = gripper_limits[1]
+        self._gripper_open = gripper_open
+        self._gripper_closed = gripper_closed
 
 
     def reset_env(self, env):
@@ -64,12 +62,12 @@ class Oraculum:
             reward_name = env.env.unwrapped.reward.reward_name
             gripper = "gripper" in self._robot_action
             if reward_name == "approach":
-                self._set_gripper_action(action, GRIPPER_OPEN, gripper)
+                self._set_gripper_action(action, "open", gripper)
                 action[:3] = self._get_approach_action(env, info)
             elif reward_name == "grasp":
-                self._set_gripper_action(action, GRIPPER_CLOSED, gripper)
+                self._set_gripper_action(action, "close", gripper)
             elif reward_name == "move":
-                self._set_gripper_action(action, GRIPPER_CLOSED, gripper)
+                self._set_gripper_action(action, "close", gripper)
                 # Check if the robot is close enough to the goal
                 distance_to_goal = np.linalg.norm(np.array(info['o']["actual_state"][:2]) - np.array(info['o']["goal_state"][:2]))
                 if info['o']["actual_state"][2] < -0.272:
@@ -84,7 +82,7 @@ class Oraculum:
                     action[:3] = info['o']["goal_state"][:3]
             elif reward_name == "drop":
                 if self.wait_n_steps(5):
-                    self._set_gripper_action(action, GRIPPER_OPEN, gripper)
+                    self._set_gripper_action(action, "open", gripper)
                 else:
                     pass
             elif reward_name == "withdraw":
@@ -92,7 +90,7 @@ class Oraculum:
                     distance_to_goal = np.linalg.norm(
                         np.array(info['o']["goal_state"][:3]) - np.array(info['o']["actual_state"][:3]))
                     if distance_to_goal > 0.2:
-                        self._set_gripper_action(action, GRIPPER_OPEN, gripper)
+                        self._set_gripper_action(action, "open", gripper)
                         action[:3] = np.array(info['o']["actual_state"][:3]) + DEFAULT_WITHDRAW_OFFSET
                     else:
                         action[:3] = info['o']["goal_state"][:3] + DEFAULT_WITHDRAW_OFFSET
@@ -125,21 +123,33 @@ class Oraculum:
         return action
 
 
-    def _set_gripper_action(self, action: np.ndarray, state: int, gripper: bool) -> None:
+    def _set_gripper_action(self, action: np.ndarray, state: str, gripper: bool) -> None:
         """
-        Set the gripper action (open or closed).
+        Set the gripper action (open or closed) using g_dict values.
 
         Args:
             action (np.ndarray): The action array to modify.
-            state (int): The state of the gripper (0 for closed, 1 for open).
+            state (str): The state of the gripper ("open" or "close").
+            gripper (bool): Whether gripper control is enabled.
         """
         if gripper:
-            if state == 0:
+            if state == "close":
                 action[-len(self._gripper_closed):] = self._gripper_closed
-            else:
+            elif state == "open":
                 action[-len(self._gripper_open):] = self._gripper_open
         else:
             print("No gripper to control, change 'robot_action' to contain 'gripper'.")
+
+    def check_gripper_status(self) -> str:
+        """
+        Check the current gripper status using the robot's check_gripper_status method.
+
+        Returns:
+            str: "open", "close", or "neutral" based on current gripper joint states.
+        """
+        robot = self._env.unwrapped.robot
+        gripper_states = robot.get_gjoints_states()
+        return robot.check_gripper_status(gripper_states)
 
 
     def wait_n_steps(self, n):

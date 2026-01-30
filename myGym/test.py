@@ -15,7 +15,7 @@ import pandas as pd
 
 from myGym import oraculum
 from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env, automatic_argument_assignment
-from myGym.utils.helpers import get_workspace_dict
+from myGym.utils.helpers import get_workspace_dict, get_gripper_dict
 
 
 clear = lambda: os.system('clear')
@@ -171,8 +171,12 @@ def test_env(env: object, arg_dict: dict) -> None:
     video_path = None
     action = None
     info = None
-    grip_limits = env.unwrapped.robot.gjoints_limits
-    oraculum_obj = oraculum.Oraculum(env, info, arg_dict["robot_action"], grip_limits)
+    # Get gripper open and close values from g_dict
+    g_dict = get_gripper_dict()
+    robot_name = env.unwrapped.robot.name
+    gripper_open = g_dict[robot_name]["open"]
+    gripper_closed = g_dict[robot_name]["close"]
+    oraculum_obj = oraculum.Oraculum(env, info, arg_dict["robot_action"], gripper_open, gripper_closed)
     if "control" not in arg_dict.keys():
         print("No control method selected. Testing random actions in selected environment.")
         arg_dict["control"] = "random"
