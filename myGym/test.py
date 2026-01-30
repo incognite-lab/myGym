@@ -600,6 +600,15 @@ def main() -> None:
     if arg_dict["results_report"] and arg_dict.get("control") != "oraculum":
         print("Results report cannot be used without oraculum.")
         arg_dict["results_report"] = False
+    
+    # Automatically adjust robot_action when oraculum control is selected
+    if arg_dict.get("control") == "oraculum":
+        if "gripper" in arg_dict.get("robot_action", ""):
+            arg_dict["robot_action"] = "absolute_gripper"
+        else:
+            arg_dict["robot_action"] = "absolute"
+        print(f"Oraculum control selected. Robot action automatically set to: {arg_dict['robot_action']}")
+    
     if arg_dict.get("pretrained_model") is None:
         print_init_info(arg_dict)
         arg_dict["gui"] = 1

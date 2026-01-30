@@ -380,6 +380,7 @@ class TaskModule():
                 self.env.episode_info = "Task completed in initial configuration"
             else:
                 self.env.episode_info = "Task completed successfully"
+                time.sleep(1)
         else:
             print("self.env.episode_terminated set to false")
             self.env.episode_terminated = False

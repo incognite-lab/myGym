@@ -76,6 +76,7 @@ class Robot:
         self.task_type = task_type
         self.magnetized_objects = {}
         self.gripper_active = False
+        self.previous_gripper_status = None
         self._load_robot()
         self.num_joints = self.p.getNumJoints(self.robot_uid)
         self._set_motors()
@@ -720,7 +721,7 @@ class Robot:
             self.apply_action_joints(action)
         if "gripper" in self.robot_action:
             self._move_gripper(action[-(self.gjoints_num):])
-            print("Gripper action:", action[-(self.gjoints_num):])
+            #print("Gripper action:", action[-(self.gjoints_num):])
             if env_objects["actual_state"] != self: #if self.use_magnet and ...
                 gripper_states = self.get_gjoints_states()
                 gripper_status = self.check_gripper_status(gripper_states)
@@ -730,7 +731,7 @@ class Robot:
                 elif gripper_status == "open":
                     self.release_all_objects()
                 #print("Gripper states:", gripper_states)
-                print("Gripper status:", gripper_status)
+                #print("Gripper status:", gripper_status)
             if len(self.magnetized_objects):
                 for key, val in self.magnetized_objects.items():
                     self.p.removeConstraint(val)
@@ -907,14 +908,23 @@ class Robot:
             # Element-wise normalization, then take mean
             normalized = (current_vec - close_vec) / range_vec
             metric = np.mean(np.clip(normalized, 0.0, 1.0))
-        print("Close vec:", close_vec, "Open vec:", open_vec, "Current vec:", current_vec)
-        print("Gripper metric:", metric)
+        #print("Close vec:", close_vec, "Open vec:", open_vec, "Current vec:", current_vec)
+        #print("Gripper metric:", metric)
         if metric <= 0.1:
-            return "close"
+            status = "close"
         elif metric >= 0.9:
-            return "open"
+            status = "open"
         else:
-            return "neutral"
+            status = "neutral"
+        
+        # Check if status changed and print if it did
+        if self.previous_gripper_status is not None and self.previous_gripper_status != status:
+            print(f"Gripper changed to: {status}")
+        
+        # Update previous status
+        self.previous_gripper_status = status
+        
+        return status
 
 
 
