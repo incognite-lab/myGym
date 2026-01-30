@@ -12,8 +12,14 @@ class Oraculum:
         # self._max_episode_steps = max_steps
         self._info = info
         self._robot_action = robot_action
-        self._gripper_open = gripper_open
-        self._gripper_closed = gripper_closed
+        # Convert gripper values to numpy arrays for consistency with robot.py
+        self._gripper_open = np.array(gripper_open)
+        self._gripper_closed = np.array(gripper_closed)
+        
+        # Validate that gripper_open and gripper_closed have the same length
+        if len(self._gripper_open) != len(self._gripper_closed):
+            raise ValueError(f"gripper_open and gripper_closed must have the same length. "
+                           f"Got {len(self._gripper_open)} and {len(self._gripper_closed)}")
 
 
     def reset_env(self, env):
@@ -131,12 +137,17 @@ class Oraculum:
             action (np.ndarray): The action array to modify.
             state (str): The state of the gripper ("open" or "close").
             gripper (bool): Whether gripper control is enabled.
+        
+        Raises:
+            ValueError: If state is not "open" or "close".
         """
         if gripper:
             if state == "close":
                 action[-len(self._gripper_closed):] = self._gripper_closed
             elif state == "open":
                 action[-len(self._gripper_open):] = self._gripper_open
+            else:
+                raise ValueError(f"Invalid gripper state '{state}'. Must be 'open' or 'close'.")
         else:
             print("No gripper to control, change 'robot_action' to contain 'gripper'.")
 

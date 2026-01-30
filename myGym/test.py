@@ -174,6 +174,12 @@ def test_env(env: object, arg_dict: dict) -> None:
     # Get gripper open and close values from g_dict
     g_dict = get_gripper_dict()
     robot_name = env.unwrapped.robot.name
+    
+    # Validate that robot exists in gripper dictionary
+    if robot_name not in g_dict:
+        raise ValueError(f"Robot '{robot_name}' not found in gripper dictionary. "
+                        f"Available robots: {', '.join(sorted(g_dict.keys()))}")
+    
     gripper_open = g_dict[robot_name]["open"]
     gripper_closed = g_dict[robot_name]["close"]
     oraculum_obj = oraculum.Oraculum(env, info, arg_dict["robot_action"], gripper_open, gripper_closed)
