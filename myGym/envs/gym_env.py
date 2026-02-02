@@ -78,6 +78,7 @@ class GymEnv(CameraEnv):
                  color_dict={},
                  robot='kuka',
                  robot_action="step",
+                 robot_fixed=True,
                  max_velocity = 1,
                  max_force = 30,
                  robot_init_joint_poses=[],
@@ -105,6 +106,7 @@ class GymEnv(CameraEnv):
         self.workspace              = workspace
         self.obs_type = observation
         self.robot_type             = robot
+        self.robot_fixed            = robot_fixed
         self.num_networks           = num_networks
         self.network_switcher       = network_switcher
         self.robot_init_joint_poses = robot_init_joint_poses
@@ -272,7 +274,7 @@ class GymEnv(CameraEnv):
                   "orientation": self.workspace_dict[self.workspace]['robot']['orientation'],
                   "init_joint_poses": self.robot_init_joint_poses, "fixed_end_effector_orn": endeff_orn,
                   "max_velocity": self.max_velocity, "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
-                  "pybullet_client": self.p, "reward_type": self.unwrapped.reward}
+                  "pybullet_client": self.p, "reward_type": self.unwrapped.reward, "use_fixed_base": self.robot_fixed}
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
         # if "tiago" in self.robot_type:
         #     #TODO: set a proper init state value for tiago joints, so that IK works well

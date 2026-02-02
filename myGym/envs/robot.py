@@ -40,6 +40,7 @@ class Robot:
                  dimension_velocity = 0.5,
                  max_velocity = None, #1.,
                  max_force = None, #50.,
+                 use_fixed_base = True,
                  pybullet_client=None,
                  reward_type = None):
         self.debug = True
@@ -54,6 +55,7 @@ class Robot:
         self.orientation = self.p.getQuaternionFromEuler(np.array(orientation) +
                                                        self.robot_dict[robot].get('orientation',np.zeros(len(orientation))))
 
+        self.use_fixed_base = use_fixed_base
         self.max_velocity = max_velocity
         self.max_force = max_force
         self.end_effector_index = end_effector_index
@@ -132,7 +134,7 @@ class Robot:
 
             self.robot_uid = self.p.loadURDF(
                 os.path.join(pkg_resources.files("myGym"), self.robot_path),
-                self.position, self.orientation, useFixedBase=True, flags=(self.p.URDF_USE_SELF_COLLISION))
+                self.position, self.orientation, useFixedBase=self.use_fixed_base, flags=(self.p.URDF_USE_SELF_COLLISION))
         for jid in range(self.p.getNumJoints(self.robot_uid)):
                 self.p.changeDynamics(self.robot_uid, jid,  collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
         # if 'jaco' in self.name: #@TODO jaco gripper has closed loop between finger and finger_tip that is not respected by the simulator

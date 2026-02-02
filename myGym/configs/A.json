@@ -13,6 +13,7 @@
     "robot"         :"g1",
     "robot_action"  :"joints_gripper",
     "robot_init"    : "default",
+    "robot_fixed"   :true,
     "max_velocity"  :2,
     "max_force"     :100,
     "action_repeat" :1,
