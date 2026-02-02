@@ -119,6 +119,9 @@ class Protorewards(Reward):
         self.above_offset = 0.02
         self.reward_name = None
         self.iter = 1
+        # Thresholds for end effector z position checking
+        self.endeff_z_threshold = 0.01
+        self.endeff_z_penalty = -1.0
 
     def compute(self, observation=None):
         # inherit and define your sequence of protoactions here
@@ -201,9 +204,9 @@ class Protorewards(Reward):
         penalty = 0
         # Only penalize when fixed base is false
         if not self.env.robot.use_fixed_base:
-            # Check if end effector z position is lower than 0.01
-            if gripper_position[2] < 0.01:
-                penalty = -1.0  # Apply penalty
+            # Check if end effector z position is lower than threshold
+            if gripper_position[2] < self.endeff_z_threshold:
+                penalty = self.endeff_z_penalty
         return penalty
 
     #### PROTOREWARDS DEFINITIONS  ####
