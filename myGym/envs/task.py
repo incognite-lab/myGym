@@ -333,6 +333,12 @@ class TaskModule():
         Check if goal of the task was completed successfully
         """
         
+        # Check if end effector z position is below 0, if so reset the episode
+        ee_position = self.env.robot.get_position()
+        if ee_position[2] < 0:
+            self.end_episode_fail("End effector position below ground level (z < 0)")
+            return
+        
         finished = None
         if self.task_type in ['A','AG','AGM','AGMD','AGMDW','AGTDW']: #all tasks ending with R (FMR) have to have distrot checker
             finished = self.check_distance_threshold(self._observation)  
