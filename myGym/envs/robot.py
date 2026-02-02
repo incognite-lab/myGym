@@ -297,8 +297,8 @@ class Robot:
             joints_limits_u.append(joint_info[9])
             joints_ranges.append(joint_info[9] - joint_info[8])
             joints_rest_poses.append((joint_info[9] + joint_info[8])/2)
-            joints_max_force.append(joint_info[10] )
-            joints_max_velo.append(joint_info[11])
+            joints_max_force.append(self.max_force if self.max_force is not None else joint_info[10])
+            joints_max_velo.append(self.max_velocity if self.max_velocity is not None else joint_info[11])  
         return [joints_limits_l, joints_limits_u], joints_ranges, joints_rest_poses, joints_max_force, joints_max_velo
 
     def get_action_dimension(self):
@@ -423,11 +423,13 @@ class Robot:
                                     jointIndex=self.motor_indices[i],
                                     controlMode=self.p.POSITION_CONTROL,
                                     targetPosition=joint_poses[i],
-                                    force=1000,
+                                    force=self.joints_max_force[i],
                                     maxVelocity=self.joints_max_velo[i],
                                     positionGain=0.7,
                                     velocityGain=0.3
                                     )
+            print("Force:", joint_name.decode("utf-8"), self.joints_max_force[i])
+            print("Max Velocity:", joint_name.decode("utf-8"), self.joints_max_velo[i])
             if joint_type == self.p.JOINT_PRISMATIC:
                 pos = self.p.getJointState(self.robot_uid, joint_idx)[0]
                 # if pos < lower_limit or pos > upper_limit:
