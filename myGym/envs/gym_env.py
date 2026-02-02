@@ -105,8 +105,10 @@ class GymEnv(CameraEnv):
         self.workspace              = workspace
         self.obs_type = observation
         self.robot_type             = robot
-        # Get robot_fixed from r_dict
+        # Get robot_fixed from r_dict - use .get() for safety
         robot_dict = get_robot_dict()
+        if robot not in robot_dict:
+            raise ValueError(f"Unknown robot type: {robot}. Available robots: {list(robot_dict.keys())}")
         self.robot_fixed            = robot_dict[robot].get('fixed', True)
         self.num_networks           = num_networks
         self.network_switcher       = network_switcher
