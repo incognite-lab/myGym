@@ -13,7 +13,7 @@ import numpy as np
 from itertools import chain
 import random
 
-from myGym.utils.helpers import get_workspace_dict
+from myGym.utils.helpers import get_workspace_dict, get_robot_dict
 import importlib.resources as pkg_resources
 from myGym.envs.human import Human
 import myGym.utils.colors as cs
@@ -78,7 +78,6 @@ class GymEnv(CameraEnv):
                  color_dict={},
                  robot='kuka',
                  robot_action="step",
-                 robot_fixed=True,
                  max_velocity = 1,
                  max_force = 30,
                  robot_init_joint_poses=[],
@@ -106,7 +105,11 @@ class GymEnv(CameraEnv):
         self.workspace              = workspace
         self.obs_type = observation
         self.robot_type             = robot
-        self.robot_fixed            = robot_fixed
+        # Get robot_fixed from r_dict - use .get() for safety
+        robot_dict = get_robot_dict()
+        if robot not in robot_dict:
+            raise ValueError(f"Unknown robot type: {robot}. Available robots: {list(robot_dict.keys())}")
+        self.robot_fixed            = robot_dict[robot].get('fixed', True)
         self.num_networks           = num_networks
         self.network_switcher       = network_switcher
         self.robot_init_joint_poses = robot_init_joint_poses
