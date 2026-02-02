@@ -1399,7 +1399,7 @@
     </collision>
     -->
   </link>
-  <joint name="right_hand_thumb_2_joint" type="revolute">
+  <joint name="right_hand_thumb_2_gjoint" type="revolute">
     <origin xyz="0 0.0458 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <parent link="right_hand_thumb_1_link"/>
@@ -1461,7 +1461,7 @@
     </collision>
     -->
   </link>
-  <joint name="right_hand_middle_1_joint" type="revolute">
+  <joint name="right_hand_middle_1_gjoint" type="revolute">
     <origin xyz="0.0458 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <parent link="right_hand_middle_0_link"/>
@@ -1523,7 +1523,7 @@
     </collision>
     -->
   </link>
-  <joint name="right_hand_index_1_joint" type="revolute">
+  <joint name="right_hand_index_1_gjoint" type="revolute">
     <origin xyz="0.0458 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <parent link="right_hand_index_0_link"/>
