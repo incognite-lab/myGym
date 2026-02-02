@@ -10,11 +10,11 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"g1",
+    "robot"         :"g1_loose",
     "robot_action"  :"joints_gripper",
     "robot_init"    : "default",
-    "max_velocity"  :2,
-    "max_force"     :100,
+    "max_velocity"  :0.1,
+    "max_force"     :10,
     "action_repeat" :1,
     #Task
     "task_type"             :"A",

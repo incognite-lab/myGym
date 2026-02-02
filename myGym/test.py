@@ -163,9 +163,13 @@ def test_env(env: object, arg_dict: dict) -> None:
     current_result = None
     env.render()
     global done
-    # Prepare names for sliders
-    joints = [f"Joint{i}" for i in range(1, 20)]
-    jointparams = [f"Jnt{i}" for i in range(1, 20)]
+    # Prepare names for sliders - read from robot URDF
+    robot_joint_names = env.unwrapped.robot.motor_names
+    gripper_joint_names = env.unwrapped.robot.gripper_names if env.unwrapped.robot.gripper_names else []
+    all_joint_names = robot_joint_names + gripper_joint_names
+    # Use actual joint names - no arbitrary limit
+    joints = all_joint_names
+    jointparams = [None] * len(all_joint_names)  # Will store parameter IDs from p.addUserDebugParameter
 
     images = []
     video_path = None
