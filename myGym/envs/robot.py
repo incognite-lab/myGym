@@ -428,8 +428,8 @@ class Robot:
                                     positionGain=0.7,
                                     velocityGain=0.3
                                     )
-            print("Force:", joint_name.decode("utf-8"), self.joints_max_force[i])
-            print("Max Velocity:", joint_name.decode("utf-8"), self.joints_max_velo[i])
+            #print("Force:", joint_name.decode("utf-8"), self.joints_max_force[i])
+            #print("Max Velocity:", joint_name.decode("utf-8"), self.joints_max_velo[i])
             if joint_type == self.p.JOINT_PRISMATIC:
                 pos = self.p.getJointState(self.robot_uid, joint_idx)[0]
                 # if pos < lower_limit or pos > upper_limit:
@@ -920,11 +920,12 @@ class Robot:
             status = "neutral"
         
         # Check if status changed and print if it did
-        if self.previous_gripper_status is not None and self.previous_gripper_status != status:
-            print(f"Gripper changed to: {status}")
+        #if self.previous_gripper_status is not None and self.previous_gripper_status != status:
+        
+        #    print(f"Gripper changed to: {status}")
         
         # Update previous status
-        self.previous_gripper_status = status
+        #self.previous_gripper_status = status
         
         return status
 
