@@ -67,7 +67,8 @@ def save_results(arg_dict, model_name, env, model_logdir=None, show=False):
 def configure_env(arg_dict, model_logdir=None, for_train=True):
     env_arguments = {"render_on": True, "visualize": arg_dict["visualize"], "workspace": arg_dict["workspace"],
                      "robot": arg_dict["robot"], "robot_init_joint_poses": arg_dict["robot_init"],
-                     "robot_action": arg_dict["robot_action"], "max_velocity": arg_dict["max_velocity"],
+                     "robot_action": arg_dict["robot_action"], "robot_fixed": arg_dict.get("robot_fixed", True),
+                     "max_velocity": arg_dict["max_velocity"],
                      "max_force": arg_dict["max_force"], "task_type": arg_dict["task_type"],
                      "action_repeat": arg_dict["action_repeat"],
                      "task_objects": arg_dict["task_objects"], "observation": arg_dict["observation"],
