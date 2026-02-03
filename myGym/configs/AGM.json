@@ -10,7 +10,7 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"g1",
+    "robot"         :"g1_loose",
     "robot_action"  :"joints_gripper",
     "robot_init"    : "default",
     "max_velocity"  :2,
@@ -39,7 +39,6 @@
     #Train
     "train_framework"   :"pytorch",
     "algo"              :"ppo",
-    "num_networks"      :1,
     "max_episode_steps" :512,
     "algo_steps"        :512,
     "steps"             :15000000,

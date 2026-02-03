@@ -728,7 +728,7 @@ class Robot:
             #print("Gripper action:", action[-(self.gjoints_num):])
             if env_objects["actual_state"] != self: #if self.use_magnet and ...
                 gripper_states = self.get_gjoints_states()
-                gripper_status = self.check_gripper_status(gripper_states)
+                gripper_status, gripper_metric = self.check_gripper_status(gripper_states)
                 if gripper_status == "close":
                     self.gripper_active = True
                     self.magnetize_object(env_objects["actual_state"])
@@ -896,9 +896,8 @@ class Robot:
         Parameters:
             :param gripper_values: (list) Current gripper joint values
         Returns:
-            :return status: (str) "close" if metric <= 0.1,
-                                 "open" if metric >= 0.9,
-                                 "neutral" otherwise
+            :return (status, metric): (tuple) Status string ("close", "open", or "neutral")
+                                      and normalized metric (0=closed, 1=open)
         """
         close_vec = np.array(self.close_gripper)
         open_vec = np.array(self.open_gripper)
@@ -929,7 +928,7 @@ class Robot:
         # Update previous status
         #self.previous_gripper_status = status
         
-        return status
+        return status, metric
 
 
 

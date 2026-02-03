@@ -10,11 +10,11 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"g1_loose",
+    "robot"         :"g1",
     "robot_action"  :"joints_gripper",
     "robot_init"    : "default",
-    "max_velocity"  :0.1,
-    "max_force"     :10,
+    "max_velocity"  :3,
+    "max_force"     :100,
     "action_repeat" :1,
     #Task
     "task_type"             :"A",
@@ -39,7 +39,6 @@
     #Train
     "train_framework"   :"pytorch",
     "algo"              :"ppo",
-    "num_networks"      :1,
     "max_episode_steps" :512,
     "algo_steps"        :512,
     "steps"             :15000000,

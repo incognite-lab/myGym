@@ -215,12 +215,14 @@ class Protorewards(Reward):
         self.env.robot.set_magnetization(False)
         #self.env.p.addUserDebugLine(gripper[:3], object[:3], lifeTime=0.1)
         dist = self.task.calc_distance(gripper[:3], object[:3])        
-        gripdist = sum(gripper_states)
+        status, gripdist = self.env.robot.check_gripper_status(gripper_states)
         if self.last_approach_dist is None:
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) + ((gripdist - self.last_grip_dist) * 0.2)
+        # Approach: reward opening (positive when metric increases toward 1
+        reward = (self.last_approach_dist - dist) + (gripdist - self.last_grip_dist)
+        print(f"Approach reward: {reward:.5f}, Distance: {(self.last_approach_dist - dist):.5f}, Gripdist: {(gripdist - self.last_grip_dist):.5f}, Status: {status}", end='\r')
         # self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
@@ -233,7 +235,7 @@ class Protorewards(Reward):
     def withdraw_compute(self, gripper, object, gripper_states):
         self.env.robot.set_magnetization(False)
         dist = self.task.calc_distance(gripper[:3], object[:3])
-        gripdist = sum(gripper_states)
+        _, gripdist = self.env.robot.check_gripper_status(gripper_states)
         if self.last_approach_dist is None:
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
@@ -242,7 +244,8 @@ class Protorewards(Reward):
             reward = 0 #This is done so that robot doesnt learn to drop object out of goal and then get the biggest reward by
             #withdrawing without finishing the task
         else:
-            reward = (dist - self.last_approach_dist) + ((gripdist - self.last_grip_dist) * 0.2)
+            # Withdraw: reward opening (positive when metric increases toward 1)
+            reward = (dist - self.last_approach_dist) + (gripdist - self.last_grip_dist)
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -252,12 +255,13 @@ class Protorewards(Reward):
     def grasp_compute(self, gripper, object, gripper_states):
         self.env.robot.set_magnetization(True)
         dist = self.task.calc_distance(gripper[:3], object[:3])
-        gripdist = sum(gripper_states)
+        _, gripdist = self.env.robot.check_gripper_status(gripper_states)
         if self.last_approach_dist is None:
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) * 0.2 + ((self.last_grip_dist - gripdist) * 10)
+        # Grasp: reward closing (positive when metric decreases toward 0)
+        reward = (self.last_approach_dist - dist) + (self.last_grip_dist - gripdist)
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -267,12 +271,13 @@ class Protorewards(Reward):
     def drop_compute(self, gripper, object, gripper_states):
         self.env.robot.set_magnetization(True)
         dist = self.task.calc_distance(gripper[:3], object[:3])
-        gripdist = sum(gripper_states)
+        _, gripdist = self.env.robot.check_gripper_status(gripper_states)
         if self.last_approach_dist is None:
             self.last_approach_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
-        reward = (self.last_approach_dist - dist) * 0.2 + ((gripdist - self.last_grip_dist) * 10)
+        # Drop: reward opening (positive when metric increases toward 1)
+        reward = (self.last_approach_dist - dist) + (gripdist - self.last_grip_dist)
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
@@ -283,14 +288,15 @@ class Protorewards(Reward):
         self.env.robot.set_magnetization(False)
         object_XY = object[:3]
         goal_XY = goal[:3]
-        gripdist = sum(gripper_states)
+        _, gripdist = self.env.robot.check_gripper_status(gripper_states)
         dist = self.task.calc_distance(object_XY, goal_XY)
         if self.last_move_dist is None:
             self.last_move_dist = dist
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
         distance_rew = (self.last_move_dist - dist)
-        gripper_rew = (self.last_grip_dist - gripdist) * 0.1
+        # Move: reward keeping closed (positive when metric stays low/decreases toward 0)
+        gripper_rew = self.last_grip_dist - gripdist
         reward = distance_rew + gripper_rew
         self.last_move_dist = dist
         self.last_grip_dist = gripdist
@@ -303,16 +309,20 @@ class Protorewards(Reward):
         dist = self.task.calc_distance(object, goal)
         if self.last_place_dist is None:
             self.last_place_dist = dist
-        gripdist = sum(gripper_states)
-        gripper_rew = (self.last_grip_dist - gripdist) * 0.1
+        _, gripdist = self.env.robot.check_gripper_status(gripper_states)
+        if self.last_grip_dist is None:
+            self.last_grip_dist = gripdist
+        # Rotate: reward keeping closed (positive when metric stays low/decreases toward 0)
+        gripper_rew = self.last_grip_dist - gripdist
         reward = self.last_place_dist - dist
         rot = self.task.calc_rot_quat(object, goal)
         if self.last_rot_dist is None:
             self.last_rot_dist = rot
         rewardrot = self.last_rot_dist - rot
-        reward = reward + rewardrot
+        reward = reward + rewardrot + gripper_rew
         self.last_place_dist = dist
         self.last_rot_dist = rot
+        self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
         self.reward_name = "rotate"
         return reward
@@ -330,7 +340,10 @@ class Protorewards(Reward):
         dist_g = self.task.calc_distance(object, goal)
         if self.last_place_dist is None:
             self.last_place_dist = dist_g
-        reward_g_dist = self.last_place_dist - dist_g  # distance from goal
+        _, gripdist = self.env.robot.check_gripper_status(gripper_states)
+        if self.last_grip_dist is None:
+            self.last_grip_dist = gripdist
+        reward_g_dist = self.last_grip_dist - gripdist  # distance from goal
         pos = object[:3]
         dist_t, self.last_traj_idx = self.task.trajectory_distance(trajectory, pos, self.last_traj_idx, 10)
         if self.last_traj_dist is None:
@@ -356,7 +369,10 @@ class Protorewards(Reward):
         dist_g = self.task.calc_distance(object, goal)
         if self.last_place_dist is None:
             self.last_place_dist = dist_g
-        reward_g_dist = self.last_place_dist - dist_g  # distance from goal
+        _, gripdist = self.env.robot.check_gripper_status(gripper_states)
+        if self.last_grip_dist is None:
+            self.last_grip_dist = gripdist
+        reward_g_dist = self.last_grip_dist - gripdist  # distance from goal
         pos = object[:3]
         dist_t, self.last_traj_idx = self.task.trajectory_distance(trajectory, pos, self.last_traj_idx, 10)
         if self.last_traj_dist is None:
