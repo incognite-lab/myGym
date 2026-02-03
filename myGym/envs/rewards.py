@@ -119,6 +119,9 @@ class Protorewards(Reward):
         self.above_offset = 0.02
         self.reward_name = None
         self.iter = 1
+        # Thresholds for end effector z position checking
+        self.endeff_z_threshold = 0.01
+        self.endeff_z_penalty = -1.0
 
     def compute(self, observation=None):
         # inherit and define your sequence of protoactions here
@@ -187,6 +190,24 @@ class Protorewards(Reward):
         if self.__class__.__name__ in ["AaGaM", "AaGaMaD", "AaGaMaDaW"]:
             goal_position[2] += self.above_offset
         return goal_position, object_position, gripper_position, gripper_states
+
+    def check_endeff_z_penalty(self, gripper_position):
+        """
+        Check if end effector z position is below threshold and apply penalty
+        Only applies when fixed base is false
+        
+        Parameters:
+            :param gripper_position: (array) End effector position [x, y, z]
+        Returns:
+            :return penalty: (float) Penalty value (0 if no penalty, negative if penalty applied)
+        """
+        penalty = 0
+        # Only penalize when fixed base is false
+        if not self.env.robot.use_fixed_base:
+            # Check if end effector z position is lower than threshold
+            if gripper_position[2] < self.endeff_z_threshold:
+                penalty = self.endeff_z_penalty
+        return penalty
 
     #### PROTOREWARDS DEFINITIONS  ####
 
@@ -400,6 +421,8 @@ class A(Protorewards):
         owner = self.decide(observation)
         target = [[object_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute][owner](*target)
+        # Apply penalty for low end effector z position when fixed base is false
+        reward += self.check_endeff_z_penalty(gripper_position)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
         self.last_owner = owner
@@ -429,6 +452,8 @@ class AaG(Protorewards):
         target = [[object_position, goal_position, gripper_states], [object_position, goal_position, gripper_states]][
             owner]
         reward = [self.approach_compute, self.grasp_compute][owner](*target)
+        # Apply penalty for low end effector z position when fixed base is false
+        reward += self.check_endeff_z_penalty(gripper_position)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
         #self.disp_reward(reward, owner)
@@ -465,6 +490,8 @@ class AaGaM(Protorewards):
         [[gripper_position, object_position, gripper_states], [gripper_position, object_position, gripper_states],
          [object_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute][owner](*target)
+        # Apply penalty for low end effector z position when fixed base is false
+        reward += self.check_endeff_z_penalty(gripper_position)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
         #self.disp_reward(reward, owner)
@@ -535,6 +562,9 @@ class AaGaR(Protorewards):
         # Calculate reward using the function for the current network owner
         reward = reward_func_list[owner](*target)
 
+        # Apply penalty for low end effector z position when fixed base is false
+        reward += self.check_endeff_z_penalty(gripper_position)
+        
         # Add bonus for successful episode termination
         if self.env.episode_terminated:
             reward += 0.2
@@ -591,6 +621,8 @@ class AaGaMaD(Protorewards):
                   [object_position, goal_position, gripper_states],
                   [gripper_position, goal_position, gripper_states]][owner]
         reward = [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute][owner](*target)
+        # Apply penalty for low end effector z position when fixed base is false
+        reward += self.check_endeff_z_penalty(gripper_position)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
         #self.disp_reward(reward, owner)
@@ -640,6 +672,8 @@ class AaGaMaDaW(Protorewards):
         reward = \
         [self.approach_compute, self.grasp_compute, self.move_compute, self.drop_compute, self.withdraw_compute][owner](
             *target)
+        # Apply penalty for low end effector z position when fixed base is false
+        reward += self.check_endeff_z_penalty(gripper_position)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
         #self.disp_reward(reward, owner)
@@ -698,6 +732,8 @@ class AaGaRaDaW(Protorewards):
         reward = \
         [self.approach_compute, self.grasp_compute, self.rotate_compute, self.drop_compute, self.withdraw_compute][owner](
             *target)
+        # Apply penalty for low end effector z position when fixed base is false
+        reward += self.check_endeff_z_penalty(gripper_position)
         if self.env.episode_terminated:
             reward += 0.2 #Adding reward for succesful finish of episode
         #self.disp_reward(reward, owner)
@@ -794,6 +830,9 @@ class AaGaFaDaW(Protorewards):
 
         # Calculate reward using the function for the current network owner
         reward = reward_func_list[owner](*target)
+
+        # Apply penalty for low end effector z position when fixed base is false
+        reward += self.check_endeff_z_penalty(gripper_position)
 
         # Add bonus for successful episode termination
         if self.env.episode_terminated:
@@ -900,6 +939,8 @@ class AaGaTaDaW(Protorewards):
         else:
              reward = reward_func_list[owner](*target)
 
+        # Apply penalty for low end effector z position when fixed base is false
+        reward += self.check_endeff_z_penalty(gripper_position)
 
         # Add bonus for successful episode termination
         if self.env.episode_terminated:
