@@ -10,7 +10,7 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"g1_loose",
+    "robot"         :"g1",
     "robot_action"  :"joints_gripper",
     "robot_init"    : "default",
     "max_velocity"  :2,

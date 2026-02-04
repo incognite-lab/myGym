@@ -222,7 +222,7 @@ class Protorewards(Reward):
             self.last_grip_dist = gripdist
         # Approach: reward opening (positive when metric increases toward 1
         reward = (self.last_approach_dist - dist) + (gripdist - self.last_grip_dist)
-        print(f"Approach reward: {reward:.5f}, Distance: {(self.last_approach_dist - dist):.5f}, Gripdist: {(gripdist - self.last_grip_dist):.5f}, Status: {status}", end='\r')
+        #print(f"Approach reward: {reward:.5f}, Distance: {(self.last_approach_dist - dist):.5f}, Gripdist: {(gripdist - self.last_grip_dist):.5f}, Status: {status}", end='\r')
         # self.env.p.addUserDebugText(f"Reward:{reward}", [0.63, 0.8, 0.55], lifeTime=0.5, textColorRGB=[0, 125, 0])
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
