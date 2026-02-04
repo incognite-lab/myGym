@@ -151,17 +151,6 @@ class Oraculum:
         else:
             print("No gripper to control, change 'robot_action' to contain 'gripper'.")
 
-    def check_gripper_status(self) -> str:
-        """
-        Check the current gripper status using the robot's check_gripper_status method.
-
-        Returns:
-            str: "open", "close", or "neutral" based on current gripper joint states.
-        """
-        robot = self._env.unwrapped.robot
-        gripper_states = robot.get_gjoints_states()
-        return robot.check_gripper_status(gripper_states)
-
 
     def wait_n_steps(self, n):
         if not hasattr(self, '_wait_n_steps'):

@@ -398,7 +398,7 @@ class Protorewards(Reward):
         return False
 
     def gripper_opened(self, gripper_states):
-        gripper_status = self.env.robot.check_gripper_status(gripper_states)
+        gripper_status,metric = self.env.robot.check_gripper_status(gripper_states)
         if gripper_status == "open":
             self.env.robot.release_object(self.env.env_objects["actual_state"])
             self.env.robot.set_magnetization(False)
@@ -406,7 +406,7 @@ class Protorewards(Reward):
         return False
 
     def gripper_closed(self, gripper_states):
-        gripper_status = self.env.robot.check_gripper_status(gripper_states)
+        gripper_status,metric = self.env.robot.check_gripper_status(gripper_states)
         if gripper_status == "close":
             try:
                 #self.env.robot.magnetize_object(self.env.env_objects["actual_state"])
