@@ -138,6 +138,29 @@ Visualize robot inverse kinematics:
 python myGym/visualize_robot_ik.py
 ```
 
+### VR Teleoperation (NEW!)
+
+Control the Pepper robot using Meta Quest 3 VR headset and controllers:
+
+```bash
+# Quick test with simulated VR (no hardware needed)
+python myGym/pepper_vr_example.py
+
+# Or run directly with different modes
+python myGym/pepper_vr_teleoperation.py --mode simulated   # Testing mode
+python myGym/pepper_vr_teleoperation.py --mode openxr     # Meta Quest 3 via Link
+python myGym/pepper_vr_teleoperation.py --mode alvr       # Wireless via ALVR
+```
+
+Features:
+- Real-time IK control of robot arms via VR controllers
+- Head tracking from VR headset
+- Support for OpenXR (native) and ALVR (wireless)
+- Simulated mode for testing without VR hardware
+- Visual feedback with color-coded target markers
+
+See [`myGym/QUICKSTART_VR.md`](myGym/QUICKSTART_VR.md) for a quick start guide, or [`myGym/PEPPER_VR_TELEOPERATION.md`](myGym/PEPPER_VR_TELEOPERATION.md) for detailed documentation.
+
 ## Unit Tests
 
 The repository includes unit tests in the `myGym/unittest/` directory:
