@@ -470,10 +470,19 @@ def main() -> None:
     ax_set(ax5, 'Finished subgoals in %', 'Subgoals')
 
     # Save figures
-    logdir = cut_before_last_slash(logdir)
-    fig1.savefig(f"./trained_models/{logdir}_train.png")
-    fig2.savefig(f"./trained_models/{logdir}_goals.png")
-    print(f"Figures saved to ./trained_models/{logdir}_train.png and ./trained_models/{logdir}_goals.png")
+    # Construct filename from config values
+    robot_name = same.get('robot', robot) if same else robot
+    task_type = same.get('task_type', task) if same else task
+    
+    # If comparing multiple folders (algo or robot differs), use "compare" instead of algo name
+    if len(experiment_dirs) > 1 and ('algo' in diff.keys() or 'robot' in diff.keys()):
+        algo_name = "compare"
+    else:
+        algo_name = same.get('algo', alg) if same else alg
+    
+    fig1.savefig(f"./trained_models/{robot_name}_{task_type}_{algo_name}_train.png")
+    fig2.savefig(f"./trained_models/{robot_name}_{task_type}_{algo_name}_goals.png")
+    print(f"Figures saved to ./trained_models/{robot_name}_{task_type}_{algo_name}_train.png and ./trained_models/{robot_name}_{task_type}_{algo_name}_goals.png")
     plt.show()
 
 
