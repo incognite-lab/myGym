@@ -219,11 +219,29 @@ class Robot:
         
         return default_ee_pos, default_ee_ori
 
-    def touch_sensors_active(self, target_object):
+    def touch_sensors_active(self, target_object, table_uid=None):
+        """
+        Check for contact between robot end effector and target object, and between robot and table.
+        
+        Parameters:
+            :param target_object: Object to check for touch contact with end effector
+            :param table_uid: UID of the table to check for collisions (optional)
+        
+        Returns:
+            :return touching: (bool) True if end effector is in contact with target object
+            :return collision: (bool) True if robot is in collision with table (None if table_uid not provided)
+        """
+        # Check contact between end effector and target object
         contact_points = self.p.getContactPoints(self.robot_uid, target_object.uid)
-        if len(contact_points)> 0:
-            return True
-        return False
+        touching = len(contact_points) > 0
+        
+        # Check collision between robot and table
+        collision = None
+        if table_uid is not None:
+            table_contact_points = self.p.getContactPoints(self.robot_uid, table_uid)
+            collision = len(table_contact_points) > 0
+        print(f"Touching: {touching}, Collision with table: {collision}")
+        return touching, collision
     
 
     def reset(self, random_robot=False):

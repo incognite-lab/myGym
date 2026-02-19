@@ -480,9 +480,22 @@ def main() -> None:
     else:
         algo_name = same.get('algo', alg) if same else alg
     
-    fig1.savefig(f"./trained_models/{robot_name}_{task_type}_{algo_name}_train.png")
-    fig2.savefig(f"./trained_models/{robot_name}_{task_type}_{algo_name}_goals.png")
-    print(f"Figures saved to ./trained_models/{robot_name}_{task_type}_{algo_name}_train.png and ./trained_models/{robot_name}_{task_type}_{algo_name}_goals.png")
+    # Generate unique filenames if files already exist
+    base_train = f"./trained_models/{robot_name}_{task_type}_{algo_name}_train"
+    base_goals = f"./trained_models/{robot_name}_{task_type}_{algo_name}_goals"
+    
+    train_filename = f"{base_train}.png"
+    goals_filename = f"{base_goals}.png"
+    
+    counter = 1
+    while os.path.exists(train_filename) or os.path.exists(goals_filename):
+        train_filename = f"{base_train}_{counter}.png"
+        goals_filename = f"{base_goals}_{counter}.png"
+        counter += 1
+    
+    fig1.savefig(train_filename)
+    fig2.savefig(goals_filename)
+    print(f"Figures saved to {train_filename} and {goals_filename}")
     plt.show()
 
 

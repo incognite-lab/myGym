@@ -108,7 +108,7 @@ class TaskModule():
                     obj_touch = self.env.env_objects["goal_state"]
                 else:
                     obj_touch = self.env.env_objects["actual_state"]
-                touch = self.env.robot.touch_sensors_active(obj_touch) or len(self.env.robot.magnetized_objects)>0
+                touch = self.env.robot.touch_sensors_active(obj_touch,table_uid=self.env.get_scene_object_uid_by_name(self.env.workspace)) or len(self.env.robot.magnetized_objects)>0
                 info["additional_obs"]["touch"] = [1] if touch else [0]
             elif key == "distractor":
                 poses = [self.vision_module.get_obj_position(self.env.task_objects["distractor"][x],\
