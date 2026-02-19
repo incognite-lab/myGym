@@ -93,6 +93,7 @@ class Protorewards(Reward):
         self.last_approach_dist = None
         self.last_grip_dist = None
         self.last_lift_dist = None
+        self.first_move_grip_dist = None
         self.last_move_dist = None
         self.last_place_dist = None
         self.last_rot_dist = None
@@ -285,21 +286,17 @@ class Protorewards(Reward):
         return reward
 
     def move_compute(self, object, goal, gripper_states):
-        self.env.robot.set_magnetization(False)
-        object_XY = object[:3]
-        goal_XY = goal[:3]
+        self.env.robot.set_magnetization(True)
         _, gripdist = self.env.robot.check_gripper_status(gripper_states)
-        dist = self.task.calc_distance(object_XY, goal_XY)
+        dist = self.task.calc_distance(object[:3], goal[:3])
+        
         if self.last_move_dist is None:
             self.last_move_dist = dist
-        if self.last_grip_dist is None:
-            self.last_grip_dist = gripdist
-        distance_rew = (self.last_move_dist - dist)
-        # Move: reward keeping closed (positive when metric stays low/decreases toward 0)
-        gripper_rew = self.last_grip_dist - gripdist
-        reward = distance_rew + gripper_rew
+        if self.first_move_grip_dist is None:
+            self.first_move_grip_dist = gripdist
+        # Reward for moving object closer to goal, penalize deviation from initial gripper distance
+        reward = (self.last_move_dist - dist) - abs(gripdist - self.first_move_grip_dist)
         self.last_move_dist = dist
-        self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
         self.reward_name = "move"
         return reward
