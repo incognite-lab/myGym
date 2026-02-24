@@ -157,12 +157,7 @@ class UniversalReward:
             return 0.0
         abs_mean = np.mean(abs_window)
         rel_mean = np.mean(rel_window)
-        combined_mean = (abs_mean + rel_mean) / 2.0
-        if combined_mean < 0:
-            return -abs(combined_mean)
-        elif combined_mean > 0:
-            return abs(combined_mean)
-        return 0.0
+        return (abs_mean + rel_mean) / 2.0
 
     def _compute_progress(self, current_dist, max_dist):
         """
@@ -258,9 +253,11 @@ class UniversalReward:
             self.absolute_reward_history, self.relative_reward_history
         )
 
-        # -- Task progress --
-        task_progress, task_solved = self._compute_progress(trans_dist + rot_dist,
-                                                            self.max_trans_dist + self.max_rot_dist)
+        # -- Task progress (normalize translation and rotation independently, then average) --
+        trans_progress, _ = self._compute_progress(trans_dist, self.max_trans_dist)
+        rot_progress, _ = self._compute_progress(rot_dist, self.max_rot_dist)
+        task_progress = (trans_progress + rot_progress) / 2.0
+        task_solved = task_progress >= self.solved_threshold
 
         # -- Gripper absolute reward --
         gripper_absolute_reward = self._compute_absolute_reward(grip_dist, self.min_grip_dist, self.max_grip_dist)
