@@ -179,11 +179,11 @@ class UniversalReward:
             :param goal_state: (array) Goal state [x, y, z, qx, qy, qz, qw]
             :param gripper_states: (list) Current gripper joint values
             :param rot: (bool) If True, rotational error is included in all task rewards.
-                        If False, only translational error is calculated.
+                If False, only translational error is calculated.
             :param gripper: (str) "Open" or "Close". If "Open", gripper reward increases
-                           when gripper reaches maximal values, and progress/solved thresholds
-                           are based on maximal values. If "Close", maximal reward is for
-                           minimal values, and progress/solved thresholds are based on minimal values.
+                when gripper reaches maximal values, and progress/solved thresholds
+                are based on maximal values. If "Close", maximal reward is for
+                minimal values, and progress/solved thresholds are based on minimal values.
         Returns:
             :return result: (dict) Dictionary containing:
                 - task_absolute_reward: Rescaled task distance reward (0=max dist, 1=min dist)
@@ -198,6 +198,9 @@ class UniversalReward:
                 - gripper_solved: Boolean, True when gripper progress >= 90%
                 - total_reward: Combined reward from all components
         """
+        if gripper not in ("Open", "Close"):
+            raise ValueError(f"gripper must be 'Open' or 'Close', got '{gripper}'")
+
         # -- Task distance (translation + rotation) --
         trans_dist = self.task.calc_distance(actual_state, goal_state)
         rot_dist = self.task.calc_rot_quat(actual_state, goal_state) if rot else 0.0
@@ -283,7 +286,7 @@ class UniversalReward:
                 gripper_absolute_reward = (grip_dist - self.min_grip_dist) / grip_range
             else:
                 gripper_absolute_reward = 0.0
-            gripper_relative_reward = self._compute_relative_reward(self.prev_grip_dist, grip_dist) * -1.0
+            gripper_relative_reward = self._compute_relative_reward(grip_dist, self.prev_grip_dist)
             if self.max_grip_dist > 0:
                 gripper_progress = max(0.0, min(100.0, (grip_dist / self.max_grip_dist) * 100.0))
             else:
