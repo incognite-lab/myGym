@@ -123,6 +123,9 @@ class Protorewards(Reward):
         # Thresholds for end effector z position checking
         self.endeff_z_threshold = 0.01
         self.endeff_z_penalty = -1.0
+        # Grasp distance tracking variables
+        self.ideal_grasp_dist = None
+        self.grasp_within_threshold_count = 0
 
     def compute(self, observation=None):
         # inherit and define your sequence of protoactions here
@@ -257,12 +260,31 @@ class Protorewards(Reward):
         self.env.robot.set_magnetization(True)
         dist = self.task.calc_distance(gripper[:3], object[:3])
         _, gripdist = self.env.robot.check_gripper_status(gripper_states)
+        
+        # Initialize ideal distance on first frame
         if self.last_approach_dist is None:
             self.last_approach_dist = dist
+            self.ideal_grasp_dist = dist  # Store initial distance as ideal
+            self.grasp_within_threshold_count = 0
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
+        
+        # Calculate distance reward based on deviation from ideal
+        deviation = abs(dist - self.ideal_grasp_dist)
+        threshold = 0.01
+        
+        if deviation > threshold:
+            # Penalize deviation beyond threshold
+            dist_reward = -(deviation - threshold)
+        else:
+            # Reward staying within threshold, accumulate over time
+            self.grasp_within_threshold_count += 1
+            dist_reward = 0.01 * self.grasp_within_threshold_count
+        
         # Grasp: reward closing (positive when metric decreases toward 0)
-        reward = (self.last_approach_dist - dist) + (self.last_grip_dist - gripdist)
+        grip_reward = (self.last_grip_dist - gripdist)
+        reward = dist_reward + grip_reward
+        
         self.last_approach_dist = dist
         self.last_grip_dist = gripdist
         self.network_rewards[self.current_network] += reward
