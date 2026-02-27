@@ -559,6 +559,7 @@ class GymEnv(CameraEnv):
         self._apply_action_robot(action)
         if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
+        print(f"Observation after action: {self._observation}")
         if self.dataset:
             reward, terminated, truncated, info = 0, False, False, {}
         else:
@@ -572,6 +573,7 @@ class GymEnv(CameraEnv):
             self.successful_finish(info) #Maybe only change to 'if terminated'? Probably not
         if self.task.subtask_over:
             self.reset(only_subtask=True)
+        print(self.flatten_obs(self._observation.copy()))
         return self.flatten_obs(self._observation.copy()), reward, terminated, truncated, info
 
     def compute_reward(self, achieved_goal, desired_goal, info):

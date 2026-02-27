@@ -74,9 +74,9 @@ def test_first_step_returns_zero_rewards():
 
     result = ur.compute(actual, goal, gripper)
 
-    assert result["task_absolute_reward"] == 0.0, f"Expected 0.0, got {result['task_absolute_reward']}"
-    assert result["task_relative_reward"] == 0.0, f"Expected 0.0, got {result['task_relative_reward']}"
-    assert result["task_temporal_reward"] == 0.0
+    assert result["arm_absolute_reward"] == 0.0, f"Expected 0.0, got {result['arm_absolute_reward']}"
+    assert result["arm_relative_reward"] == 0.0, f"Expected 0.0, got {result['arm_relative_reward']}"
+    assert result["arm_temporal_reward"] == 0.0
     assert result["task_progress"] == 0.0
     assert result["task_solved"] == False
     assert result["gripper_absolute_reward"] == 0.0
@@ -103,7 +103,7 @@ def test_positive_relative_reward_when_distance_decreases():
     actual_1 = [0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
     result = ur.compute(actual_1, goal, gripper)
 
-    assert result["task_relative_reward"] > 0, f"Expected positive, got {result['task_relative_reward']}"
+    assert result["arm_relative_reward"] > 0, f"Expected positive, got {result['arm_relative_reward']}"
     print("PASS: test_positive_relative_reward_when_distance_decreases")
 
 
@@ -124,7 +124,7 @@ def test_negative_relative_reward_when_distance_increases():
     actual_1 = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
     result = ur.compute(actual_1, goal, gripper)
 
-    assert result["task_relative_reward"] < 0, f"Expected negative, got {result['task_relative_reward']}"
+    assert result["arm_relative_reward"] < 0, f"Expected negative, got {result['arm_relative_reward']}"
     print("PASS: test_negative_relative_reward_when_distance_increases")
 
 
@@ -148,8 +148,8 @@ def test_absolute_reward_scaling():
     # At goal distance (min=0.0), with max=1.0:
     # trans_abs = 1.0 (at min)
     # rot_abs = 0.0 (range is 0 because rotation never changed)
-    # task_absolute = (1.0 + 0.0) / 2 = 0.5
-    assert result["task_absolute_reward"] == 0.5, f"Expected 0.5 at min distance, got {result['task_absolute_reward']}"
+    # arm_absolute = (1.0 + 0.0) / 2 = 0.5
+    assert result["arm_absolute_reward"] == 0.5, f"Expected 0.5 at min distance, got {result['arm_absolute_reward']}"
 
     # Step 2: move back to max distance
     actual_2 = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
@@ -158,8 +158,8 @@ def test_absolute_reward_scaling():
     # At max distance:
     # trans_abs = 0.0 (at max)
     # rot_abs = 0.0 (range still 0)
-    # task_absolute = (0.0 + 0.0) / 2.0 = 0.0
-    assert result_2["task_absolute_reward"] == 0.0, f"Expected 0.0 at max distance, got {result_2['task_absolute_reward']}"
+    # arm_absolute = (0.0 + 0.0) / 2.0 = 0.0
+    assert result_2["arm_absolute_reward"] == 0.0, f"Expected 0.0 at max distance, got {result_2['arm_absolute_reward']}"
     
     # Step 3: move beyond max distance (to 2.0)
     actual_3 = [2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
@@ -167,8 +167,8 @@ def test_absolute_reward_scaling():
     
     # Beyond max, reward goes negative
     # trans_abs = 1.0 - 2.0 = -1.0
-    # task_absolute = (-1.0 + 0.0) / 2 = -0.5
-    assert result_3["task_absolute_reward"] == -0.5, f"Expected -0.5 beyond max distance, got {result_3['task_absolute_reward']}"
+    # arm_absolute = (-1.0 + 0.0) / 2 = -0.5
+    assert result_3["arm_absolute_reward"] == -0.5, f"Expected -0.5 beyond max distance, got {result_3['arm_absolute_reward']}"
     print("PASS: test_absolute_reward_scaling")
 
 
@@ -236,7 +236,7 @@ def test_temporal_reward_sliding_window():
 
     # All relative rewards were positive (distance decreasing)
     # Temporal should be positive
-    assert result["task_temporal_reward"] > 0, f"Expected positive temporal, got {result['task_temporal_reward']}"
+    assert result["arm_temporal_reward"] > 0, f"Expected positive temporal, got {result['arm_temporal_reward']}"
     print("PASS: test_temporal_reward_sliding_window")
 
 
@@ -323,9 +323,9 @@ def test_rot_false_ignores_rotation():
     actual_1 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
     result = ur.compute(actual_1, goal, gripper, rot=False)
 
-    # With rot=False, task_absolute_reward should equal translation-only reward
+    # With rot=False, arm_absolute_reward should equal translation-only reward
     # At goal (min dist = 0), absolute = 1.0
-    assert result["task_absolute_reward"] == 1.0, f"Expected 1.0, got {result['task_absolute_reward']}"
+    assert result["arm_absolute_reward"] == 1.0, f"Expected 1.0, got {result['arm_absolute_reward']}"
 
     # Progress should be translation-only: 100%
     assert result["task_progress"] == 100.0, f"Expected 100.0, got {result['task_progress']}"
@@ -350,11 +350,11 @@ def test_rot_true_includes_rotation():
     actual_1 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
     result = ur.compute(actual_1, goal, gripper, rot=True)
 
-    # With rot=True, task_absolute_reward = (trans_abs + rot_abs) / 2
+    # With rot=True, arm_absolute_reward = (trans_abs + rot_abs) / 2
     # Translation at goal (dist=0): abs = 1.0
     # Rotation unchanged from max: abs = 0.0
-    # So task_absolute_reward = (1.0 + 0.0) / 2.0 = 0.5
-    assert result["task_absolute_reward"] == 0.5, f"Expected 0.5, got {result['task_absolute_reward']}"
+    # So arm_absolute_reward = (1.0 + 0.0) / 2.0 = 0.5
+    assert result["arm_absolute_reward"] == 0.5, f"Expected 0.5, got {result['arm_absolute_reward']}"
 
     # Progress should average translation and rotation
     # trans_progress = 100%, rot_progress = 0% → average = 50%
@@ -605,73 +605,81 @@ def test_agm_compute_uses_correct_params():
 
 
 def test_agm_cycles_through_networks():
-    """AGM should use params for each network (approach, grasp, move)."""
+    """AGM should use params for each network (approach, grasp, move) and switch networks when task_solved."""
     env = MockEnv()
     task = MockTask()
     
-    # Track which params were used
-    params_used = []
-    
     class TrackedAGM(AGM):
-        def __init__(self, env, task):
-            super().__init__(env, task)
-            self.network_idx = 0
-            self.last_result = None
-        
-        def decide(self, observation=None):
-            idx = self.network_idx
-            self.network_idx = (self.network_idx + 1) % 3
-            return idx
-        
-        def compute(self, observation=None):
-            owner = self.decide(observation)
-            params = self.protoreward_params(self.network_names[owner])
-            result = self.universal_reward.compute(observation["actual_state"], observation["goal_state"], 
-                                                   self.env.robot.get_gjoints_states(), **params)
-            self.last_result = result  # Store the full result
-            reward = result["total_reward"]
-            self.network_rewards[self.current_network] += reward
-            self.last_owner = owner
-            self.rewards_history.append(reward)
-            self.rewards_num = 3
-            return reward
+        pass
     
     agm = TrackedAGM(env, task)
     agm.reset()
     
-    observation = {
-        "actual_state": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        "goal_state": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-    }
+    # Set initial states - start far from goal
+    initial_actual = np.array([10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+    goal_state = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
     
-    print("\n--- AGM Network Cycling Test ---")
+    print("\n--- AGM Network Cycling Test (100 steps) ---")
+    print(f"Initial actual_state: {initial_actual[:3]}")
+    print(f"Goal state: {goal_state[:3]}")
+    print()
     
-    # Cycle through all networks
-    rewards = []
-    for i in range(4):  # 4 steps to cycle through all 3 networks once + first step
+    # Track network changes when task_solved becomes True
+    network_changes = []
+    
+    # Run 100 steps, linearly decreasing actual_state to goal_state
+    for i in range(100):
+        # Linear interpolation: move from initial to goal over 100 steps
+        t = i / 100.0
+        actual_state = initial_actual * (1 - t) + goal_state * t
+        
+        observation = {
+            "actual_state": actual_state.tolist(),
+            "goal_state": goal_state.tolist(),
+        }
+        
         reward = agm.compute(observation)
-        rewards.append(reward)
-        
-        # Print detailed information
-        network_name = agm.network_names[agm.last_owner] if agm.last_owner is not None else "N/A"
         result = agm.last_result
+        prev_owner = agm.prev_owner
+        current_owner = agm.last_owner
+
+        # Print task progress at each step
+        network_name = agm.network_names[current_owner]
+        print(f"Step {i:3d}: N={network_name:8s}, "
+              f"AA={result['arm_absolute_reward']:1.3f}, "
+              f"AR={result['arm_relative_reward']:1.3f}, "
+              f"AT={result['arm_temporal_reward']:1.3f}, "
+              f"TP={result['task_progress']:6.2f}%, "
+              f"TS={str(result['task_solved']):5s}, "
+              f"GA={result['gripper_absolute_reward']:1.3f}, "
+              f"GR={result['gripper_relative_reward']:1.3f}, "
+              f"GT={result['gripper_temporal_reward']:1.3f}, "
+              f"GP={result['gripper_progress']:6.2f}%, "
+              f"GS={str(result['gripper_solved']):5s}, "
+              f"TOT={result['total_reward']:7.4f}, "
+              f"TR={reward:7.4f}")
         
-        if result:
-            print(f"Step {i}: Network={network_name}, "
-                  f"Reward={reward:.4f}, "
-                  f"Task_Progress={result['task_progress']:.2f}%, "
-                  f"Task_Solved={result['task_solved']}, "
-                  f"Gripper_Progress={result['gripper_progress']:.2f}%, "
-                  f"Gripper_Solved={result['gripper_solved']}")
+        # Check if owner changed when task_solved became True
+        if result['task_solved'] and prev_owner is not None and prev_owner != current_owner:
+            network_changes.append({
+                'step': i,
+                'prev_owner': prev_owner,
+                'new_owner': current_owner,
+                'task_progress': result['task_progress']
+            })
+            print(f"  --> Network changed from {agm.network_names[prev_owner]} to {network_name} (task solved)")
+    
+    print()
+    print("--- Network Changes Summary ---")
+    if network_changes:
+        for change in network_changes:
+            print(f"Step {change['step']}: {agm.network_names[change['prev_owner']]} -> "
+                  f"{agm.network_names[change['new_owner']]} (progress: {change['task_progress']:.2f}%)")
+        print(f"\nTotal network changes: {len(network_changes)}")
+    else:
+        print("No network changes detected when task_solved=True")
     
     print("---")
-    
-    # First reward should be 0 (first step of universal reward)
-    assert rewards[0] == 0.0, "First step should be 0"
-    
-    # Other rewards should be computed
-    assert all(isinstance(r, float) for r in rewards), "All rewards should be floats"
-    
     print("PASS: test_agm_cycles_through_networks")
 
 

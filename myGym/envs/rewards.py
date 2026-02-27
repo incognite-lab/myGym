@@ -171,7 +171,7 @@ class UniversalReward:
         solved = progress >= self.solved_threshold
         return progress, solved
 
-    def compute(self, actual_state, goal_state, gripper_states, rot=True, gripper="Close"):
+    def compute(self, observation, rot=True, gripper="Close"):
         """
         Compute universal reward for the current step.
 
@@ -187,9 +187,9 @@ class UniversalReward:
                 minimal values, and progress/solved thresholds are based on minimal values.
         Returns:
             :return result: (dict) Dictionary containing:
-                - task_absolute_reward: Rescaled task distance reward (0=max dist, 1=min dist)
-                - task_relative_reward: Difference-based task reward
-                - task_temporal_reward: Sliding window temporal task reward
+                - arm_absolute_reward: Rescaled task distance reward (0=max dist, 1=min dist)
+                - arm_relative_reward: Difference-based task reward
+                - arm_temporal_reward: Sliding window temporal task reward
                 - task_progress: Task progress percentage (0-100)
                 - task_solved: Boolean, True when task progress >= 90%
                 - gripper_absolute_reward: Rescaled gripper reward (0=max dist, 1=min dist)
@@ -203,18 +203,18 @@ class UniversalReward:
         #    raise ValueError(f"gripper must be 'Open' or 'Close', got '{gripper}'")
 
         # -- Task distance (translation + rotation) --
-        trans_dist = self.task.calc_distance(actual_state, goal_state)
-        rot_dist = self.task.calc_rot_quat(actual_state, goal_state) if rot else 0.0
+        trans_dist = self.task.calc_distance(observation["actual_state"], observation["goal_state"])
+        rot_dist = self.task.calc_rot_quat(observation["actual_state"], observation["goal_state"]) if rot else 0.0
 
         # -- Gripper distance --
-        status, grip_dist = self.robot.check_gripper_status(gripper_states)
+        status, grip_dist = self.robot.check_gripper_status(observation["additional_obs"]["gjoints_states"])
 
         if self.step == 0:
             # First step: record max and min, absolute reward = 0
             self.max_trans_dist = trans_dist
-            self.min_trans_dist = self.task.calc_distance(goal_state, goal_state)
+            self.min_trans_dist = self.task.calc_distance(observation["goal_state"], observation["goal_state"])
             self.max_rot_dist = rot_dist
-            self.min_rot_dist = self.task.calc_rot_quat(goal_state, goal_state) if rot else 0.0
+            self.min_rot_dist = self.task.calc_rot_quat(observation["goal_state"], observation["goal_state"]) if rot else 0.0
             self.prev_trans_dist = trans_dist
             self.prev_rot_dist = rot_dist
 
@@ -226,9 +226,9 @@ class UniversalReward:
             self.step += 1
 
             result = {
-                "task_absolute_reward": 0.0,
-                "task_relative_reward": 0.0,
-                "task_temporal_reward": 0.0,
+                "arm_absolute_reward": 0.0,
+                "arm_relative_reward": 0.0,
+                "arm_temporal_reward": 0.0,
                 "task_progress": 0.0,
                 "task_solved": False,
                 "gripper_absolute_reward": 0.0,
@@ -250,24 +250,24 @@ class UniversalReward:
         task_abs_trans = self._compute_absolute_reward(trans_dist, self.min_trans_dist, self.max_trans_dist)
         if rot:
             task_abs_rot = self._compute_absolute_reward(rot_dist, self.min_rot_dist, self.max_rot_dist)
-            task_absolute_reward = (task_abs_trans + task_abs_rot) / 2.0
+            arm_absolute_reward = (task_abs_trans + task_abs_rot) / 2.0
         else:
-            task_absolute_reward = task_abs_trans
+            arm_absolute_reward = task_abs_trans
 
         # -- Task relative reward --
         rel_trans = self._compute_relative_reward(self.prev_trans_dist, trans_dist)
         if rot:
             rel_rot = self._compute_relative_reward(self.prev_rot_dist, rot_dist)
-            task_relative_reward = rel_trans + rel_rot
+            arm_relative_reward = rel_trans + rel_rot
         else:
-            task_relative_reward = rel_trans
+            arm_relative_reward = rel_trans
 
         # Log for temporal
-        self.absolute_reward_history.append(task_absolute_reward)
-        self.relative_reward_history.append(task_relative_reward)
+        self.absolute_reward_history.append(arm_absolute_reward)
+        self.relative_reward_history.append(arm_relative_reward)
 
         # -- Task temporal reward --
-        task_temporal_reward = self._compute_temporal_reward(
+        arm_temporal_reward = self._compute_temporal_reward(
             self.absolute_reward_history, self.relative_reward_history
         )
 
@@ -311,13 +311,13 @@ class UniversalReward:
         self.prev_grip_dist = grip_dist
         self.step += 1
 
-        total_reward = (task_absolute_reward + task_relative_reward + task_temporal_reward +
+        total_reward = (arm_absolute_reward + arm_relative_reward + arm_temporal_reward +
                         gripper_absolute_reward + gripper_relative_reward + gripper_temporal_reward)
 
         result = {
-            "task_absolute_reward": task_absolute_reward,
-            "task_relative_reward": task_relative_reward,
-            "task_temporal_reward": task_temporal_reward,
+            "arm_absolute_reward": arm_absolute_reward,
+            "arm_relative_reward": arm_relative_reward,
+            "arm_temporal_reward": arm_temporal_reward,
             "task_progress": task_progress,
             "task_solved": task_solved,
             "gripper_absolute_reward": gripper_absolute_reward,
@@ -531,7 +531,9 @@ class Protorewards(Reward):
         # Initialize ideal distance on first frame
         if self.last_approach_dist is None:
             self.last_approach_dist = dist
-            self.ideal_grasp_dist = dist  # Store initial distance as ideal
+            self.grasp_within_threshold_count = 0
+        if self.ideal_grasp_dist is None:
+            self.ideal_grasp_dist = dist
             self.grasp_within_threshold_count = 0
         if self.last_grip_dist is None:
             self.last_grip_dist = gripdist
@@ -734,7 +736,7 @@ class Protorewards(Reward):
 
 ####NEW
 
-class AGM(Protorewards):
+class AaGaN(Protorewards):
 
     def __init__(self, env, task=None):
         super().__init__(env, task)
@@ -744,16 +746,21 @@ class AGM(Protorewards):
         super().reset()
         self.network_names = ["approach", "grasp", "move"]
         self.owner = 0
+        self.last_result = None
+        self.prev_owner = None
 
     def compute(self, observation=None):
         params = self.protoreward_params(self.network_names[self.owner])
-        result = self.universal_reward.compute(observation["actual_state"], observation["goal_state"], self.env.robot.get_gjoints_states(), **params)
+        result = self.universal_reward.compute(observation, **params)
+        self.last_result = result
         reward = result["total_reward"]
-        
+
+        self.prev_owner = self.last_owner
+
         # Check if task is solved and progress to next network
         if result["task_solved"] and self.owner < len(self.network_names) - 1:
             self.owner += 1
-        
+
         self.current_network = self.owner
         self.network_rewards[self.current_network] += reward
         self.last_owner = self.owner

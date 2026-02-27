@@ -98,6 +98,11 @@ class TaskModule():
                 info["additional_obs"]["joints_xyz"] = self.get_linkstates_unpacked()
             elif key == "joints_angles":
                 info["additional_obs"]["joints_angles"] = self.env.robot.get_joints_states()
+            elif key == "gjoints_angles":
+                info["additional_obs"]["gjoints_angles"] = self.env.robot.get_gjoints_states()
+            elif key == "gjoints_states":
+                _,metric = self.env.robot.check_gripper_status(self.env.robot.get_gjoints_states())
+                info["additional_obs"]["gjoints_states"] = [metric]
             elif key == "endeff_xyz":
                 info["additional_obs"]["endeff_xyz"] = self.vision_module.get_obj_position(robot, self.image, self.depth)[:3]
             elif key == "endeff_6D":
@@ -342,7 +347,7 @@ class TaskModule():
                 return
         
         finished = None
-        if self.task_type in ['A','AG','AGM','AGMD','AGMDW','AGTDW']: #all tasks ending with R (FMR) have to have distrot checker
+        if self.task_type in ['A','AG','AGM','AGN','AGMD','AGMDW','AGTDW']: #all tasks ending with R (FMR) have to have distrot checker
             finished = self.check_distance_threshold(self._observation)  
         if self.task_type in ['compositional', 'AGRDW', 'AGFDW', "AGR"]:
             finished = self.check_distrot_threshold(self._observation)
@@ -598,6 +603,8 @@ class TaskModule():
         for x in [t["actual_state"], t["goal_state"]]:
             get_datalen = {"joints_xyz":len(self.get_linkstates_unpacked()),
                            "joints_angles":len(self.env.robot.get_joints_states()),
+                           "gjoints_angles":len(self.env.robot.get_gjoints_states()),
+                           "gjoints_states":len(self.env.robot.check_gripper_status(self.env.robot.get_gjoints_states())),
                            "endeff_xyz":len(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)[:3]),
                            "endeff_6D":len(list(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)) \
                                                       + list(self.vision_module.get_obj_orientation(self.env.robot))),
