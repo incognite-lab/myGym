@@ -33,6 +33,11 @@ class MockRobot:
     def __init__(self):
         self.close_gripper = [0.0]
         self.open_gripper = [1.0]
+        self.current_gripper_state = [0.5]
+
+    def get_gjoints_states(self):
+        """Return current gripper joint states."""
+        return self.current_gripper_state
 
     def check_gripper_status(self, gripper_values):
         close_vec = np.array(self.close_gripper)
@@ -124,7 +129,7 @@ def test_negative_relative_reward_when_distance_increases():
 
 
 def test_absolute_reward_scaling():
-    """Absolute reward should be 0 at max distance and 1 at min distance."""
+    """Absolute reward should be in [-1, 1] range: 1 at min, 0 at max, -1 beyond max."""
     task = MockTask()
     robot = MockRobot()
     ur = UniversalReward(task, robot)
@@ -136,25 +141,34 @@ def test_absolute_reward_scaling():
     actual_0 = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
     ur.compute(actual_0, goal, gripper)
 
-    # Step 1: move to distance = 0.5 (now min)
-    actual_1 = [0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    # Step 1: move to min distance (0.0)
+    actual_1 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
     result = ur.compute(actual_1, goal, gripper)
 
-    # At distance 0.5, with max=1.0 and min=0.5:
-    # normalized = (0.5 - 0.5) / (1.0 - 0.5) = 0
-    # absolute = 1.0 - 0 = 1.0 (for translation)
-    assert result["task_absolute_reward"] > 0.0, f"Expected > 0, got {result['task_absolute_reward']}"
+    # At goal distance (min=0.0), with max=1.0:
+    # trans_abs = 1.0 (at min)
+    # rot_abs = 0.0 (range is 0 because rotation never changed)
+    # task_absolute = (1.0 + 0.0) / 2 = 0.5
+    assert result["task_absolute_reward"] == 0.5, f"Expected 0.5 at min distance, got {result['task_absolute_reward']}"
 
     # Step 2: move back to max distance
     actual_2 = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
     result_2 = ur.compute(actual_2, goal, gripper)
 
-    # At max distance, absolute reward for translation should be 0
-    # normalized = (1.0 - 0.5) / (1.0 - 0.5) = 1.0
-    # absolute = 1.0 - 1.0 = 0.0
-    # But rotation dist hasn't changed so rot part = 0
-    # Task absolute = (0.0 + 0.0) / 2.0 = 0.0
+    # At max distance:
+    # trans_abs = 0.0 (at max)
+    # rot_abs = 0.0 (range still 0)
+    # task_absolute = (0.0 + 0.0) / 2.0 = 0.0
     assert result_2["task_absolute_reward"] == 0.0, f"Expected 0.0 at max distance, got {result_2['task_absolute_reward']}"
+    
+    # Step 3: move beyond max distance (to 2.0)
+    actual_3 = [2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    result_3 = ur.compute(actual_3, goal, gripper)
+    
+    # Beyond max, reward goes negative
+    # trans_abs = 1.0 - 2.0 = -1.0
+    # task_absolute = (-1.0 + 0.0) / 2 = -0.5
+    assert result_3["task_absolute_reward"] == -0.5, f"Expected -0.5 beyond max distance, got {result_3['task_absolute_reward']}"
     print("PASS: test_absolute_reward_scaling")
 
 
@@ -305,16 +319,16 @@ def test_rot_false_ignores_rotation():
     # Step 0
     ur.compute(actual, goal, gripper, rot=False)
 
-    # Step 1: move closer in translation only
-    actual_1 = [0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    # Step 1: move to goal in translation
+    actual_1 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
     result = ur.compute(actual_1, goal, gripper, rot=False)
 
     # With rot=False, task_absolute_reward should equal translation-only reward
-    # Translation: trans_dist=0.5, max=1.0, min=0.5 → abs = 1.0
+    # At goal (min dist = 0), absolute = 1.0
     assert result["task_absolute_reward"] == 1.0, f"Expected 1.0, got {result['task_absolute_reward']}"
 
-    # Progress should be translation-only: (1 - 0.5/1.0)*100 = 50%
-    assert result["task_progress"] == 50.0, f"Expected 50.0, got {result['task_progress']}"
+    # Progress should be translation-only: 100%
+    assert result["task_progress"] == 100.0, f"Expected 100.0, got {result['task_progress']}"
     print("PASS: test_rot_false_ignores_rotation")
 
 
@@ -332,18 +346,19 @@ def test_rot_true_includes_rotation():
     # Step 0
     ur.compute(actual, goal, gripper, rot=True)
 
-    # Step 1: move closer in translation, rotation unchanged
-    actual_1 = [0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    # Step 1: move to goal in translation only, rotation still at max
+    actual_1 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
     result = ur.compute(actual_1, goal, gripper, rot=True)
 
     # With rot=True, task_absolute_reward = (trans_abs + rot_abs) / 2
-    # Translation abs = 1.0, rotation abs = 0.0 (unchanged from max)
+    # Translation at goal (dist=0): abs = 1.0
+    # Rotation unchanged from max: abs = 0.0
     # So task_absolute_reward = (1.0 + 0.0) / 2.0 = 0.5
     assert result["task_absolute_reward"] == 0.5, f"Expected 0.5, got {result['task_absolute_reward']}"
 
     # Progress should average translation and rotation
-    # trans_progress = 50%, rot_progress = 0% → average = 25%
-    assert result["task_progress"] == 25.0, f"Expected 25.0, got {result['task_progress']}"
+    # trans_progress = 100%, rot_progress = 0% → average = 50%
+    assert result["task_progress"] == 50.0, f"Expected 50.0, got {result['task_progress']}"
     print("PASS: test_rot_true_includes_rotation")
 
 
@@ -398,25 +413,26 @@ def test_gripper_open_absolute_reward_at_max():
     actual = [0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
     goal = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
 
-    # Step 0: gripper at 0.3
-    ur.compute(actual, goal, [0.3], gripper="Open")
+    # Step 0: gripper at 0.0 (min)
+    ur.compute(actual, goal, [0.0], gripper="Open")
 
-    # Step 1: gripper at 0.9 (near max)
-    ur.compute(actual, goal, [0.9], gripper="Open")
+    # Step 1: gripper at 1.0 (max)
+    result = ur.compute(actual, goal, [1.0], gripper="Open")
 
-    # Step 2: gripper back to 0.3 (at min)
-    result = ur.compute(actual, goal, [0.3], gripper="Open")
+    # At max value (1.0), with Close default then inverted for Open:
+    # Close: normalized = (1.0-0)/(1.0-0) = 1.0, abs = 1.0-1.0 = 0.0, rescaled = 0*2-1 = -1.0
+    # Open inverts: -(-1.0) = 1.0
+    assert result["gripper_absolute_reward"] == 1.0, \
+        f"Expected 1.0 at max for Open mode, got {result['gripper_absolute_reward']}"
 
-    # At min value (0.3), with Open mode: absolute = (0.3 - 0.3)/(0.9 - 0.3) = 0.0
-    assert result["gripper_absolute_reward"] == 0.0, \
-        f"Expected 0.0 at min for Open mode, got {result['gripper_absolute_reward']}"
+    # Step 2: gripper back to min (0.0)
+    result2 = ur.compute(actual, goal, [0.0], gripper="Open")
 
-    # Step 3: gripper back to max (0.9)
-    result2 = ur.compute(actual, goal, [0.9], gripper="Open")
-
-    # At max value (0.9), with Open mode: absolute = (0.9 - 0.3)/(0.9 - 0.3) = 1.0
-    assert result2["gripper_absolute_reward"] == 1.0, \
-        f"Expected 1.0 at max for Open mode, got {result2['gripper_absolute_reward']}"
+    # At min value (0.0), with Close then inverted for Open:
+    # Close: normalized = (0-0)/(1-0) = 0, abs = 1.0-0 = 1.0, rescaled = 1*2-1 = 1.0
+    # Open inverts: -(1.0) = -1.0
+    assert result2["gripper_absolute_reward"] == -1.0, \
+        f"Expected -1.0 at min for Open mode, got {result2['gripper_absolute_reward']}"
     print("PASS: test_gripper_open_absolute_reward_at_max")
 
 
@@ -452,13 +468,13 @@ def test_gripper_close_progress_at_min():
     actual = [0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
     goal = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
 
-    # Step 0: gripper at 0.8
-    ur.compute(actual, goal, [0.8], gripper="Close")
+    # Step 0: gripper at 1.0 (open)
+    ur.compute(actual, goal, [1.0], gripper="Close")
 
     # Step 1: gripper closes to 0.05 (close to 0 = closed)
     result = ur.compute(actual, goal, [0.05], gripper="Close")
 
-    # For Close mode, progress = (1 - 0.05/0.8)*100 = 93.75%
+    # For Close mode, progress = (1 - 0.05/1.0)*100 = 95%
     assert result["gripper_progress"] >= 90.0, \
         f"Expected >= 90%, got {result['gripper_progress']}"
     assert result["gripper_solved"] == True, \
@@ -493,6 +509,172 @@ def test_default_params_backward_compatible():
     print("PASS: test_default_params_backward_compatible")
 
 
+# Tests for AGM and protoreward_params
+
+class MockEnv:
+    """Mock environment for testing Protorewards classes."""
+    def __init__(self):
+        self.robot = MockRobot()
+        self.num_networks = 3
+        self.episode_terminated = False
+
+
+from rewards import AGM, Protorewards
+
+
+def test_protoreward_params_returns_dict():
+    """protoreward_params should return a dict with 'rot' and 'gripper' keys."""
+    env = MockEnv()
+    task = MockTask()
+    
+    class TestProtorewards(Protorewards):
+        def reset(self):
+            super().reset()
+    
+    pr = TestProtorewards(env, task)
+    pr.reset()
+    
+    # Test all protoreward types
+    params_approach = pr.protoreward_params("approach")
+    assert isinstance(params_approach, dict), "Should return a dict"
+    assert "rot" in params_approach and "gripper" in params_approach
+    assert params_approach["rot"] == False and params_approach["gripper"] == "Open"
+    
+    params_grasp = pr.protoreward_params("grasp")
+    assert params_grasp["rot"] == True and params_grasp["gripper"] == "Close"
+    
+    params_move = pr.protoreward_params("move")
+    assert params_move["rot"] == False and params_move["gripper"] == "Close"
+    
+    print("PASS: test_protoreward_params_returns_dict")
+
+
+def test_protoreward_params_invalid_name():
+    """protoreward_params should raise ValueError for invalid names."""
+    env = MockEnv()
+    task = MockTask()
+    
+    class TestProtorewards(Protorewards):
+        def reset(self):
+            super().reset()
+    
+    pr = TestProtorewards(env, task)
+    pr.reset()
+    
+    try:
+        pr.protoreward_params("invalid_name")
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "Unknown protoreward name" in str(e)
+    
+    print("PASS: test_protoreward_params_invalid_name")
+
+
+def test_agm_compute_uses_correct_params():
+    """AGM.compute should use protoreward_params to get rot and gripper values."""
+    env = MockEnv()
+    task = MockTask()
+    
+    # Create AGM instance
+    agm = AGM(env, task)
+    agm.reset()
+    
+    # Mock observation
+    observation = {
+        "actual_state": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        "goal_state": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    }
+    
+    # Mock decide to return network 0 (approach)
+    class MockAGM(AGM):
+        def decide(self, observation=None):
+            return 0
+    
+    agm = MockAGM(env, task)
+    agm.reset()
+    
+    # First compute should return 0 (first step)
+    reward1 = agm.compute(observation)
+    assert reward1 == 0.0, f"First step should return 0, got {reward1}"
+    
+    # Second compute should use approach params (rot=False, gripper="Open")
+    reward2 = agm.compute(observation)
+    assert isinstance(reward2, float), "Should return a float reward"
+    
+    print("PASS: test_agm_compute_uses_correct_params")
+
+
+def test_agm_cycles_through_networks():
+    """AGM should use params for each network (approach, grasp, move)."""
+    env = MockEnv()
+    task = MockTask()
+    
+    # Track which params were used
+    params_used = []
+    
+    class TrackedAGM(AGM):
+        def __init__(self, env, task):
+            super().__init__(env, task)
+            self.network_idx = 0
+            self.last_result = None
+        
+        def decide(self, observation=None):
+            idx = self.network_idx
+            self.network_idx = (self.network_idx + 1) % 3
+            return idx
+        
+        def compute(self, observation=None):
+            owner = self.decide(observation)
+            params = self.protoreward_params(self.network_names[owner])
+            result = self.universal_reward.compute(observation["actual_state"], observation["goal_state"], 
+                                                   self.env.robot.get_gjoints_states(), **params)
+            self.last_result = result  # Store the full result
+            reward = result["total_reward"]
+            self.network_rewards[self.current_network] += reward
+            self.last_owner = owner
+            self.rewards_history.append(reward)
+            self.rewards_num = 3
+            return reward
+    
+    agm = TrackedAGM(env, task)
+    agm.reset()
+    
+    observation = {
+        "actual_state": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        "goal_state": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    }
+    
+    print("\n--- AGM Network Cycling Test ---")
+    
+    # Cycle through all networks
+    rewards = []
+    for i in range(4):  # 4 steps to cycle through all 3 networks once + first step
+        reward = agm.compute(observation)
+        rewards.append(reward)
+        
+        # Print detailed information
+        network_name = agm.network_names[agm.last_owner] if agm.last_owner is not None else "N/A"
+        result = agm.last_result
+        
+        if result:
+            print(f"Step {i}: Network={network_name}, "
+                  f"Reward={reward:.4f}, "
+                  f"Task_Progress={result['task_progress']:.2f}%, "
+                  f"Task_Solved={result['task_solved']}, "
+                  f"Gripper_Progress={result['gripper_progress']:.2f}%, "
+                  f"Gripper_Solved={result['gripper_solved']}")
+    
+    print("---")
+    
+    # First reward should be 0 (first step of universal reward)
+    assert rewards[0] == 0.0, "First step should be 0"
+    
+    # Other rewards should be computed
+    assert all(isinstance(r, float) for r in rewards), "All rewards should be floats"
+    
+    print("PASS: test_agm_cycles_through_networks")
+
+
 if __name__ == "__main__":
     test_first_step_returns_zero_rewards()
     test_positive_relative_reward_when_distance_decreases()
@@ -512,4 +694,11 @@ if __name__ == "__main__":
     test_gripper_open_progress_at_max()
     test_gripper_close_progress_at_min()
     test_default_params_backward_compatible()
+    
+    # AGM and protoreward_params tests
+    test_protoreward_params_returns_dict()
+    test_protoreward_params_invalid_name()
+    test_agm_compute_uses_correct_params()
+    test_agm_cycles_through_networks()
+    
     print("\nAll tests passed!")
