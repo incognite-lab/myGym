@@ -384,6 +384,36 @@ class Protorewards(Reward):
         # inherit and define subgoals checking and network switching here
         pass
 
+    def network_names_from_task(self, task_type):
+        """
+        Convert task_type string (e.g., "AGM") to list of network names (e.g., ["approach", "grasp", "move"])
+        
+        Parameters:
+            :param task_type: (str) Task type string with single letter codes
+        Returns:
+            :return network_names: (list) List of full network names
+        """
+        letter_to_name = {
+            "A": "approach",
+            "G": "grasp",
+            "M": "move",
+            "D": "drop",
+            "W": "withdraw",
+            "R": "rotate",
+            "T": "transform",
+            "F": "follow",
+            "N": "move"  # N is also used for move in some task types
+        }
+        
+        network_names = []
+        for letter in task_type:
+            if letter in letter_to_name:
+                network_names.append(letter_to_name[letter])
+            else:
+                print(f"Warning: Unknown letter '{letter}' in task_type '{task_type}'")
+        
+        return network_names
+
     def show_every_n_iters(self, text, value, n):
         """
         Every n iterations (steps) show given text and value.
@@ -712,21 +742,21 @@ class Protorewards(Reward):
         return False
     
     def protoreward_params (self, name):
-        if name == "approach":
+        if name == "approach" or name == "A":
             return {"rot": False, "gripper": "Open"}
-        elif name == "withdraw":
+        elif name == "withdraw" or name == "W":
             return {"rot": False, "gripper": "Open"}
-        elif name == "grasp":
+        elif name == "grasp" or name == "G":
             return {"rot": True, "gripper": "Close"}
-        elif name == "drop":
+        elif name == "drop" or name == "D":
             return {"rot": True, "gripper": "Open"}
-        elif name == "move":
+        elif name == "move" or name == "M":
             return {"rot": False, "gripper": "Close"}
-        elif name == "rotate":
+        elif name == "rotate" or name == "R":
             return {"rot": True, "gripper": "Close"}
-        elif name == "transform":
+        elif name == "transform" or name == "T":
             return {"rot": False, "gripper": "Close"}
-        elif name == "follow":
+        elif name == "follow" or name == "F":
             return {"rot": False, "gripper": "Close"}
         else:
             raise ValueError(f"Unknown protoreward name: {name}")
@@ -740,12 +770,15 @@ class AaGaN(Protorewards):
 
     def __init__(self, env, task=None):
         super().__init__(env, task)
+        self.network_names = self.network_names_from_task(self.env.task_type)
+        #print(f"Initialized AaGaN with networks: {self.network_names}")
         self.reset()
 
     def reset(self):
         super().reset()
-        self.network_names = ["approach", "grasp", "move"]
+        # Distill network names from task_type (e.g., "AGM" -> ["approach", "grasp", "move"])
         self.owner = 0
+        print(f"Starting with network: {self.network_names[self.owner]}")
         self.last_result = None
         self.prev_owner = None
 
@@ -760,6 +793,7 @@ class AaGaN(Protorewards):
         # Check if task is solved and progress to next network
         if result["task_solved"] and self.owner < len(self.network_names) - 1:
             self.owner += 1
+            print(f"Switching to network {self.owner} ({self.network_names[self.owner]})")
 
         self.current_network = self.owner
         self.network_rewards[self.current_network] += reward
@@ -774,7 +808,9 @@ class A(Protorewards):
 
     def reset(self):
         super().reset()
-        self.network_names = ["approach"]
+        # Distill network names from class name (e.g., "A" -> ["approach"])
+        task_type = self.__class__.__name__.replace('a', '').upper()
+        self.network_names = self.network_names_from_task(task_type)
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -804,7 +840,9 @@ class AaG(Protorewards):
 
     def reset(self):
         super().reset()
-        self.network_names = ["approach", "grasp"]
+        # Distill network names from class name (e.g., "AaG" -> ["approach", "grasp"])
+        task_type = self.__class__.__name__.replace('a', '').upper()
+        self.network_names = self.network_names_from_task(task_type)
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -841,7 +879,10 @@ class AaGaM(Protorewards):
 
     def reset(self):
         super().reset()
-        self.network_names = ["approach", "grasp", "move"]
+        # Distill network names from class name (e.g., "AaGaM" -> ["approach", "grasp", "move"])
+        task_type = self.__class__.__name__.replace('a', '').upper()
+        self.network_names = self.network_names_from_task(task_type)
+        print(f"Starting with network: {self.network_names[0]}")
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -869,10 +910,12 @@ class AaGaM(Protorewards):
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_opened(gripper_states):
                         self.current_network = 1
+                        print(f"Switching to network {self.current_network} ({self.network_names[self.current_network]})")
             if self.current_network == 1:
                 if self.gripper_approached_object(gripper_position, object_position):
                     if self.gripper_closed(gripper_states):
                         self.current_network = 2
+                        print(f"Switching to network {self.current_network} ({self.network_names[self.current_network]})")
         if self.current_network == 2:
             if self.object_near_goal(object_position, goal_position):
                 self.task.check_goal()
@@ -897,8 +940,9 @@ class AaGaR(Protorewards):
     """
     def reset(self):
         super().reset()
-        # Updated network names to include "rotate"
-        self.network_names = ["approach", "grasp", "rotate"]
+        # Distill network names from class name (e.g., "AaGaR" -> ["approach", "grasp", "rotate"])
+        task_type = self.__class__.__name__.replace('a', '').upper()
+        self.network_names = self.network_names_from_task(task_type)
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -971,7 +1015,9 @@ class AaGaMaD(Protorewards):
 
     def reset(self):
         super().reset()
-        self.network_names = ["approach", "grasp", "move", "drop"]
+        # Distill network names from class name (e.g., "AaGaMaD" -> ["approach", "grasp", "move", "drop"])
+        task_type = self.__class__.__name__.replace('a', '').upper()
+        self.network_names = self.network_names_from_task(task_type)
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -1019,7 +1065,9 @@ class AaGaMaDaW(Protorewards):
 
     def reset(self):
         super().reset()
-        self.network_names = ["approach", "grasp", "move", "drop", "withdraw"]
+        # Distill network names from class name (e.g., "AaGaMaDaW" -> ["approach", "grasp", "move", "drop", "withdraw"])
+        task_type = self.__class__.__name__.replace('a', '').upper()
+        self.network_names = self.network_names_from_task(task_type)
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -1076,8 +1124,9 @@ class AaGaRaDaW(Protorewards):
 
     def reset(self):
         super().reset()
-        # Updated network names to include "rotate" instead of "move"
-        self.network_names = ["approach", "grasp", "rotate", "drop", "withdraw"]
+        # Distill network names from class name (e.g., "AaGaRaDaW" -> ["approach", "grasp", "rotate", "drop", "withdraw"])
+        task_type = self.__class__.__name__.replace('a', '').upper()
+        self.network_names = self.network_names_from_task(task_type)
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -1144,8 +1193,9 @@ class AaGaFaDaW(Protorewards):
     """
     def reset(self):
         super().reset()
-        # Updated network names to include "follow"
-        self.network_names = ["approach", "grasp", "follow", "drop", "withdraw"]
+        # Distill network names from class name (e.g., "AaGaFaDaW" -> ["approach", "grasp", "follow", "drop", "withdraw"])
+        task_type = self.__class__.__name__.replace('a', '').upper()
+        self.network_names = self.network_names_from_task(task_type)
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)
@@ -1249,8 +1299,9 @@ class AaGaTaDaW(Protorewards):
     """
     def reset(self):
         super().reset()
-        # Updated network names to include "transform"
-        self.network_names = ["approach", "grasp", "transform", "drop", "withdraw"]
+        # Distill network names from class name (e.g., "AaGaTaDaW" -> ["approach", "grasp", "transform", "drop", "withdraw"])
+        task_type = self.__class__.__name__.replace('a', '').upper()
+        self.network_names = self.network_names_from_task(task_type)
 
     def compute(self, observation=None):
         goal_position, object_position, gripper_position, gripper_states = self.get_positions(observation)

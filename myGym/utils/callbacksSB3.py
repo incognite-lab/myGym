@@ -86,6 +86,7 @@ class CustomEvalCallback(EvalCallback):
             n_eval_episodes: int = 10,
             deterministic: bool = False,
     ):
+        debug = False
         start_timer = time.time()
         success_episodes_num = 0
         distance_error_sum = 0
@@ -129,7 +130,7 @@ class CustomEvalCallback(EvalCallback):
                     obs, reward, terminated, truncated, info = self.eval_env.step(action)
                     done = terminated or truncated
 
-                if evaluation_env.p.getConnectionInfo()["isConnected"] != 0:
+                if debug:
                     evaluation_env.p.addUserDebugText(
                         f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']), 5))}",
                         [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
@@ -557,7 +558,7 @@ class PPOEvalCallback(EvalCallback):
             n_eval_episodes: int = 10,
             deterministic: bool = False,
     ):
-
+        debug = False
         success_episodes_num = 0
         distance_error_sum = 0
         steps_sum = 0
@@ -603,7 +604,7 @@ class PPOEvalCallback(EvalCallback):
                     done = terminated or truncated
                     current_network = self.eval_env.unwrapped.reward.current_network
 
-                if env_p.getConnectionInfo()["isConnected"] != 0:
+                if debug:
                     env_p.addUserDebugText(
                         f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']), 5))}",
                         [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])

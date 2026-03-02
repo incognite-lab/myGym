@@ -393,7 +393,7 @@ class TaskModule():
                 self.env.episode_info = "Task completed in initial configuration"
             else:
                 self.env.episode_info = "Task completed successfully"
-                time.sleep(1)
+                #time.sleep(1)
         else:
             print("self.env.episode_terminated set to false")
             self.env.episode_terminated = False
@@ -604,7 +604,7 @@ class TaskModule():
             get_datalen = {"joints_xyz":len(self.get_linkstates_unpacked()),
                            "joints_angles":len(self.env.robot.get_joints_states()),
                            "gjoints_angles":len(self.env.robot.get_gjoints_states()),
-                           "gjoints_states":len(self.env.robot.check_gripper_status(self.env.robot.get_gjoints_states())),
+                           "gjoints_states":len([self.env.robot.check_gripper_status(self.env.robot.get_gjoints_states())[1]]),
                            "endeff_xyz":len(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)[:3]),
                            "endeff_6D":len(list(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)) \
                                                       + list(self.vision_module.get_obj_orientation(self.env.robot))),
