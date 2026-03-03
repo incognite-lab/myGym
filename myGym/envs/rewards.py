@@ -83,7 +83,7 @@ class Reward:
         return self.env.robot.use_magnet
 
 
-class UniversalReward:
+class UniversalReward(Reward):
     """
     Universal reward calculator for task distance and gripper rewards.
 
@@ -92,15 +92,14 @@ class UniversalReward:
     task distance and gripper, along with progress tracking.
 
     Parameters:
+        :param env: (object) Environment, where the training takes place
         :param task: (object) Task instance with calc_distance and calc_rot_quat methods
-        :param robot: (object) Robot instance with check_gripper_status, close_gripper, open_gripper
         :param window_size: (int) Size of the sliding window for temporal reward calculation
         :param solved_threshold: (float) Progress percentage threshold to consider task solved (0-100)
     """
 
-    def __init__(self, task, robot, window_size=10, solved_threshold=90.0):
-        self.task = task
-        self.robot = robot
+    def __init__(self, env, task=None, window_size=10, solved_threshold=90.0):
+        super().__init__(env, task)
         self.window_size = window_size
         self.solved_threshold = solved_threshold
         self.reset()
@@ -171,9 +170,13 @@ class UniversalReward:
         solved = progress >= self.solved_threshold
         return progress, solved
 
-    def compute(self, observation, rot=True, gripper="Close"):
+    def compute(self, observation=None):
+        """Default compute method that calls calculate with default parameters."""
+        raise NotImplementedError("Subclasses should override compute() method")
+
+    def calculate(self, observation, rot=True, gripper="Close"):
         """
-        Compute universal reward for the current step.
+        Calculate universal reward for the current step.
 
         Parameters:
             :param actual_state: (array) Actual object state [x, y, z, qx, qy, qz, qw]
@@ -207,7 +210,7 @@ class UniversalReward:
         rot_dist = self.task.calc_rot_quat(observation["actual_state"], observation["goal_state"]) if rot else 0.0
 
         # -- Gripper distance --
-        status, grip_dist = self.robot.check_gripper_status(observation["additional_obs"]["gjoints_states"])
+        status, grip_dist = self.env.robot.check_gripper_status(observation["additional_obs"]["gjoints_states"])
 
         if self.step == 0:
             # First step: record max and min, absolute reward = 0
@@ -332,6 +335,132 @@ class UniversalReward:
 
 # PROTOREWARDS
 
+class Rewarder(UniversalReward):
+    """
+    Universal reward class that dynamically adapts to any task type.
+    Initialized with task_subgoals which become the network names.
+    Inherits from UniversalReward (which inherits from Reward).
+    """
+
+    def __init__(self, env, task=None):
+        # Set attributes BEFORE calling super().__init__ to avoid AttributeError during reset
+        self.task_subgoals = task.get_subgoals_from_task_type() if task else []
+        self.network_names = self.task_subgoals
+        self.num_networks = len(self.network_names)
+        # Initialize tracking variables
+        self.owner = 0
+        self.last_result = None
+        self.prev_owner = None
+        self.rewards_num = len(self.network_names)
+        # Now call parent init which will call reset()
+        super().__init__(env, task)
+
+    def reset(self):
+        self.last_owner = None
+        self.last_find_dist = None
+        self.last_approach_dist = None
+        self.last_grip_dist = None
+        self.last_lift_dist = None
+        self.first_move_grip_dist = None
+        self.last_move_dist = None
+        self.last_place_dist = None
+        self.last_rot_dist = None
+        self.subgoaloffset_dist = None
+        self.last_leave_dist = None
+        self.prev_object_position = None
+        self.was_near = False
+        self.current_network = 0
+        self.eval_network_rewards = self.network_rewards
+        self.network_rewards = [0] * self.num_networks
+        self.has_left = False
+        self.last_traj_idx = 0
+        self.last_traj_dist = 0
+        self.offset = [0.3, 0.0, 0.0]
+        self.offsetleft = [0.2, 0.0, -0.1]
+        self.offsetright = [-0.2, 0.0, -0.1]
+        self.offsetcenter = [0.0, 0.0, -0.1]
+        self.grip_threshold = 0.1
+        self.approached_threshold = 0.045
+        self.withdraw_threshold = 0.3
+        self.near_threshold = 0.05
+        self.lift_threshold = 0.1
+        self_above_threshold = 0.1
+        self.above_offset = 0.02
+        self.reward_name = None
+        self.iter = 1
+        # Thresholds for end effector z position checking
+        self.endeff_z_threshold = 0.01
+        self.endeff_z_penalty = -1.0
+        # Grasp distance tracking variables
+        self.ideal_grasp_dist = None
+        self.grasp_within_threshold_count = 0
+        # Call UniversalReward reset
+        UniversalReward.reset(self)
+        # Reset episode-specific tracking
+        self.owner = 0
+        self.last_result = None
+        self.prev_owner = None
+
+    def compute(self, observation=None):
+        if not self.network_names:
+            return 0.0
+        
+        params = self.protoreward_params(self.network_names[self.owner])
+        result = self.calculate(observation, **params)
+        self.last_result = result
+        reward = result["total_reward"]
+
+        self.prev_owner = self.last_owner
+
+        # Check if task is solved and progress to next network
+        if result["task_solved"] and self.owner < len(self.network_names) - 1:
+            self.owner += 1
+            print(f"Switching to network {self.owner} ({self.network_names[self.owner]})")
+
+        self.current_network = self.owner
+        self.network_rewards[self.current_network] += reward
+        self.last_owner = self.owner
+        self.rewards_history.append(reward)
+        return reward
+
+    def decide(self, observation=None):
+        """Return the current network owner"""
+        return self.current_network
+
+    def protoreward_params(self, name):
+        if name == "approach" or name == "A":
+            return {"rot": False, "gripper": "Open"}
+        elif name == "withdraw" or name == "W":
+            return {"rot": False, "gripper": "Open"}
+        elif name == "grasp" or name == "G":
+            return {"rot": True, "gripper": "Close"}
+        elif name == "drop" or name == "D":
+            return {"rot": True, "gripper": "Open"}
+        elif name == "move" or name == "M":
+            return {"rot": False, "gripper": "Close"}
+        elif name == "rotate" or name == "R":
+            return {"rot": True, "gripper": "Close"}
+        elif name == "transform" or name == "T":
+            return {"rot": False, "gripper": "Close"}
+        elif name == "follow" or name == "F":
+            return {"rot": False, "gripper": "Close"}
+        else:
+            raise ValueError(f"Unknown protoreward name: {name}")
+
+    def get_distance_error(self, observation):
+        """Calculate distance error for evaluation purposes."""
+        gripper = observation["additional_obs"]["endeff_xyz"]
+        object_state = observation["actual_state"]
+        goal = observation["goal_state"]
+        object_goal_distance = self.task.calc_distance(object_state, goal)
+        if self.current_network == 0:
+            gripper_object_distance = self.task.calc_distance(gripper, object_state)
+            final_distance = object_goal_distance + gripper_object_distance
+        else:
+            final_distance = object_goal_distance
+        return final_distance
+
+
 class Protorewards(Reward):
 
     def reset(self):
@@ -373,8 +502,6 @@ class Protorewards(Reward):
         # Grasp distance tracking variables
         self.ideal_grasp_dist = None
         self.grasp_within_threshold_count = 0
-        # Universal reward calculator
-        self.universal_reward = UniversalReward(self.task, self.env.robot)
 
     def compute(self, observation=None):
         # inherit and define your sequence of protoactions here
@@ -495,7 +622,8 @@ class Protorewards(Reward):
 
     def test_compute(self, object_state, goal_state, gripper_states):
         """
-        Compute universal reward with rot=False and gripper="Open".
+        Test compute method - not implemented for Protorewards base class.
+        Subclasses using UniversalReward should override this.
 
         Parameters:
             :param object_state: (array) Actual object state [x, y, z, qx, qy, qz, qw]
@@ -504,11 +632,7 @@ class Protorewards(Reward):
         Returns:
             :return result: (dict) Dictionary with all reward components, progress, and solved status
         """
-        result = self.universal_reward.compute(object_state, goal_state, gripper_states, rot=False, gripper="Open")
-        reward = result["total_reward"]
-        self.network_rewards[self.current_network] += reward
-        self.reward_name = "test_compute"
-        return result
+        raise NotImplementedError("test_compute not implemented for Protorewards base class")
 
     #### PROTOREWARDS DEFINITIONS  ####
 
@@ -766,13 +890,21 @@ class Protorewards(Reward):
 
 ####NEW
 
-class AaGaN(Protorewards):
+class AaGaN(UniversalReward):
 
     def __init__(self, env, task=None):
         super().__init__(env, task)
         self.network_names = self.network_names_from_task(self.env.task_type)
         #print(f"Initialized AaGaN with networks: {self.network_names}")
         self.reset()
+
+    def network_names_from_task(self, task_type):
+        """Extract network names from task_type string."""
+        letter_to_name = {
+            "A": "approach", "G": "grasp", "M": "move", "D": "drop",
+            "W": "withdraw", "R": "rotate", "T": "transform", "F": "follow", "N": "move"
+        }
+        return [letter_to_name.get(letter, "unknown") for letter in task_type]
 
     def reset(self):
         super().reset()
@@ -781,10 +913,11 @@ class AaGaN(Protorewards):
         print(f"Starting with network: {self.network_names[self.owner]}")
         self.last_result = None
         self.prev_owner = None
+        self.rewards_num = len(self.network_names)
 
     def compute(self, observation=None):
         params = self.protoreward_params(self.network_names[self.owner])
-        result = self.universal_reward.compute(observation, **params)
+        result = self.calculate(observation, **params)
         self.last_result = result
         reward = result["total_reward"]
 
@@ -799,8 +932,32 @@ class AaGaN(Protorewards):
         self.network_rewards[self.current_network] += reward
         self.last_owner = self.owner
         self.rewards_history.append(reward)
-        self.rewards_num = 3
         return reward
+
+    def decide(self, observation=None):
+        """Return the current network owner"""
+        return self.current_network
+
+    def protoreward_params(self, name):
+        """Map network names to reward parameters."""
+        if name == "approach" or name == "A":
+            return {"rot": False, "gripper": "Open"}
+        elif name == "withdraw" or name == "W":
+            return {"rot": False, "gripper": "Open"}
+        elif name == "grasp" or name == "G":
+            return {"rot": True, "gripper": "Close"}
+        elif name == "drop" or name == "D":
+            return {"rot": True, "gripper": "Open"}
+        elif name == "move" or name == "M":
+            return {"rot": False, "gripper": "Close"}
+        elif name == "rotate" or name == "R":
+            return {"rot": True, "gripper": "Close"}
+        elif name == "transform" or name == "T":
+            return {"rot": False, "gripper": "Close"}
+        elif name == "follow" or name == "F":
+            return {"rot": False, "gripper": "Close"}
+        else:
+            raise ValueError(f"Unknown protoreward name: {name}")
 
 
 

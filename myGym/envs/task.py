@@ -47,6 +47,33 @@ class TaskModule():
         self.vision_src = self.vision_module.src
         self.writebool = False
 
+    def get_subgoals_from_task_type(self):
+        """
+        Convert task_type string (e.g., "AGM") to list of subgoal names (e.g., ["approach", "grasp", "move"])
+        
+        Returns:
+            :return subgoals: (list) List of full subgoal names
+        """
+        letter_to_name = {
+            "A": "approach",
+            "G": "grasp",
+            "M": "move",
+            "D": "drop",
+            "W": "withdraw",
+            "R": "rotate",
+            "T": "transform",
+            "F": "follow"
+        }
+        
+        subgoals = []
+        for letter in self.task_type:
+            if letter.upper() in letter_to_name:
+                subgoals.append(letter_to_name[letter.upper()])
+            else:
+                print(f"Warning: Unknown letter '{letter}' in task_type '{self.task_type}'")
+        
+        return subgoals
+
     def reset_task(self):
         """
         Reset task relevant data and statistics
