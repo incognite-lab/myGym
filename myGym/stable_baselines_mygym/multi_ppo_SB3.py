@@ -274,16 +274,12 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             save_to_zip_file(save_path, data=data, params=params_to_save, pytorch_variables=pytorch_variables)
 
 
-    def approved(self, observation):
-        # based on obs, decide which model should be used
-        if isinstance(self.env, VecMonitor):
-            submodel_id = self.env.unwrapped.network_control()
-        elif isinstance(self.env, SubprocVecEnv):
-            submodel_id = self.env.get_attr("reward")[0].network_switch_control(self.env.get_attr("observation")[0]["task_objects"])
-        elif isinstance(self.env, DummyVecEnv):
-            submodel_id = self.env.envs[0].unwrapped.reward.network_switch_control(self.env.envs[0].unwrapped.observation["task_objects"])
+    def approved(self):
+        # based on current network, decide which model should be used
+        if isinstance(self.env, (VecMonitor, DummyVecEnv, SubprocVecEnv)):
+            submodel_id = self.env.get_attr("reward")[0].current_network
         else:
-            submodel_id = self.env.unwrapped.reward.network_switch_control(self.env.unwrapped.observation["task_objects"])
+            submodel_id = self.env.unwrapped.reward.current_network
         return submodel_id
 
 
@@ -307,7 +303,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         :return: the model's action and the next hidden state
             (used in recurrent policies)
         """
-        owner = self.approved(observation)
+        owner = self.approved()
         #Multiprocessing
         if isinstance(owner, list):
             owner = np.array(owner)
@@ -346,7 +342,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         :return: the model's action and the next hidden state
             (used in recurrent policies)
         """
-        owner = self.approved(observation)
+        owner = self.approved()
         owner = owner[0]
         model = self.models[owner]
         action, state = model.policy.predict(observation, state, episode_start, deterministic)

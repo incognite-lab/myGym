@@ -683,7 +683,7 @@ class GymEnv(CameraEnv):
         self.task_objects["actual_state"] = goal
 
     def network_control(self):
-        return self.unwrapped.reward.network_switch_control(self.observation["task_objects"])
+        return self.unwrapped.reward.current_network
 
     def get_actions(self, owner, observation):
         model = self.models_link[owner]

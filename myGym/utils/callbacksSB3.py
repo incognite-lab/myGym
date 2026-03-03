@@ -394,7 +394,7 @@ class MultiPPOEvalCallback(EvalCallback):
                         last_network = current_network
                         last_steps = steps
 
-                distance_error = env_reward.get_distance_error(info['o']) #Compute how far from goal is the gripper/object
+                distance_error = env_reward.last_result["absolute_distance"] #Compute how far from goal is the gripper/object
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
                         render_info = self.eval_env.render(mode="rgb_array", camera_id=self.camera_id)
@@ -414,7 +414,7 @@ class MultiPPOEvalCallback(EvalCallback):
                 env_reward = self.eval_env.get_attr("reward")[0]
             else:
                 env_reward = self.eval_env.unwrapped.reward
-            subrewards.append(env_reward.eval_network_rewards)
+            subrewards.append(env_reward.network_rewards)
             subrewsteps.append(srewardsteps)
             subrewsuccess.append(srewardsuccess)
             episode_rewards.append(episode_reward)
@@ -631,7 +631,7 @@ class PPOEvalCallback(EvalCallback):
                         srewardsuccess.put([last_network], 1)
                         last_network = current_network
                         last_steps = steps
-                distance_error = env_reward.get_distance_error(info['o'])
+                distance_error = env_reward.last_result["absolute_distance"]
 
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
@@ -651,7 +651,7 @@ class PPOEvalCallback(EvalCallback):
             if is_successful:
                 srewardsuccess.put([last_network], 1)
 
-            subrewards.append(env_reward.eval_network_rewards)
+            subrewards.append(env_reward.network_rewards)
             subrewsteps.append(srewardsteps)
             subrewsuccess.append(srewardsuccess)
             episode_rewards.append(episode_reward)
