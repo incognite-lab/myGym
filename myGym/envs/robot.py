@@ -43,7 +43,7 @@ class Robot:
                  use_fixed_base = True,
                  pybullet_client=None,
                  reward_type = None):
-        self.debug = True
+        self.debug = False
         self.p = pybullet_client
         self.name = robot
         self.robot_dict = get_robot_dict()

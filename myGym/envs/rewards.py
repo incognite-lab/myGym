@@ -24,39 +24,15 @@ class UniversalReward:
     """
 
     def __init__(self, env, task=None, window_size=10, solved_threshold=90.0):
-        # Initialize base attributes
+        # Initialize only UniversalReward-specific attributes
         self.env = env
         self.task = task
-        self.rewards_history = []
-        self.current_network = 0
-        self.num_networks = env.num_networks
-        self.network_rewards = [0] * self.num_networks
-        # Initialize UniversalReward-specific attributes
         self.window_size = window_size
         self.solved_threshold = solved_threshold
-        self.reset()
 
     def reset(self):
-        """Reset all internal state for a new episode."""
-        self.step = 0
-        # Task distance tracking
-        self.max_trans_dist = None
-        self.min_trans_dist = None
-        self.max_rot_dist = None
-        self.min_rot_dist = None
-        self.prev_trans_dist = None
-        self.prev_rot_dist = None
-        # Task reward history for temporal calculation
-        self.absolute_reward_history = []
-        self.relative_reward_history = []
-        # Gripper tracking
-        self.max_grip_dist = None
-        self.min_grip_dist = None
-        self.prev_grip_dist = None
-        self.grip_status = None
-        # Gripper reward history for temporal calculation
-        self.grip_absolute_reward_history = []
-        self.grip_relative_reward_history = []
+        """Empty reset - Rewarder will handle all reset logic."""
+        pass
 
     def _compute_absolute_reward(self, current, min_val, max_val):
         """
@@ -277,28 +253,61 @@ class Rewarder(UniversalReward):
     """
 
     def __init__(self, env, task=None):
-        # Set attributes BEFORE calling super().__init__ to avoid AttributeError during reset
+        # Call parent init first
+        super().__init__(env, task)
+        # Initialize Rewarder-specific attributes
         self.task_subgoals = task.get_subgoals_from_task_type() if task else []
         self.network_names = self.task_subgoals
         self.num_networks = len(self.network_names)
         self.current_network = 0
-        # Initialize tracking variables
         self.owner = 0
-        self.last_result = None
+        self.last_result = self._default_result()
         self.prev_owner = None
         self.last_owner = None
-        # Now call parent init which will call reset()
-        super().__init__(env, task)
+        self.rewards_history = []
+        self.network_rewards = [0] * self.num_networks
+
+    def _default_result(self):
+        """Return a default result dictionary with all expected keys."""
+        return {
+            "arm_absolute_reward": 0.0,
+            "arm_relative_reward": 0.0,
+            "arm_temporal_reward": 0.0,
+            "task_progress": 0.0,
+            "task_solved": False,
+            "gripper_absolute_reward": 0.0,
+            "gripper_relative_reward": 0.0,
+            "gripper_temporal_reward": 0.0,
+            "gripper_progress": 0.0,
+            "gripper_solved": False,
+            "total_reward": 0.0,
+            "absolute_distance": 0.0,
+        }
 
     def reset(self):
-        # Reset UniversalReward state
-        UniversalReward.reset(self)
-        # Reset Rewarder-specific tracking
+        """Reset all state for both UniversalReward and Rewarder."""
+        # Reset UniversalReward state variables
+        self.step = 0
+        self.max_trans_dist = None
+        self.min_trans_dist = None
+        self.max_rot_dist = None
+        self.min_rot_dist = None
+        self.prev_trans_dist = None
+        self.prev_rot_dist = None
+        self.absolute_reward_history = []
+        self.relative_reward_history = []
+        self.max_grip_dist = None
+        self.min_grip_dist = None
+        self.prev_grip_dist = None
+        self.grip_status = None
+        self.grip_absolute_reward_history = []
+        self.grip_relative_reward_history = []
+        # Reset Rewarder-specific state variables
         self.owner = 0
         self.current_network = 0
         print(f"Resetting Rewarder: starting with network {self.owner} ({self.network_names[self.owner] if self.network_names else 'N/A'})")
         self.last_owner = None
-        self.last_result = None
+        self.last_result = self._default_result()
         self.prev_owner = None
         self.network_rewards = [0] * self.num_networks
 
