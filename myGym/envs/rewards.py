@@ -123,44 +123,6 @@ class UniversalReward:
         # -- Gripper distance --
         status, grip_dist = self.env.robot.check_gripper_status(observation["additional_obs"]["gjoints_states"])
 
-        if self.step == 0:
-            # First step: record max and min, absolute reward = 0
-            self.max_trans_dist = trans_dist
-            self.min_trans_dist = self.task.calc_distance(observation["goal_state"], observation["goal_state"])
-            self.max_rot_dist = rot_dist
-            self.min_rot_dist = self.task.calc_rot_quat(observation["goal_state"], observation["goal_state"]) if rot else 0.0
-            self.prev_trans_dist = trans_dist
-            self.prev_rot_dist = rot_dist
-
-            self.max_grip_dist = 1
-            self.min_grip_dist = 0
-            self.prev_grip_dist = grip_dist
-            self.grip_status = status
-
-            self.step += 1
-
-            result = {
-                "arm_absolute_reward": 0.0,
-                "arm_relative_reward": 0.0,
-                "arm_temporal_reward": 0.0,
-                "task_progress": 0.0,
-                "task_solved": False,
-                "gripper_absolute_reward": 0.0,
-                "gripper_relative_reward": 0.0,
-                "gripper_temporal_reward": 0.0,
-                "gripper_progress": 0.0,
-                "gripper_solved": False,
-                "total_reward": 0.0,
-                "absolute_distance": absolute_distance,
-            }
-            return result
-
-        # Update min/max distances
-        #self.min_trans_dist = min(self.min_trans_dist, trans_dist)
-        #self.min_rot_dist = min(self.min_rot_dist, rot_dist)
-        #self.min_grip_dist = min(self.min_grip_dist, grip_dist)
-        #self.max_grip_dist = max(self.max_grip_dist, grip_dist)
-
         # -- Task absolute reward --
         task_abs_trans = self._compute_absolute_reward(trans_dist, self.min_trans_dist, self.max_trans_dist)
         if rot:
@@ -261,53 +223,36 @@ class Rewarder(UniversalReward):
         self.num_networks = len(self.network_names)
         self.current_network = 0
         self.owner = 0
-        self.last_result = self._default_result()
         self.prev_owner = None
         self.last_owner = None
         self.rewards_history = []
         self.network_rewards = [0] * self.num_networks
 
-    def _default_result(self):
-        """Return a default result dictionary with all expected keys."""
-        return {
-            "arm_absolute_reward": 0.0,
-            "arm_relative_reward": 0.0,
-            "arm_temporal_reward": 0.0,
-            "task_progress": 0.0,
-            "task_solved": False,
-            "gripper_absolute_reward": 0.0,
-            "gripper_relative_reward": 0.0,
-            "gripper_temporal_reward": 0.0,
-            "gripper_progress": 0.0,
-            "gripper_solved": False,
-            "total_reward": 0.0,
-            "absolute_distance": 0.0,
-        }
-
-    def reset(self):
+    def reset(self, observation=None):
         """Reset all state for both UniversalReward and Rewarder."""
         # Reset UniversalReward state variables
         self.step = 0
-        self.max_trans_dist = None
-        self.min_trans_dist = None
-        self.max_rot_dist = None
-        self.min_rot_dist = None
-        self.prev_trans_dist = None
-        self.prev_rot_dist = None
-        self.absolute_reward_history = []
-        self.relative_reward_history = []
-        self.max_grip_dist = None
-        self.min_grip_dist = None
-        self.prev_grip_dist = None
-        self.grip_status = None
-        self.grip_absolute_reward_history = []
-        self.grip_relative_reward_history = []
-        # Reset Rewarder-specific state variables
         self.owner = 0
         self.current_network = 0
-        print(f"Resetting Rewarder: starting with network {self.owner} ({self.network_names[self.owner] if self.network_names else 'N/A'})")
+        params = self.protoreward_params(self.network_names[self.owner])
+        self.max_trans_dist = self.task.calc_distance(observation["actual_state"], observation["goal_state"])
+        self.min_trans_dist = self.task.calc_distance(observation["goal_state"], observation["goal_state"])
+        self.max_rot_dist = self.task.calc_rot_quat(observation["actual_state"], observation["goal_state"]) if params["rot"] else 0.0
+        self.min_rot_dist = self.task.calc_rot_quat(observation["goal_state"], observation["goal_state"]) if params["rot"] else 0.0
+        self.prev_trans_dist = self.max_trans_dist
+        self.prev_rot_dist = self.max_rot_dist
+        self.absolute_reward_history = []
+        self.relative_reward_history = []
+        self.max_grip_dist = 1
+        self.min_grip_dist = 0
+        _,self.prev_grip_dist = self.env.robot.check_gripper_status(observation["additional_obs"]["gjoints_states"])
+        self.grip_absolute_reward_history = []
+        self.grip_relative_reward_history = []
+        #This will calculate self.last_results
+        self.calculate(observation, **params)
+
+        
         self.last_owner = None
-        self.last_result = self._default_result()
         self.prev_owner = None
         self.network_rewards = [0] * self.num_networks
 

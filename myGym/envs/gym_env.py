@@ -247,9 +247,9 @@ class GymEnv(CameraEnv):
         transform = self.workspace_dict[self.workspace]['transform']
         object = env_object.EnvObject(os.path.join(pkg_resources.files("myGym"), os.path.join("envs", path)), transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase)
         self.static_scene_objects[name] = object
-        print(f"Loaded static scene object '{name}' from: {path}")
-        print(f"Object position: {transform['position']}")
-        print(f"Object orientation: {transform['orientation']}")
+        #print(f"Loaded static scene object '{name}' from: {path}")
+        #print(f"Object position: {transform['position']}")
+        #print(f"Object orientation: {transform['orientation']}")
         return object.uid
     
 
@@ -434,9 +434,9 @@ class GymEnv(CameraEnv):
                 self.task_objects["distractor"] = distrs
         self.env_objects = {**self.task_objects, **self.env_objects}
         self.task.reset_task()
-        self.unwrapped.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
+        self.unwrapped.reward.reset(observation=self._observation)
         info = {'d': 1, 'f': int(self.episode_failed),
                 'o': self._observation}
         if self.gui_on and self.nl_mode:
@@ -508,17 +508,21 @@ class GymEnv(CameraEnv):
             :return info: (dict) Additional information about step
         """
         self._apply_action_robot(action)
-        if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
+        #if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
         #print(f"Observation after action: {self._observation}")
-        if self.dataset:
-            reward, terminated, truncated, info = 0, False, False, {}
-        else:
-            reward = self.unwrapped.reward.compute(observation=self._observation)
-            self.episode_reward += reward
-            terminated = self.episode_terminated
-            truncated = self.episode_truncated
-            info = {'d': 1, 'f': int(self.episode_failed),
+        #if self.dataset:
+        #    reward, terminated, truncated, info = 0, False, False, {}
+        #else:
+            #print(f"Observation for reward computation: {self._observation}")
+        reward = self.unwrapped.reward.compute(observation=self._observation)
+        self.episode_reward += reward
+        if self.unwrapped.reward.last_result['task_solved'] and self.unwrapped.reward.last_result['gripper_solved']:
+            self.reset(only_subtask=True)
+            print("Subtask rewards finished")
+        terminated = self.episode_terminated
+        truncated = self.episode_truncated
+        info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
         if terminated or truncated:
             self.successful_finish(info) #Maybe only change to 'if terminated'? Probably not
