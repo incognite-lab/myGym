@@ -10,7 +10,7 @@ import numpy as np
 from numpy import matrix
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.results_plotter import load_results, ts2xy
-from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor, VecEnv, sync_envs_normalization
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor, VecEnv, DummyVecEnv, sync_envs_normalization
 from tqdm.auto import tqdm
 from myGym.utils.helpers import PrintEveryNCalls
 import time
@@ -355,7 +355,7 @@ class MultiPPOEvalCallback(EvalCallback):
             print("Episode:", e)
             while not done: #Carry out episode steps until the episode is done
                 steps_sum += 1
-                if isinstance(self.eval_env, VecEnv):
+                if isinstance(self.eval_env, SubprocVecEnv):
                     action, state = model.eval_predict(obs, deterministic=deterministic) #Predict action in first environment
                     obs, reward, done, info, current_network = self.eval_env.eval_step(action)
                 else:

@@ -515,11 +515,17 @@ class GymEnv(CameraEnv):
         #    reward, terminated, truncated, info = 0, False, False, {}
         #else:
             #print(f"Observation for reward computation: {self._observation}")
+        
         reward = self.unwrapped.reward.compute(observation=self._observation)
         self.episode_reward += reward
+        
+        if self.unwrapped.reward.owner == self.unwrapped.reward.num_networks - 1:
+            self.task.check_goal()
+            
         if self.unwrapped.reward.last_result['task_solved'] and self.unwrapped.reward.last_result['gripper_solved']:
             self.reset(only_subtask=True)
             print("Subtask rewards finished")
+
         terminated = self.episode_terminated
         truncated = self.episode_truncated
         info = {'d': 1, 'f': int(self.episode_failed),

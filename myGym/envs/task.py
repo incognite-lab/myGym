@@ -382,22 +382,11 @@ class TaskModule():
         if self.task_type in ["dropmag"]: #FMOT should be compositional
             self.check_distance_threshold(self._observation)
             finished = self.drop_magnetic()
-        if self.task_type == "dice_throw":
-            finished = self.check_dice_moving(self._observation)
+        
         self.last_distance = self.current_norm_distance
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
-        #if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
-        #    if len(self.env.robot.magnetized_objects) == 0 and self.env.episode_steps > 5:
-        #        self.end_episode_success()
-        #    else:
-        #        self.env.episode_over = False
         if finished:
-            if self.task_type == "dice_throw":
-                
-                if finished == 1:
-                    self.end_episode_fail("Finished with wrong dice result thrown")
-                return finished
             self.end_episode_success()
         if self.check_time_exceeded() or self.env.episode_steps == self.env.max_episode_steps:
             self.end_episode_fail("Max amount of steps reached")
