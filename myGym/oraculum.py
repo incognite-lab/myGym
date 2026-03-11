@@ -106,9 +106,7 @@ class Oraculum:
         Returns:
             Optional[np.ndarray]: Arm goal array, or None if no arm movement is needed.
         """
-        goal_dim = 6 if rot else 3
-        # Clip to available observation dimensions
-        goal_dim = min(goal_dim, len(info['o']["goal_state"]))
+        goal_dim = len(info['o']["goal_state"]) if rot else 3
 
         if subgoal == "approach":
             return self._get_approach_action(env, info, goal_dim)
@@ -119,6 +117,7 @@ class Oraculum:
         elif subgoal == "drop":
             return None  # No arm movement, just open gripper
         elif subgoal == "withdraw":
+            # Withdraw uses only position (3D) regardless of rot, as the offset is position-based
             return np.array(info['o']["actual_state"][:3]) + DEFAULT_WITHDRAW_OFFSET
         elif subgoal in ("rotate", "transform", "follow"):
             return np.array(info['o']["goal_state"][:goal_dim])

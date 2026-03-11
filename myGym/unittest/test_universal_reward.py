@@ -532,7 +532,9 @@ from rewards import Rewarder
 
 
 def _make_observation(actual_state=None, goal_state=None, gjoints_states=None):
-    """Helper to create observation dicts for Rewarder tests."""
+    """Helper to create observation dicts for Rewarder tests.
+    Default states use 7D format: [x, y, z, qx, qy, qz, qw] (position + quaternion orientation).
+    """
     return {
         "actual_state": actual_state if actual_state is not None else [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
         "goal_state": goal_state if goal_state is not None else [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
