@@ -44,11 +44,12 @@ class Oraculum:
                               action: Optional[np.ndarray] = None, info: Optional[Dict[str, Any]] = None) -> np.ndarray:
         """
         Perform the Oraculum task based on the current timestep and environment state.
+        Uses protoreward_params from the Rewarder to determine rot and gripper settings
+        for the current subgoal.
 
         Args:
             t (int): Current timestep in the simulation.
             env (Any): The simulation environment.
-            arg_dict (Dict[str, Any]): Argument dictionary with configuration settings.
             action (Optional[np.ndarray]): The action array to modify, defaults to None.
             info (Optional[Dict[str, Any]]): Information returned from the environment, defaults to None.
 
@@ -64,66 +65,83 @@ class Oraculum:
             raise ValueError("Info dictionary must be provided for non-initial timesteps.")
 
         # Check for 'absolute' control mode in robot action
-        if "absolute" in self._robot_action:
-            reward_name = env.env.unwrapped.reward.network_names[env.env.unwrapped.reward.current_network]
-            gripper = "gripper" in self._robot_action
-            if reward_name == "approach":
-                self._set_gripper_action(action, "open", gripper)
-                action[:3] = self._get_approach_action(env, info)
-            elif reward_name == "grasp":
-                self._set_gripper_action(action, "close", gripper)
-            elif reward_name == "move":
-                self._set_gripper_action(action, "close", gripper)
-                # Check if the robot is close enough to the goal
-                distance_to_goal = np.linalg.norm(np.array(info['o']["actual_state"][:2]) - np.array(info['o']["goal_state"][:2]))
-                if info['o']["actual_state"][2] < -0.272:
-                     action[:3] = info['o']["goal_state"][:3]
-                     #action[2] += 0.1
-                     #= i
-                elif 0.22 > distance_to_goal > 0.13:  # Threshold for being "close enough"
-                    action[:3] = info['o']["goal_state"][:3]
-                    #action[2] += 0.065
-                    #print(f"Close to goal, raising hand: {action[:3]}")
-                else:
-                    action[:3] = info['o']["goal_state"][:3]
-            elif reward_name == "drop":
-                if self.wait_n_steps(5):
-                    self._set_gripper_action(action, "open", gripper)
-                else:
-                    pass
-            elif reward_name == "withdraw":
-                if self.wait_n_steps(25):
-                    distance_to_goal = np.linalg.norm(
-                        np.array(info['o']["goal_state"][:3]) - np.array(info['o']["actual_state"][:3]))
-                    if distance_to_goal > 0.2:
-                        self._set_gripper_action(action, "open", gripper)
-                        action[:3] = np.array(info['o']["actual_state"][:3]) + DEFAULT_WITHDRAW_OFFSET
-                    else:
-                        action[:3] = info['o']["goal_state"][:3] + DEFAULT_WITHDRAW_OFFSET
-                else:
-                    action = action
-            else:
-                action[:3] = info['o']["goal_state"][:3]
-        else:
+        if "absolute" not in self._robot_action:
             raise ValueError("Unsupported robot action type. Only 'absolute' is supported.")
+
+        # Get current subgoal and params from Rewarder
+        reward = env.env.unwrapped.reward
+        current_subgoal = reward.network_names[reward.owner]
+        params = reward.protoreward_params(current_subgoal)
+        rot = params["rot"]
+        gripper_param = params["gripper"]  # "Open" or "Close"
+        has_gripper = "gripper" in self._robot_action
+
+        # Set gripper state based on protoreward_params
+        gripper_action = "open" if gripper_param == "Open" else "close"
+        self._set_gripper_action(action, gripper_action, has_gripper)
+
+        # Calculate arm goal state (position + orientation if rot, position only otherwise)
+        arm_goal = self._compute_arm_goal(current_subgoal, env, info, rot)
+        if arm_goal is not None:
+            # Determine how many action indices to set (avoid overwriting gripper)
+            gripper_len = len(self._gripper_open) if has_gripper else 0
+            end_idx = min(len(arm_goal), len(action) - gripper_len)
+            action[:end_idx] = arm_goal[:end_idx]
+
         return action
 
 
-    def _get_approach_action(self, env: Any, info: Dict[str, Any]) -> np.ndarray:
+    def _compute_arm_goal(self, subgoal: str, env: Any, info: Dict[str, Any], rot: bool) -> Optional[np.ndarray]:
+        """
+        Compute the arm goal state for the current subgoal.
+        If rot is True, returns position + orientation of goal state.
+        If rot is False, returns only position.
+
+        Args:
+            subgoal (str): Name of the current subgoal (e.g., "approach", "grasp", "move").
+            env (Any): The simulation environment.
+            info (Dict[str, Any]): Information returned from the environment.
+            rot (bool): Whether to include orientation in the goal state.
+
+        Returns:
+            Optional[np.ndarray]: Arm goal array, or None if no arm movement is needed.
+        """
+        goal_dim = 6 if rot else 3
+        # Clip to available observation dimensions
+        goal_dim = min(goal_dim, len(info['o']["goal_state"]))
+
+        if subgoal == "approach":
+            return self._get_approach_action(env, info, goal_dim)
+        elif subgoal == "grasp":
+            return None  # No arm movement, just close gripper
+        elif subgoal == "move":
+            return np.array(info['o']["goal_state"][:goal_dim])
+        elif subgoal == "drop":
+            return None  # No arm movement, just open gripper
+        elif subgoal == "withdraw":
+            return np.array(info['o']["actual_state"][:3]) + DEFAULT_WITHDRAW_OFFSET
+        elif subgoal in ("rotate", "transform", "follow"):
+            return np.array(info['o']["goal_state"][:goal_dim])
+        else:
+            return np.array(info['o']["goal_state"][:goal_dim])
+
+
+    def _get_approach_action(self, env: Any, info: Dict[str, Any], goal_dim: int) -> np.ndarray:
         """
         Determine the approach action based on the environment's reward structure.
+        Uses goal_dim to include orientation when rot is enabled.
 
         Args:
             env (Any): The simulation environment.
             info (Dict[str, Any]): Information returned from the environment.
+            goal_dim (int): Number of dimensions for the goal (3 for position, 6 for position+orientation).
 
         Returns:
             np.ndarray: Updated approach action.
         """
         if len(env.env.unwrapped.reward.network_names) <= 2:
-            action = info['o']["goal_state"][:3]
-            return action
-        action = info['o']["actual_state"][:3]
+            return np.array(info['o']["goal_state"][:goal_dim])
+        action = np.array(info['o']["actual_state"][:goal_dim])
         if info['o']["actual_state"][2] < -0.25:
             action[2] += 0.01
         return action

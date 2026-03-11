@@ -14,17 +14,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 class MockTask:
     """Mock task with calc_distance and calc_rot_quat methods."""
-    def __init__(self, task_type="AGM"):
+    def __init__(self):
         self.distance_type = "euclidean"
-        self.task_type = task_type
-
-    def get_subgoals_from_task_type(self):
-        letter_to_name = {
-            "A": "approach", "G": "grasp", "M": "move",
-            "D": "drop", "W": "withdraw", "R": "rotate",
-            "T": "transform", "F": "follow"
-        }
-        return [letter_to_name[l.upper()] for l in self.task_type if l.upper() in letter_to_name]
 
     def calc_distance(self, obj1, obj2):
         return np.linalg.norm(np.asarray(obj1[:3]) - np.asarray(obj2[:3]))
@@ -518,47 +509,41 @@ def test_default_params_backward_compatible():
     print("PASS: test_default_params_backward_compatible")
 
 
-# Tests for Rewarder and protoreward_params
+# Tests for AGM and protoreward_params
 
 class MockEnv:
-    """Mock environment for testing Rewarder class."""
+    """Mock environment for testing Protorewards classes."""
     def __init__(self):
         self.robot = MockRobot()
         self.num_networks = 3
         self.episode_terminated = False
 
 
-from rewards import Rewarder
-
-
-def _make_observation(actual_state=None, goal_state=None, gjoints_states=None):
-    """Helper to create observation dicts for Rewarder tests."""
-    return {
-        "actual_state": actual_state if actual_state is not None else [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        "goal_state": goal_state if goal_state is not None else [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        "additional_obs": {"gjoints_states": gjoints_states if gjoints_states is not None else [0.5]},
-    }
+from rewards import AGM, Protorewards
 
 
 def test_protoreward_params_returns_dict():
     """protoreward_params should return a dict with 'rot' and 'gripper' keys."""
     env = MockEnv()
-    task = MockTask("AGM")
+    task = MockTask()
     
-    rewarder = Rewarder(env, task)
-    observation = _make_observation()
-    rewarder.reset(observation)
+    class TestProtorewards(Protorewards):
+        def reset(self):
+            super().reset()
+    
+    pr = TestProtorewards(env, task)
+    pr.reset()
     
     # Test all protoreward types
-    params_approach = rewarder.protoreward_params("approach")
+    params_approach = pr.protoreward_params("approach")
     assert isinstance(params_approach, dict), "Should return a dict"
     assert "rot" in params_approach and "gripper" in params_approach
     assert params_approach["rot"] == False and params_approach["gripper"] == "Open"
     
-    params_grasp = rewarder.protoreward_params("grasp")
+    params_grasp = pr.protoreward_params("grasp")
     assert params_grasp["rot"] == True and params_grasp["gripper"] == "Close"
     
-    params_move = rewarder.protoreward_params("move")
+    params_move = pr.protoreward_params("move")
     assert params_move["rot"] == False and params_move["gripper"] == "Close"
     
     print("PASS: test_protoreward_params_returns_dict")
@@ -567,14 +552,17 @@ def test_protoreward_params_returns_dict():
 def test_protoreward_params_invalid_name():
     """protoreward_params should raise ValueError for invalid names."""
     env = MockEnv()
-    task = MockTask("AGM")
+    task = MockTask()
     
-    rewarder = Rewarder(env, task)
-    observation = _make_observation()
-    rewarder.reset(observation)
+    class TestProtorewards(Protorewards):
+        def reset(self):
+            super().reset()
+    
+    pr = TestProtorewards(env, task)
+    pr.reset()
     
     try:
-        rewarder.protoreward_params("invalid_name")
+        pr.protoreward_params("invalid_name")
         assert False, "Should have raised ValueError"
     except ValueError as e:
         assert "Unknown protoreward name" in str(e)
@@ -583,41 +571,55 @@ def test_protoreward_params_invalid_name():
 
 
 def test_agm_compute_uses_correct_params():
-    """Rewarder.compute should use protoreward_params to get rot and gripper values."""
+    """AGM.compute should use protoreward_params to get rot and gripper values."""
     env = MockEnv()
-    task = MockTask("AGM")
+    task = MockTask()
     
-    # Create Rewarder instance
-    rewarder = Rewarder(env, task)
-    observation = _make_observation()
-    rewarder.reset(observation)
+    # Create AGM instance
+    agm = AGM(env, task)
+    agm.reset()
     
-    # Compute should use approach params (rot=False, gripper="Open") for first network
-    reward = rewarder.compute(observation)
-    assert isinstance(reward, float), "Should return a float reward"
+    # Mock observation
+    observation = {
+        "actual_state": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        "goal_state": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    }
     
-    # Verify the rewarder is on the correct network
-    assert rewarder.network_names[rewarder.owner] == "approach" or rewarder.owner > 0, \
-        "Should start at approach or have progressed"
+    # Mock decide to return network 0 (approach)
+    class MockAGM(AGM):
+        def decide(self, observation=None):
+            return 0
+    
+    agm = MockAGM(env, task)
+    agm.reset()
+    
+    # First compute should return 0 (first step)
+    reward1 = agm.compute(observation)
+    assert reward1 == 0.0, f"First step should return 0, got {reward1}"
+    
+    # Second compute should use approach params (rot=False, gripper="Open")
+    reward2 = agm.compute(observation)
+    assert isinstance(reward2, float), "Should return a float reward"
     
     print("PASS: test_agm_compute_uses_correct_params")
 
 
 def test_agm_cycles_through_networks():
-    """Rewarder should use params for each network (approach, grasp, move) and switch networks when task_solved."""
+    """AGM should use params for each network (approach, grasp, move) and switch networks when task_solved."""
     env = MockEnv()
-    task = MockTask("AGM")
+    task = MockTask()
     
-    rewarder = Rewarder(env, task)
+    class TrackedAGM(AGM):
+        pass
+    
+    agm = TrackedAGM(env, task)
+    agm.reset()
     
     # Set initial states - start far from goal
     initial_actual = np.array([10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
     goal_state = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
-
-    observation = _make_observation(initial_actual.tolist(), goal_state.tolist())
-    rewarder.reset(observation)
     
-    print("\n--- Rewarder Network Cycling Test (100 steps) ---")
+    print("\n--- AGM Network Cycling Test (100 steps) ---")
     print(f"Initial actual_state: {initial_actual[:3]}")
     print(f"Goal state: {goal_state[:3]}")
     print()
@@ -631,15 +633,18 @@ def test_agm_cycles_through_networks():
         t = i / 100.0
         actual_state = initial_actual * (1 - t) + goal_state * t
         
-        observation = _make_observation(actual_state.tolist(), goal_state.tolist())
+        observation = {
+            "actual_state": actual_state.tolist(),
+            "goal_state": goal_state.tolist(),
+        }
         
-        reward = rewarder.compute(observation)
-        result = rewarder.last_result
-        prev_owner = rewarder.prev_owner
-        current_owner = rewarder.last_owner
+        reward = agm.compute(observation)
+        result = agm.last_result
+        prev_owner = agm.prev_owner
+        current_owner = agm.last_owner
 
         # Print task progress at each step
-        network_name = rewarder.network_names[current_owner]
+        network_name = agm.network_names[current_owner]
         print(f"Step {i:3d}: N={network_name:8s}, "
               f"AA={result['arm_absolute_reward']:1.3f}, "
               f"AR={result['arm_relative_reward']:1.3f}, "
@@ -662,14 +667,14 @@ def test_agm_cycles_through_networks():
                 'new_owner': current_owner,
                 'task_progress': result['task_progress']
             })
-            print(f"  --> Network changed from {rewarder.network_names[prev_owner]} to {network_name} (task solved)")
+            print(f"  --> Network changed from {agm.network_names[prev_owner]} to {network_name} (task solved)")
     
     print()
     print("--- Network Changes Summary ---")
     if network_changes:
         for change in network_changes:
-            print(f"Step {change['step']}: {rewarder.network_names[change['prev_owner']]} -> "
-                  f"{rewarder.network_names[change['new_owner']]} (progress: {change['task_progress']:.2f}%)")
+            print(f"Step {change['step']}: {agm.network_names[change['prev_owner']]} -> "
+                  f"{agm.network_names[change['new_owner']]} (progress: {change['task_progress']:.2f}%)")
         print(f"\nTotal network changes: {len(network_changes)}")
     else:
         print("No network changes detected when task_solved=True")
