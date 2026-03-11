@@ -65,7 +65,7 @@ class Oraculum:
 
         # Check for 'absolute' control mode in robot action
         if "absolute" in self._robot_action:
-            reward_name = env.env.unwrapped.reward.reward_name
+            reward_name = env.env.unwrapped.reward.network_names[env.env.unwrapped.reward.current_network]
             gripper = "gripper" in self._robot_action
             if reward_name == "approach":
                 self._set_gripper_action(action, "open", gripper)
@@ -120,7 +120,7 @@ class Oraculum:
         Returns:
             np.ndarray: Updated approach action.
         """
-        if env.env.unwrapped.reward.rewards_num <= 2:
+        if len(env.env.unwrapped.reward.network_names) <= 2:
             action = info['o']["goal_state"][:3]
             return action
         action = info['o']["actual_state"][:3]
