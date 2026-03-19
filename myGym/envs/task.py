@@ -130,6 +130,8 @@ class TaskModule():
             elif key == "gjoints_states":
                 _,metric = self.env.robot.check_gripper_status(self.env.robot.get_gjoints_states())
                 info["additional_obs"]["gjoints_states"] = [metric]
+            elif key == "init_6D":
+                info["additional_obs"]["init_6D"] = self.env.robot.robot_dict[self.env.robot.name]['ee_pos']
             elif key == "endeff_xyz":
                 info["additional_obs"]["endeff_xyz"] = self.vision_module.get_obj_position(robot, self.image, self.depth)[:3]
             elif key == "endeff_6D":
@@ -374,7 +376,7 @@ class TaskModule():
                 return
         
         finished = None
-        if self.task_type in ['A','AG','AGM','AGN','AGMD','AGMDW','AGTDW']: #all tasks ending with R (FMR) have to have distrot checker
+        if self.env.unwrapped.reward.finished:
             finished = self.check_distance_threshold(self._observation)  
         if self.task_type in ['compositional', 'AGRDW', 'AGFDW', "AGR"]:
             finished = self.check_distrot_threshold(self._observation)
@@ -621,6 +623,7 @@ class TaskModule():
                            "joints_angles":len(self.env.robot.get_joints_states()),
                            "gjoints_angles":len(self.env.robot.get_gjoints_states()),
                            "gjoints_states":len([self.env.robot.check_gripper_status(self.env.robot.get_gjoints_states())[1]]),
+                           "init_6D":len(self.env.robot.robot_dict[self.env.robot.name]['ee_pos']),
                            "endeff_xyz":len(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)[:3]),
                            "endeff_6D":len(list(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)) \
                                                       + list(self.vision_module.get_obj_orientation(self.env.robot))),

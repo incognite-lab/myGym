@@ -422,6 +422,7 @@ class GymEnv(CameraEnv):
         if only_subtask:
             if self.task.current_task < (len(self.task_objects_dict)) and not self.nl_mode:
                 self.shift_next_subtask()
+                print(f"Switched to subtask {self.task.current_task+1} with init {self.task_objects['actual_state'].name} and goal {self.task_objects['goal_state'].name}")
         if self.has_distractor:
             distrs = []
             if self.distractors["list"]:
@@ -449,6 +450,8 @@ class GymEnv(CameraEnv):
 
     def shift_next_subtask(self):
         # put current init and goal back in env_objects
+        if "distractor" not in self.env_objects:
+            self.env_objects["distractor"] = []
         self.env_objects["distractor"].extend([self.env_objects["actual_state"], self.env_objects["goal_state"]])
         # set the next subtask objects as the actual and goal state and remove them from env_objects
         self.env_objects["actual_state"] = self.env_objects["distractor"][0]
@@ -508,23 +511,17 @@ class GymEnv(CameraEnv):
             :return info: (dict) Additional information about step
         """
         self._apply_action_robot(action)
-        #if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
-        #print(f"Observation after action: {self._observation}")
-        #if self.dataset:
-        #    reward, terminated, truncated, info = 0, False, False, {}
-        #else:
-            #print(f"Observation for reward computation: {self._observation}")
+
         
         reward = self.unwrapped.reward.compute(observation=self._observation)
         self.episode_reward += reward
         
-        if self.unwrapped.reward.owner == self.unwrapped.reward.num_networks - 1:
-            self.task.check_goal()
+        #if self.unwrapped.reward.owner == self.unwrapped.reward.num_networks - 1:
+        #    self.task.check_goal()
             
-        if self.unwrapped.reward.last_result['task_solved'] and self.unwrapped.reward.last_result['gripper_solved']:
-            self.reset(only_subtask=True)
-            print("Subtask rewards finished")
+        #if self.unwrapped.reward.last_result['task_solved'] and self.unwrapped.reward.last_result['gripper_solved']:
+        #    self.reset(only_subtask=True)
 
         terminated = self.episode_terminated
         truncated = self.episode_truncated

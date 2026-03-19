@@ -82,20 +82,20 @@ class UniversalReward:
         """Default compute method that calls calculate with default parameters."""
         raise NotImplementedError("Subclasses should override compute() method")
 
-    def calculate(self, observation, rot=True, gripper="Close"):
+    def calculate(self, observation, rot=True, gripper="close", actual_state=None, goal_state=None):
         """
         Calculate universal reward for the current step.
 
         Parameters:
-            :param actual_state: (array) Actual object state [x, y, z, qx, qy, qz, qw]
-            :param goal_state: (array) Goal state [x, y, z, qx, qy, qz, qw]
-            :param gripper_states: (list) Current gripper joint values
+            :param observation: (dict) Observation dictionary from environment
             :param rot: (bool) If True, rotational error is included in all task rewards.
                 If False, only translational error is calculated.
-            :param gripper: (str) "Open" or "Close". If "Open", gripper reward increases
+            :param gripper: (str) "open" or "close". If "open", gripper reward increases
                 when gripper reaches maximal values, and progress/solved thresholds
                 are based on maximal values. If "Close", maximal reward is for
                 minimal values, and progress/solved thresholds are based on minimal values.
+            :param actual_state: (list) Path to actual_state in observation dict (e.g., ["actual_state"] or ["additional_obs", "endeff_6D"])
+            :param goal_state: (list) Path to goal_state in observation dict (e.g., ["goal_state"] or ["actual_state"])
         Returns:
             :return result: (dict) Dictionary containing:
                 - arm_absolute_reward: Rescaled task distance reward (0=max dist, 1=min dist)
@@ -113,15 +113,37 @@ class UniversalReward:
         #if gripper not in ("Open", "Close"):
         #    raise ValueError(f"gripper must be 'Open' or 'Close', got '{gripper}'")
 
+        # Get actual_state and goal_state from observation using provided paths
+        if actual_state is None:
+            actual_state = ["actual_state"]
+        if goal_state is None:
+            goal_state = ["goal_state"]
+        
+        # Navigate observation dict using the paths with error handling
+        actual_state_value = observation
+        for key in actual_state:
+            if isinstance(actual_state_value, dict) and key in actual_state_value:
+                actual_state_value = actual_state_value[key]
+            else:
+                raise KeyError(f"Key '{key}' not found in observation path {actual_state}. Available keys: {list(actual_state_value.keys()) if isinstance(actual_state_value, dict) else 'not a dict'}")
+        
+        goal_state_value = observation
+        for key in goal_state:
+            if isinstance(goal_state_value, dict) and key in goal_state_value:
+                goal_state_value = goal_state_value[key]
+            else:
+                raise KeyError(f"Key '{key}' not found in observation path {goal_state}. Available keys: {list(goal_state_value.keys()) if isinstance(goal_state_value, dict) else 'not a dict'}")
+
         # -- Task distance (translation + rotation) --
-        trans_dist = self.task.calc_distance(observation["actual_state"], observation["goal_state"])
-        rot_dist = self.task.calc_rot_quat(observation["actual_state"], observation["goal_state"]) if rot else 0.0
+        trans_dist = self.task.calc_distance(actual_state_value, goal_state_value)
+        rot_dist = self.task.calc_rot_quat(actual_state_value, goal_state_value) if rot else 0.0
         
         # -- Absolute non-normalized distance --
         absolute_distance = trans_dist + rot_dist if rot else trans_dist
 
         # -- Gripper distance --
         status, grip_dist = self.env.robot.check_gripper_status(observation["additional_obs"]["gjoints_states"])
+        #print(f"Gripper status: {status}, distance to target: {grip_dist:.4f}")
 
         # -- Task absolute reward --
         task_abs_trans = self._compute_absolute_reward(trans_dist, self.min_trans_dist, self.max_trans_dist)
@@ -165,7 +187,7 @@ class UniversalReward:
         gripper_relative_reward = self._compute_relative_reward(self.prev_grip_dist, grip_dist)
         gripper_progress, gripper_solved = self._compute_progress(grip_dist, self.max_grip_dist)
 
-        if gripper == "Open":
+        if gripper == "open":
             # Invert rewards for opening behavior
             gripper_absolute_reward = -gripper_absolute_reward
             gripper_relative_reward = -gripper_relative_reward
@@ -204,6 +226,7 @@ class UniversalReward:
             "gripper_solved": gripper_solved,
             "total_reward": total_reward,
             "absolute_distance": absolute_distance,
+            "goal_state": goal_state_value,
         }
         return result
 
@@ -227,6 +250,7 @@ class Rewarder(UniversalReward):
         self.last_owner = None
         self.rewards_history = []
         self.network_rewards = [0] * self.num_networks
+        self.finished = False
 
     def reset(self, observation=None):
         """Reset all state for both UniversalReward and Rewarder."""
@@ -234,11 +258,25 @@ class Rewarder(UniversalReward):
         self.step = 0
         self.owner = 0
         self.current_network = 0
-        params = self.protoreward_params(self.network_names[self.owner])
-        self.max_trans_dist = self.task.calc_distance(observation["actual_state"], observation["goal_state"])
-        self.min_trans_dist = self.task.calc_distance(observation["goal_state"], observation["goal_state"])
-        self.max_rot_dist = self.task.calc_rot_quat(observation["actual_state"], observation["goal_state"]) if params["rot"] else 0.0
-        self.min_rot_dist = self.task.calc_rot_quat(observation["goal_state"], observation["goal_state"]) if params["rot"] else 0.0
+        self.network_name = self.network_names[self.owner]
+        params = self.protoreward_params(self.network_name)
+        
+        # Get actual_state and goal_state values using paths from params
+        actual_state_path = params.get("actual_state", ["actual_state"])
+        goal_state_path = params.get("goal_state", ["goal_state"])
+        
+        actual_state_value = observation
+        for key in actual_state_path:
+            actual_state_value = actual_state_value[key]
+        
+        goal_state_value = observation
+        for key in goal_state_path:
+            goal_state_value = goal_state_value[key]
+        
+        self.max_trans_dist = self.task.calc_distance(actual_state_value, goal_state_value)
+        self.min_trans_dist = self.task.calc_distance(goal_state_value, goal_state_value)
+        self.max_rot_dist = self.task.calc_rot_quat(actual_state_value, goal_state_value) if params["rot"] else 0.0
+        self.min_rot_dist = self.task.calc_rot_quat(goal_state_value, goal_state_value) if params["rot"] else 0.0
         self.prev_trans_dist = self.max_trans_dist
         self.prev_rot_dist = self.max_rot_dist
         self.absolute_reward_history = []
@@ -249,7 +287,8 @@ class Rewarder(UniversalReward):
         self.grip_absolute_reward_history = []
         self.grip_relative_reward_history = []
         #This will calculate self.last_results
-        self.calculate(observation, **params)
+        result = self.calculate(observation, **params)
+        self.last_result = result
 
         
         self.last_owner = None
@@ -260,17 +299,39 @@ class Rewarder(UniversalReward):
         if not self.network_names:
             return 0.0
         
-        params = self.protoreward_params(self.network_names[self.owner])
-        result = self.calculate(observation, **params)
+        # Ensure owner is within bounds
+        if self.owner >= self.num_networks:
+            self.owner = self.num_networks - 1
+            
+        self.network_name = self.network_names[self.owner]
+        self.params = self.protoreward_params(self.network_name)
+
+        result = self.calculate(observation, **self.params)
         self.last_result = result
         reward = result["total_reward"]
+        
+        # Print structured results for each step
+        print(f"Subgoal: {self.network_name} ({self.owner+1}/{self.num_networks}) | "
+              f"Dist: {result['absolute_distance']:.4f} | "
+              f"Task: {result['task_progress']:.1f}% (solved={result['task_solved']}) | "
+              f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
+              f"Reward: {reward:.4f}", flush=True)
 
         self.prev_owner = self.last_owner
 
         # Check if task is solved and progress to next network
-        if result["task_solved"] and self.owner < len(self.network_names) - 1:
-            self.owner += 1
-            print(f"Switching to network {self.owner} ({self.network_names[self.owner]})")
+        if result["task_solved"] and result["gripper_solved"]:
+            if self.owner < self.num_networks - 1:
+                self.owner += 1
+                print(f"Switching to network {self.owner} ({self.network_names[self.owner]})")
+            else:
+                self.finished = True
+                print(f"All subgoals completed!")
+                self.task.check_goal()
+                
+
+            
+            
 
         self.current_network = self.owner
         self.network_rewards[self.current_network] += reward
@@ -280,20 +341,20 @@ class Rewarder(UniversalReward):
 
     def protoreward_params(self, name):
         if name == "approach" or name == "A":
-            return {"rot": False, "gripper": "Open"}
+            return {"rot": False, "gripper": "open", "actual_state": ["additional_obs", "endeff_6D"], "goal_state": ["actual_state"]}
         elif name == "withdraw" or name == "W":
-            return {"rot": False, "gripper": "Open"}
+            return {"rot": False, "gripper": "close", "actual_state": ["additional_obs", "endeff_6D"], "goal_state": ["additional_obs", "init_6D"]}
         elif name == "grasp" or name == "G":
-            return {"rot": True, "gripper": "Close"}
+            return {"rot": False, "gripper": "close", "actual_state": ["additional_obs", "endeff_6D"], "goal_state": ["actual_state"]}
         elif name == "drop" or name == "D":
-            return {"rot": True, "gripper": "Open"}
+            return {"rot": False, "gripper": "open", "actual_state": ["additional_obs", "endeff_6D"], "goal_state": ["goal_state"]}
         elif name == "move" or name == "M":
-            return {"rot": False, "gripper": "Close"}
+            return {"rot": False, "gripper": "close", "actual_state": ["actual_state"], "goal_state": ["goal_state"]}
         elif name == "rotate" or name == "R":
-            return {"rot": True, "gripper": "Close"}
+            return {"rot": True, "gripper": "close", "actual_state": ["actual_state"], "goal_state": ["goal_state"]}
         elif name == "transform" or name == "T":
-            return {"rot": False, "gripper": "Close"}
+            return {"rot": True, "gripper": "close", "actual_state": ["actual_state"], "goal_state": ["goal_state"]}
         elif name == "follow" or name == "F":
-            return {"rot": False, "gripper": "Close"}
+            return {"rot": False, "gripper": "close", "actual_state": ["actual_state"], "goal_state": ["goal_state"]}
         else:
             raise ValueError(f"Unknown protoreward name: {name}")

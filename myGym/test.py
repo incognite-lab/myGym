@@ -300,6 +300,11 @@ def test_env(env: object, arg_dict: dict) -> None:
                     last_action = action
                     
             if arg_dict["control"] == "oraculum":
+                #if t == 0:
+                #    return env.action_space.sample()
+                #reward_params = env.env.unwrapped.reward.params
+                #action[:3] = env.env.unwrapped.reward.last_result["goal_state"][:3]
+                #action[-len(gripper_values):] = env.env.unwrapped.robot.gripper_dict[reward_params["gripper"]]
                 action = oraculum_obj.perform_oraculum_task(t, env, action, info)
             elif arg_dict["control"] == "keyboard":
                 keypress = p.getKeyboardEvents()
@@ -310,6 +315,18 @@ def test_env(env: object, arg_dict: dict) -> None:
             observation, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
             #print("observation shape:", len(obs))
+
+            # Print task progress from Rewarder during oraculum testing
+            if arg_dict["control"] == "oraculum":
+                rewarder = env.env.unwrapped.reward
+                if hasattr(rewarder, 'last_result'):
+                    result = rewarder.last_result
+                    subgoal = rewarder.network_names[rewarder.owner]
+                    #print(f"\rEp {e} Step {t}: Subgoal={subgoal} ({rewarder.owner+1}/{rewarder.num_networks}) | "
+                    #      f"Dist: {result['absolute_distance']:.4f} | "
+                    #      f"Task: {result['task_progress']:.1f}% | "
+                    #      f"Gripper: {result['gripper_progress']:.1f}% | "
+                    #      f"Reward: {reward:.4f}", end='', flush=True)
 
             n_p, last_call_time = n_pressed(last_call_time)
             if n_p:  # If key 'n' is pressed, switch to next task - useful if robot gets stuck
