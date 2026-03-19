@@ -75,6 +75,7 @@ class UniversalReward:
         if max_dist <= 0:
             return 100.0, True
         progress = max(0.0, min(100.0, (1.0 - current_dist / max_dist) * 100.0))
+        #print(f"Current distance: {current_dist:.4f}, Max distance: {max_dist:.4f}, Progress: {progress:.1f}%")
         solved = progress >= self.solved_threshold
         return progress, solved
 
@@ -142,8 +143,7 @@ class UniversalReward:
         absolute_distance = trans_dist + rot_dist if rot else trans_dist
 
         # -- Gripper distance --
-        status, grip_dist = self.env.robot.check_gripper_status(observation["additional_obs"]["gjoints_states"])
-        #print(f"Gripper status: {status}, distance to target: {grip_dist:.4f}")
+        status, grip_dist = self.env.robot.check_gripper_status(observation["additional_obs"]["gjoints_angles"])
 
         # -- Task absolute reward --
         task_abs_trans = self._compute_absolute_reward(trans_dist, self.min_trans_dist, self.max_trans_dist)
@@ -311,11 +311,11 @@ class Rewarder(UniversalReward):
         reward = result["total_reward"]
         
         # Print structured results for each step
-        print(f"Subgoal: {self.network_name} ({self.owner+1}/{self.num_networks}) | "
-              f"Dist: {result['absolute_distance']:.4f} | "
-              f"Task: {result['task_progress']:.1f}% (solved={result['task_solved']}) | "
-              f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
-              f"Reward: {reward:.4f}", flush=True)
+        #print(f"Subgoal: {self.network_name} ({self.owner+1}/{self.num_networks}) | "
+        #      f"Dist: {result['absolute_distance']:.4f} | "
+        #      f"Arm: {result['task_progress']:.1f}% (solved={result['task_solved']}) | "
+        #      f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
+        #      f"Reward: {reward:.4f}", end ="\r", flush=True)
 
         self.prev_owner = self.last_owner
 
@@ -343,7 +343,7 @@ class Rewarder(UniversalReward):
         if name == "approach" or name == "A":
             return {"rot": False, "gripper": "open", "actual_state": ["additional_obs", "endeff_6D"], "goal_state": ["actual_state"]}
         elif name == "withdraw" or name == "W":
-            return {"rot": False, "gripper": "close", "actual_state": ["additional_obs", "endeff_6D"], "goal_state": ["additional_obs", "init_6D"]}
+            return {"rot": False, "gripper": "open", "actual_state": ["additional_obs", "endeff_6D"], "goal_state": ["additional_obs", "init_6D"]}
         elif name == "grasp" or name == "G":
             return {"rot": False, "gripper": "close", "actual_state": ["additional_obs", "endeff_6D"], "goal_state": ["actual_state"]}
         elif name == "drop" or name == "D":
