@@ -323,7 +323,7 @@ def test_env(env: object, arg_dict: dict) -> None:
                 subgoal = rewarder.network_names[rewarder.owner]
                 print(f"Subgoal: {rewarder.network_name} ({rewarder.owner+1}/{rewarder.num_networks}) | "
                         f"Dist: {result['absolute_distance']:.4f} | "
-                        f"Arm: {result['task_progress']:.1f}% (solved={result['task_solved']}) | "
+                        f"Arm: {result['arm_progress']:.1f}% (solved={result['arm_solved']}) | "
                         f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
                         f"Reward: {reward:.4f}", end ="\r", flush=True)
 
@@ -535,6 +535,16 @@ def test_model(
             steps_sum += 1
             action, _state = model.predict(obs, deterministic=deterministic)
             obs, reward, terminated, truncated, info = env.step(action)
+            rewarder = env.env.unwrapped.reward
+            if hasattr(rewarder, 'last_result'):
+                result = rewarder.last_result
+                subgoal = rewarder.network_names[rewarder.owner]
+                print(f"Subgoal: {rewarder.network_name} ({rewarder.owner+1}/{rewarder.num_networks}) | "
+                        f"Dist: {result['absolute_distance']:.4f} | "
+                        f"Arm: {result['arm_progress']:.1f}% (solved={result['arm_solved']}) | "
+                        f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
+                        f"Reward: {reward:.4f}", end ="\r", flush=True)
+                
             done = terminated or truncated
             is_successful = not info['f']
             distance_error = info['d']

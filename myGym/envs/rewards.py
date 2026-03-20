@@ -7,6 +7,7 @@ from math import sqrt, fabs, exp, pi, asin
 from myGym.utils.vector import Vector
 import random
 import time
+import json
 
 class UniversalReward:
     """
@@ -14,7 +15,7 @@ class UniversalReward:
 
     Computes reward based on actual and goal state (translation and rotation).
     Provides absolute, relative, and temporal reward components for both
-    task distance and gripper, along with progress tracking.
+    arm distance and gripper, along with progress tracking.
 
     Parameters:
         :param env: (object) Environment, where the training takes place
@@ -83,7 +84,8 @@ class UniversalReward:
         """Default compute method that calls calculate with default parameters."""
         raise NotImplementedError("Subclasses should override compute() method")
 
-    def calculate(self, observation, rot=True, gripper="close", actual_state=None, goal_state=None):
+    def calculate(self, observation, rot=True, gripper="close", actual_state=None, goal_state=None, 
+                  armweight=1, gripperweight=1, absoluteweight=1, relativeweight=1, temporalweight=1):
         """
         Calculate universal reward for the current step.
 
@@ -97,13 +99,18 @@ class UniversalReward:
                 minimal values, and progress/solved thresholds are based on minimal values.
             :param actual_state: (list) Path to actual_state in observation dict (e.g., ["actual_state"] or ["additional_obs", "endeff_6D"])
             :param goal_state: (list) Path to goal_state in observation dict (e.g., ["goal_state"] or ["actual_state"])
+            :param armweight: (float) Weight multiplier for all arm rewards (default: 1)
+            :param gripperweight: (float) Weight multiplier for all gripper rewards (default: 1)
+            :param absoluteweight: (float) Weight multiplier for all absolute rewards (default: 1)
+            :param relativeweight: (float) Weight multiplier for all relative rewards (default: 1)
+            :param temporalweight: (float) Weight multiplier for all temporal rewards (default: 1)
         Returns:
             :return result: (dict) Dictionary containing:
-                - arm_absolute_reward: Rescaled task distance reward (0=max dist, 1=min dist)
-                - arm_relative_reward: Difference-based task reward
-                - arm_temporal_reward: Sliding window temporal task reward
-                - task_progress: Task progress percentage (0-100)
-                - task_solved: Boolean, True when task progress >= 90%
+                - arm_absolute_reward: Rescaled arm distance reward (0=max dist, 1=min dist)
+                - arm_relative_reward: Difference-based arm reward
+                - arm_temporal_reward: Sliding window temporal arm reward
+                - arm_progress: Task progress percentage (0-100)
+                - arm_solved: Boolean, True when arm progress >= 90%
                 - gripper_absolute_reward: Rescaled gripper reward (0=max dist, 1=min dist)
                 - gripper_relative_reward: Difference-based gripper reward
                 - gripper_temporal_reward: Sliding window temporal gripper reward
@@ -146,12 +153,12 @@ class UniversalReward:
         status, grip_dist = self.env.robot.check_gripper_status(observation["additional_obs"]["gjoints_angles"])
 
         # -- Task absolute reward --
-        task_abs_trans = self._compute_absolute_reward(trans_dist, self.min_trans_dist, self.max_trans_dist)
+        arm_abs_trans = self._compute_absolute_reward(trans_dist, self.min_trans_dist, self.max_trans_dist)
         if rot:
-            task_abs_rot = self._compute_absolute_reward(rot_dist, self.min_rot_dist, self.max_rot_dist)
-            arm_absolute_reward = (task_abs_trans + task_abs_rot) / 2.0
+            arm_abs_rot = self._compute_absolute_reward(rot_dist, self.min_rot_dist, self.max_rot_dist)
+            arm_absolute_reward = (arm_abs_trans + arm_abs_rot) / 2.0
         else:
-            arm_absolute_reward = task_abs_trans
+            arm_absolute_reward = arm_abs_trans
 
         # -- Task relative reward --
         rel_trans = self._compute_relative_reward(self.prev_trans_dist, trans_dist)
@@ -174,10 +181,10 @@ class UniversalReward:
         trans_progress, _ = self._compute_progress(trans_dist, self.max_trans_dist)
         if rot:
             rot_progress, _ = self._compute_progress(rot_dist, self.max_rot_dist)
-            task_progress = (trans_progress + rot_progress) / 2.0
+            arm_progress = (trans_progress + rot_progress) / 2.0
         else:
-            task_progress = trans_progress
-        task_solved = task_progress >= self.solved_threshold
+            arm_progress = trans_progress
+        arm_solved = arm_progress >= self.solved_threshold
 
         # -- Gripper rewards (direction depends on gripper mode) --
         # Compute base values using helper methods (Close behavior)
@@ -210,15 +217,19 @@ class UniversalReward:
         self.prev_grip_dist = grip_dist
         self.step += 1
 
-        total_reward = (arm_absolute_reward + arm_relative_reward + arm_temporal_reward +
-                        gripper_absolute_reward + gripper_relative_reward + gripper_temporal_reward)
+        total_reward = (arm_absolute_reward * armweight * absoluteweight + 
+                        arm_relative_reward * armweight * relativeweight + 
+                        arm_temporal_reward * armweight * temporalweight +
+                        gripper_absolute_reward * gripperweight * absoluteweight + 
+                        gripper_relative_reward * gripperweight * relativeweight + 
+                        gripper_temporal_reward * gripperweight * temporalweight)
 
         result = {
             "arm_absolute_reward": arm_absolute_reward,
             "arm_relative_reward": arm_relative_reward,
             "arm_temporal_reward": arm_temporal_reward,
-            "task_progress": task_progress,
-            "task_solved": task_solved,
+            "arm_progress": arm_progress,
+            "arm_solved": arm_solved,
             "gripper_absolute_reward": gripper_absolute_reward,
             "gripper_relative_reward": gripper_relative_reward,
             "gripper_temporal_reward": gripper_temporal_reward,
@@ -251,6 +262,11 @@ class Rewarder(UniversalReward):
         self.rewards_history = []
         self.network_rewards = [0] * self.num_networks
         self.finished = False
+        
+        # Load protorewards configuration from JSON file
+        json_path = os.path.join(os.path.dirname(__file__), 'protorewards.json')
+        with open(json_path, 'r') as f:
+            self.protorewards_config = json.load(f)
 
     def reset(self, observation=None):
         """Reset all state for both UniversalReward and Rewarder."""
@@ -310,17 +326,11 @@ class Rewarder(UniversalReward):
         self.last_result = result
         reward = result["total_reward"]
         
-        # Print structured results for each step
-        #print(f"Subgoal: {self.network_name} ({self.owner+1}/{self.num_networks}) | "
-        #      f"Dist: {result['absolute_distance']:.4f} | "
-        #      f"Arm: {result['task_progress']:.1f}% (solved={result['task_solved']}) | "
-        #      f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
-        #      f"Reward: {reward:.4f}", end ="\r", flush=True)
 
         self.prev_owner = self.last_owner
 
-        # Check if task is solved and progress to next network
-        if result["task_solved"] and result["gripper_solved"]:
+        # Check if arm is solved and progress to next network
+        if result["arm_solved"] and result["gripper_solved"]:
             if self.owner < self.num_networks - 1:
                 self.owner += 1
                 print(f"Switching to ({self.network_names[self.owner]})")
@@ -340,21 +350,23 @@ class Rewarder(UniversalReward):
         return reward
 
     def protoreward_params(self, name):
-        if name == "approach" or name == "A":
-            return {"rot": False, "gripper": "open", "actual_state": ["additional_obs", "endeff_6D"], "goal_state": ["actual_state"]}
-        elif name == "withdraw" or name == "W":
-            return {"rot": False, "gripper": "open", "actual_state": ["additional_obs", "endeff_6D"], "goal_state": ["additional_obs", "init_6D"]}
-        elif name == "grasp" or name == "G":
-            return {"rot": False, "gripper": "close", "actual_state": ["additional_obs", "endeff_6D"], "goal_state": ["actual_state"]}
-        elif name == "drop" or name == "D":
-            return {"rot": False, "gripper": "open", "actual_state": ["additional_obs", "endeff_6D"], "goal_state": ["goal_state"]}
-        elif name == "move" or name == "M":
-            return {"rot": False, "gripper": "close", "actual_state": ["actual_state"], "goal_state": ["goal_state"]}
-        elif name == "rotate" or name == "R":
-            return {"rot": True, "gripper": "close", "actual_state": ["actual_state"], "goal_state": ["goal_state"]}
-        elif name == "transform" or name == "T":
-            return {"rot": True, "gripper": "close", "actual_state": ["actual_state"], "goal_state": ["goal_state"]}
-        elif name == "follow" or name == "F":
-            return {"rot": False, "gripper": "close", "actual_state": ["actual_state"], "goal_state": ["goal_state"]}
+        """Load protoreward parameters from JSON configuration file."""
+        # Map single-letter abbreviations to full action names
+        letter_to_name = {
+            "A": "approach",
+            "W": "withdraw",
+            "G": "grasp",
+            "D": "drop",
+            "M": "move",
+            "R": "rotate",
+            "T": "transform",
+            "F": "follow"
+        }
+        
+        # Convert single letter to full name if applicable
+        lookup_name = letter_to_name.get(name, name)
+        
+        if lookup_name in self.protorewards_config:
+            return self.protorewards_config[lookup_name]
         else:
-            raise ValueError(f"Unknown protoreward name: {name}")
+            raise ValueError(f"Unknown protoreward name: {name}. Available names: {list(self.protorewards_config.keys())}")
