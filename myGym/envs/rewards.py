@@ -323,7 +323,7 @@ class Rewarder(UniversalReward):
         if result["task_solved"] and result["gripper_solved"]:
             if self.owner < self.num_networks - 1:
                 self.owner += 1
-                print(f"Switching to network {self.owner} ({self.network_names[self.owner]})")
+                print(f"Switching to ({self.network_names[self.owner]})")
             else:
                 self.finished = True
                 print(f"All subgoals completed!")

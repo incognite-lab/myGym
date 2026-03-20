@@ -292,7 +292,7 @@ def test_env(env: object, arg_dict: dict) -> None:
                     # Compute element-wise difference safely using numpy
                     try:
                         diff = np.array(last_action, dtype=float) - np.array(action, dtype=float)
-                        print(f"\rLast action difference: {np.round(diff, 4)}", end='', flush=True)
+                        #print(f"\rLast action difference: {np.round(diff, 4)}", end='', flush=True)
                     except Exception:
                         # Fallback if shapes mismatch
                         print("\rLast action difference: (shape mismatch)", end='', flush=True)
@@ -317,16 +317,15 @@ def test_env(env: object, arg_dict: dict) -> None:
             #print("observation shape:", len(obs))
 
             # Print task progress from Rewarder during oraculum testing
-            if arg_dict["control"] == "oraculum":
-                rewarder = env.env.unwrapped.reward
-                if hasattr(rewarder, 'last_result'):
-                    result = rewarder.last_result
-                    subgoal = rewarder.network_names[rewarder.owner]
-                    #print(f"\rEp {e} Step {t}: Subgoal={subgoal} ({rewarder.owner+1}/{rewarder.num_networks}) | "
-                    #      f"Dist: {result['absolute_distance']:.4f} | "
-                    #      f"Task: {result['task_progress']:.1f}% | "
-                    #      f"Gripper: {result['gripper_progress']:.1f}% | "
-                    #      f"Reward: {reward:.4f}", end='', flush=True)
+            rewarder = env.env.unwrapped.reward
+            if hasattr(rewarder, 'last_result'):
+                result = rewarder.last_result
+                subgoal = rewarder.network_names[rewarder.owner]
+                print(f"Subgoal: {rewarder.network_name} ({rewarder.owner+1}/{rewarder.num_networks}) | "
+                        f"Dist: {result['absolute_distance']:.4f} | "
+                        f"Arm: {result['task_progress']:.1f}% (solved={result['task_solved']}) | "
+                        f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
+                        f"Reward: {reward:.4f}", end ="\r", flush=True)
 
             n_p, last_call_time = n_pressed(last_call_time)
             if n_p:  # If key 'n' is pressed, switch to next task - useful if robot gets stuck
@@ -629,6 +628,13 @@ def main() -> None:
         else:
             arg_dict["robot_action"] = "absolute"
         print(f"Oraculum control selected. Robot action automatically set to: {arg_dict['robot_action']}")
+    
+    if  arg_dict.get("control") == "keyboard":
+        if "gripper" in arg_dict.get("robot_action", ""):
+            arg_dict["robot_action"] = "step_gripper"
+        else:
+            arg_dict["robot_action"] = "step"
+        print(f"Keyboard control selected. Robot action automatically set to: {arg_dict['robot_action']}")
     
     if arg_dict.get("pretrained_model") is None:
         print_init_info(arg_dict)
