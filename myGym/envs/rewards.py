@@ -24,7 +24,7 @@ class UniversalReward:
         :param solved_threshold: (float) Progress percentage threshold to consider task solved (0-100)
     """
 
-    def __init__(self, env, task=None, window_size=10, solved_threshold=90.0):
+    def __init__(self, env, task=None, window_size=10, solved_threshold=85.0):
         # Initialize only UniversalReward-specific attributes
         self.env = env
         self.task = task

@@ -41,7 +41,7 @@
   </joint>
 
   <joint name="baserot_rjoint" type="revolute">
-    <origin rpy="0 0 0" xyz="0 0 0.1"/>
+    <origin rpy="0 0 0" xyz="0 0 0.01"/>
     <child link="pelvis"/>
     <parent link="base_footprint2"/>
     <axis xyz="0 0 1"/>

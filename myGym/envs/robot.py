@@ -931,9 +931,9 @@ class Robot:
             metric = np.mean(np.clip(normalized, 0.0, 1.0))
         #print("Close vec:", close_vec, "Open vec:", open_vec, "Current vec:", current_vec)
         #print("Gripper metric:", metric)
-        if metric <= 0.1:
+        if metric <= 0.15:
             status = "close"
-        elif metric >= 0.9:
+        elif metric >= 0.85:
             status = "open"
         else:
             status = "neutral"
