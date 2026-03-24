@@ -36,7 +36,7 @@
     "rot": false,
     "gripper": "open",
     "actual_state": ["additional_obs", "endeff_6D"],
-    "goal_state": ["goal_state"],
+    "goal_state": ["actual_state"],
     "armweight": 1,
     "gripperweight": 1,
     "absoluteweight": 1,

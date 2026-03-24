@@ -377,7 +377,8 @@ class TaskModule():
         
         finished = None
         if self.env.unwrapped.reward.finished:
-            finished = self.check_distance_threshold(self._observation)  
+            finished = True
+            #finished = self.check_distance_threshold(self._observation)  
         if self.task_type in ['compositional', 'AGRDW', 'AGFDW', "AGR"]:
             finished = self.check_distrot_threshold(self._observation)
 
