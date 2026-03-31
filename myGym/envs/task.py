@@ -1,5 +1,4 @@
 from myGym.envs.vision_module import VisionModule
-import pybullet as p
 import warnings
 import time
 import numpy as np

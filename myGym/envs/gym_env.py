@@ -333,7 +333,7 @@ class GymEnv(CameraEnv):
 
         Parameters:
             :param random_pos: (bool) Whether to initiate objects to random locations in the scene
-            :param hard: (bool) Whether to do hard reset (resets whole pybullet scene)
+            :param hard: (bool) Whether to do hard reset (resets whole physics scene)
             :param random_robot: (bool) Whether to initiate robot in random pose
             :param only_subtask: (bool) if True, the robot's position is not reset and the next subtask is started
         Returns:

@@ -13,7 +13,7 @@ import sys
 import random
 from pycocotools.cocostuffhelper import segmentationToCocoMask, segmentationToCocoResult
 from pycocotools import mask
-import pybullet as p
+# pybullet replaced by mujoco
 from bbox import BBox3D
 from myGym.envs.wrappers import RandomizedEnvWrapper
 import importlib.resources as pkg_resources
@@ -540,7 +540,7 @@ if __name__ == "__main__":
             print("Dataset finished. Ready to train!")
             raise SystemExit(0)
 
-    # initialize pybullet env
+    # initialize mujoco env
     env = generator.get_env()
     first_link_uid = env.robot.robot_uid
     robot_uids = np.array([((x + 1) << 24) + first_link_uid for x in range(-1, env.robot.gripper_index)],dtype=np.int32)

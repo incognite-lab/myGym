@@ -7,8 +7,7 @@ import os, imageio
 import numpy as np
 import time
 from numpy import matrix
-import pybullet as p
-import pybullet_data
+from myGym.envs.mujoco_client import MujocoClient
 import importlib.resources as pkg_resources
 import random
 import getkey
@@ -18,7 +17,7 @@ from utils.nicomotors import NicoMotors
 
 clear = lambda: os.system('clear')
 
-AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
+AVAILABLE_SIMULATION_ENGINES = ["mujoco"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
 def visualize_sampling_area(arg_dict):
@@ -183,7 +182,7 @@ def test_env(env, arg_dict):
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
-    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    # MuJoCo handles data paths internally)
     #newobject = p.loadURDF("cube.urdf", [3.1,3.7,0.1])
     #p.changeDynamics(newobject, -1, lateralFriction=1.00)
     #p.setRealTimeSimulation(1)

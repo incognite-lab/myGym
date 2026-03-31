@@ -1,5 +1,4 @@
-import pybullet as p
-import pybullet_data
+from myGym.envs.mujoco_client import MujocoClient, GUI, DIRECT
 import numpy as np
 from PIL import Image
 import torch
@@ -9,7 +8,7 @@ from diffusers import StableDiffusionImg2ImgPipeline
 # 1. Render an image in PyBullet
 # ------------------------
 p.connect(p.DIRECT)
-p.setAdditionalSearchPath(pybullet_data.getDataPath())
+# MuJoCo handles data paths internally
 plane_id = p.loadURDF("plane.urdf")
 robot_id = p.loadURDF("r2d2.urdf", [0, 0, 0.5])
 
@@ -37,7 +36,7 @@ rgb_array = np.array(rgb, dtype=np.uint8).reshape(height, width, 4)
 rgb_img = Image.fromarray(rgb_array[:, :, :3])  # drop alpha
 
 # Save debug image
-rgb_img.save("pybullet_render.png")
+rgb_img.save("mujoco_render.png")
 
 # ------------------------
 # 2. Load Stable Diffusion Img2Img
@@ -61,5 +60,5 @@ result = pipe(
 ).images[0]
 
 # Save result
-result.save("pybullet_to_real.png")
-print("Saved: pybullet_to_real.png")
+result.save("mujoco_to_real.png")
+print("Saved: mujoco_to_real.png")

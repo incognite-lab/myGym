@@ -1,5 +1,4 @@
-import pybullet as p
-import pybullet_data
+from myGym.envs.mujoco_client import MujocoClient, GUI, DIRECT
 import argparse
 import time
 import numpy as np
@@ -99,7 +98,7 @@ def apply_ik_solution(robot_id, ik_solution, joint_idxs):
         p.setJointMotorControl2(
             bodyIndex=robot_id,
             jointIndex=joint_idx,
-            controlMode=p.POSITION_CONTROL,
+            controlMode=MujocoClient.POSITION_CONTROL,
             targetPosition=joint_pos,
             force= 500
         )
@@ -150,7 +149,7 @@ def get_controllable_arm_joints(robot_id, num_joints):
         # Print all joint names and IDs for inspection
         print(f"  Joint ID: {joint_idx}, Name: {joint_name}, Type: {joint_type}")
 
-        if joint_type != p.JOINT_FIXED:
+        if joint_type != MujocoClient.JOINT_FIXED:
             # Exclude gripper joints from the main IK control list
             if 'right_' not in joint_name or 'finger' not in joint_name: 
                 lower = joint_info[8]
@@ -298,8 +297,8 @@ def main():
             print(f"Using robot key '{selected_key}' pose: pos={robot_base_pos}, euler={info.get('orientation', [0,0,0])}")
 
     # Initialize PyBullet
-    physicsClient = p.connect(p.GUI)
-    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    physicsClient = MujocoClient(connection_mode=GUI)
+    # MuJoCo handles data paths internally)
     p.setGravity(0, 0, -9.81)
 
     # Load workspace and plane (unless already loaded in workspace mode)
@@ -343,7 +342,7 @@ def main():
 
     # Load robot
     try:
-        robot_id = p.loadURDF(args.urdf, useFixedBase=True, basePosition=robot_base_pos, baseOrientation=robot_base_quat, flags=p.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT)
+        robot_id = p.loadURDF(args.urdf, useFixedBase=True, basePosition=robot_base_pos, baseOrientation=robot_base_quat, flags=MujocoClient.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT)
     except Exception as ex:
         print(f"Error: Failed to load URDF file '{args.urdf}': {ex}")
         return
@@ -361,7 +360,7 @@ def main():
             for joint_idx in range(num_joints):
                 joint_info = p.getJointInfo(robot_id, joint_idx)
                 joint_type = joint_info[2]
-                if joint_type != p.JOINT_FIXED:
+                if joint_type != MujocoClient.JOINT_FIXED:
                     non_fixed_joints.append(joint_idx)
             
             # Reset joint states
@@ -419,7 +418,7 @@ def main():
     # Create visual target box
     box_size = 0.02
     box_visual_shape = p.createVisualShape(
-        p.GEOM_BOX,
+        0,
         halfExtents=[box_size/2, box_size/2, box_size/2],
         rgbaColor=[1, 0, 0, 0.5]  # Red semi-transparent (initial)
     )
@@ -469,7 +468,7 @@ def main():
             keys = p.getKeyboardEvents()
             
             # Check if 't' key is pressed to save current configuration
-            if ord('t') in keys and keys[ord('t')] & p.KEY_WAS_TRIGGERED:
+            if ord('t') in keys and keys[ord('t')] & MujocoClient.KEY_WAS_TRIGGERED:
                 if selected_key and selected_key in rdict:
                     # Get current joint values
                     joint_values = []
@@ -505,7 +504,7 @@ def main():
                     print("No robot key selected, cannot save to helpers.py")
             
             # Check if 'c' key is pressed to open the gripper (set gripper joints to open values from helpers.py)
-            if ord('o') in keys and keys[ord('o')] & p.KEY_WAS_TRIGGERED:
+            if ord('o') in keys and keys[ord('o')] & MujocoClient.KEY_WAS_TRIGGERED:
                 # Get gripper dictionary and open values for selected robot
                 gd = get_gripper_dict()
                 if selected_key and selected_key in gd and 'open' in gd[selected_key]:
@@ -525,7 +524,7 @@ def main():
                         p.stepSimulation()
                         time.sleep(0.01)
 
-            if ord('c') in keys and keys[ord('c')] & p.KEY_WAS_TRIGGERED:
+            if ord('c') in keys and keys[ord('c')] & MujocoClient.KEY_WAS_TRIGGERED:
                 # Get gripper dictionary and close values for selected robot
                 gd = get_gripper_dict()
                 if selected_key and selected_key in gd and 'close' in gd[selected_key]:
@@ -545,7 +544,7 @@ def main():
                         time.sleep(0.01)
                     print(gripper_up_limits)
             
-            if ord('m') in keys and keys[ord('m')] & p.KEY_WAS_TRIGGERED:
+            if ord('m') in keys and keys[ord('m')] & MujocoClient.KEY_WAS_TRIGGERED:
                 grasper.move_arm([0.35,-0.4,0.2], args.ori, args.side)
                         
 

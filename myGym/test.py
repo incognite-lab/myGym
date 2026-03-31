@@ -7,8 +7,7 @@ from typing import Dict, Any
 import cv2
 import imageio
 import numpy as np
-import pybullet as p
-import pybullet_data
+from myGym.envs.mujoco_client import MujocoClient
 from numpy import matrix
 from sklearn.model_selection import ParameterGrid
 import pandas as pd
@@ -20,10 +19,12 @@ from myGym.utils.helpers import get_workspace_dict, get_gripper_dict
 
 clear = lambda: os.system('clear')
 
-AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
-AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
+AVAILABLE_SIMULATION_ENGINES = ["mujoco"]
+AVAILABLE_TRAINING_FRAMEWORKS = ["pytorch"]
 
-def visualize_sampling_area(arg_dict: dict) -> None:
+def visualize_sampling_area(arg_dict: dict, physics_client=None) -> None:
+    if physics_client is None:
+        return
     task_object = arg_dict["task_objects"][0]
     goal_area = task_object["goal"]["sampling_area"]
 
@@ -33,10 +34,10 @@ def visualize_sampling_area(arg_dict: dict) -> None:
     rz = (goal_area[4] - goal_area[5]) / 2
 
     # Create a visual shape and multi-body for the sampling area
-    visual = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[rx, ry, rz], rgbaColor=[1, 0, 0, .2])
+    visual = physics_client.createVisualShape(shapeType=0, halfExtents=[rx, ry, rz], rgbaColor=[1, 0, 0, .2])
     collision = -1
 
-    p.createMultiBody(
+    physics_client.createMultiBody(
         baseVisualShapeIndex=visual,
         baseCollisionShapeIndex=collision,
         baseMass=0,
@@ -44,18 +45,20 @@ def visualize_sampling_area(arg_dict: dict) -> None:
     )
 
 
-def visualize_trajectories(info: dict, action: list) -> None:
-    visual_actual = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[0, 0, 1, .3])
+def visualize_trajectories(info: dict, action: list, physics_client=None) -> None:
+    if physics_client is None:
+        return
+    visual_actual = physics_client.createVisualShape(shapeType=0, radius=0.01, rgbaColor=[0, 0, 1, .3])
     collision = -1
-    p.createMultiBody(
+    physics_client.createMultiBody(
         baseVisualShapeIndex=visual_actual,
         baseCollisionShapeIndex=collision,
         baseMass=0,
         basePosition=info['o']['actual_state'],
     )
 
-    visual_action = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[1, 0, 0, .3])
-    p.createMultiBody(
+    visual_action = physics_client.createVisualShape(shapeType=0, radius=0.01, rgbaColor=[1, 0, 0, .3])
+    physics_client.createMultiBody(
         baseVisualShapeIndex=visual_action,
         baseCollisionShapeIndex=collision,
         baseMass=0,
@@ -63,10 +66,12 @@ def visualize_trajectories(info: dict, action: list) -> None:
     )
 
 
-def visualize_goal(info: dict) -> None:
-    visual_goal = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[1, 0, 0, .5])
+def visualize_goal(info: dict, physics_client=None) -> None:
+    if physics_client is None:
+        return
+    visual_goal = physics_client.createVisualShape(shapeType=0, radius=0.01, rgbaColor=[1, 0, 0, .5])
     collision = -1
-    p.createMultiBody(
+    physics_client.createMultiBody(
         baseVisualShapeIndex=visual_goal,
         baseCollisionShapeIndex=collision,
         baseMass=0,
@@ -74,11 +79,13 @@ def visualize_goal(info: dict) -> None:
     )
 
 
-def change_dynamics(cubex: int, lfriction: int, rfriction: int, ldamping: int, adamping: int) -> None:
-    p.changeDynamics(cubex, -1, lateralFriction=p.readUserDebugParameter(lfriction))
-    p.changeDynamics(cubex, -1, rollingFriction=p.readUserDebugParameter(rfriction))
-    p.changeDynamics(cubex, -1, linearDamping=p.readUserDebugParameter(ldamping))
-    p.changeDynamics(cubex, -1, angularDamping=p.readUserDebugParameter(adamping))
+def change_dynamics(cubex: int, lfriction: int, rfriction: int, ldamping: int, adamping: int, physics_client=None) -> None:
+    if physics_client is None:
+        return
+    physics_client.changeDynamics(cubex, -1, lateralFriction=physics_client.readUserDebugParameter(lfriction))
+    physics_client.changeDynamics(cubex, -1, rollingFriction=physics_client.readUserDebugParameter(rfriction))
+    physics_client.changeDynamics(cubex, -1, linearDamping=physics_client.readUserDebugParameter(ldamping))
+    physics_client.changeDynamics(cubex, -1, angularDamping=physics_client.readUserDebugParameter(adamping))
 
 
 def visualize_infotext(action: list, env: object, info: dict) -> None:
@@ -98,7 +105,7 @@ def visualize_infotext(action: list, env: object, info: dict) -> None:
     ]
 
     for text, pos, color in debug_params:
-        p.addUserDebugText(text, pos, textSize=1.0, lifeTime=0.5, textColorRGB=color)
+        pc.addUserDebugText(text, pos, textSize=1.0, lifeTime=0.5, textColorRGB=color)
 
 
 # Function to detect key presses and update action accordingly
@@ -138,9 +145,9 @@ def detect_key(keypress: dict, arg_dict: dict, action: list) -> list:
     return action
 
 
-def n_pressed(last_call_time):
+def n_pressed(last_call_time, physics_client=None):
     """Function which detects, whether the key n was pressed and new episode should be launched"""
-    keypress = p.getKeyboardEvents()
+    keypress = physics_client.getKeyboardEvents() if physics_client else {}
     now = time.time()
     if now - last_call_time > 0.5:
         for key in keypress.keys():
@@ -159,6 +166,7 @@ def test_env(env: object, arg_dict: dict) -> None:
     CAMERA_POS = ws_dict.get(workspace_name, {}).get("rendercamera", [1.2, 0, -30, [0.0, 0.5, 0.05]])
     
     obs, info = env.reset()
+    pc = env.unwrapped.p  # Physics client
     results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Success"])
     current_result = None
     env.render()
@@ -169,7 +177,7 @@ def test_env(env: object, arg_dict: dict) -> None:
     all_joint_names = robot_joint_names + gripper_joint_names
     # Use actual joint names - no arbitrary limit
     joints = all_joint_names
-    jointparams = [None] * len(all_joint_names)  # Will store parameter IDs from p.addUserDebugParameter
+    jointparams = [None] * len(all_joint_names)  # Will store parameter IDs from physics client debug parameters
 
     images = []
     video_path = None
@@ -191,53 +199,53 @@ def test_env(env: object, arg_dict: dict) -> None:
         print("No control method selected. Testing random actions in selected environment.")
         arg_dict["control"] = "random"
 
-    p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-    p.resetDebugVisualizerCamera(*CAMERA_POS)
-    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    pc.configureDebugVisualizer(pc.COV_ENABLE_GUI, 0)
+    pc.resetDebugVisualizerCamera(*CAMERA_POS)
+    pc.setAdditionalSearchPath("")
     last_call_time = time.time()
     if arg_dict["control"] == "slider":
-        p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
+        pc.configureDebugVisualizer(pc.COV_ENABLE_GUI, 1)
         if "joints" in arg_dict["robot_action"]:
             if 'gripper' in arg_dict["robot_action"]:
                 print("gripper is present")
                 for i in range(env.unwrapped.action_space.shape[0]):
                     if i < (env.unwrapped.action_space.shape[0] - len(env.unwrapped.robot.gjoints_rest_poses)):
-                        joints[i] = p.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i],
+                        joints[i] = pc.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i],
                                                             env.unwrapped.action_space.high[i], env.unwrapped.robot.init_joint_poses[i])
                     else:
-                        joints[i] = p.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i],
+                        joints[i] = pc.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i],
                                                             env.unwrapped.action_space.high[i], .02)
             else:
                 for i in range(env.unwrapped.action_space.shape[0]):
-                    joints[i] = p.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i], env.unwrapped.action_space.high[i],
+                    joints[i] = pc.addUserDebugParameter(joints[i], env.unwrapped.action_space.low[i], env.unwrapped.action_space.high[i],
                                                         env.unwrapped.robot.init_joint_poses[i])
         elif "absolute" in arg_dict["robot_action"]:
             if 'gripper' in arg_dict["robot_action"]:
                 print("gripper is present")
                 for i in range(env.action_space.shape[0]):
                     if i < (env.action_space.shape[0] - len(env.unwrapped.robot.gjoints_rest_poses)):
-                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
+                        joints[i] = pc.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
                     else:
-                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
+                        joints[i] = pc.addUserDebugParameter(joints[i], -1, 1, .02)
             else:
                 for i in range(env.action_space.shape[0]):
-                    joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
+                    joints[i] = pc.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
         elif "step" in arg_dict["robot_action"]:
             if 'gripper' in arg_dict["robot_action"]:
                 print("gripper is present")
                 for i in range(env.action_space.shape[0]):
                     if i < (env.action_space.shape[0] - len(env.unwrapped.robot.gjoints_rest_poses)):
-                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
+                        joints[i] = pc.addUserDebugParameter(joints[i], -1, 1, 0)
                     else:
-                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
+                        joints[i] = pc.addUserDebugParameter(joints[i], -1, 1, .02)
             else:
                 for i in range(env.action_space.shape[0]):
-                    joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
+                    joints[i] = pc.addUserDebugParameter(joints[i], -1, 1, 0)
 
-    #p.addUserDebugParameter("Lateral Friction", 0, 100, 0)
-    #p.addUserDebugParameter("Spinning Friction", 0, 100, 0)
-    #p.addUserDebugParameter("Linear Damping", 0, 100, 0)
-    #p.addUserDebugParameter("Angular Damping", 0, 100, 0)
+    #pc.addUserDebugParameter("Lateral Friction", 0, 100, 0)
+    #pc.addUserDebugParameter("Spinning Friction", 0, 100, 0)
+    #pc.addUserDebugParameter("Linear Damping", 0, 100, 0)
+    #pc.addUserDebugParameter("Angular Damping", 0, 100, 0)
 
     if arg_dict["vsampling"]:
         visualize_sampling_area(arg_dict)
@@ -251,7 +259,7 @@ def test_env(env: object, arg_dict: dict) -> None:
     if arg_dict["control"] == "slider":
         action = []
         for i in range(env.action_space.shape[0]):
-            jointparams[i] = p.readUserDebugParameter(joints[i])
+            jointparams[i] = pc.readUserDebugParameter(joints[i])
             action.append(jointparams[i])
 
     eval_episodes = arg_dict.get("eval_episodes", 50)
@@ -274,7 +282,7 @@ def test_env(env: object, arg_dict: dict) -> None:
             if arg_dict["control"] == "slider":
                 action = []
                 for i in range(env.action_space.shape[0]):
-                    jointparams[i] = p.readUserDebugParameter(joints[i])
+                    jointparams[i] = pc.readUserDebugParameter(joints[i])
                     action.append(jointparams[i])
 
             if arg_dict["control"] == "observation":
@@ -307,7 +315,7 @@ def test_env(env: object, arg_dict: dict) -> None:
                 #action[-len(gripper_values):] = env.env.unwrapped.robot.gripper_dict[reward_params["gripper"]]
                 action = oraculum_obj.perform_oraculum_task(t, env, action, info)
             elif arg_dict["control"] == "keyboard":
-                keypress = p.getKeyboardEvents()
+                keypress = pc.getKeyboardEvents()
                 action = detect_key(keypress, arg_dict, action)
             elif arg_dict["control"] == "random":
                 action = env.action_space.sample()
@@ -327,7 +335,7 @@ def test_env(env: object, arg_dict: dict) -> None:
                         f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
                         f"Reward: {reward:.4f}", end ="\r", flush=True)
 
-            n_p, last_call_time = n_pressed(last_call_time)
+            n_p, last_call_time = n_pressed(last_call_time, pc)
             if n_p:  # If key 'n' is pressed, switch to next task - useful if robot gets stuck
                 env.unwrapped.task.end_episode_fail("manual_switch")
                 done = True
@@ -523,7 +531,7 @@ def test_model(
     steps_sum = 0
     global done
 
-    p.resetDebugVisualizerCamera(*CAMERA_POS)
+    pc.resetDebugVisualizerCamera(*CAMERA_POS)
     model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
     for e in range(arg_dict["eval_episodes"]):
         done = False

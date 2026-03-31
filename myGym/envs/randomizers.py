@@ -1,7 +1,6 @@
 
 import numpy as np
 import os, glob, random
-import pybullet as p
 import importlib.resources as pkg_resources
 repodir = os.path.join(pkg_resources.files("myGym"), "")
 
@@ -130,10 +129,10 @@ class TextureRandomizer(Randomizer):
 
     def apply_texture(self, obj_id, patternPath="envs/dtd/images"):
         """
-        Apply texture to pybullet object
+        Apply texture to object
 
         Parameters:
-            :param obj_id: (int) ID obtained from `p.loadURDF/SDF/..()`
+            :param obj_id: (int) ID of object
             :param path: (str) Relative path to *.jpg (recursive) with textures
         """
         if patternPath is None:
@@ -145,9 +144,9 @@ class TextureRandomizer(Randomizer):
           pp = os.path.abspath(os.path.join(repodir, str(patternPath)))
           texture_paths = glob.glob(os.path.join(pp, '**', '*.jpg'), recursive=True)
         random_texture_path = texture_paths[random.randint(0, len(texture_paths) - 1)]
-        textureId = p.loadTexture(random_texture_path)
+        textureId = self.env.p.loadTexture(random_texture_path)
         try:
-            p.changeVisualShape(obj_id, -1, rgbaColor=[1, 1, 1, 1], textureUniqueId=textureId)
+            self.env.p.changeVisualShape(obj_id, -1, rgbaColor=[1, 1, 1, 1], textureUniqueId=textureId)
         except:
             print("Failed to apply texture to obj ID:"+str(obj_id)+" from path="+str(pp))
 
@@ -184,10 +183,10 @@ class ColorRandomizer(Randomizer):
             else:
                 if "rgb_color" in self.randomized_dimensions and self.randomized_dimensions["rgb_color"]:
                     new_value = self.dimensions["rgb_color"].randomize()
-                    p.changeVisualShape(object_id, -1, rgbaColor=np.append(new_value, 1))
+                    self.env.p.changeVisualShape(object_id, -1, rgbaColor=np.append(new_value, 1))
                 if "specular_color" in self.randomized_dimensions and self.randomized_dimensions["specular_color"]:
                     new_value = self.dimensions["specular_color"].randomize()
-                    p.changeVisualShape(object_id, -1, specularColor=new_value)
+                    self.env.p.changeVisualShape(object_id, -1, specularColor=new_value)
 
 
 class JointRandomizer(Randomizer):
@@ -201,13 +200,13 @@ class JointRandomizer(Randomizer):
             self.random_reset_joints(object_id)
 
     def random_reset_joints(self, object_id):
-        num_joints = p.getNumJoints(object_id)
+        num_joints = self.env.p.getNumJoints(object_id)
         #joint_poses = list(np.random.uniform(0, 2*3.14, num_joints))
         for jid in range(num_joints):
-            joint_limits = p.getJointInfo(object_id, jid)[8:10]
+            joint_limits = self.env.p.getJointInfo(object_id, jid)[8:10]
             joint_pose = np.random.uniform(joint_limits[0], joint_limits[1])
             # To apply ignore dynamics:
-            p.resetJointState(object_id, jid, joint_pose)
+            self.env.p.resetJointState(object_id, jid, joint_pose)
             # p.setJointMotorControl2(object_id,
             #                         jid,
             #                         p.POSITION_CONTROL,

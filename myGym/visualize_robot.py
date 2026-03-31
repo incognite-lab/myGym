@@ -1,5 +1,4 @@
-import pybullet as p
-import pybullet_data
+from myGym.envs.mujoco_client import MujocoClient, GUI, DIRECT
 import argparse
 import time
 import numpy as np
@@ -169,8 +168,9 @@ def main():
     print(f"\nSelected robot: {selected_robot}")
 
     # Initialize PyBullet
-    physicsClient = p.connect(p.GUI)
-    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    physicsClient = MujocoClient(connection_mode=GUI)
+    p.setGravity(0, 0, -9.81)  # Initialize physics
+    # MuJoCo handles data paths internally)
     p.setGravity(0, 0, -9.81)
     
     # Get workspace dictionary
@@ -249,7 +249,7 @@ def main():
         for joint_idx in range(num_joints):
             joint_info = p.getJointInfo(robot_id, joint_idx)
             joint_type = joint_info[2]
-            if joint_type != p.JOINT_FIXED:
+            if joint_type != MujocoClient.JOINT_FIXED:
                 non_fixed_joints.append(joint_idx)
         
         # Reset joint states
@@ -267,7 +267,7 @@ def main():
         joint_type = joint_info[2]
         
         # Only create sliders for non-fixed joints
-        if joint_type != p.JOINT_FIXED:
+        if joint_type != MujocoClient.JOINT_FIXED:
             lower = joint_info[8]
             upper = joint_info[9]
             
@@ -282,7 +282,7 @@ def main():
             # Convert joint limits from radians to degrees for display
             lower_deg = lower * 57.2958
             upper_deg = upper * 57.2958
-            if joint_type == p.JOINT_REVOLUTE:
+            if joint_type == MujocoClient.JOINT_REVOLUTE:
                 current_pos_deg = current_pos * 57.2958
                 slider = p.addUserDebugParameter(
                     paramName=joint_name + " (deg)",
@@ -342,7 +342,7 @@ def main():
             # Check keyboard events
             keys = p.getKeyboardEvents()
             
-            if ord('o') in keys and keys[ord('o')] & p.KEY_WAS_TRIGGERED:
+            if ord('o') in keys and keys[ord('o')] & MujocoClient.KEY_WAS_TRIGGERED:
                 # Save gripper open values
                 gjoint_values = []
                 gjoint_names = []
@@ -352,7 +352,7 @@ def main():
                     if 'gjoint' in joint_name:
                         value_deg = p.readUserDebugParameter(slider_id)
                         joint_type = joint_info[2]
-                        if joint_type == p.JOINT_REVOLUTE:
+                        if joint_type == MujocoClient.JOINT_REVOLUTE:
                             value = value_deg * 0.0174533  # Convert degrees to radians
                         else:
                             value = value_deg
@@ -376,7 +376,7 @@ def main():
                 else:
                     print("No gripper joints (containing 'gjoint') found in robot")
             
-            if ord('c') in keys and keys[ord('c')] & p.KEY_WAS_TRIGGERED:
+            if ord('c') in keys and keys[ord('c')] & MujocoClient.KEY_WAS_TRIGGERED:
                 # Save gripper closed values
                 gjoint_values = []
                 gjoint_names = []
@@ -386,7 +386,7 @@ def main():
                     if 'gjoint' in joint_name:
                         value_deg = p.readUserDebugParameter(slider_id)
                         joint_type = joint_info[2]
-                        if joint_type == p.JOINT_REVOLUTE:
+                        if joint_type == MujocoClient.JOINT_REVOLUTE:
                             value = value_deg * 0.0174533  # Convert degrees to radians
                         else:
                             value = value_deg
@@ -410,14 +410,14 @@ def main():
                 else:
                     print("No gripper joints (containing 'gjoint') found in robot")
             
-            if ord('t') in keys and keys[ord('t')] & p.KEY_WAS_TRIGGERED:
+            if ord('t') in keys and keys[ord('t')] & MujocoClient.KEY_WAS_TRIGGERED:
                 # Print current joint values
                 joint_values = []
                 for joint_idx, slider_id in sliders:
                     value_deg = p.readUserDebugParameter(slider_id)
                     joint_info = p.getJointInfo(robot_id, joint_idx)
                     joint_type = joint_info[2]
-                    if joint_type == p.JOINT_REVOLUTE:
+                    if joint_type == MujocoClient.JOINT_REVOLUTE:
                         value = value_deg * 0.0174533  # Convert degrees to radians
                     else:
                         value = value_deg
@@ -453,14 +453,14 @@ def main():
                 value_deg = p.readUserDebugParameter(slider_id)
                 joint_info = p.getJointInfo(robot_id, joint_idx)
                 joint_type = joint_info[2]
-                if joint_type == p.JOINT_REVOLUTE:
+                if joint_type == MujocoClient.JOINT_REVOLUTE:
                     value = value_deg * 0.0174533  # Convert degrees back to radians
                 else:
                     value = value_deg
                 p.setJointMotorControl2(
                     bodyIndex=robot_id,
                     jointIndex=joint_idx,
-                    controlMode=p.POSITION_CONTROL,
+                    controlMode=MujocoClient.POSITION_CONTROL,
                     targetPosition=value,
                     force=500
                 )

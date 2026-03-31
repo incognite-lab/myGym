@@ -2,7 +2,7 @@
     #Environment
     "env_name"  :"Gym-v0",
     "workspace" :"table_complex",
-    "engine"    :"pybullet",
+    "engine"    :"mujoco",
     "render"    :"opengl",
     "seed"      :1,
     "camera"    :0,

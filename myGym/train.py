@@ -51,7 +51,7 @@ from myGym.stable_baselines_mygym.ppoSB3 import PPO as PPO_P
 from myGym.stable_baselines_mygym.Subproc_vec_envSB3 import SubprocVecEnv
 
 # This is a global variable for the type of engine we are working with
-AVAILABLE_SIMULATION_ENGINES = ["pybullet"]
+AVAILABLE_SIMULATION_ENGINES = ["mujoco"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["pytorch"]
 
 
@@ -98,7 +98,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
     if for_train:
         if arg_dict["engine"] == "mujoco":
             env = VecMonitor(env, model_logdir) if arg_dict["multiprocessing"] else Monitor(env, model_logdir)
-        elif arg_dict["engine"] == "pybullet" and not arg_dict["multiprocessing"]:
+        else:
             env = Monitor(env, filename=model_logdir, info_keywords=tuple('d'))
 
     if arg_dict["algo"] == "her":
@@ -231,10 +231,8 @@ def train(env, implemented_combos, model_logdir, arg_dict, pretrained_model=None
     print("Training time: {:.2f} s".format(time.time() - start_time))
     print("Training steps: {:} s".format(model.num_timesteps))
 
-    # info_keywords in monitor class above is necessary for pybullet to save_results
-    # when using the info_keywords for mujoco we get an error
-    if arg_dict["engine"] == "pybullet":
-        save_results(arg_dict, model_name, env, model_logdir)
+    # Save results after training
+    save_results(arg_dict, model_name, env, model_logdir)
     return model
 
 

@@ -7,8 +7,7 @@ from typing import Dict, Any
 import cv2
 import imageio
 import numpy as np
-import pybullet as p
-import pybullet_data
+from myGym.envs.mujoco_client import MujocoClient
 from numpy import matrix
 from sklearn.model_selection import ParameterGrid
 import pandas as pd
@@ -19,7 +18,7 @@ from myGym.train import get_parser, get_arguments, configure_implemented_combos,
 
 clear = lambda: os.system('clear')
 
-AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
+AVAILABLE_SIMULATION_ENGINES = ["mujoco"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
 TASK_TYPE_MAPPING = {"A": "train_A_RDDL.json", "AG": "train_AG_RDDL.json", "AGM": "train_AGM_RDDL.json",
@@ -169,7 +168,7 @@ def test_env(env: object, arg_dict: dict) -> list:
 
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
-    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    # MuJoCo handles data paths internally)
     last_call_time = time.time()
     if arg_dict["control"] == "slider":
         p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)

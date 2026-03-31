@@ -49,7 +49,7 @@ class CustomEvalCallback(EvalCallback):
                  deterministic: bool = False,
                  render: bool = False,
                  verbose: int = 1,
-                 physics_engine="pybullet",
+                 physics_engine="mujoco",
                  gui_on=True,
                  record=False,
                  camera_id=0,
@@ -161,7 +161,7 @@ class CustomEvalCallback(EvalCallback):
 
                 #print("distance_error", distance_error)
 
-                if self.physics_engine == "pybullet":
+                if self.physics_engine == "mujoco":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
                         render_info = evaluation_env.render(mode="rgb_array", camera_id=self.camera_id)
                         image = render_info[self.camera_id]["image"]
@@ -283,7 +283,7 @@ class MultiPPOEvalCallback(EvalCallback):
                  deterministic: bool = False,
                  render: bool = False,
                  verbose: int = 1,
-                 physics_engine="pybullet",
+                 physics_engine="mujoco",
                  gui_on=True,
                  record=False,
                  camera_id=0,
@@ -395,7 +395,7 @@ class MultiPPOEvalCallback(EvalCallback):
                         last_steps = steps
 
                 distance_error = env_reward.last_result["absolute_distance"] #Compute how far from goal is the gripper/object
-                if self.physics_engine == "pybullet":
+                if self.physics_engine == "mujoco":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
                         render_info = self.eval_env.render(mode="rgb_array", camera_id=self.camera_id)
                         image = render_info[self.camera_id]["image"]
@@ -522,7 +522,7 @@ class PPOEvalCallback(EvalCallback):
                  deterministic: bool = False,
                  render: bool = False,
                  verbose: int = 1,
-                 physics_engine="pybullet",
+                 physics_engine="mujoco",
                  gui_on=True,
                  record=False,
                  camera_id=0,
@@ -633,7 +633,7 @@ class PPOEvalCallback(EvalCallback):
                         last_steps = steps
                 distance_error = env_reward.last_result["absolute_distance"]
 
-                if self.physics_engine == "pybullet":
+                if self.physics_engine == "mujoco":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
                         render_info = self.eval_env.render(mode="rgb_array", camera_id=self.camera_id)
                         image = render_info[self.camera_id]["image"]
@@ -756,7 +756,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
     """
 
     def __init__(self, check_freq: int, logdir: str, verbose=1,
-                 engine="pybullet",
+                 engine="mujoco",
                  env="None",
                  stats_every=50,
                  save_success_graph_every_steps=40_000,

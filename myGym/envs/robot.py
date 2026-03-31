@@ -27,7 +27,7 @@ class Robot:
         :param dimension_velocity: (float) Maximum allowed velocity for robot movements in individual x,y,z axis
         :param max_velocity: (float) Maximum allowed velocity for robot movements. Should be adjusted in case of sim2real scenario.
         :param max_force: (float) Maximum allowed force reached by individual joint motor. Should be adjusted in case of sim2real scenario.
-        :param pybullet_client: Which pybullet client the environment should refere to in case of parallel existence of multiple instances of this environment
+        :param pybullet_client: Physics client (MujocoClient) for the environment
     """
     def __init__(self,
                  robot='kuka',

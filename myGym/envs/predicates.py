@@ -1,7 +1,6 @@
 #from myGym.envs.igibson_predicates import *
 from myGym.envs import env_object
 from myGym.envs.test_volume_class import VolumeMesh
-import pybullet as p
 import open3d as o3d
 import numpy as np
 
@@ -9,8 +8,12 @@ class Touching():
     def set_value(self, obj1, obj2):
         raise NotImplementedError()
 
-    def get_value(self, obj1, obj2):
-        overlap_objs = p.getOverlappingObjects(obj1.get_bounding_box()[0], obj1.get_bounding_box()[4])
+    def get_value(self, obj1, obj2, physics_client=None):
+        if physics_client is None:
+            return False
+        overlap_objs = physics_client.getOverlappingObjects(obj1.get_bounding_box()[0], obj1.get_bounding_box()[4])
+        if overlap_objs is None:
+            return False
         overlapping = list(o[0] for o in overlap_objs)
         return obj2.uid in overlapping
 
@@ -19,8 +22,12 @@ class OnTop():
     def set_value(self, obj1, obj2):
         raise NotImplementedError()
 
-    def get_value(self, obj1, obj2):
-        overlap_objs = p.getOverlappingObjects(obj1.get_bounding_box()[0], obj1.get_bounding_box()[4])
+    def get_value(self, obj1, obj2, physics_client=None):
+        if physics_client is None:
+            return False
+        overlap_objs = physics_client.getOverlappingObjects(obj1.get_bounding_box()[0], obj1.get_bounding_box()[4])
+        if overlap_objs is None:
+            return False
         overlapping = list(o[0] for o in overlap_objs)
         base1 = obj1.get_bounding_box()[-1][-1]
         base2 = obj2.get_bounding_box()[-1][-1]
