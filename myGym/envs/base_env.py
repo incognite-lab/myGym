@@ -4,13 +4,11 @@ import time
 import gymnasium as gym
 import numpy as np
 import importlib.resources as pkg_resources
-import pybullet
-import pybullet_data
-import pybullet_utils.bullet_client as bc
 from gymnasium import envs
 from gymnasium.utils import seeding
 
 from myGym.envs.camera import Camera
+from myGym.envs.mujoco_client import MujocoClient, GUI, DIRECT
 
 currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
 repodir = os.path.join(pkg_resources.files("myGym"), "./")
@@ -63,7 +61,7 @@ class BaseEnv(gym.Env):
 
         # Set general params
         self.time_step = 1. / 240.
-        self.urdf_root = pybullet_data.getDataPath()
+        self.urdf_root = os.path.join(pkg_resources.files("myGym"), "envs")
         self.observation = {}
 
         # Set objects information
@@ -83,16 +81,16 @@ class BaseEnv(gym.Env):
 
     def _connect_to_physics_server(self):
         """
-        Connect to the PyBullet physics server in SHARED_MEMORY, GUI or DIRECT mode
+        Connect to the MuJoCo physics server in GUI or DIRECT mode
         """
         if self.gui_on:
             try:
-                self.p = bc.BulletClient(connection_mode=pybullet.GUI)
+                self.p = MujocoClient(connection_mode=GUI)
                 self._set_gui_mode()
             except:  # multithread training allows only one gui instance
-                self.p = bc.BulletClient(connection_mode=pybullet.DIRECT)
+                self.p = MujocoClient(connection_mode=DIRECT)
         else:
-            self.p = bc.BulletClient(connection_mode=pybullet.DIRECT)
+            self.p = MujocoClient(connection_mode=DIRECT)
         self.p.setPhysicsEngineParameter(enableFileCaching=0)
 
     def _set_gui_mode(self):
@@ -100,17 +98,15 @@ class BaseEnv(gym.Env):
         Set GUI parameters: camera, shadows, extra elements
         """
         self.p.resetDebugVisualizerCamera(1.8, 70, -30, [0.0, 0.0, 0.0])
-        self.p.configureDebugVisualizer(self.p.COV_ENABLE_SHADOWS, self.shadows_on_gui)
-        self.p.configureDebugVisualizer(self.p.COV_ENABLE_GUI, 0)
+        self.p.configureDebugVisualizer(MujocoClient.COV_ENABLE_SHADOWS, self.shadows_on_gui)
+        self.p.configureDebugVisualizer(MujocoClient.COV_ENABLE_GUI, 0)
 
     def _set_physics(self):
         """
         Set physics engine parameters
         """
         self.p.setGravity(0, 0, -9.81)
-        self.p.setPhysicsEngineParameter(solverResidualThreshold=0.001, numSolverIterations=150, numSubSteps=20,
-                                         useSplitImpulse=1, collisionFilterMode=1,
-                                         constraintSolverType=self.p.CONSTRAINT_SOLVER_LCP_DANTZIG, globalCFM=0.000001,
+        self.p.setPhysicsEngineParameter(numSolverIterations=150, numSubSteps=20,
                                          contactBreakingThreshold=0.001)
         self.p.setTimeStep(self.time_step)
         self.p.setRealTimeSimulation(0)
@@ -218,7 +214,7 @@ class BaseEnv(gym.Env):
 
     def _draw_bounding_boxes(self):
         """
-        Show bounding boxes in tne PyBullet GUI
+        Show bounding boxes in the GUI
         """
         for object in self.env_objects:
             object.draw_bounding_box()
@@ -376,14 +372,14 @@ class CameraEnv(BaseEnv):
 
     Parameters:
         :param camera_resolution: (list) The number of pixels in image (WxH)
-        :param shadows_on: (bool) Whether to use shadows while rendering, only applies to ER_TINY_RENDERER
+        :param shadows_on: (bool) Whether to use shadows while rendering
         :param render_on: (bool) Turn on rendering
-        :param renderer: (int) self.p.ER_TINY_RENDERER (CPU) or self.p.ER_BULLET_HARDWARE_OPENGL (GPU)
+        :param renderer: (int) Renderer type (0=software, 1=hardware)
         :param active_cameras: (list) Set 1 at a position(=camera number) to save images from this camera
     """
 
     def __init__(self, camera_resolution=[1920, 1080], shadows_on=True,
-                 render_on=True, renderer=pybullet.ER_BULLET_HARDWARE_OPENGL,
+                 render_on=True, renderer=MujocoClient.ER_BULLET_HARDWARE_OPENGL,
                  active_cameras=None, **kwargs):
 
         super(CameraEnv, self).__init__(**kwargs)

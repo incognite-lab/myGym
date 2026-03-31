@@ -3,26 +3,26 @@ import atexit
 
 import xml.etree.ElementTree as ET
 from shutil import copyfile
-import pybullet
 import random
 import glob
 import numpy as np
 import sys, shutil
 from datetime import datetime
 import importlib.resources as pkg_resources
+from myGym.envs.mujoco_client import MujocoClient
 currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
 
 
 class EnvObject:
     """
-    Env object class for dynamic object in PyBullet environment
+    Env object class for dynamic object in MuJoCo environment
 
     Parameters:
         :param urdf_path: (string) Path to model of object
         :param position: (list) Position of object in the coordinate frame of the environment ([x,y,z])
         :param orientation: (list) Orientation of object in the coordinate frame of the environment (quaternion [x,y,z,w])
         :param fixed: (bool) Whether the object should have fixed position and orientation
-        :param pybullet_client: Which pybullet client the environment should refere to in case of parallel existence of multiple instances of this environment
+        :param pybullet_client: Physics client (MujocoClient) for the environment
     """
     def __init__(self, urdf_path, position=[0, 0, 0],
                  orientation=[0, 0, 0, 0], fixed=False,
@@ -347,11 +347,11 @@ class EnvObject:
         angleX = 3.14 * 0.5 + 3.14 * random.random()
         angleY = 3.14 * 0.5 + 3.14 * random.random()
         angleZ = 3.14 * 0.5 + 3.14 * random.random()
-        return pybullet.getQuaternionFromEuler([angleX, angleY, angleZ])
+        return MujocoClient.getQuaternionFromEuler([angleX, angleY, angleZ])
 
     @staticmethod
     def get_random_z_rotation():
         angleX = 0 #np.pi
         angleY = 0
         angleZ = 0 + (np.pi * random.random()) #np.pi + ...
-        return pybullet.getQuaternionFromEuler([angleX, angleY, angleZ])
+        return MujocoClient.getQuaternionFromEuler([angleX, angleY, angleZ])
