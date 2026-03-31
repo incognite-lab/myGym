@@ -167,10 +167,9 @@ def main():
     
     print(f"\nSelected robot: {selected_robot}")
 
-    # Initialize PyBullet
+    # Initialize MuJoCo physics client
     physicsClient = MujocoClient(connection_mode=GUI)
-    p.setGravity(0, 0, -9.81)  # Initialize physics
-    # MuJoCo handles data paths internally)
+    p = physicsClient  # Alias for compatibility
     p.setGravity(0, 0, -9.81)
     
     # Get workspace dictionary

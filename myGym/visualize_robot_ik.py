@@ -298,7 +298,7 @@ def main():
 
     # Initialize PyBullet
     physicsClient = MujocoClient(connection_mode=GUI)
-    # MuJoCo handles data paths internally)
+    # MuJoCo handles data paths internally
     p.setGravity(0, 0, -9.81)
 
     # Load workspace and plane (unless already loaded in workspace mode)

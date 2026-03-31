@@ -182,7 +182,7 @@ def test_env(env, arg_dict):
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
-    # MuJoCo handles data paths internally)
+    # MuJoCo handles data paths internally
     #newobject = p.loadURDF("cube.urdf", [3.1,3.7,0.1])
     #p.changeDynamics(newobject, -1, lateralFriction=1.00)
     #p.setRealTimeSimulation(1)

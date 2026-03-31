@@ -622,7 +622,7 @@ def test_robot_reachability(robot_key, r_dict, args):
     else:
         physics_client = p.connect(p.DIRECT)
     
-    # MuJoCo handles data paths internally)
+    # MuJoCo handles data paths internally
     p.setGravity(0, 0, -9.81)
     
     # Load scene similar to _setup_scene in gym_env
@@ -830,7 +830,7 @@ def test_robot_reachability(robot_key, r_dict, args):
         if not args.gui:
             p.disconnect()
             physics_client = p.connect(p.GUI)
-            # MuJoCo handles data paths internally)
+            # MuJoCo handles data paths internally
             p.setGravity(0, 0, -9.81)
             
             # Reload scene

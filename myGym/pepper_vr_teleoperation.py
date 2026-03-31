@@ -250,7 +250,7 @@ class PepperTeleoperation:
         
         # Initialize PyBullet
         self.physics_client = p.connect(p.GUI)
-        # MuJoCo handles data paths internally)
+        # MuJoCo handles data paths internally
         p.setGravity(0, 0, -9.81)
         p.setRealTimeSimulation(1)
         

@@ -107,7 +107,7 @@ def load_robot(urdf_path: str):
     p.resetSimulation()
     p.setTimeStep(TIME_STEP)
     p.setGravity(0, 0, -9.81)
-    # MuJoCo handles data paths internally)
+    # MuJoCo handles data paths internally
     try:
         with _FDOutputCapture() as cap:
             rid = p.loadURDF(urdf_path, useFixedBase=True)

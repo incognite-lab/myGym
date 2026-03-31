@@ -168,7 +168,7 @@ def test_env(env: object, arg_dict: dict) -> list:
 
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
-    # MuJoCo handles data paths internally)
+    # MuJoCo handles data paths internally
     last_call_time = time.time()
     if arg_dict["control"] == "slider":
         p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)

@@ -155,7 +155,7 @@ def main():
     else:
         physicsClient = p.connect(p.GUI)
     
-    # MuJoCo handles data paths internally)
+    # MuJoCo handles data paths internally
     p.setGravity(0, 0, -9.81)
     
     # Load plane
