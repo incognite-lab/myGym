@@ -4,8 +4,7 @@ Visualize all URDF objects from the myGym/envs/objects directory.
 This script recursively finds all URDF files and displays them in a square grid on a plane.
 """
 
-import pybullet as p
-import pybullet_data
+from myGym.envs.mujoco_client import MujocoClient, GUI, DIRECT
 import argparse
 import time
 import os
@@ -156,7 +155,7 @@ def main():
     else:
         physicsClient = p.connect(p.GUI)
     
-    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    # MuJoCo handles data paths internally)
     p.setGravity(0, 0, -9.81)
     
     # Load plane

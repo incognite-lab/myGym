@@ -10,8 +10,7 @@ import argparse
 import os
 import sys
 import numpy as np
-import pybullet as p
-import pybullet_data
+from myGym.envs.mujoco_client import MujocoClient, GUI, DIRECT
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -623,7 +622,7 @@ def test_robot_reachability(robot_key, r_dict, args):
     else:
         physics_client = p.connect(p.DIRECT)
     
-    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    # MuJoCo handles data paths internally)
     p.setGravity(0, 0, -9.81)
     
     # Load scene similar to _setup_scene in gym_env
@@ -831,7 +830,7 @@ def test_robot_reachability(robot_key, r_dict, args):
         if not args.gui:
             p.disconnect()
             physics_client = p.connect(p.GUI)
-            p.setAdditionalSearchPath(pybullet_data.getDataPath())
+            # MuJoCo handles data paths internally)
             p.setGravity(0, 0, -9.81)
             
             # Reload scene

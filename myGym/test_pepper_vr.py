@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 # Disable GUI for testing
 os.environ['PYBULLET_NO_GUI'] = '1'
 
-import pybullet as p
+from myGym.envs.mujoco_client import MujocoClient, GUI, DIRECT
 import numpy as np
 from myGym.pepper_vr_teleoperation import (
     VRPose, SimulatedVRInput, PepperTeleoperation

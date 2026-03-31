@@ -29,8 +29,7 @@ Author: myGym Team
 License: MIT
 """
 
-import pybullet as p
-import pybullet_data
+from myGym.envs.mujoco_client import MujocoClient, GUI, DIRECT
 import numpy as np
 import argparse
 import time
@@ -251,7 +250,7 @@ class PepperTeleoperation:
         
         # Initialize PyBullet
         self.physics_client = p.connect(p.GUI)
-        p.setAdditionalSearchPath(pybullet_data.getDataPath())
+        # MuJoCo handles data paths internally)
         p.setGravity(0, 0, -9.81)
         p.setRealTimeSimulation(1)
         

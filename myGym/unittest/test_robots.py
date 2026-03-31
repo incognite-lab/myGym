@@ -3,8 +3,7 @@ import os
 import sys
 import time
 import argparse
-import pybullet as p
-import pybullet_data
+from myGym.envs.mujoco_client import MujocoClient, GUI, DIRECT
 from myGym.utils.helpers import get_robot_dict
 import re
 import tempfile
@@ -108,7 +107,7 @@ def load_robot(urdf_path: str):
     p.resetSimulation()
     p.setTimeStep(TIME_STEP)
     p.setGravity(0, 0, -9.81)
-    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    # MuJoCo handles data paths internally)
     try:
         with _FDOutputCapture() as cap:
             rid = p.loadURDF(urdf_path, useFixedBase=True)
