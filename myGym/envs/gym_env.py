@@ -173,6 +173,8 @@ class GymEnv(CameraEnv):
         if self.reach_gesture and not self.nl_mode:
             raise Exception("Reach gesture task can't be started without natural language mode")
 
+        # Remove engine param - MuJoCo is now the only engine
+        kwargs.pop('engine', None)
         super(GymEnv, self).__init__(active_cameras=active_cameras, **kwargs)
 
 
@@ -211,11 +213,20 @@ class GymEnv(CameraEnv):
         """
         Set-up environment scene. Load static objects, apply textures. Load robot.
         """
-        self._add_scene_object_uid(self._load_static_scene_urdf(path="rooms/plane.urdf", name="floor"), "floor")
+        # Use MuJoCo native ground plane instead of plane.urdf (flat meshes cause qhull issues)
+        floor_uid = self._create_ground_plane()
+        self._add_scene_object_uid(floor_uid, "floor")
         if self.visgym:
-            self._add_scene_object_uid(self._load_urdf(path="rooms/room.urdf"), "gym")
-            [self._add_scene_object_uid(self._load_urdf(path="rooms/visual/" + self.workspace_dict[w]['urdf']), w)
-             for w in self.workspace_dict if w != self.workspace]
+            try:
+                self._add_scene_object_uid(self._load_urdf(path="rooms/room.urdf"), "gym")
+            except Exception:
+                pass  # room.urdf may have flat mesh issues too
+            for w in self.workspace_dict:
+                if w != self.workspace:
+                    try:
+                        self._add_scene_object_uid(self._load_urdf(path="rooms/visual/" + self.workspace_dict[w]['urdf']), w)
+                    except Exception:
+                        pass  # Skip visual URDFs that fail to load
         self._add_scene_object_uid(
             self._load_static_scene_urdf(path="rooms/collision/" + self.workspace_dict[self.workspace]['urdf'], name=self.workspace), self.workspace)
         ws_texture = self.workspace_dict[self.workspace]['texture'] if get_module_type(
@@ -230,10 +241,19 @@ class GymEnv(CameraEnv):
                   "max_velocity": self.max_velocity, "max_force": self.max_force, "dimension_velocity": self.dimension_velocity,
                   "pybullet_client": self.p, "reward_type": self.unwrapped.reward, "use_fixed_base": self.robot_fixed}
         self.robot = robot.Robot(self.robot_type, robot_action=self.robot_action, task_type=self.task_type, **kwargs)
-        # if "tiago" in self.robot_type:
-        #     #TODO: set a proper init state value for tiago joints, so that IK works well
-        #     self.p.resetJointState(self.robot.robot_uid, self.robot.motor_indices[2], 1.7)
         if self.workspace == 'collabtable': self.human = Human(model_name='human', pybullet_client=self.p)
+
+    def _create_ground_plane(self):
+        """Create a ground plane using MuJoCo native geometry instead of URDF mesh."""
+        return self.p.createMultiBody(
+            baseMass=0,
+            baseVisualShapeIndex=self.p.createVisualShape(
+                shapeType=0,
+                halfExtents=[10, 10, 0.01],
+                rgbaColor=[0.6, 0.6, 0.6, 1.0]
+            ),
+            basePosition=[0, 0, -0.73],
+        )
 
 
     def _load_urdf(self, path, fixedbase=True, maxcoords=True):

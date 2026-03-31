@@ -124,16 +124,18 @@ class Robot:
         """
         Load SDF or URDF model of specified robot and place it in the environment to specified position and orientation
         """
-        if self.robot_path[-3:] == 'sdf':
+        # Strip leading / from robot_path to ensure os.path.join works correctly
+        robot_path = self.robot_path.lstrip('/')
+        if robot_path[-3:] == 'sdf':
             objects = self.p.loadSDF(
-               os.path.join(pkg_resources.files("myGym"), self.robot_path))
+               os.path.join(pkg_resources.files("myGym"), robot_path))
             self.robot_uid = objects[0]
             self.p.resetBasePositionAndOrientation(self.robot_uid, self.position,
                                               self.orientation)
         else:
 
             self.robot_uid = self.p.loadURDF(
-                os.path.join(pkg_resources.files("myGym"), self.robot_path),
+                os.path.join(pkg_resources.files("myGym"), robot_path),
                 self.position, self.orientation, useFixedBase=self.use_fixed_base, flags=(self.p.URDF_USE_SELF_COLLISION))
         for jid in range(self.p.getNumJoints(self.robot_uid)):
                 self.p.changeDynamics(self.robot_uid, jid,  collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
@@ -153,15 +155,17 @@ class Robot:
             link_name = joint_info[12]
             self.link_names.append(str(joint_info[12]))
             self.link_indices.append(i)
-            if link_name.decode("utf-8") == 'gripper':
+            link_name_str = link_name.decode("utf-8") if isinstance(link_name, bytes) else str(link_name)
+            joint_name_str = joint_name.decode("utf-8") if isinstance(joint_name, bytes) else str(joint_name)
+            if link_name_str == 'gripper' or link_name_str.endswith('gripper'):
                 self.gripper_index = i
-            if link_name.decode("utf-8") == 'endeffector':
+            if link_name_str == 'endeffector' or link_name_str.endswith('endeffector'):
                 self.end_effector_index = i
-            if q_index > -1 and ("rjoint" in joint_name.decode("utf-8") or "pjoint" in joint_name.decode("utf-8")): # Fixed joints have q_index -1
+            if q_index > -1 and ("rjoint" in joint_name_str or "pjoint" in joint_name_str): # Fixed joints have q_index -1
                 self.motor_names.append(str(joint_name))
                 self.motor_indices.append(i)
                 self.rjoint_positions.append(self.p.getJointState(self.robot_uid,i)[0])
-            if q_index > -1 and "gjoint" in joint_name.decode("utf-8"):
+            if q_index > -1 and "gjoint" in joint_name_str:
                 self.gripper_names.append(str(joint_name))
                 self.gripper_indices.append(i)
                 self.gjoint_positions.append(self.p.getJointState(self.robot_uid,i)[0])

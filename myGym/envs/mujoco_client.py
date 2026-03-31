@@ -135,7 +135,11 @@ class MujocoClient:
         self._spec = mujoco.MjSpec()
         self._spec.option.gravity = np.array([0, 0, -9.81])
         self._spec.option.timestep = 1.0 / 240.0
-        self._spec.compiler.angle = "radian"
+        self._spec.compiler.degree = False  # Use radians
+        self._spec.compiler.fusestatic = False  # Keep fixed joints as separate bodies
+        self._spec.compiler.balanceinertia = True  # Auto-fix non-positive inertia
+        self._spec.compiler.boundmass = 0.001  # Minimum mass for bodies
+        self._spec.compiler.boundinertia = 0.00001  # Minimum inertia for bodies
 
         self._model = None
         self._data = None
@@ -221,31 +225,73 @@ class MujocoClient:
         for uid, info in self._bodies.items():
             prefix = info.prefix
 
-            # Find joints belonging to this body
+            # First find all bodies belonging to this loaded model
+            info.body_indices = []
+            info.body_names = []
+            for i in range(self._model.nbody):
+                body_name = mujoco.mj_id2name(self._model, mujoco.mjtObj.mjOBJ_BODY, i)
+                if body_name and body_name.startswith(prefix):
+                    info.body_indices.append(i)
+                    info.body_names.append(body_name)
+
+            # Build a set of bodies that have joints
+            bodies_with_joints = set()
+            for i in range(self._model.njnt):
+                jnt_name = mujoco.mj_id2name(self._model, mujoco.mjtObj.mjOBJ_JOINT, i)
+                if jnt_name and jnt_name.startswith(prefix):
+                    bodies_with_joints.add(self._model.jnt_bodyid[i])
+
+            # Build the joint list: includes both real joints and synthetic fixed joints
+            # for bodies that don't have real joints (to match PyBullet's behavior)
             info.joint_indices = []
             info.joint_names = []
             info.joint_types = []
             info.link_names = []
+            info._real_joint_flags = []  # True if real MuJoCo joint, False if synthetic fixed
+            info._body_id_for_joint = []  # MuJoCo body ID for each joint entry
+
+            # First add all real joints
             for i in range(self._model.njnt):
                 jnt_name = mujoco.mj_id2name(self._model, mujoco.mjtObj.mjOBJ_JOINT, i)
                 if jnt_name and jnt_name.startswith(prefix):
+                    # Skip free joints from the joint count
+                    if self._model.jnt_type[i] == mujoco.mjtJoint.mjJNT_FREE:
+                        continue
                     info.joint_indices.append(i)
                     info.joint_names.append(jnt_name)
-                    # Map MuJoCo joint type to PyBullet joint type
+                    info._real_joint_flags.append(True)
+
                     mj_type = self._model.jnt_type[i]
                     if mj_type == mujoco.mjtJoint.mjJNT_HINGE:
                         info.joint_types.append(self.JOINT_REVOLUTE)
                     elif mj_type == mujoco.mjtJoint.mjJNT_SLIDE:
                         info.joint_types.append(self.JOINT_PRISMATIC)
-                    elif mj_type == mujoco.mjtJoint.mjJNT_FREE:
-                        info.joint_types.append(self.JOINT_SPHERICAL)
                     else:
-                        info.joint_types.append(self.JOINT_FIXED)
+                        info.joint_types.append(self.JOINT_REVOLUTE)
 
-                    # Link name is the body that the joint connects to
                     body_id = self._model.jnt_bodyid[i]
+                    info._body_id_for_joint.append(body_id)
                     body_name = mujoco.mj_id2name(self._model, mujoco.mjtObj.mjOBJ_BODY, body_id)
                     link_name = body_name[len(prefix):] if body_name and body_name.startswith(prefix) else (body_name or "")
+                    info.link_names.append(link_name)
+
+            # Then add synthetic fixed joints for bodies without real joints
+            # (skip the root body, which is the first one)
+            for body_idx in info.body_indices:
+                if body_idx not in bodies_with_joints:
+                    body_name = mujoco.mj_id2name(self._model, mujoco.mjtObj.mjOBJ_BODY, body_idx)
+                    link_name = body_name[len(prefix):] if body_name and body_name.startswith(prefix) else (body_name or "")
+
+                    # Skip the root body of the model
+                    if body_idx == info.body_indices[0]:
+                        continue
+
+                    info.joint_indices.append(-1)  # -1 indicates synthetic fixed joint
+                    jnt_name = f"{prefix}fixed_{link_name}"
+                    info.joint_names.append(jnt_name)
+                    info.joint_types.append(self.JOINT_FIXED)
+                    info._real_joint_flags.append(False)
+                    info._body_id_for_joint.append(body_idx)
                     info.link_names.append(link_name)
 
             info.num_joints = len(info.joint_indices)
@@ -257,23 +303,16 @@ class MujocoClient:
                 if act_name and act_name.startswith(f"act_{prefix}"):
                     info.actuator_indices.append(i)
 
-            # Find bodies
-            info.body_indices = []
-            info.body_names = []
-            for i in range(self._model.nbody):
-                body_name = mujoco.mj_id2name(self._model, mujoco.mjtObj.mjOBJ_BODY, i)
-                if body_name and body_name.startswith(prefix):
-                    info.body_indices.append(i)
-                    info.body_names.append(body_name)
-
-            # Find geoms
+            # Find geoms - match by name prefix OR by belonging to a body in this group
             info.geom_indices = []
             info.geom_names = []
+            body_set = set(info.body_indices)
             for i in range(self._model.ngeom):
                 geom_name = mujoco.mj_id2name(self._model, mujoco.mjtObj.mjOBJ_GEOM, i)
-                if geom_name and geom_name.startswith(prefix):
+                geom_body_id = self._model.geom_bodyid[i]
+                if (geom_name and geom_name.startswith(prefix)) or geom_body_id in body_set:
                     info.geom_indices.append(i)
-                    info.geom_names.append(geom_name)
+                    info.geom_names.append(geom_name or f"geom_{i}")
 
     def _get_body_info(self, body_uid):
         """Get BodyInfo for a given body UID."""
@@ -282,17 +321,37 @@ class MujocoClient:
         return self._bodies[body_uid]
 
     def _local_to_global_joint(self, body_uid, local_joint_index):
-        """Convert local joint index (within a body) to global MuJoCo joint index."""
+        """Convert local joint index (within a body) to global MuJoCo joint index.
+        Returns -1 for synthetic fixed joints."""
         info = self._get_body_info(body_uid)
         if local_joint_index < 0 or local_joint_index >= info.num_joints:
             raise IndexError(f"Joint index {local_joint_index} out of range for body {body_uid} (has {info.num_joints} joints)")
         return info.joint_indices[local_joint_index]
 
-    def _local_to_global_actuator(self, body_uid, local_joint_index):
-        """Convert local joint index to global MuJoCo actuator index."""
+    def _is_real_joint(self, body_uid, local_joint_index):
+        """Check if a joint is a real MuJoCo joint (not synthetic fixed)."""
         info = self._get_body_info(body_uid)
-        if local_joint_index < len(info.actuator_indices):
-            return info.actuator_indices[local_joint_index]
+        if local_joint_index < len(info._real_joint_flags):
+            return info._real_joint_flags[local_joint_index]
+        return False
+
+    def _local_to_global_actuator(self, body_uid, local_joint_index):
+        """Convert local joint index to global MuJoCo actuator index.
+        Counts only real (non-fixed) joints for actuator mapping."""
+        info = self._get_body_info(body_uid)
+        # Count real joints before this index
+        real_idx = 0
+        for i in range(min(local_joint_index, len(info._real_joint_flags))):
+            if info._real_joint_flags[i]:
+                real_idx += 1
+            if i == local_joint_index:
+                break
+        # Only return actuator for real joints
+        if local_joint_index < len(info._real_joint_flags) and info._real_joint_flags[local_joint_index]:
+            # Count how many real joints come before this one
+            real_count = sum(1 for i in range(local_joint_index) if info._real_joint_flags[i])
+            if real_count < len(info.actuator_indices):
+                return info.actuator_indices[real_count]
         return None
 
     @staticmethod
@@ -373,14 +432,42 @@ class MujocoClient:
         abs_path = os.path.abspath(fileName)
         child_spec = mujoco.MjSpec.from_file(abs_path)
 
-        # Fix mesh directory - MuJoCo resolves meshes relative to URDF dir
-        # but some URDFs use ./obj/ paths where obj is a sibling dir
+        # Fix non-positive-definite inertia matrices (common in PyBullet URDFs)
+        # MuJoCo requires physically valid inertia, while PyBullet is more lenient
+        for body in child_spec.bodies:
+            inertia = body.fullinertia
+            if body.mass == 0 and np.all(inertia == 0):
+                continue  # Skip massless bodies
+            # Check if inertia is valid (all eigenvalues must be positive)
+            imat = np.array([[inertia[0], inertia[3], inertia[4]],
+                             [inertia[3], inertia[1], inertia[5]],
+                             [inertia[4], inertia[5], inertia[2]]])
+            try:
+                eigenvalues = np.linalg.eigvalsh(imat)
+                if np.any(eigenvalues <= 0):
+                    # Replace with diagonal inertia based on mass
+                    mass = max(body.mass, 0.001)
+                    body.fullinertia = np.array([mass * 0.01, mass * 0.01, mass * 0.01, 0, 0, 0])
+            except Exception:
+                mass = max(body.mass, 0.001)
+                body.fullinertia = np.array([mass * 0.01, mass * 0.01, mass * 0.01, 0, 0, 0])
+
+        # Apply compiler settings to child spec for URDF compatibility
+        child_spec.compiler.balanceinertia = True
+        child_spec.compiler.boundmass = 0.001
+        child_spec.compiler.boundinertia = 0.00001
+
+        # Fix mesh directory - MuJoCo's URDF compiler strips directory prefixes from
+        # mesh filenames. We need to help it find the mesh files.
         urdf_dir = os.path.dirname(abs_path)
-        # Check if there's an obj directory as sibling
+        # Check for obj directory at same level (./obj/mesh.obj) or as sibling of parent
+        obj_dir_same = os.path.join(urdf_dir, "obj")
         parent_dir = os.path.dirname(urdf_dir)
-        obj_dir = os.path.join(parent_dir, "obj")
-        if os.path.isdir(obj_dir):
-            child_spec.compiler.meshdir = obj_dir
+        obj_dir_parent = os.path.join(parent_dir, "obj")
+        if os.path.isdir(obj_dir_same):
+            child_spec.compiler.meshdir = obj_dir_same
+        elif os.path.isdir(obj_dir_parent):
+            child_spec.compiler.meshdir = obj_dir_parent
 
         # Create attachment frame
         frame = self._spec.worldbody.add_frame()
@@ -424,10 +511,14 @@ class MujocoClient:
         # Compile to discover joints, then add actuators
         self._compile()
 
-        # Add position servo actuators for all joints of this body
+        # Add position servo actuators for all real joints of this body
         info = self._bodies[uid]
         actuators_added = False
         for i, jnt_idx in enumerate(info.joint_indices):
+            # Skip synthetic fixed joints (jnt_idx == -1)
+            if jnt_idx == -1:
+                continue
+
             jnt_name = info.joint_names[i]
             jnt_type = self._model.jnt_type[jnt_idx]
 
@@ -526,7 +617,11 @@ class MujocoClient:
         self._spec = mujoco.MjSpec()
         self._spec.option.gravity = old_gravity
         self._spec.option.timestep = old_timestep
-        self._spec.compiler.angle = "radian"
+        self._spec.compiler.degree = False  # Use radians
+        self._spec.compiler.fusestatic = False  # Keep fixed joints as separate bodies
+        self._spec.compiler.balanceinertia = True
+        self._spec.compiler.boundmass = 0.001
+        self._spec.compiler.boundinertia = 0.00001
 
         self._model = None
         self._data = None
@@ -584,6 +679,28 @@ class MujocoClient:
         jnt_name = info.joint_names[joint_index]
         jnt_type = info.joint_types[joint_index]
         link_name = info.link_names[joint_index] if joint_index < len(info.link_names) else ""
+
+        # Handle synthetic fixed joints (no actual MuJoCo joint)
+        if global_jnt_idx == -1:
+            return (
+                joint_index,                          # 0: jointIndex
+                jnt_name.encode("utf-8"),             # 1: jointName
+                self.JOINT_FIXED,                     # 2: jointType
+                -1,                                   # 3: qIndex (fixed joints have -1)
+                -1,                                   # 4: uIndex
+                0,                                    # 5: flags
+                0.0,                                  # 6: jointDamping
+                0.0,                                  # 7: jointFriction
+                0.0,                                  # 8: jointLowerLimit
+                -1.0,                                 # 9: jointUpperLimit
+                0.0,                                  # 10: jointMaxForce
+                0.0,                                  # 11: jointMaxVelocity
+                link_name.encode("utf-8"),            # 12: linkName
+                (0.0, 0.0, 0.0),                      # 13: jointAxis
+                (0.0, 0.0, 0.0),                      # 14: parentFramePos
+                (0.0, 0.0, 0.0, 1.0),                # 15: parentFrameOrn
+                -1                                    # 16: parentIndex
+            )
 
         # Get joint properties from model
         qpos_adr = self._model.jnt_qposadr[global_jnt_idx]
@@ -644,6 +761,10 @@ class MujocoClient:
         self._ensure_compiled()
         global_jnt_idx = self._local_to_global_joint(body_uid, joint_index)
 
+        # Fixed/synthetic joints have no state
+        if global_jnt_idx == -1:
+            return (0.0, 0.0, (0, 0, 0, 0, 0, 0), 0.0)
+
         qpos_adr = self._model.jnt_qposadr[global_jnt_idx]
         dof_adr = self._model.jnt_dofadr[global_jnt_idx]
 
@@ -656,6 +777,10 @@ class MujocoClient:
         """Reset a joint to a specific position."""
         self._ensure_compiled()
         global_jnt_idx = self._local_to_global_joint(body_uid, joint_index)
+
+        # Skip fixed/synthetic joints
+        if global_jnt_idx == -1:
+            return
 
         qpos_adr = self._model.jnt_qposadr[global_jnt_idx]
         dof_adr = self._model.jnt_dofadr[global_jnt_idx]
@@ -780,14 +905,10 @@ class MujocoClient:
         self._ensure_compiled()
         info = self._get_body_info(body_uid)
 
-        # In PyBullet, link_index corresponds to joint_index
-        # The body connected by joint i is at body_indices[i+1] or similar
-        # We map joint index to the body it drives
-        if link_index < info.num_joints:
-            global_jnt_idx = info.joint_indices[link_index]
-            body_id = self._model.jnt_bodyid[global_jnt_idx]
+        # Use the _body_id_for_joint mapping for both real and synthetic joints
+        if link_index < len(info._body_id_for_joint):
+            body_id = info._body_id_for_joint[link_index]
         elif info.body_indices:
-            # If link_index equals num_joints, use the last body
             body_id = info.body_indices[min(link_index, len(info.body_indices) - 1)]
         else:
             return ((0, 0, 0), (0, 0, 0, 1), (0, 0, 0), (0, 0, 0, 1), (0, 0, 0), (0, 0, 0, 1))

@@ -299,7 +299,10 @@ class Rewarder(UniversalReward):
         self.relative_reward_history = []
         self.max_grip_dist = 1
         self.min_grip_dist = 0
-        _,self.prev_grip_dist = self.env.robot.check_gripper_status(observation["additional_obs"]["gjoints_states"])
+        if "gjoints_states" in observation.get("additional_obs", {}):
+            _,self.prev_grip_dist = self.env.robot.check_gripper_status(observation["additional_obs"]["gjoints_states"])
+        else:
+            self.prev_grip_dist = 0.0
         self.grip_absolute_reward_history = []
         self.grip_relative_reward_history = []
         #This will calculate self.last_results

@@ -35,7 +35,8 @@ class BaseEnv(gym.Env):
                  max_ep_steps=1024,
                  show_bounding_boxes_gui=False,
                  changing_light_gui=False,
-                 shadows_on_gui=True
+                 shadows_on_gui=True,
+                 **kwargs
                  ):
         self.gui_on = gui_on
         self.max_episode_steps = max_ep_steps

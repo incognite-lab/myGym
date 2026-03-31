@@ -118,6 +118,10 @@ class TaskModule():
     def get_additional_obs(self, d, robot):
         info = d.copy()
         info["additional_obs"] = {}
+        # Always populate gjoints_angles and gjoints_states as the reward system needs them
+        info["additional_obs"]["gjoints_angles"] = self.env.robot.get_gjoints_states()
+        _gstatus, _gmetric = self.env.robot.check_gripper_status(info["additional_obs"]["gjoints_angles"])
+        info["additional_obs"]["gjoints_states"] = [_gmetric]
         for key in d["additional_obs"]:
             if key == "joints_xyz":
                 o = []
