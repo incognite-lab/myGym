@@ -396,7 +396,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="body_yaw_joint" type="revolute">
+  <joint name="body_yaw_rjoint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="pelvis"/>
     <child link="waist_yaw_link"/>
@@ -771,7 +771,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="shoulder_pitch_r_joint" type="revolute">
+  <joint name="shoulder_pitch_r_rjoint" type="revolute">
     <origin rpy="-0.087266 0 0" xyz="0 -0.1444 0.37712"/>
     <parent link="waist_yaw_link"/>
     <child link="shoulder_pitch_r_link"/>
@@ -800,7 +800,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="shoulder_roll_r_joint" type="revolute">
+  <joint name="shoulder_roll_r_rjoint" type="revolute">
     <origin rpy="0 0 0" xyz="0 -0.068 0"/>
     <parent link="shoulder_pitch_r_link"/>
     <child link="shoulder_roll_r_link"/>
@@ -829,7 +829,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="shoulder_yaw_r_joint" type="revolute">
+  <joint name="shoulder_yaw_r_rjoint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 -0.1025"/>
     <parent link="shoulder_roll_r_link"/>
     <child link="shoulder_yaw_r_link"/>
@@ -858,7 +858,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="elbow_pitch_r_joint" type="revolute">
+  <joint name="elbow_pitch_r_rjoint" type="revolute">
     <origin rpy="0 0 0" xyz="0.02 0 -0.1975"/>
     <parent link="shoulder_yaw_r_link"/>
     <child link="elbow_pitch_r_link"/>
@@ -887,7 +887,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="elbow_yaw_r_joint" type="revolute">
+  <joint name="elbow_yaw_r_rjoint" type="revolute">
     <origin rpy="0 0 0" xyz="-0.02 0 -0.0543"/>
     <parent link="elbow_pitch_r_link"/>
     <child link="elbow_yaw_r_link"/>
@@ -916,7 +916,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="wrist_pitch_r_joint" type="revolute">
+  <joint name="wrist_pitch_r_rjoint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 -0.1887"/>
     <parent link="elbow_yaw_r_link"/>
     <child link="wrist_pitch_r_link"/>
@@ -945,7 +945,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="wrist_roll_r_joint" type="revolute">
+  <joint name="wrist_roll_r_rjoint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 -0.02"/>
     <parent link="wrist_pitch_r_link"/>
     <child link="wrist_roll_r_link"/>
@@ -1481,6 +1481,121 @@
       </geometry>
     </collision>
   </link>
+   <link name="gripper">
+  <visual>
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+    <geometry>
+      <sphere radius="0.005"/>
+    </geometry>
+    <material name="yellow">
+      <color rgba="1 1 0 1"/>
+    </material>
+  </visual>
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.0001"/>
+    <inertia ixx="1e-6" ixy="0" ixz="0"
+             iyy="1e-6" iyz="0"
+             izz="1e-6"/>
+  </inertial>
+</link>
+<joint name="gripper_joint" type="fixed">
+    	<parent link="R_base_link"/>
+    	<child link="gripper"/>
+    	<origin rpy="0 0 0" xyz="-0.00 -0.00 0.0"/>
+	</joint>
+  <link name="ee_x_axis">
+    <visual>
+    <origin xyz="0.03 0 0" rpy="0 1.57079632679 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="red">
+      <color rgba="1 0 0 1"/>
+    </material>
+  </visual>
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.0001"/>
+    <inertia ixx="1e-6" ixy="0" ixz="0"
+             iyy="1e-6" iyz="0"
+             izz="1e-6"/>
+  </inertial>
+    </link>  
+    <link name="ee_y_axis">
+  <visual>
+    <origin xyz="0 0.03 0" rpy="-1.57079632679 0 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="green">
+      <color rgba="0 1 0 1"/>
+    </material>
+  </visual>
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.0001"/>
+    <inertia ixx="1e-6" ixy="0" ixz="0"
+             iyy="1e-6" iyz="0"
+             izz="1e-6"/>
+  </inertial>
+    </link>
+    <link name="ee_z_axis">
+  <visual>
+    <origin xyz="0 0 0.03" rpy="0 0 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="blue">
+      <color rgba="0 0 1 1"/>
+    </material>
+  </visual>
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.0001"/>
+    <inertia ixx="1e-6" ixy="0" ixz="0"
+             iyy="1e-6" iyz="0"
+             izz="1e-6"/>
+  </inertial>
+</link>
+    <link name="endeffector">
+  <visual>
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+    <geometry>
+      <sphere radius="0.005"/>
+    </geometry>
+    <material name="yellow">
+      <color rgba="1 1 0 1"/>
+    </material>
+  </visual>
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.0001"/>
+    <inertia ixx="1e-6" ixy="0" ixz="0"
+             iyy="1e-6" iyz="0"
+             izz="1e-6"/>
+  </inertial>
+</link>
+<joint name="endeffector_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="endeffector"/>
+    	<origin rpy="0 -1.57 0" xyz="0.03 0.0 0.10"/>
+	</joint>
+	<joint name="ee_z_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_z_axis"/>
+    	<origin rpy="0 1.57 0" xyz="0.03 0.0 0.10"/>
+	</joint>
+    	<joint name="ee_x_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_x_axis"/>
+    	<origin rpy="0 0 1.57" xyz="0.03 0.0 0.10"/>
+	</joint>
+    <joint name="ee_y_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_y_axis"/>
+    	<origin rpy="1.57 0 0" xyz="0.03 0.0 0.10"/>
+	</joint>
   <!-- 右手拇指1：right_thumb_1 -->
   <link name="right_thumb_1">
     <inertial>
@@ -1504,7 +1619,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_thumb_1_joint" type="revolute">
+  <joint name="right_thumb_1_gjoint" type="revolute">
     <origin rpy="0 0 0" xyz="0.01696 0.02045 0.06635"/>
     <parent link="R_base_link"/>
     <child link="right_thumb_1"/>
@@ -1625,7 +1740,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_index_1_joint" type="revolute">
+  <joint name="right_index_1_gjoint" type="revolute">
     <origin rpy="1.5359 0 0" xyz="-0.000285 0.020275 0.136946"/>
     <parent link="R_base_link"/>
     <child link="right_index_1"/>
@@ -1686,7 +1801,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_middle_1_joint" type="revolute">
+  <joint name="right_middle_1_gjoint" type="revolute">
     <origin rpy="1.5708 0 0" xyz="-0.000285 0.00295 0.1371"/>
     <parent link="R_base_link"/>
     <child link="right_middle_1"/>
@@ -1747,7 +1862,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_ring_1_joint" type="revolute">
+  <joint name="right_ring_1_gjoint" type="revolute">
     <origin rpy="1.6232 0 0" xyz="-0.000285 -0.018271 0.136282"/>
     <parent link="R_base_link"/>
     <child link="right_ring_1"/>
@@ -1808,7 +1923,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_little_1_joint" type="revolute">
+  <joint name="right_little_1_gjoint" type="revolute">
     <origin rpy="1.6755 0 0" xyz="-0.000285 -0.037422 0.13446"/>
     <parent link="R_base_link"/>
     <child link="right_little_1"/>

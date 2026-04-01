@@ -87,7 +87,7 @@ def get_robot_dict():
                              'tiago_dual_rotslide2': {'path': '/envs/robots/tiago/tiago_dual_mygym_rotslide2.urdf', 'position': np.array([-0.3, 0.0, -0.72]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [0.0, 0.0, 0.0, 0.35, 0.11, -1.18, 1.61, 1.72, 1.18, -1.41, 1.7, 0.05, 0.05], 'ee_pos': [0.0009, -0.3985, 0.3127], 'ee_ori': [0.0074, -0.0071, 0.001], 'ee_quat_ori': [0.0037, -0.0036, 0.0005, 1.0], 'fixed': True},
                              'ur3': {'path': '/envs/robots/universal_robots/urdf/ur3.urdf', 'position': np.array([0.0, -0.02, -0.041]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [0.6, -1.9, 0.67, -0.34, -1.57, 0.6], 'ee_pos': [-0.0, 0.1158, 0.4104], 'ee_ori': [-0.0, 0.0001, -0.0], 'ee_quat_ori': [-0.0, 0.0, -0.0, 1.0], 'fixed': True},
                              'ur10': {'path': '/envs/robots/universal_robots/urdf/ur10.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-1.34, -2.16, 1.07, -0.48, -1.57, -1.34], 'ee_pos': [0.1686, 0.0, 1.0], 'ee_ori': [-0.0003, 0.0, -0.0], 'ee_quat_ori': [-0.0001, 0.0, -0.0, 1.0], 'fixed': True},
-                             'walker': {'path': '/envs/robots/ubtech/tiangong2pro_urdf/urdf/tiangong2.0_pro_with_hands.urdf', 'position': np.array([-0.3, 0.0, 0.0]), 'orientation': [0.0, 0.0, 3.14], 'default_joint_ori': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                             'walker': {'path': '/envs/robots/ubtech/tiangong2pro_urdf/urdf/tiangong2.0_pro_with_hands.urdf', 'position': np.array([-0.3, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0], 'default_joint_ori': [0.0, -0.0, 0.0, 0.0, -0.0, 0.0, 0.0, 0.0, -0.0, 0.0, 0.0, 0.0, -0.19, 0.02, 0.34, 0.01, 0.06, -0.08, 0.01, -0.0, 0.06, -0.06, 0.07, 0.15, -0.0, -0.0, -0.0, 0.22, 0.01, 0.08, 0.11, 0.13, 0.01, 0.07, 0.01, -1.07, -0.6, 0.01, -1.75, 0.77, 0.12, 1.18, 1.22, 0.16, -0.0, -0.0, 0.42, 0.41, 0.48, 0.33, 0.22, 1.53, 0.07, 0.22], 'ee_pos': [0.1474, -0.4106, 0.5053], 'ee_ori': [-0.0, 0.0, 0.0], 'ee_quat_ori': [-0.0, 0.0, 0.0, 1.0]},
                              'yumi': {'path': '/envs/robots/abb/yumi/urdf/yumi.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-0.4, -2.29, -0.13, 0.19, -0.95, 2.41, -3.99, 0.02, 0.02, 1.08, -1.68, 1.05, -0.09, 0.49, 2.07, -1.51, 0.03, 0.02], 'ee_pos': [-0.0006, 0.3054, 0.7052], 'ee_ori': [-0.0, 0.0001, 0.0001], 'ee_quat_ori': [-0.0, 0.0, 0.0001, 1.0], 'fixed': True},
                              }
     return r_dict
@@ -115,5 +115,6 @@ def get_gripper_dict():
              "yumi": {"open": [0.03, 0.03, 0.03, 0.03], "close": [0.0, 0.0, 0.0, 0.0]},
              "g16DOF": {"open": [0.72, 0.0, 0.0, 0.0, 0.0, 0.0], "close": [-1.05, -1.75, 1.57, 1.75, 1.57, 1.75]},
              "icub": {"open": [0.0], "close": [1.44]},
+             "walker": {"open": [0.0, 0.0, 0.0, 0.0, 0.0], "close": [1.25, 1.33, 1.33, 1.33, 1.33]},
              }
     return g_dict
