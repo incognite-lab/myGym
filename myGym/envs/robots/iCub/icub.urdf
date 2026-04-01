@@ -851,7 +851,7 @@
 <joint name="endeffector_joint" type="fixed">
     	<parent link="gripper"/>
     	<child link="endeffector"/>
-    	<origin rpy="-1.57 -1.57 -1.57" xyz="-0.07 -0.03 0.0"/>
+    	<origin rpy="1.57 0 3.14" xyz="-0.07 -0.03 0.0"/>
 	</joint>
 	<joint name="ee_z_axis_joint" type="fixed">
     	<parent link="gripper"/>
