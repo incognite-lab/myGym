@@ -730,12 +730,6 @@
         <color rgba="0.9 0.9 0.9 1"/>
       </material>
     </visual>
-    <collision>
-      <origin xyz="0.39975806974880285 0.019492899999999924 -0.1071148228337768" rpy="0 0 0"/>
-      <geometry>
-        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_hand_prt-binary.obj" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
   </link>
   <joint name="r_wrist_yaw_rjoint" type="revolute">
     <origin xyz="0.0006341064996442103 -0.0194999 0.002366518317509704" rpy="0 0 0"/>
