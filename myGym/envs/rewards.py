@@ -238,6 +238,7 @@ class UniversalReward:
             "total_reward": total_reward,
             "absolute_distance": absolute_distance,
             "goal_state": goal_state_value,
+            "gripper_distance": grip_dist,
         }
         return result
 

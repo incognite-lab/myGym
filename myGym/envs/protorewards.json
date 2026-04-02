@@ -17,9 +17,9 @@
     "goal_state": ["additional_obs", "init_6D"],
     "armweight": 1,
     "gripperweight": 1,
-    "absoluteweight": 1,
+    "absoluteweight": 0,
     "relativeweight": 1,
-    "temporalweight": 1
+    "temporalweight": 0
   },
   "grasp": {
     "rot": false,
@@ -39,9 +39,9 @@
     "goal_state": ["actual_state"],
     "armweight": 1,
     "gripperweight": 1,
-    "absoluteweight": 1,
+    "absoluteweight": 0,
     "relativeweight": 1,
-    "temporalweight": 1
+    "temporalweight": 0
   },
   "move": {
     "rot": false,
@@ -61,9 +61,9 @@
     "goal_state": ["goal_state"],
     "armweight": 1,
     "gripperweight": 1,
-    "absoluteweight": 1,
+    "absoluteweight": 0,
     "relativeweight": 1,
-    "temporalweight": 1
+    "temporalweight": 0
   },
   "transform": {
     "rot": true,
@@ -72,9 +72,9 @@
     "goal_state": ["goal_state"],
     "armweight": 1,
     "gripperweight": 1,
-    "absoluteweight": 1,
+    "absoluteweight": 0,
     "relativeweight": 1,
-    "temporalweight": 1
+    "temporalweight": 0
   },
   "follow": {
     "rot": false,
@@ -83,8 +83,8 @@
     "goal_state": ["goal_state"],
     "armweight": 1,
     "gripperweight": 1,
-    "absoluteweight": 1,
+    "absoluteweight": 0,
     "relativeweight": 1,
-    "temporalweight": 1
+    "temporalweight": 0
   }
 }

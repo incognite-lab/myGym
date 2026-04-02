@@ -542,7 +542,7 @@ def test_model(
                 print(f"Subgoal: {rewarder.network_name} ({rewarder.owner+1}/{rewarder.num_networks}) | "
                         f"Dist: {result['absolute_distance']:.4f} | "
                         f"Arm: {result['arm_progress']:.1f}% (solved={result['arm_solved']}) | "
-                        f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
+                        f"Gripper: {result['gripper_distance']:.4f}, {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
                         f"Reward: {reward:.4f}", end ="\r", flush=True)
                 
             done = terminated or truncated
