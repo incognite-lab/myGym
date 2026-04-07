@@ -87,8 +87,8 @@ def get_robot_dict():
                              'ur3': {'path': '/envs/robots/universal_robots/urdf/ur3.urdf', 'position': np.array([0.0, -0.02, -0.041]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [0.6, -1.9, 0.67, -0.34, -1.57, 0.6], 'ee_pos': [-0.0, 0.1158, 0.4104], 'ee_ori': [-0.0, 0.0001, -0.0], 'ee_quat_ori': [-0.0, 0.0, -0.0, 1.0], 'fixed': True},
                              'ur10': {'path': '/envs/robots/universal_robots/urdf/ur10.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-1.34, -2.16, 1.07, -0.48, -1.57, -1.34], 'ee_pos': [0.1686, 0.0, 1.0], 'ee_ori': [-0.0003, 0.0, -0.0], 'ee_quat_ori': [-0.0001, 0.0, -0.0, 1.0], 'fixed': True},
                              'yumi': {'path': '/envs/robots/abb/yumi/urdf/yumi.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-0.4, -2.29, -10.13, 0.19, -0.95, 2.41, -3.99, 0.02, 0.02, 1.08, -1.68, 1.05, -0.09, 0.49, 2.07, -1.51, 0.03, 0.02], 'ee_pos': [-0.0006, 0.3054, 0.7052], 'ee_ori': [-0.0, 0.0001, 0.0001], 'ee_quat_ori': [-0.0, 0.0, 0.0001, 1.0], 'fixed': True},
-                              'S2': {'path': '/envs/robots/walkerS2/s2 (1).urdf', 'position': np.array([-0.3, 0.0, 0.00]), 'orientation': [0.0, 0.0, 0.0]},  
-                              'S2_': {'path': '/envs/robots/S2_/S2.urdf', 'position': np.array([-0.3, 0.0, 0.00]), 'orientation': [0.0, 0.0, 0.0]},
+                             'S2': {'path': '/envs/robots/walkerS2/s2 (1).urdf', 'position': np.array([-0.3, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0]},
+                             'S2_': {'path': '/envs/robots/S2_/S2.urdf', 'position': np.array([-0.3, 0.0, 0.25]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
                              }
     return r_dict
 

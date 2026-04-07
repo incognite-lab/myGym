@@ -170,7 +170,7 @@ def check_limits(urdf_path: str, visualize: bool = False):
         if ok_u:
             line += f"{GREEN}✔{RESET}"
         else:
-            line += f"{RED}✖ (reached {reached_u:.4f}){RESET}"
+            line += f"{RED}✖ (rWhereeached {reached_u:.4f}){RESET}"
             failures.append(f"{name} -> upper {upper:.4f}, reached {reached_u:.4f}")
         print(line)
     return (len(failures) == 0), failures

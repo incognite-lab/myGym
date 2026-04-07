@@ -1823,4 +1823,114 @@
     <parent link="right_tcp_link"/>
     <child link="R_base_link"/>
   </joint>
+  <joint name="R_base_gripper_fix" type="fixed">
+   <parent link="R_base_link"/>
+   <child link="gripper"/>
+   <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link
+    name="gripper">
+    <inertial>
+      <origin
+        xyz="4.63E-06 0.01705624 0.0007487"
+        rpy="0 0 0" />
+      <mass
+        value="0.15210234" />
+      <inertia
+        ixx="0.00027356"
+        ixy="0"
+        ixz="-2E-08"
+        iyy="0.00021546"
+        iyz="7.68E-06"
+        izz="0.00011023" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://walkerS2/meshes/R_base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://walkerS2/meshes/R_base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+   <link name="ee_x_axis">
+    <visual>
+    <origin xyz="0.03 0 0" rpy="0 1.57079632679 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="red">
+      <color rgba="1 0 0 1"/>
+    </material>
+  </visual>
+    </link>
+    <link name="ee_y_axis">
+  <visual>
+    <origin xyz="0 0.03 0" rpy="-1.57079632679 0 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="green">
+      <color rgba="0 1 0 1"/>
+    </material>
+  </visual>
+    </link>
+    <link name="ee_z_axis">
+  <visual>
+    <origin xyz="0 0 0.03" rpy="0 0 0"/>
+    <geometry>
+      <cylinder length="0.06" radius="0.002"/>
+    </geometry>
+    <material name="blue">
+      <color rgba="0 0 1 1"/>
+    </material>
+  </visual>
+  </link>
+     <link name="endeffector">
+  <visual>
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+    <geometry>
+      <sphere radius="0.005"/>
+    </geometry>
+    <material name="yellow">
+      <color rgba="1 1 0 1"/>
+    </material>
+  </visual>
+  </link>
+  <joint name="endeffector_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="endeffector"/>
+    	<origin rpy="1.57 0 0" xyz="0.05 0.0 0.1"/>
+	</joint>
+	<joint name="ee_z_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_z_axis"/>
+    	<origin rpy="-1.57 -1.57 0" xyz="0.05 0.0 0.1"/>
+	</joint>
+    	<joint name="ee_x_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_x_axis"/>
+    	<origin rpy="-1.57 -1.57 0" xyz="0.05 0.0 0.1"/>
+	</joint>
+    <joint name="ee_y_axis_joint" type="fixed">
+    	<parent link="gripper"/>
+    	<child link="ee_y_axis"/>
+    	<origin rpy="-1.57 -1.57 0" xyz="0.05 0.0 0.1"/>
+	</joint>
+
 </robot>

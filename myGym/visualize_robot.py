@@ -116,7 +116,7 @@ def save_robot_dict_to_helpers(rd, helpers_path):
             else:
                 parts.append(f"'{k}': {repr(v)}")
         
-        line_str = f"'{key}': {" + ", ".join(parts) + "}"
+        line_str = f"'{key}': {{" + ", ".join(parts) + "}"
         new_r_dict_lines.append("                             " + line_str + ",")
     
     new_r_dict_lines.append("                             }")
