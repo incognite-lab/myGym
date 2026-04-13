@@ -89,6 +89,7 @@ def get_robot_dict():
                              'ur3': {'path': '/envs/robots/universal_robots/urdf/ur3.urdf', 'position': np.array([0.0, -0.02, -0.041]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [0.6, -1.9, 0.67, -0.34, -1.57, 0.6], 'ee_pos': [-0.0, 0.1158, 0.4104], 'ee_ori': [-0.0, 0.0001, -0.0], 'ee_quat_ori': [-0.0, 0.0, -0.0, 1.0], 'fixed': True},
                              'ur10': {'path': '/envs/robots/universal_robots/urdf/ur10.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-1.34, -2.16, 1.07, -0.48, -1.57, -1.34], 'ee_pos': [0.1686, 0.0, 1.0], 'ee_ori': [-0.0003, 0.0, -0.0], 'ee_quat_ori': [-0.0001, 0.0, -0.0, 1.0], 'fixed': True},
                              'walker': {'path': '/envs/robots/ubtech/tiangong2pro_urdf/urdf/tiangong2.0_pro_with_hands.urdf', 'position': np.array([-0.3, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0], 'default_joint_ori': [-0.01, 0.79, -1.68, -1.22, -1.92, -0.14, 0.48, 0.38, -0.0, 0.35, 0.18, 0.09, 0.08], 'ee_pos': [0.1479, -0.4106, 0.4994], 'ee_ori': [0.0004, 0.013, 0.0004], 'ee_quat_ori': [0.0002, 0.0065, 0.0002, 1.0]},
+                             'S2': {'path': '/envs/robots/ubtech/S2.urdf', 'position': np.array([-0.3, 0.0, 0.2]), 'orientation': [0.0, 0.0, 0], 'default_joint_ori': [0.0, 0.0, 0.0, 0.0, 0.0, -0.0, 0.0, 0.0, -0.0, 0.0, 0.0, 0.0, 0.05, 0.49, -0.0, 0.02, 0.4, -0.12, 0.37, -0.46, 0.11, 0.08, -0.06, 0.0, 0.18, 0.02, 0.09, 0.02, -0.0, 0.02, 0.1, 0.02, -0.0, 0.04, -0.0, 2.7, -1.29, -2.24, -1.62, -0.28, -0.16, -0.42, 0.14, 0.22, 0.2, 0.0, -0.0, 1.4, 1.25, 0.31, 0.02, 1.53, -0.0, 0.04], 'ee_pos': [0.1249, -0.5585, 0.521], 'ee_ori': [-0.0017, 0.0143, -0.0042], 'ee_quat_ori': [-0.0008, 0.0071, -0.0021, 1.0]},
                              'yumi': {'path': '/envs/robots/abb/yumi/urdf/yumi.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-0.4, -2.29, -0.13, 0.19, -0.95, 2.41, -3.99, 0.02, 0.02, 1.08, -1.68, 1.05, -0.09, 0.49, 2.07, -1.51, 0.03, 0.02], 'ee_pos': [-0.0006, 0.3054, 0.7052], 'ee_ori': [-0.0, 0.0001, 0.0001], 'ee_quat_ori': [-0.0, 0.0, 0.0001, 1.0], 'fixed': True},
                              }
     return r_dict
@@ -118,5 +119,6 @@ def get_gripper_dict():
              "icub": {"open": [0.0], "close": [1.44]},
              "walker": {"open": [0.0, 0.0, 0.0, 0.0, 0.0], "close": [1.25, 1.33, 1.33, 1.33, 1.33]},
              "icubfull": {"open": [0.0, -0.35, 0.0, 0.0, 0.0], "close": [1.57, 0.0, 0.34, 0.35, 0.35]},
+             "S2": {"open": [0.0, 0.0, 0.0, 0.0, 0.0], "close": [1.25, 1.33, 1.33, 1.33, 1.33]},
              }
     return g_dict
