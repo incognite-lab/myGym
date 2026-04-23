@@ -134,7 +134,7 @@ class Robot:
 
             self.robot_uid = self.p.loadURDF(
                 os.path.join(pkg_resources.files("myGym"), self.robot_path),
-                self.position, self.orientation, useFixedBase=self.use_fixed_base, flags=(self.p.URDF_USE_SELF_COLLISION))
+                self.position, self.orientation, useFixedBase=self.use_fixed_base, flags=(self.p.URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS))
         for jid in range(self.p.getNumJoints(self.robot_uid)):
                 self.p.changeDynamics(self.robot_uid, jid,  collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
         # if 'jaco' in self.name: #@TODO jaco gripper has closed loop between finger and finger_tip that is not respected by the simulator
