@@ -89,8 +89,7 @@ def get_robot_dict():
                              'ur3': {'path': '/envs/robots/universal_robots/urdf/ur3.urdf', 'position': np.array([0.0, -0.02, -0.041]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [0.6, -1.9, 0.67, -0.34, -1.57, 0.6], 'ee_pos': [-0.0, 0.1158, 0.4104], 'ee_ori': [-0.0, 0.0001, -0.0], 'ee_quat_ori': [-0.0, 0.0, -0.0, 1.0], 'fixed': True},
                              'ur10': {'path': '/envs/robots/universal_robots/urdf/ur10.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-1.34, -2.16, 1.07, -0.48, -1.57, -1.34], 'ee_pos': [0.1686, 0.0, 1.0], 'ee_ori': [-0.0003, 0.0, -0.0], 'ee_quat_ori': [-0.0001, 0.0, -0.0, 1.0], 'fixed': True},
                              'yumi': {'path': '/envs/robots/abb/yumi/urdf/yumi.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-0.4, -2.29, -10.13, 0.19, -0.95, 2.41, -3.99, 0.02, 0.02, 1.08, -1.68, 1.05, -0.09, 0.49, 2.07, -1.51, 0.03, 0.02], 'ee_pos': [-0.0006, 0.3054, 0.7052], 'ee_ori': [-0.0, 0.0001, 0.0001], 'ee_quat_ori': [-0.0, 0.0, 0.0001, 1.0], 'fixed': True},
-                             'S2': {'path': '/envs/robots/walkerS2/s2 (1).urdf', 'position': np.array([-0.3, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0]},
-                             'S2_': {'path': '/envs/robots/S2_/S2.urdf', 'position': np.array([-0.3, 0.0, 0.25]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                             'S2': {'path': '/envs/robots/S2/S2.urdf', 'position': np.array([-0.3, 0.0, 0.2]), 'orientation': [0.0, 0.0, 0], 'default_joint_ori': [-0.04, 0.35, -1.41, -0.34, -1.56, 0.07, -0.09, 0.06, 0.34, 0.07, 0.07, 0.08, 0.76], 'ee_pos': [0.1209, -0.5598, 0.4936], 'ee_ori': [-0.0011, 0.0755, -0.0131], 'ee_quat_ori': [-0.0003, 0.0378, -0.0065, 0.9993]},
                              }
     return r_dict
 
@@ -116,6 +115,6 @@ def get_gripper_dict():
              "tiago_single": {"open": [0.04, 0.04], "close": [0.0, 0.0]},
              "yumi": {"open": [0.03, 0.03, 0.03, 0.03], "close": [0.0, 0.0, 0.0, 0.0]},
              "g16DOF": {"open": [0.72, 0.0, 0.0, 0.0, 0.0, 0.0], "close": [-1.05, -1.75, 1.57, 1.75, 1.57, 1.75]},
-             "S2_": {"open": [0.72, 0.0, 0.0, 0.0, 0.0, 0.0], "close": [-1.05, -1.75, 1.57, 1.75, 1.57, 1.75]},
+             "S2": {"open": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "close": [1.25, 1.33, 1.33, 1.33, 1.33, 1.33]},
              }
     return g_dict

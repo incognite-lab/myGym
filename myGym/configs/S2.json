@@ -10,7 +10,7 @@
     "visualize" :0,
     "visgym"    :0,
     #Robot
-    "robot"         :"S2_",
+    "robot"         :"S2",
     "robot_action"  :"joints",
     "robot_init"    : "default",
     "max_velocity"  :3,
