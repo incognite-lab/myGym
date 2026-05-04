@@ -1,5 +1,6 @@
 from matplotlib.pyplot import table
 import numpy as np
+from sympy import false
 
 class PrintEveryNCalls:
     def __init__(self, msg, n):
@@ -55,7 +56,6 @@ def get_workspace_dict():
                             }
     
     return ws_dict
-
 
 def get_robot_dict():
     r_dict =   {
