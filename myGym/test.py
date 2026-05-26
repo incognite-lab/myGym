@@ -159,7 +159,7 @@ def test_env(env: object, arg_dict: dict) -> None:
     CAMERA_POS = ws_dict.get(workspace_name, {}).get("rendercamera", [1.2, 0, -30, [0.0, 0.5, 0.05]])
     
     obs, info = env.reset()
-    results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Success"])
+    results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Subtasks", "Success"])
     current_result = None
     env.render()
     global done
@@ -263,13 +263,20 @@ def test_env(env: object, arg_dict: dict) -> None:
                 positions = [info['o']['actual_state'],  None,
                               info['o']['goal_state']]
             else:
-                positions = [info['o']["additional_obs"]["endeff_xyz"],
-                             info['o']['actual_state'],
+                positions = [info['o']['actual_state'], None,
                              info['o']['goal_state']]
             current_result = [arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"],
                             np.round(np.array(positions[0]), 2) if positions[0] is not None else None,
                             np.round(np.array(positions[1]), 2) if positions[1] is not None else None,
                             np.round(np.array(positions[2]), 2) if positions[2] is not None else None]
+            # Prepare subtask tracking: one flag per char in task_type (e.g. 'AGM' -> [A,G,M])
+            task_type_str = str(arg_dict.get("task_type", ""))
+            subtask_solved_flags = [False] * len(task_type_str)
+            # track the maximum network owner index seen during the episode
+            rewarder = getattr(env.env.unwrapped, "reward", None)
+            subtask_max_owner = getattr(rewarder, "owner", -1) if rewarder is not None else -1
+            prev_owner = None
+
         for t in range(arg_dict["max_episode_steps"]):
             if arg_dict["control"] == "slider":
                 action = []
@@ -327,12 +334,49 @@ def test_env(env: object, arg_dict: dict) -> None:
                         f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
                         f"Reward: {reward:.4f}", end ="\r", flush=True)
 
+            # update subtask tracking (if results_report enabled)
+            try:
+                owner = getattr(rewarder, "owner", None)
+                if owner is not None:
+                    subtask_max_owner = max(subtask_max_owner, owner)
+                    last = getattr(rewarder, "last_result", None)
+                    # mark subtask solved only if BOTH arm and gripper are solved for this owner
+                    if last:
+                        arm_solved = bool(last.get("arm_solved", False))
+                        gripper_solved = bool(last.get("gripper_solved", False))
+                        if arm_solved and gripper_solved:
+                            completed_index = owner
+                            if prev_owner is not None and owner > prev_owner:
+                                completed_index = owner - 1
+                            if 0 <= completed_index < len(subtask_solved_flags):
+                                subtask_solved_flags[completed_index] = True
+                    prev_owner = owner
+            except Exception:
+                pass
+
             n_p, last_call_time = n_pressed(last_call_time)
             if n_p:  # If key 'n' is pressed, switch to next task - useful if robot gets stuck
                 env.unwrapped.task.end_episode_fail("manual_switch")
                 done = True
 
             if arg_dict["results_report"] and done:
+                # Build subtasks status string like "A: True, G: False, M: True"
+                subtasks_str = ""
+                if 'subtask_solved_flags' in locals():
+                    task_chars = list(task_type_str)
+                    pairs = []
+                    for i, ch in enumerate(task_chars):
+                        status = False
+                        # consider solved if we observed owner advance past this index or flagged solved
+                        if i < len(subtask_solved_flags):
+                            status = subtask_solved_flags[i] or (subtask_max_owner > i)
+                        pairs.append(f"{ch}: {str(bool(status))}")
+                    subtasks_str = ", ".join(pairs)
+                else:
+                    subtasks_str = None
+
+                current_result.append(subtasks_str)
+
                 if terminated:
                     current_result.append(True)
                 elif truncated:
@@ -542,9 +586,29 @@ def test_model(
                 print(f"Subgoal: {rewarder.network_name} ({rewarder.owner+1}/{rewarder.num_networks}) | "
                         f"Dist: {result['absolute_distance']:.4f} | "
                         f"Arm: {result['arm_progress']:.1f}% (solved={result['arm_solved']}) | "
-                        f"Gripper: {result['gripper_distance']:.4f}, {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
+                        f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
                         f"Reward: {reward:.4f}", end ="\r", flush=True)
-                
+
+            # update subtask tracking (if results_report enabled)
+            try:
+                owner = getattr(rewarder, "owner", None)
+                if owner is not None:
+                    subtask_max_owner = max(subtask_max_owner, owner)
+                    last = getattr(rewarder, "last_result", None)
+                    # mark subtask solved only if BOTH arm and gripper are solved for this owner
+                    if last:
+                        arm_solved = bool(last.get("arm_solved", False))
+                        gripper_solved = bool(last.get("gripper_solved", False))
+                        if arm_solved and gripper_solved:
+                            completed_index = owner
+                            if prev_owner is not None and owner > prev_owner:
+                                completed_index = owner - 1
+                            if 0 <= completed_index < len(subtask_solved_flags):
+                                subtask_solved_flags[completed_index] = True
+                    prev_owner = owner
+            except Exception:
+                pass
+
             done = terminated or truncated
             is_successful = not info['f']
             distance_error = info['d']
@@ -648,7 +712,7 @@ def main() -> None:
     
     if arg_dict.get("pretrained_model") is None:
         print_init_info(arg_dict)
-        arg_dict["gui"] = 1
+        #arg_dict["gui"] = 1
         arg_dict = automatic_argument_assignment(arg_dict)
         #arg_dict["robot_action"] = "absolute_gripper"
         env = configure_env(arg_dict, model_logdir=None, for_train=0)
