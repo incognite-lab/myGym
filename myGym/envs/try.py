@@ -17,12 +17,15 @@ input_stl = os.path.join(
     "meshes",
     "waist_yaw_link.STL"
 )
+
 output_obj = os.path.join(
     base_dir,
     "robots",
     "S2",
+    "meshes",
     "part_vhacd.obj"
 )
+
 log_file = os.path.join(
     base_dir,
     "robots",
@@ -45,7 +48,7 @@ p.vhacd(
     log_file,
 
     # Calidad de descomposición
-    resolution=100000,
+    resolution=10000,
 
     # Profundidad (más alto = más piezas)
     depth=20,

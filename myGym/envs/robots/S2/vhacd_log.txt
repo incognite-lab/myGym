@@ -27,7 +27,7 @@ Options:
 Examples:
        testVHACD.exe --input bunny.obj --output bunny_acd.obj --log log.txt
 
-+ OpenCL (OFF)
++ OpenCL (OFF)s
 + Parameters
 	 input                                       /home/student/code/mygym/myGym/envs/robots/S2/meshes/waist_yaw_link.STL
 	 resolution                                  100000
@@ -46,7 +46,7 @@ Examples:
 	 OpenCL acceleration                         1
 	 OpenCL platform ID                          0
 	 OpenCL device ID                            0
-	 output                                      /home/student/code/mygym/myGym/envs/envs/robots/S2/part_vhacd.obj
-	 log                                         /home/student/code/mygym/myGym/envs/envs/robots/S2/vhacd_log.txt
+	 output                                      /home/student/code/mygym/myGym/envs/robots/S2/meshes/part_vhacd.obj
+	 log                                         /home/student/code/mygym/myGym/envs/robots/S2/vhacd_log.txt
 + Load mesh
 Format not supported!
