@@ -9,6 +9,7 @@ from collections import ChainMap
 
 from myGym.envs.env_object import EnvObject
 from myGym.envs.rewards import *
+from myGym.envs.predicates import ResolvePredicates, CheckPredicates
 import numpy as np
 from itertools import chain
 import random
@@ -74,6 +75,7 @@ class GymEnv(CameraEnv):
                  workspace="table",
                  dimension_velocity=0.05,
                  used_objects=None,
+                 predicates=None,
                  action_repeat=1,
                  color_dict={},
                  robot='kuka',
@@ -120,6 +122,7 @@ class GymEnv(CameraEnv):
         self.dimension_velocity     = dimension_velocity
         self.active_cameras         = active_cameras
         self.used_objects           = used_objects
+        self.predicates_dict        = predicates
         self.action_repeat          = action_repeat
         self.color_dict             = color_dict
         self.task_type              = task_type
@@ -366,7 +369,12 @@ class GymEnv(CameraEnv):
                 self.env_objects = {"env_objects": self._randomly_place_objects(self.used_objects)}
                 if self.task_objects_were_given_as_list:
                     self.env_objects["env_objects"] += other_objects
-                self.task_objects = self._randomly_place_objects(task_objects_dict[self.task.current_task])
+
+                current_task_objects = task_objects_dict[self.task.current_task]
+                current_predicates = self.predicates_dict
+                self.task_objects = self._randomly_place_objects(
+                    current_task_objects, predicates = current_predicates)
+                
                 self.task_objects = dict(ChainMap(*self.task_objects))
                 if subtask_objects:
                     self.task_objects["distractor"] = subtask_objects
@@ -602,15 +610,18 @@ class GymEnv(CameraEnv):
         for object in self.env_objects:
             object.draw_bounding_box()
 
-    def _place_object(self, obj_info):
+    def _place_object(self, obj_info, predicates=None):
         fixed = True if obj_info["fixed"] == 1 else False
-        pos = env_object.EnvObject.get_random_object_position(obj_info["sampling_area"])
+        table = self.static_scene_objects[self.workspace]
+        sampling_area = ResolvePredicates().get_init_area(obj_info, table, self.robot, predicates)
+        pos = env_object.EnvObject.get_random_object_position(sampling_area)
+        #print(obj_info["obj_name"],"position:", pos)
         orn = env_object.EnvObject.get_random_object_orientation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
         object = env_object.EnvObject(obj_info["urdf"], pos, orn, pybullet_client=self.p, fixed=fixed)
         if self.color_dict: object.set_color(self.color_of_object(object))
         return object
 
-    def _randomly_place_objects(self, object_dict):
+    def _randomly_place_objects(self, object_dict, predicates=None):
         """
         Place dynamic objects to the scene randomly
 
@@ -646,12 +657,20 @@ class GymEnv(CameraEnv):
                 d = object_dict[o]
                 if d["obj_name"] != "null":
                     d["urdf"] = self._get_urdf_filename(d["obj_name"])
-                    n = "actual_state" if o == "init" else "goal_state"
-                    env_o = self._place_object(d)
+                    state_name = "actual_state" if o == "init" else "goal_state"
+                    env_o = self._place_object(d, predicates["init"])
                     self.highlight_active_object(env_o, o)
-                    env_objects.append({n: env_o})
+                    env_objects.append({state_name: env_o})
                 elif d["obj_name"] == "null" and o == "init":
                     env_objects.append({"actual_state": self.robot})
+            
+            #print(predicates)
+            CheckPredicates().check_init_state(
+                object_dict = object_dict,
+                placed_objects = dict(ChainMap(*env_objects)),
+                env = self,
+                predicates = predicates["init"],
+            )
         return env_objects
 
     def highlight_active_object(self, env_o, obj_role):

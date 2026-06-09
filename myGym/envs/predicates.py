@@ -1,17 +1,58 @@
-import pybullet as p
 import numpy as np
+import pybullet
+import re
+from dataclasses import dataclass
 
 from myGym.envs import env_object
 from myGym.utils.helpers import get_workspace_dict
 
-from myGym.envs.test_volume_class import VolumeMesh
-#from myGym.envs.igibson_predicates import *
 
 Area = list[float]
 
 
 
-def get_reachable_range(robot) -> Area:
+class IsReachable:
+    """
+    Check if object lies inside the precomputed gripper's reachable envelope
+    ! does not solve IK and does not check collisions
+    """
+
+    def compute_area(self, robot) -> Area:
+        """
+        Return reachable area
+        """
+        robot_pos = list(robot.position)
+        reachable_range = self._get_reachable_range(robot)
+
+        reachable_area = np.repeat(robot_pos, 2) + np.array(reachable_range)
+
+        return reachable_area.tolist()
+        
+
+    def check(self, robot, obj) -> bool:
+        """
+        Return True if object is inside reachable area
+        """
+        reachable_area = self.compute_area(robot)
+        obj_position = obj.get_position()
+
+        return self._obj_inside_area(obj_position, reachable_area)
+    
+
+    @staticmethod
+    def _obj_inside_area(coords, area: Area) -> bool:
+        """
+        Return True if object is inside area
+        """
+        return (
+            area[0] <= coords[0] <= area[1]
+            and area[2] <= coords[1] <= area[3]
+            and area[4] <= coords[2] <= area[5]
+        )
+    
+
+    @staticmethod
+    def _get_reachable_range(robot) -> Area:
         # old helper from PRAG
         # TODO: get the area from test_robot_reachability.py and save it to workspace_dict
 
@@ -23,48 +64,13 @@ def get_reachable_range(robot) -> Area:
 
         return [-0.7, 0.7, 0.1, 0.8, -0.1, 1.2]
 
-def obj_inside_area(coords, area: Area) -> bool:
-    """
-    Return True if object is inside area
-    """
-    return (
-        area[0] <= coords[0] <= area[1]
-        and area[2] <= coords[1] <= area[3]
-        and area[4] <= coords[2] <= area[5]
-    )
-
-class IsReachable:
-    """
-    Check if object lies inside the precomputed gripper's reachable envelope
-
-    ! does not solve IK and does not check collisions
-    """
-
-    def compute_area(self, robot) -> Area:
-        """
-        Return reachable area
-        """
-        robot_pos = list(robot.position)
-        reachable_range = get_reachable_range(robot)
-
-        reachable_area = np.repeat(robot_pos, 2) + np.array(reachable_range)
-
-        return reachable_area.tolist()
-        
-    def check(self, robot, obj) -> bool:
-        """
-        Return True if object is inside reachable area
-        """
-        reachable_area = self.compute_area(robot)
-        obj_position = obj.get_position()
-
-        return obj_inside_area(obj_position, reachable_area)
 
 
 class Touching:
     """
-    Check whether two objects are physically touching.
+    Check whether two objects are physically touching
     """
+
     def compute_area(self, obj1, obj2) -> Area:
         raise NotImplementedError()
         # TODO future base for OnTheLeft predicate
@@ -91,11 +97,12 @@ class Touching:
 
         return target_area
 
+
     def check(self, obj1, obj2) -> bool:
         """
         Return True if obj1 and obj2 touch (using PyBullet)
         """
-        contact_points = p.getContactPoints(
+        contact_points = pybullet.getContactPoints(
             bodyA=obj1.uid,
             bodyB=obj2.uid,
         )
@@ -104,27 +111,19 @@ class Touching:
 
 
 class OnTop:
-    def get_desk_area(self, obj2) -> Area:
-        """
-        Get desk operation area
-        ! the table rotation is not applied
-        """
-        ws_dict = get_workspace_dict()
-        desk_dim = ws_dict[obj2.name]["desk_dim"]
-        table_pos = obj2.get_position()
-        desk_area = np.repeat(table_pos, 2) + np.array(desk_dim)
-        return desk_area
+    """
+    Check whether object1 is on to of object2
+    """
 
-
-    def compute_area(self, obj2) -> Area:
+    def compute_area(self, obj2, obj1_urdf=None) -> Area:
         """
         Return the top area of obj2 so obj1 could be placed on top
         """
+        # TODO placing based on the object height using _read_urdf_scale()
         if obj2.name == "table_complex":
-            desk_area = self.get_desk_area(obj2)
+            desk_area = self._get_desk_area(obj2)
             PLACING_SPACE = [-0., 0., -0., 0., 0.05, 0.05]
             return (np.asarray(desk_area) + np.asarray(PLACING_SPACE)).tolist()
-
 
         PLACING_BORDER = 0.02
         obj2_min, obj2_max = obj2.get_bounding_box()[0], obj2.get_bounding_box()[4]
@@ -135,6 +134,7 @@ class OnTop:
         
         return above_obj2
     
+
     def check(self, obj1, obj2) -> bool:
         """
         Return True if obj1 is on top of obj2
@@ -146,7 +146,7 @@ class OnTop:
         # 2. bottom of obj1 is near top of obj2
         obj1_min = obj1.get_bounding_box()[0][2]
         if obj2.name == "table_complex":
-            obj2_max = self.get_desk_area(obj2)[-1]
+            obj2_max = self._get_desk_area(obj2)[-1]
         else:
             obj2_max = obj2.get_bounding_box()[4][2]
 
@@ -163,46 +163,239 @@ class OnTop:
         return x_overlap and y_overlap
 
 
-def get_range_intersection(area_a: Area, area_b: Area) -> Area|None:
+    @staticmethod
+    def _get_desk_area(obj2) -> Area:
+        """
+        Get desk operation area
+        ! the table rotation is not applied
+        """
+        ws_dict = get_workspace_dict()
+        desk_dim = ws_dict[obj2.name]["desk_dim"]
+        table_pos = obj2.get_position()
+        desk_area = np.repeat(table_pos, 2) + np.array(desk_dim)
+        return desk_area
+    
+
+    @staticmethod
+    def _read_urdf_scale(urdf_path: str) -> float:
+        """
+        Read the first mesh scale value from a URDF file,
+        return 1 if not specified
+        """
+        with open(urdf_path) as file:
+            lines = file.readlines()
+
+        scale_lines = [line for line in lines if "scale" in line]
+
+        if not scale_lines:
+            return 1.0
+
+        return float(scale_lines[0].split('scale="')[1].split(" ")[0])
+
+
+
+@dataclass
+class PredicateCall:
+    predicate: str
+    args: list[str]
+
+
+
+class ResolvePredicates:
     """
-    Return intersection of two 3D areas, None if no overlap
+    Resolve predicate strings from config into sampling areas
     """
-    intersection = []
 
-    for i in range(0, 6, 2):
-        min_val = max(area_a[i], area_b[i])
-        max_val = min(area_a[i + 1], area_b[i + 1])
+    def get_init_area(self, obj_info, table, robot, predicates=None) -> Area | None:
+        """
+        Return sampling area from object predicates
+        """
+        obj1_urdf = obj_info["urdf"]
+        predicates = self._filter_obj_predicates(predicates, obj_info["obj_name"])
+        #print(obj_info["obj_name"], predicates)
 
-        if min_val > max_val:
-            # No overlap for this axis
-            return None
+        if not predicates:
+            random_table_area = OnTop().compute_area(table, obj1_urdf)
+            return random_table_area
+        
+        area = self._get_infinite_area()
+        predicate_calls = self._parse_predicates(predicates)
+        predicate_map = self._get_predicate_map(predicate_calls)
+        
+        on_top_predicate = predicate_map.get("OnTop")
+        # TODO cannot resolve [OnTop(tuna_can, table) AND OnTop(apple, tuna_can)]
+        if on_top_predicate is not None:
+            area = self._apply_on_top_area(
+                current_area=area,
+                predicate=on_top_predicate,
+                table=table,
+                obj1_urdf=obj1_urdf,
+            )
 
-        intersection.extend([min_val, max_val])
+        reachable_predicate = predicate_map.get("Reachable")
+        if reachable_predicate is not None:
+            area = self._apply_reachable_area(
+                current_area=area,
+                predicate=reachable_predicate,
+                robot=robot,
+            )
 
-    return intersection
-
-def infinite_area() -> Area:
-    return [
-        -float("inf"), float("inf"),
-        -float("inf"), float("inf"),
-        -float("inf"), float("inf"),
-    ]
+        # near_predicate = predicate_map.get("Near")
+        # if near_predicate is not None:
+        #     area = self._apply_near_area(...)
+        return area
 
 
-def read_urdf_scale(urdf_path: str) -> float:
+    def _apply_on_top_area(
+            self, current_area: Area, predicate: PredicateCall, table, obj1_urdf: str
+            ) -> Area | None:
+        """
+        Apply OnTop(obj1, obj2) as an area constraint
+        ! currently supports only obj2 == table
+        """
+        if len(predicate.args) != 2:
+            raise ValueError(f"OnTop expects 2 arguments, got {predicate.args}")
+
+        obj1_name, obj2_name = predicate.args
+
+        if obj2_name != "table":
+            print(f"OnTop({obj1_name}, {obj2_name}) cannot be resolved during initial placement yet.")
+            return current_area
+
+        on_top_area = OnTop().compute_area(table, obj1_urdf)
+
+        return self._get_range_intersection(current_area, on_top_area)
+
+
+    def _apply_reachable_area(
+        self, current_area: Area, predicate: PredicateCall, robot
+        ) -> Area | None:
+        """
+        Apply Reachable(obj) as an area constraint
+        """
+        if len(predicate.args) != 1:
+            raise ValueError(f"Reachable expects 1 argument, got {predicate.args}")
+
+        reachable_area = IsReachable().compute_area(robot)
+        final_area = self._get_range_intersection(current_area, reachable_area)
+
+        #print("reachable:", reachable_area)
+        #print("current:", current_area)
+        #print("final:", final_area)
+
+        return final_area
+    
+
+    @staticmethod
+    def _get_predicate_map(predicate_calls: list[PredicateCall]) -> dict[str, PredicateCall]:
+        """
+        Convert list of PredicateCall objects to dict by predicate name.
+        [PredicateCall("OnTop", ["apple", "table"]), ...] -> {"OnTop": PredicateCall(...), ...}
+        """
+        predicate_map = {}
+
+        for p in predicate_calls:
+            if p.predicate in predicate_map:
+                raise ValueError(
+                    f"Predicate '{p.predicate}' appears multiple times. "
+                    "Use a list-valued map if this should be allowed."
+                )
+
+            predicate_map[p.predicate] = p
+
+        return predicate_map
+    
+
+    @staticmethod
+    def _parse_predicates(predicates: list[str] | None) -> list[PredicateCall]:
+        """ 
+        Convert list of predicates tsrings to list predicates objects
+        ['OnTop(apple,table)', ...] -> [PredicateCall(name='OnTop', args=['apple','table']), ...]
+        """
+        parsed_predicates = []
+        for predicate in predicates:
+            match = re.fullmatch(r"\s*(\w+)\s*\((.*)\)\s*", predicate)
+
+            if match is None:
+                raise ValueError(f"Invalid predicate format: {predicate}")
+
+            name = match.group(1)
+            args_text = match.group(2)
+            args = [arg.strip() for arg in args_text.split(",") if arg.strip()]
+
+            parsed_predicates.append(PredicateCall(predicate=name, args=args))
+
+        return parsed_predicates
+    
+
+    def _filter_obj_predicates(self, predicates, obj_name):
+        """
+        Select current object predicates
+        """
+        if not predicates:
+            return []
+
+        return [p for p in predicates if self._predicate_contains_obj(p, obj_name)]
+    
+
+    @staticmethod
+    def _predicate_contains_obj(predicate: str, obj_name: str) -> bool:
+        """
+        Return True if obj_name is one of the predicate arguments
+        """
+        args_start = predicate.find("(")
+        args_end = predicate.rfind(")")
+
+        if args_start == -1 or args_end == -1:
+            return False
+
+        args_text = predicate[args_start + 1:args_end]
+        args = [arg.strip() for arg in args_text.split(",")]
+
+        return obj_name in args
+
+
+    @staticmethod
+    def _get_range_intersection(area_a: Area, area_b: Area) -> Area|None:
+        """
+        Return intersection of two 3D areas, None if no overlap
+        """
+        intersection = []
+
+        for i in range(0, 6, 2):
+            min_val = max(area_a[i], area_b[i])
+            max_val = min(area_a[i + 1], area_b[i + 1])
+
+            if min_val > max_val:
+                # No overlap for this axis
+                return None
+
+            intersection.extend([min_val, max_val])
+
+        return intersection
+
+
+    @staticmethod
+    def _get_infinite_area() -> Area:
+        return [
+            -float("inf"), float("inf"),
+            -float("inf"), float("inf"),
+            -float("inf"), float("inf"),
+        ]
+    
+
+class CheckPredicates:
     """
-    Read the first mesh scale value from a URDF file,
-    return 1 if not specified
+    TODO
     """
-    with open(urdf_path) as file:
-        lines = file.readlines()
 
-    scale_lines = [line for line in lines if "scale" in line]
+    def check_init_state(self, object_dict, placed_objects, env, predicates):
+        """
+        TODO
+        """
+        print("Checking init state")
+        return
 
-    if not scale_lines:
-        return 1.0
-
-    return float(scale_lines[0].split('scale="')[1].split(" ")[0])
 
 
 
@@ -210,8 +403,9 @@ def read_urdf_scale(urdf_path: str) -> float:
 if __name__ == '__main__':
     import os
     import importlib.resources as pkg_resources
-    import open3d as o3d
+    #import open3d as o3d
     from myGym.train import get_parser, get_arguments, automatic_argument_assignment, configure_env
+    #from myGym.envs.test_volume_class import VolumeMesh
 
 
     parser = get_parser()
@@ -269,7 +463,7 @@ if __name__ == '__main__':
 
     for _ in range(1000):
         # tuna falls on the table
-        env.p.stepSimulation()
+        env.pybullet.stepSimulation()
 
     touching = Touching()
     on_top = OnTop()

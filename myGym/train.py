@@ -72,6 +72,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "max_force": arg_dict["max_force"], "task_type": arg_dict["task_type"],
                      "action_repeat": arg_dict["action_repeat"],
                      "task_objects": arg_dict["task_objects"], "observation": arg_dict["observation"],
+                     "predicates": arg_dict["predicates"],
                      "framework": "SB3",
                      "distractors": arg_dict["distractors"],
                      "num_networks": arg_dict.get("num_networks", 1),
