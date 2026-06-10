@@ -9,7 +9,7 @@ from collections import ChainMap
 
 from myGym.envs.env_object import EnvObject
 from myGym.envs.rewards import *
-from myGym.envs.predicates import ResolvePredicates, CheckPredicates
+from myGym.envs.predicates import InitPredicateResolver
 import numpy as np
 from itertools import chain
 import random
@@ -122,7 +122,7 @@ class GymEnv(CameraEnv):
         self.dimension_velocity     = dimension_velocity
         self.active_cameras         = active_cameras
         self.used_objects           = used_objects
-        self.predicates_dict        = predicates
+        self.predicates_dict        = predicates if predicates is not None else []
         self.action_repeat          = action_repeat
         self.color_dict             = color_dict
         self.task_type              = task_type
@@ -371,10 +371,11 @@ class GymEnv(CameraEnv):
                     self.env_objects["env_objects"] += other_objects
 
                 current_task_objects = task_objects_dict[self.task.current_task]
-                current_predicates = self.predicates_dict
+                current_predicates = self.predicates_dict#[self.task.current_task]
                 self.task_objects = self._randomly_place_objects(
                     current_task_objects, predicates = current_predicates)
                 
+                #self.task_objects = self._randomly_place_objects(task_objects_dict[self.task.current_task], )
                 self.task_objects = dict(ChainMap(*self.task_objects))
                 if subtask_objects:
                     self.task_objects["distractor"] = subtask_objects
@@ -443,7 +444,16 @@ class GymEnv(CameraEnv):
                 self.task_objects["distractor"] = distrs
         self.env_objects = {**self.task_objects, **self.env_objects}
         self.task.reset_task()
-        self.p.stepSimulation()
+        
+        for _ in range(100):
+            self.p.stepSimulation()
+        if not InitPredicateResolver().check(
+            placed_objects=self.task_objects,
+            env=self,
+            predicates=current_predicates,
+        ):
+            raise RuntimeError("Initial predicates are not satisfied.")
+
         self._observation = self.get_observation()
         self.unwrapped.reward.reset(observation=self._observation)
         info = {'d': 1, 'f': int(self.episode_failed),
@@ -612,10 +622,15 @@ class GymEnv(CameraEnv):
 
     def _place_object(self, obj_info, predicates=None):
         fixed = True if obj_info["fixed"] == 1 else False
-        table = self.static_scene_objects[self.workspace]
-        sampling_area = ResolvePredicates().get_init_area(obj_info, table, self.robot, predicates)
+
+        if "sampling_area" in obj_info:
+            sampling_area = obj_info["sampling_area"]
+        else:
+            table = self.static_scene_objects[self.workspace]
+            sampling_area = InitPredicateResolver().get_area(obj_info, table, self.robot, predicates)
+        
         pos = env_object.EnvObject.get_random_object_position(sampling_area)
-        #print(obj_info["obj_name"],"position:", pos)
+        print(obj_info["obj_name"],"position:", pos)
         orn = env_object.EnvObject.get_random_object_orientation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
         object = env_object.EnvObject(obj_info["urdf"], pos, orn, pybullet_client=self.p, fixed=fixed)
         if self.color_dict: object.set_color(self.color_of_object(object))
@@ -658,19 +673,11 @@ class GymEnv(CameraEnv):
                 if d["obj_name"] != "null":
                     d["urdf"] = self._get_urdf_filename(d["obj_name"])
                     state_name = "actual_state" if o == "init" else "goal_state"
-                    env_o = self._place_object(d, predicates["init"])
+                    env_o = self._place_object(d, predicates)
                     self.highlight_active_object(env_o, o)
                     env_objects.append({state_name: env_o})
                 elif d["obj_name"] == "null" and o == "init":
                     env_objects.append({"actual_state": self.robot})
-            
-            #print(predicates)
-            CheckPredicates().check_init_state(
-                object_dict = object_dict,
-                placed_objects = dict(ChainMap(*env_objects)),
-                env = self,
-                predicates = predicates["init"],
-            )
         return env_objects
 
     def highlight_active_object(self, env_o, obj_role):

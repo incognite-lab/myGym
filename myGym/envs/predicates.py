@@ -1,7 +1,7 @@
 import numpy as np
-import pybullet
 import re
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
 from myGym.envs import env_object
 from myGym.utils.helpers import get_workspace_dict
@@ -11,7 +11,21 @@ Area = list[float]
 
 
 
-class IsReachable:
+class Predicate(ABC):
+    """
+    Base class for predicates
+    """
+
+    @abstractmethod
+    def check(self, *args) -> bool:
+        """
+        Return True if the predicate is satisfied
+        """
+        raise NotImplementedError
+
+
+
+class IsReachable(Predicate):
     """
     Check if object lies inside the precomputed gripper's reachable envelope
     ! does not solve IK and does not check collisions
@@ -21,10 +35,9 @@ class IsReachable:
         """
         Return reachable area
         """
-        robot_pos = list(robot.position)
-        reachable_range = self._get_reachable_range(robot)
-
-        reachable_area = np.repeat(robot_pos, 2) + np.array(reachable_range)
+        reachable_range = np.array(self._get_reachable_range(robot))
+        robot_pos = np.repeat(list(robot.position), 2)
+        reachable_area = robot_pos + reachable_range
 
         return reachable_area.tolist()
         
@@ -35,7 +48,6 @@ class IsReachable:
         """
         reachable_area = self.compute_area(robot)
         obj_position = obj.get_position()
-
         return self._obj_inside_area(obj_position, reachable_area)
     
 
@@ -66,14 +78,14 @@ class IsReachable:
 
 
 
-class Touching:
+class Touching(Predicate):
     """
     Check whether two objects are physically touching
     """
 
     def compute_area(self, obj1, obj2) -> Area:
         raise NotImplementedError()
-        # TODO future base for OnTheLeft predicate
+        # TODO future base for OnTheLeft predicate?
         """
         Return a target area for the center of obj1 such that obj1 touches obj2.
 
@@ -102,7 +114,7 @@ class Touching:
         """
         Return True if obj1 and obj2 touch (using PyBullet)
         """
-        contact_points = pybullet.getContactPoints(
+        contact_points = obj1.p.getContactPoints(
             bodyA=obj1.uid,
             bodyB=obj2.uid,
         )
@@ -110,7 +122,7 @@ class Touching:
     
 
 
-class OnTop:
+class OnTop(Predicate):
     """
     Check whether object1 is on to of object2
     """
@@ -139,6 +151,7 @@ class OnTop:
         """
         Return True if obj1 is on top of obj2
         """
+        print("OnTop.check:", obj1.name, obj2.name)
         # 1. obj1 and obj2 are touching
         if not Touching().check(obj1, obj2):
             return False
@@ -152,6 +165,7 @@ class OnTop:
 
         tolerance = 0.02
         bottom_is_near_top = abs(obj1_min - obj2_max) < tolerance
+        print(abs(obj1_min - obj2_max))
         return bottom_is_near_top
 
         # the overlap is ignored for now
@@ -170,10 +184,10 @@ class OnTop:
         ! the table rotation is not applied
         """
         ws_dict = get_workspace_dict()
-        desk_dim = ws_dict[obj2.name]["desk_dim"]
-        table_pos = obj2.get_position()
-        desk_area = np.repeat(table_pos, 2) + np.array(desk_dim)
-        return desk_area
+        desk_dim = np.array(ws_dict[obj2.name]["desk_dim"])
+        table_pos = np.repeat(obj2.get_position(), 2)
+        desk_area = table_pos + desk_dim
+        return desk_area.tolist()
     
 
     @staticmethod
@@ -199,115 +213,53 @@ class PredicateCall:
     predicate: str
     args: list[str]
 
-
-
-class ResolvePredicates:
-    """
-    Resolve predicate strings from config into sampling areas
-    """
-
-    def get_init_area(self, obj_info, table, robot, predicates=None) -> Area | None:
-        """
-        Return sampling area from object predicates
-        """
-        obj1_urdf = obj_info["urdf"]
-        predicates = self._filter_obj_predicates(predicates, obj_info["obj_name"])
-        #print(obj_info["obj_name"], predicates)
-
-        if not predicates:
-            random_table_area = OnTop().compute_area(table, obj1_urdf)
-            return random_table_area
-        
-        area = self._get_infinite_area()
-        predicate_calls = self._parse_predicates(predicates)
-        predicate_map = self._get_predicate_map(predicate_calls)
-        
-        on_top_predicate = predicate_map.get("OnTop")
-        # TODO cannot resolve [OnTop(tuna_can, table) AND OnTop(apple, tuna_can)]
-        if on_top_predicate is not None:
-            area = self._apply_on_top_area(
-                current_area=area,
-                predicate=on_top_predicate,
-                table=table,
-                obj1_urdf=obj1_urdf,
-            )
-
-        reachable_predicate = predicate_map.get("Reachable")
-        if reachable_predicate is not None:
-            area = self._apply_reachable_area(
-                current_area=area,
-                predicate=reachable_predicate,
-                robot=robot,
-            )
-
-        # near_predicate = predicate_map.get("Near")
-        # if near_predicate is not None:
-        #     area = self._apply_near_area(...)
-        return area
-
-
-    def _apply_on_top_area(
-            self, current_area: Area, predicate: PredicateCall, table, obj1_urdf: str
-            ) -> Area | None:
-        """
-        Apply OnTop(obj1, obj2) as an area constraint
-        ! currently supports only obj2 == table
-        """
-        if len(predicate.args) != 2:
-            raise ValueError(f"OnTop expects 2 arguments, got {predicate.args}")
-
-        obj1_name, obj2_name = predicate.args
-
-        if obj2_name != "table":
-            print(f"OnTop({obj1_name}, {obj2_name}) cannot be resolved during initial placement yet.")
-            return current_area
-
-        on_top_area = OnTop().compute_area(table, obj1_urdf)
-
-        return self._get_range_intersection(current_area, on_top_area)
-
-
-    def _apply_reachable_area(
-        self, current_area: Area, predicate: PredicateCall, robot
-        ) -> Area | None:
-        """
-        Apply Reachable(obj) as an area constraint
-        """
-        if len(predicate.args) != 1:
-            raise ValueError(f"Reachable expects 1 argument, got {predicate.args}")
-
-        reachable_area = IsReachable().compute_area(robot)
-        final_area = self._get_range_intersection(current_area, reachable_area)
-
-        #print("reachable:", reachable_area)
-        #print("current:", current_area)
-        #print("final:", final_area)
-
-        return final_area
     
+class PredicateResolver:
+    """
+    Base class to check if all predicates are satisfied
+    """
 
-    @staticmethod
-    def _get_predicate_map(predicate_calls: list[PredicateCall]) -> dict[str, PredicateCall]:
+    predicate_key: str | None = None
+
+    def check(self, placed_objects: dict, env, predicates: dict) -> bool:
         """
-        Convert list of PredicateCall objects to dict by predicate name.
-        [PredicateCall("OnTop", ["apple", "table"]), ...] -> {"OnTop": PredicateCall(...), ...}
+        Return True if all of the selected predicates are satisfied
+        """
+        if self.predicate_key is None:
+            raise NotImplementedError("predicate_key must be defined in child class")
+
+        selected_predicates = predicates.get(self.predicate_key, []) if predicates else []
+
+        if not selected_predicates:
+            # no restriction for object placement
+            return True
+
+        objects_by_name = self._build_object_lookup(env, placed_objects)
+
+        for predicate in self._parse_predicates(selected_predicates):
+            if not self._check_predicate(predicate, objects_by_name, env):
+                return False
+
+        return True
+    
+    
+    @staticmethod
+    def _get_predicate_map(predicate_calls: list[PredicateCall]
+                           ) -> dict[str, list[PredicateCall]]:
+        """
+        Convert list of PredicateCall objects to dict by predicate name
+        [PredicateCall("OnTop", ["apple", "table"]), ...] -> {"OnTop": [PredicateCall(...), ...}
         """
         predicate_map = {}
 
-        for p in predicate_calls:
-            if p.predicate in predicate_map:
-                raise ValueError(
-                    f"Predicate '{p.predicate}' appears multiple times. "
-                    "Use a list-valued map if this should be allowed."
-                )
-
-            predicate_map[p.predicate] = p
+        for predicate_call in predicate_calls:
+            predicate_map.setdefault(predicate_call.predicate, []).append(predicate_call)
 
         return predicate_map
     
 
     @staticmethod
-    def _parse_predicates(predicates: list[str] | None) -> list[PredicateCall]:
+    def _parse_predicates(predicates: list[str]) -> list[PredicateCall]:
         """ 
         Convert list of predicates tsrings to list predicates objects
         ['OnTop(apple,table)', ...] -> [PredicateCall(name='OnTop', args=['apple','table']), ...]
@@ -336,6 +288,51 @@ class ResolvePredicates:
             return []
 
         return [p for p in predicates if self._predicate_contains_obj(p, obj_name)]
+    
+
+    @staticmethod
+    def _check_predicate(predicate: PredicateCall, objects_by_name: dict, env,
+                         )-> bool:
+        """predicates
+        Check a predicate after objects have already been placed.
+        """
+        if predicate.predicate == "Reachable":
+            obj_name = predicate.args[0]
+            return IsReachable().check(env.robot, objects_by_name[obj_name])
+
+        if predicate.predicate == "OnTop":
+            obj_name, support_name = predicate.args
+            print(OnTop().check(objects_by_name[obj_name], objects_by_name[support_name]))
+            return OnTop().check(objects_by_name[obj_name], objects_by_name[support_name])
+
+        """if predicate.predicate == "ObjectAt":
+            obj_name, target_name = predicate.args
+            return ObjectAt().check(objects_by_name[obj_name], objects_by_name[target_name])"""
+
+        raise ValueError(f"Unknown predicate: {predicate.predicate}")
+
+
+    @staticmethod
+    def _build_object_lookup(env, placed_objects: dict) -> dict:
+        """
+        Build name -> object lookup for predicates.
+        """
+        objects_by_name = {}
+
+        # Active task objects.
+        for obj in placed_objects.values():
+            if hasattr(obj, "name"):
+                objects_by_name[obj.name] = obj
+
+        # Static scene aliases.
+        objects_by_name["table"] = env.static_scene_objects[env.workspace]
+        objects_by_name[env.workspace] = env.static_scene_objects[env.workspace]
+
+        # Robot alias.
+        objects_by_name["robot"] = env.robot
+        objects_by_name["gripper"] = env.robot
+
+        return objects_by_name
     
 
     @staticmethod
@@ -382,19 +379,96 @@ class ResolvePredicates:
             -float("inf"), float("inf"),
             -float("inf"), float("inf"),
         ]
+
+
+
+class InitPredicateResolver(PredicateResolver):
+    """
+        Resolve predicates describing the initial state
+    """
+
+    predicate_key = "init"
     
 
-class CheckPredicates:
-    """
-    TODO
-    """
+    def get_area(self, obj_info, table, robot, predicates) -> Area | None:
+        """
+        Compute object sampling area from init predicates
+        """
+        predicates = predicates["init"] if predicates else []
+        obj1_urdf = obj_info["urdf"]
+        predicates = self._filter_obj_predicates(predicates, obj_info["obj_name"])
+        print(obj_info["obj_name"], "predicates:", predicates)
 
-    def check_init_state(self, object_dict, placed_objects, env, predicates):
+        if not predicates:
+            random_table_area = OnTop().compute_area(table, obj1_urdf)
+            return random_table_area
+        
+        area = self._get_infinite_area()
+        predicate_calls = self._parse_predicates(predicates)
+        predicate_map = self._get_predicate_map(predicate_calls)
+        
+        for on_top_predicate in predicate_map.get("OnTop", []):
+            area = self._apply_on_top_area(
+                current_area=area,
+                predicate=on_top_predicate,
+                table=table,
+                obj1_urdf=obj1_urdf,
+            )
+
+        for reachable_predicate in predicate_map.get("Reachable", []):
+            area = self._apply_reachable_area(
+                current_area=area,
+                predicate=reachable_predicate,
+                robot=robot,
+            )
+            break  # repetitive input
+
+        # near_predicate = predicate_map.get("Near")
+        # if near_predicate is not None:
+        #     area = self._apply_near_area(...)
+        return area
+    
+
+    def _apply_on_top_area(
+            self, current_area: Area, predicate: PredicateCall, table, obj1_urdf: str
+            ) -> Area | None:
         """
-        TODO
+        Apply OnTop(obj1, obj2) as an area constraint
+        ! currently supports only obj2 == table
         """
-        print("Checking init state")
-        return
+        if len(predicate.args) != 2:
+            raise ValueError(f"OnTop expects 2 arguments, got {predicate.args}")
+
+        obj1_name, obj2_name = predicate.args
+
+        if obj2_name != "table":
+            print(f"OnTop({obj1_name}, {obj2_name}) cannot be resolved during initial placement yet.")
+            return current_area
+
+        on_top_area = OnTop().compute_area(table, obj1_urdf)
+
+        return self._get_range_intersection(current_area, on_top_area)
+
+
+    def _apply_reachable_area(
+        self, current_area: Area, predicate: PredicateCall, robot
+        ) -> Area | None:
+        """
+        Apply Reachable(obj) as an area constraint
+        """
+        if len(predicate.args) != 1:
+            raise ValueError(f"Reachable expects 1 argument, got {predicate.args}")
+
+        reachable_area = IsReachable().compute_area(robot)
+        final_area = self._get_range_intersection(current_area, reachable_area)
+        return final_area
+
+
+class GoalPredicateResolver(PredicateResolver):
+    """
+    Check predicates describing the goal state.
+    """
+    predicate_key = "goal"
 
 
 
@@ -451,7 +525,7 @@ if __name__ == '__main__':
     table = env.static_scene_objects[env.workspace]
 
     pth1 = os.path.join(pkg_resources.files("myGym"), "envs/objects/household/urdf/tuna_can.urdf")
-    pos = env_object.EnvObject.get_random_object_position([-0., 0.5, 0.4, 0.6, 0.07, 0.07])
+    pos = env_object.EnvObject.get_random_object_position([-0., 0.2, 0.4, 0.5, 0.07, 0.07])
 
     obj1 = env_object.EnvObject(
         pth1,
@@ -461,9 +535,9 @@ if __name__ == '__main__':
         fixed=False
     )
 
-    for _ in range(1000):
+    for _ in range(100):
         # tuna falls on the table
-        env.pybullet.stepSimulation()
+        env.p.stepSimulation()
 
     touching = Touching()
     on_top = OnTop()
@@ -476,4 +550,55 @@ if __name__ == '__main__':
     print(on_top.check(obj1, table))
     print("Table on top of tuna:")
     print(on_top.check(table, obj1))
+
+
+    """
+    # load tuna model and check the scale
+    obj1_info = pybullet.getVisualShapeData(obj1.get_uid())[0]
+    obj1_scale = get_scale_from_urdf(pth1)
+    objpth = obj1_info[4].decode("utf-8")
+
+    # voxelize
+    o3model = o3d.io.read_triangle_model(objpth)
+    mesh = o3model.meshes[0].mesh
+    mesh = mesh.scale(obj1_scale, center=mesh.get_center())
+    vm = VolumeMesh(mesh)
+    orig = vm.duplicate()
+    orig.paint(np.array([0, 1, 0]))
+    voxel_grid = vm.voxelgrid
+
+    # visualize geometry
+    o3d.visualization.draw_geometries([voxel_grid, orig.voxelgrid])
+    """
+
+    """
+    pth1 = "./envs/objects/geometric/urdf/cube.urdf"
+    pos = env_object.EnvObject.get_random_object_position([-0.5, 0.5, 0.4, 0.6, 0.1, 0.1])
+    pan1 = env_object.EnvObject(pth1, pos, [0, 0, 0, 1], pybullet_client=p, fixed=False)
+    pan1_info = pybullet.getVisualShapeData(pan1.get_uid())[0]
+    pan1_scale = get_scale_from_urdf(pth1)
+    objpth = pan1_info[4].decode("utf-8")
+    o3model = o3d.io.read_triangle_model(objpth)
+    mesh = o3model.meshes[0].mesh
+    mesh = mesh.scale(pan1_scale, center=mesh.get_center())
+    vm = VolumeMesh(mesh)
+    orig = vm.duplicate()
+    orig.paint(np.array([0, 1, 0]))
+    voxel_grid = vm.voxelgrid
+    o3d.visualization.draw_geometries([voxel_grid, orig.voxelgrid])
+    pan1.paint([0,1,0,1])
+    print("Green pan touching table:")
+    print(touching.get_value(pan1, table))
+    print("Green pan on top of table:")
+    print(on_top.get_value(pan1, table))
+    print("Table on top of green pan:")
+    print(on_top.get_value(table, pan1))
+
+    pos = env_object.EnvObject.get_random_object_position([-0.5, 0.5, 0.4, 0.6, 0.5, 0.55])
+    pan2 = env_object.EnvObject("myGym/envs/objects/household/urdf/pan.urdf", pos, [0, 0, 0, 1], pybullet_client=p, fixed=False)
+    pan2.set_color([1,0,0,1])
+    print("Red pan touching table:")
+    print(touching.get_value(pan2, table))
+    print("")
+    """
 
