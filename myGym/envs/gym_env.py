@@ -9,7 +9,7 @@ from collections import ChainMap
 
 from myGym.envs.env_object import EnvObject
 from myGym.envs.rewards import *
-from myGym.envs.predicates import InitPredicateResolver
+from myGym.envs.predicates import InitPredicateResolver, GoalPredicateResolver
 import numpy as np
 from itertools import chain
 import random
@@ -370,12 +370,8 @@ class GymEnv(CameraEnv):
                 if self.task_objects_were_given_as_list:
                     self.env_objects["env_objects"] += other_objects
 
-                current_task_objects = task_objects_dict[self.task.current_task]
-                current_predicates = self.predicates_dict#[self.task.current_task]
                 self.task_objects = self._randomly_place_objects(
-                    current_task_objects, predicates = current_predicates)
-                
-                #self.task_objects = self._randomly_place_objects(task_objects_dict[self.task.current_task], )
+                    task_objects_dict[self.task.current_task], self.predicates_dict)
                 self.task_objects = dict(ChainMap(*self.task_objects))
                 if subtask_objects:
                     self.task_objects["distractor"] = subtask_objects
@@ -446,11 +442,12 @@ class GymEnv(CameraEnv):
         self.task.reset_task()
         
         for _ in range(100):
+            # waiting for physics to settle down before robot starts
             self.p.stepSimulation()
         if not InitPredicateResolver().check(
             placed_objects=self.task_objects,
             env=self,
-            predicates=current_predicates,
+            predicates=self.predicates_dict,
         ):
             raise RuntimeError("Initial predicates are not satisfied.")
 
@@ -531,7 +528,6 @@ class GymEnv(CameraEnv):
         self._apply_action_robot(action)
         self._observation = self.get_observation()
 
-        
         reward = self.unwrapped.reward.compute(observation=self._observation)
         self.episode_reward += reward
         
@@ -546,6 +542,15 @@ class GymEnv(CameraEnv):
         info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
         if terminated or truncated:
+            goal_satisfied = GoalPredicateResolver().check(
+                placed_objects=self.task_objects,
+                env=self,
+                predicates=self.predicates_dict,
+            )
+            if goal_satisfied:
+                print("Goal predicates satisfied, task completed.")
+            else:
+                print("The goal state is incorrect.")
             self.successful_finish(info) #Maybe only change to 'if terminated'? Probably not
         if self.task.subtask_over:
             self.reset(only_subtask=True)
@@ -630,7 +635,7 @@ class GymEnv(CameraEnv):
             sampling_area = InitPredicateResolver().get_area(obj_info, table, self.robot, predicates)
         
         pos = env_object.EnvObject.get_random_object_position(sampling_area)
-        print(obj_info["obj_name"],"position:", pos)
+        #print(obj_info["obj_name"],"position:", pos)
         orn = env_object.EnvObject.get_random_object_orientation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
         object = env_object.EnvObject(obj_info["urdf"], pos, orn, pybullet_client=self.p, fixed=fixed)
         if self.color_dict: object.set_color(self.color_of_object(object))
