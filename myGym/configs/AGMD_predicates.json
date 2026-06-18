@@ -22,7 +22,7 @@
     "task_objects"          :[{"init":{"obj_name":"apple","fixed":0,"rand_rot":0}, 
                             "goal":{"obj_name":"tuna_can","fixed":1,"rand_rot":0}}],
     "predicates"            :[{"init":["Reachable(apple)", "OnTop(apple,table)", "Reachable(tuna_can)"],
-                            "goal":["OnTop(apple,tuna_can)"]}],
+                            "goal":["Near(apple,tuna_can)"]}],
     "color_dict"            : {"apple":["green"], "target":["gray"]},
     "used_objects"          : {"num_range": [0, 0],
                                "obj_list": [{"obj_name": "banana", "fixed": 0, "rand_rot": 0}]},

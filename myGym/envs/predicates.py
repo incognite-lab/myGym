@@ -61,6 +61,15 @@ def aabb_overlap(min_a: Point3D, max_a: Point3D,
         for i in range(dims)
     )
 
+def get_distance(pos1: Point3D, pos2:Point3D) -> float:
+    """
+    Return Euclidean distance between two 3D points
+    """
+    pos1 = np.asarray(pos1, dtype=float)
+    pos2 = np.asarray(pos2, dtype=float)
+
+    return float(np.linalg.norm(pos1 - pos2))
+
 def pos_inside_area(pos: Point3D, area: Area) -> bool:
     """
     Return True if a position is inside area
@@ -270,6 +279,42 @@ class OnTop(AreaPredicate):
         return bottom_offset
 
 
+class Near(Predicate):
+    """
+    Check whether obj1 is close to obj2
+    """
+    MAX_DIST = 0.2  # TODO magic number
+
+    def check(self, obj1, obj2) -> bool:
+        """
+        Return True if obj1 and obj2 are close
+        """
+        max_dist = self.MAX_DIST
+        obj1_pos = obj1.get_position()
+        obj2_pos = obj2.get_position()
+        distance = get_distance(obj1_pos, obj2_pos)
+        print("distance", distance)
+        return distance < max_dist
+
+
+class ObjectAt(Predicate):
+    """
+    Check whether obj1 is almost at the same position as obj2
+    """
+    E = 0.02  # TODO magic number, not tuned
+
+    def check(self, obj, target_obj) -> bool:
+        """
+        Return True if obj1 and obj2 are almost at the same position
+        """
+        e = self.E
+        obj1_pos = obj.get_position()
+        obj2_pos = target_obj.get_position()
+        distance = get_distance(obj1_pos, obj2_pos)
+        return distance < e
+
+
+
 
 # ---------- predicate parsing / resolving ----------
 
@@ -367,12 +412,16 @@ class PredicateResolver:
             return OnTop().check(objects_by_name[obj_name], objects_by_name[support_name])
         
         if predicate.predicate == "Touching":
-            obj_name, support_name = predicate.args
-            return Touching().check(objects_by_name[obj_name], objects_by_name[support_name])
+            obj1_name, obj2_name = predicate.args
+            return Touching().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
+        
+        if predicate.predicate == "Near":
+            obj1_name, obj2_name = predicate.args
+            return Near().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
 
-        """if predicate.predicate == "ObjectAt":
+        if predicate.predicate == "ObjectAt":
             obj_name, target_name = predicate.args
-            return ObjectAt().check(objects_by_name[obj_name], objects_by_name[target_name])"""
+            return ObjectAt().check(objects_by_name[obj_name], objects_by_name[target_name])
 
         raise ValueError(f"Unknown predicate: {predicate.predicate}")
 
