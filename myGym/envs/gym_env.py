@@ -537,21 +537,28 @@ class GymEnv(CameraEnv):
         #if self.unwrapped.reward.last_result['task_solved'] and self.unwrapped.reward.last_result['gripper_solved']:
         #    self.reset(only_subtask=True)
 
-        terminated = self.episode_terminated
+        if not self.episode_terminated:
+            terminated = False
+
+        elif not GoalPredicateResolver().check(
+            placed_objects=self.task_objects,
+            env=self,
+            predicates=self.predicates_dict,
+        ):
+            print("Predicates not satisfied")
+            terminated = False
+        
+        else:
+            print("Goal predicates satisfied")
+            terminated = True
+
         truncated = self.episode_truncated
         info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
+        
         if terminated or truncated:
-            goal_satisfied = GoalPredicateResolver().check(
-                placed_objects=self.task_objects,
-                env=self,
-                predicates=self.predicates_dict,
-            )
-            if goal_satisfied:
-                print("Goal predicates satisfied, task completed.")
-            else:
-                print("The goal state is incorrect.")
             self.successful_finish(info) #Maybe only change to 'if terminated'? Probably not
+
         if self.task.subtask_over:
             self.reset(only_subtask=True)
             print("Subtask finished, shifting to the next one!")
