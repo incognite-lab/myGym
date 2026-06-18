@@ -61,7 +61,18 @@ def aabb_overlap(min_a: Point3D, max_a: Point3D,
         for i in range(dims)
     )
 
-def get_distance(pos1: Point3D, pos2:Point3D) -> float:
+def get_aabb_distance(min_a: Point3D,max_a: Point3D,
+    min_b: Point3D, max_b: Point3D,) -> float:
+    """
+    Return min Euclidean distance between two AABBs, 0 if overlap
+    """
+    dx = max(min_b[0] - max_a[0], min_a[0] - max_b[0], 0.0)
+    dy = max(min_b[1] - max_a[1], min_a[1] - max_b[1], 0.0)
+    dz = max(min_b[2] - max_a[2], min_a[2] - max_b[2], 0.0)
+
+    return float(np.sqrt(dx * dx + dy * dy + dz * dz))
+
+def get_point_distance(pos1: Point3D, pos2:Point3D) -> float:
     """
     Return Euclidean distance between two 3D points
     """
@@ -283,23 +294,23 @@ class Near(Predicate):
     """
     Check whether obj1 is close to obj2
     """
-    MAX_DIST = 0.2  # TODO magic number
+    MAX_DIST = 0.02  # TODO magic number
 
     def check(self, obj1, obj2) -> bool:
         """
         Return True if obj1 and obj2 are close
         """
+        obj1_min, obj1_max = get_bounding_box_limits(obj1)
+        obj2_min, obj2_max = get_bounding_box_limits(obj2)
+        distance = get_aabb_distance(obj1_min, obj1_max, obj2_min, obj2_max)
         max_dist = self.MAX_DIST
-        obj1_pos = obj1.get_position()
-        obj2_pos = obj2.get_position()
-        distance = get_distance(obj1_pos, obj2_pos)
         print("distance", distance)
         return distance < max_dist
 
 
 class ObjectAt(Predicate):
     """
-    Check whether obj1 is almost at the same position as obj2
+    Check whether obj1/gripper is almost at the same position as obj2
     """
     E = 0.02  # TODO magic number, not tuned
 
@@ -310,9 +321,37 @@ class ObjectAt(Predicate):
         e = self.E
         obj1_pos = obj.get_position()
         obj2_pos = target_obj.get_position()
-        distance = get_distance(obj1_pos, obj2_pos)
+        distance = get_point_distance(obj1_pos, obj2_pos)
+        # separate dist when placing obj for z based on obj height?
         return distance < e
 
+
+class GripperStatus(Predicate):
+    """
+    Check whether the gripper is in the desired state
+
+    Supports predicates GripperOpen() and GripperClosed()
+
+    Note:
+        GripperClosed() is not equivalent to not(GripperOpen()),
+        the gripper has also a neutral state
+    """
+
+    def check(self, gripper, desired_status) -> bool:
+        """
+        Return True if gripper status == desired status (open/close)
+        """
+        gripper_states = gripper.get_gjoints_states()
+        status, _ = gripper.check_gripper_status(gripper_states)
+        return status == desired_status
+
+
+class IsHolding(Predicate):
+    """
+    Check whether gripper is holding object
+    """
+    def check(self, gripper, obj) -> bool:
+        return obj in gripper.holding
 
 
 
@@ -422,6 +461,20 @@ class PredicateResolver:
         if predicate.predicate == "ObjectAt":
             obj_name, target_name = predicate.args
             return ObjectAt().check(objects_by_name[obj_name], objects_by_name[target_name])
+        
+        if predicate.predicate == "GripperAt":
+            target_name = predicate.args[0]
+            return ObjectAt().check(objects_by_name["robot"], objects_by_name[target_name])
+        
+        if predicate.predicate == "GripperClosed":
+            return GripperStatus().check(objects_by_name["robot"], "close")
+        
+        if predicate.predicate == "GripperOpen":
+            return GripperStatus().check(objects_by_name["robot"], "open")
+        
+        if predicate.predicate == "IsHolding":
+            target_name = predicate.args[0]
+            return IsHolding().check(env.robot, objects_by_name[target_name])
 
         raise ValueError(f"Unknown predicate: {predicate.predicate}")
 
