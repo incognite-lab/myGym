@@ -47,17 +47,17 @@ def get_range_intersection(area_a: Area, area_b: Area) -> Area|None:
 
     return intersection
 
-def aabb_overlap(min_a: Point3D, max_a: Point3D, 
-                 min_b: Point3D, max_b: Point3D, dims: int = 3
-                 ) -> bool:
+def aabb_overlap(min_a: Point3D, max_a: Point3D, min_b: Point3D, max_b: Point3D,
+                 dims: int = 3, tolerance: float = 0.0) -> bool:
     """
-    Return True if two AABBs overlap
+    Return True if two AABBs overlap (or are within tolerance)
 
     dims=2 checks overlap only in x, y
     dims=3 checks overlap in x, y, and z
     """
     return all(
-        min_a[i] <= max_b[i] and max_a[i] >= min_b[i]
+        min_a[i] <= max_b[i] + tolerance and
+        max_a[i] >= min_b[i] - tolerance
         for i in range(dims)
     )
 
@@ -98,7 +98,8 @@ def get_bounding_box_limits(obj) -> BBox:
     For table_complex, manually defined desk area is used instead of
     full object bounding box
     """
-    if obj.name == "table_complex":
+    ws_dict = get_workspace_dict()
+    if obj.name in ws_dict:
         obj_min, obj_max = get_desk_bounding_box(obj)
     else:
         obj_min, obj_max = obj.get_bounding_box()[0], obj.get_bounding_box()[4]
@@ -122,6 +123,19 @@ def get_desk_bounding_box(table_obj) -> BBox:
     desk_area = get_desk_area(table_obj)
     obj_min = (desk_area[0], desk_area[2], desk_area[4])
     obj_max = (desk_area[1], desk_area[3], desk_area[5])
+    return obj_min, obj_max
+
+def get_desk_sampling_area(table_obj):
+    """
+    Return safety xy border for placing objects on the table desk
+    """
+    # TODO border_size needs tuning
+    ws_dict = get_workspace_dict()
+    sampling_border = ws_dict[table_obj.name]["desk_sampling_border"]
+    obj_min, obj_max = get_desk_bounding_box(table_obj)
+
+    obj_min = np.array(obj_min) + np.array(sampling_border)
+    obj_max = np.array(obj_max) - np.array(sampling_border)
     return obj_min, obj_max
 
 
@@ -195,26 +209,26 @@ class Touching(Predicate):
     """
     Check whether two objects are touching
     """
+    TOLERANCE = 0.01 # TODO tune and move somewhere alse
 
     def check(self, obj1, obj2) -> bool:
         """
-        Uses PyBullet contacts when possible.
-        Falls back to AABB overlap, which is useful for fixed objects.
+        Return True if AABB overlap (with tolerance)
         """
-
-        if not obj1.fixed or not obj2.fixed:
-            contact_points = obj1.p.getContactPoints(
-                bodyA=obj1.uid,
-                bodyB=obj2.uid,
-            )
-            return len(contact_points) > 0
-        
-        # Fallback for fixed objects or not-yet-updated contacts.
         obj1_min, obj1_max = get_bounding_box_limits(obj1)
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
+        t = self.TOLERANCE
+        if aabb_overlap(obj1_min, obj1_max, obj2_min, obj2_max, tolerance=t):
+            return True
 
-        return aabb_overlap(obj1_min, obj1_max, obj2_min, obj2_max)
-
+        # NOTE: just for double check: doesnt work for some object comtinations
+        # PyBullet contacts
+        contact_points = obj1.p.getContactPoints(
+            bodyA=obj1.uid,
+            bodyB=obj2.uid,
+        )
+        return len(contact_points) > 0
+        
 
 class OnTop(AreaPredicate):
     """
@@ -222,52 +236,49 @@ class OnTop(AreaPredicate):
     """
     # magic numbers
     # TODO find more accurate ones and save it to helpers maybe
-    PLACING_BORDER = 0.01   # TODO random number, needs tuning
-    PLACING_MARGIN = 0.005  # seems very small but it worked with different objects
+    PLACING_MARGIN = 0.007  # seems small but worked with different objects
     TOLERANCE = 0.02        # might be too forgiving but works for now
 
     def check(self, obj1, obj2) -> bool:
         """
         Return True if obj1 is on top of obj2
         """
-        # 1. obj1 and obj2 are touching
-        if not Touching().check(obj1, obj2):
-            return False
-        
-        # 2. bottom of obj1 is near top of obj2
-        obj1_min = obj1.get_bounding_box()[0][2]
-        if obj2.name == "table_complex":
-            obj2_max = get_desk_area(obj2)[-1]
-        else:
-            obj2_max = obj2.get_bounding_box()[4][2]
-
-        bottom_is_near_top = abs(obj1_min - obj2_max) < self.TOLERANCE
-        #print("diff:", abs(obj1_min - obj2_max))
-        return bottom_is_near_top
-
-        # the overlap is ignored for now
-        # 3. their x/y projections overlap
         obj1_min, obj1_max = get_bounding_box_limits(obj1)
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
-        return aabb_overlap(obj1_min, obj1_max, obj2_min, obj2_max, dims=2)
+        obj1_center_x = (obj1_min[0] + obj1_max[0]) / 2
+        obj1_center_y = (obj1_min[1] + obj1_max[1]) / 2
+
+        # 1. obj1 bottom close to obj2 top
+        bottom_is_near_top = abs(obj1_min[2] - obj2_max[2]) < self.TOLERANCE
+
+        # 2. obj1 AABB center inside obj2 xy bounds
+        center_inside_support_xy = (
+            obj2_min[0] <= obj1_center_x <= obj2_max[0] and
+            obj2_min[1] <= obj1_center_y <= obj2_max[1]
+        )
+
+        return bottom_is_near_top and center_inside_support_xy
 
     def compute_area(self, obj1_urdf: str, obj2) -> Area:
         """
         Return sampling area for obj1 origin so that obj1 is placed on top of obj2
         """
-        obj2_min, obj2_max = get_bounding_box_limits(obj2)
-        obj1_bottom_offset = self._get_bottom_offset_from_urdf(
-            obj1_urdf,
-            obj2.p,
-        )
-
+        obj1_bottom_offset = self._get_bottom_offset_from_urdf(obj1_urdf, obj2.p)
         placing_height = obj1_bottom_offset + self.PLACING_MARGIN
-        placing_border = self.PLACING_BORDER
+        ws_dict = get_workspace_dict()
 
-        sampling_area = [obj2_min[0] + placing_border, obj2_max[0] - placing_border,
-                         obj2_min[1] + placing_border, obj2_max[1] - placing_border,
+        if obj2.name in ws_dict:
+            # place at random pos on top of the table
+            obj2_min, obj2_max = get_desk_sampling_area(obj2)
+
+        else:
+            # place at the xy center of the object
+            obj2_min = obj2.get_position()
+            obj2_max = obj2_min
+
+        sampling_area = [obj2_min[0], obj2_max[0],
+                         obj2_min[1], obj2_max[1],
                          obj2_max[2] + placing_height, obj2_max[2] + placing_height,]
-        
         return sampling_area
 
     @staticmethod
@@ -282,11 +293,9 @@ class OnTop(AreaPredicate):
 
         obj_min = temp_obj.get_bounding_box()[0]
         obj_pos = temp_obj.get_position()
-
-        bottom_offset = obj_pos[2] - obj_min[2]
-
         pybullet_client.removeBody(temp_obj.uid)
 
+        bottom_offset = obj_pos[2] - obj_min[2]
         return bottom_offset
 
 
@@ -434,12 +443,12 @@ class PredicateResolver:
         if not predicates:
             return []
 
-        return [p for p in predicates if self._predicate_contains_obj(p, obj_name)]
+        return [p for p in predicates if self._predicate_has_obj_as_first_arg(p, obj_name)]
 
     @staticmethod
     def _check_predicate(predicate: PredicateCall, objects_by_name: dict, env,
                          )-> bool:
-        """predicates
+        """
         Check a predicate after objects have already been placed.
         """
         if predicate.predicate == "Reachable":
@@ -501,9 +510,9 @@ class PredicateResolver:
         return objects_by_name
 
     @staticmethod
-    def _predicate_contains_obj(predicate: str, obj_name: str) -> bool:
+    def _predicate_has_obj_as_first_arg(predicate: str, obj_name: str) -> bool:
         """
-        Return True if obj_name is one of the predicate arguments
+        Return True if obj_name is the first predicate argument.
         """
         args_start = predicate.find("(")
         args_end = predicate.rfind(")")
@@ -514,7 +523,10 @@ class PredicateResolver:
         args_text = predicate[args_start + 1:args_end]
         args = [arg.strip() for arg in args_text.split(",")]
 
-        return obj_name in args
+        if not args:
+            return False
+
+        return args[0] == obj_name
 
 
 class InitPredicateResolver(PredicateResolver):
@@ -524,14 +536,17 @@ class InitPredicateResolver(PredicateResolver):
 
     predicate_key = "init"
 
-    def get_area(self, obj_info, table, robot, predicates) -> Area | None:
+    def get_area(self, obj_info, table, robot, predicates, placed_objects=None) -> Area | None:
         """
         Compute object sampling area from init predicates
         """
         predicates = predicates["init"] if predicates else []
+        placed_objects = placed_objects or {}
+        placed_objects.setdefault("table", table)
+        placed_objects.setdefault("workspace", table)
         obj1_urdf = obj_info["urdf"]
         predicates = self._filter_obj_predicates(predicates, obj_info["obj_name"])
-        #print(obj_info["obj_name"], "predicates:", predicates)
+        print(obj_info["obj_name"], "predicates:", predicates)
 
         if not predicates:
             random_table_area = OnTop().compute_area(obj1_urdf, table)
@@ -547,6 +562,7 @@ class InitPredicateResolver(PredicateResolver):
                 predicate=on_top_predicate,
                 table=table,
                 obj1_urdf=obj1_urdf,
+                placed_objects=placed_objects,
             )
 
         for reachable_predicate in predicate_map.get("Reachable", []):
@@ -557,30 +573,33 @@ class InitPredicateResolver(PredicateResolver):
             )
             break  # repetitive input
 
-        # near_predicate = predicate_map.get("Near")
-        # if near_predicate is not None:
-        #     area = self._apply_near_area(...)
         return area
     
 
     def _apply_on_top_area(
-            self, current_area: Area, predicate: PredicateCall, table, obj1_urdf: str
+            self, current_area: Area, predicate: PredicateCall, table, obj1_urdf: str, placed_objects
             ) -> Area | None:
         """
         Apply OnTop(obj1, obj2) as an area constraint
-        ! currently supports only obj2 == table
+        The support object has to be already placed
         """
         if len(predicate.args) != 2:
             raise ValueError(f"OnTop expects 2 arguments, got {predicate.args}")
 
         obj1_name, obj2_name = predicate.args
 
-        if obj2_name != "table":
-            print(f"OnTop({obj1_name}, {obj2_name}) cannot be resolved during initial placement yet.")
-            return current_area
-
-        on_top_area = OnTop().compute_area(obj1_urdf, table)
-
+        if obj2_name == "table":
+            support_object = table
+        else:
+            support_object = placed_objects.get(obj2_name)
+            print(placed_objects)
+            if not support_object:
+                raise ValueError(
+                    f"Cannot compute OnTop area for '{predicate.args[0]}'. "
+                    f"Supporting object '{obj2_name}' has not been placed yet."
+                )
+        
+        on_top_area = OnTop().compute_area(obj1_urdf, support_object)
         return get_range_intersection(current_area, on_top_area)
 
     def _apply_reachable_area(
@@ -595,6 +614,89 @@ class InitPredicateResolver(PredicateResolver):
         reachable_area = IsReachable().compute_area(robot)
         final_area = get_range_intersection(current_area, reachable_area)
         return final_area
+    
+
+    def get_placement_order(self, objects_to_place, predicates):
+        """
+        Sort placement records according to initial predicate dependencies.
+
+        Example:
+            OnTop(apple, banana)
+
+        means:
+            banana must be placed before apple.
+
+        objects_to_place is a list of placement records:
+            {
+                "obj_info": {...},
+                "role": ...,
+                "target": ...,
+                "state_name": ...
+            }
+        """
+        init_predicates = predicates["init"] if predicates else []
+        predicate_calls = self._parse_predicates(init_predicates)
+        predicate_map = self._get_predicate_map(predicate_calls)
+
+        records_by_name = {
+            record["obj_info"]["obj_name"]: record
+            for record in objects_to_place
+            if record["obj_info"]["obj_name"] != "null"
+        }
+
+        object_names = set(records_by_name.keys())
+
+        dependencies = {
+            obj_name: set()
+            for obj_name in object_names
+        }
+
+        for predicate in predicate_map.get("OnTop", []):
+            upper_obj = predicate.args[0]
+            support_obj = predicate.args[1]
+
+            if upper_obj not in object_names:
+                continue
+
+            if support_obj in object_names:
+                dependencies[upper_obj].add(support_obj)
+
+        return self._topological_sort_records(
+            records_by_name=records_by_name,
+            dependencies=dependencies,
+        )
+
+
+    def _topological_sort_records(self, records_by_name, dependencies):
+        """
+        Return placement records sorted so that support objects are placed first.
+        """
+        sorted_records = []
+        temporary_marks = set()
+        permanent_marks = set()
+
+        def visit(obj_name):
+            if obj_name in permanent_marks:
+                return
+
+            if obj_name in temporary_marks:
+                raise ValueError(
+                    f"Cyclic OnTop dependency detected around object '{obj_name}'."
+                )
+
+            temporary_marks.add(obj_name)
+
+            for dependency_name in dependencies[obj_name]:
+                visit(dependency_name)
+
+            temporary_marks.remove(obj_name)
+            permanent_marks.add(obj_name)
+            sorted_records.append(records_by_name[obj_name])
+
+        for obj_name in records_by_name:
+            visit(obj_name)
+
+        return sorted_records
 
 
 class GoalPredicateResolver(PredicateResolver):

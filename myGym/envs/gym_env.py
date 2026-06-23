@@ -348,33 +348,35 @@ class GymEnv(CameraEnv):
             super().reset(hard=hard)
 
             if not self.nl_mode:
-                other_objects = []
-                if self.task_objects_were_given_as_list:
-                    task_objects_dict = copy.deepcopy(self.task_objects_dict)
-                else:
-                    if not self.reach_gesture:
-                        init = self.rng.choice(self.task_objects_dict["init"])
-                        goal = self.rng.choice(self.task_objects_dict["goal"])
-                        objects = self.task_objects_dict["init"] + self.task_objects_dict["goal"]
-                        task_objects_dict = [{"init": init, "goal": goal}]
-                        other_objects = self._randomly_place_objects({"obj_list": [o for o in objects if o != init and o != goal]})
-                    else:
-                        goal = self.rng.choice(self.task_objects_dict["goal"])
-                        task_objects_dict = [{"init": {"obj_name":"null"}, "goal": goal}]
-                        other_objects = self._randomly_place_objects({"obj_list": [o for o in self.task_objects_dict["goal"] if o != goal]})
+                success = False
 
-                all_subtask_objects = [x for i, x in enumerate(task_objects_dict) if i != self.task.current_task]
-                subtasks_processed = [list(x.values()) for x in all_subtask_objects]
-                subtask_objects = self._randomly_place_objects({"obj_list": list(chain.from_iterable(subtasks_processed))})
-                self.env_objects = {"env_objects": self._randomly_place_objects(self.used_objects)}
-                if self.task_objects_were_given_as_list:
-                    self.env_objects["env_objects"] += other_objects
+                for _ in range(100):
+                    placed_objects = self._randomly_place_objects(
+                        object_dict=self._build_placement_request(),
+                        predicates=self.predicates_dict,
+                    )
 
-                self.task_objects = self._randomly_place_objects(
-                    task_objects_dict[self.task.current_task], self.predicates_dict)
-                self.task_objects = dict(ChainMap(*self.task_objects))
-                if subtask_objects:
-                    self.task_objects["distractor"] = subtask_objects
+                    for _ in range(100):
+                        # waiting for physics to settle down before robot starts
+                        self.p.stepSimulation()
+
+                    init_ok = InitPredicateResolver().check(
+                        placed_objects=placed_objects["task_objects"],
+                        env=self,
+                        predicates=self.predicates_dict,
+                    )
+
+                    if init_ok:
+                        success = True
+                        self.task_objects = placed_objects["task_objects"]
+                        self.env_objects = placed_objects["env_objects"]
+                        break
+
+                    self._remove_placed_objects(placed_objects)
+
+                if not success:
+                    raise RuntimeError("Object initialization check error")
+
             else:
                 init_objects = []
                 if not self.reach_gesture:
@@ -418,7 +420,12 @@ class GymEnv(CameraEnv):
                             pass
                         i += 1
 
-                self.task_objects = {"actual_state": init if init is not None else self.robot, "goal_state": goal}
+                self.task_objects = {
+                    "actual_state": init if init is not None else self.robot,
+                    "goal_state": goal,
+                    "distractor": [],
+                }
+
                 other_objects = [o for o in init_objects + goal_objects if o != init and o != goal]
                 self.env_objects = {"env_objects": other_objects + self._randomly_place_objects(self.used_objects)}
 
@@ -438,19 +445,10 @@ class GymEnv(CameraEnv):
                 self.task_objects["distractor"].extend(distrs)
             else:
                 self.task_objects["distractor"] = distrs
+
         self.env_objects = {**self.task_objects, **self.env_objects}
         self.task.reset_task()
-        
-        for _ in range(100):
-            # waiting for physics to settle down before robot starts
-            self.p.stepSimulation()
-        if not InitPredicateResolver().check(
-            placed_objects=self.task_objects,
-            env=self,
-            predicates=self.predicates_dict,
-        ):
-            raise RuntimeError("Initial predicates are not satisfied.")
-
+        self.p.stepSimulation()
         self._observation = self.get_observation()
         self.unwrapped.reward.reset(observation=self._observation)
         info = {'d': 1, 'f': int(self.episode_failed),
@@ -635,65 +633,405 @@ class GymEnv(CameraEnv):
         for object in self.env_objects:
             object.draw_bounding_box()
 
-    def _place_object(self, obj_info, predicates=None):
+    def _remove_placed_objects(self, placed_objects):
+        """
+        Remove dynamic objects created during one failed initialization attempt.
+
+        Static scene objects such as table, floor, room, and the robot are not removed.
+        """
+        if not placed_objects:
+            return
+
+        objects_to_remove = []
+
+        # Task objects: actual_state, goal_state, distractor list.
+        task_objects = placed_objects.get("task_objects", {})
+
+        for key in ["actual_state", "goal_state"]:
+            obj = task_objects.get(key)
+            if isinstance(obj, EnvObject):
+                objects_to_remove.append(obj)
+
+        for obj in task_objects.get("distractor", []):
+            if isinstance(obj, EnvObject):
+                objects_to_remove.append(obj)
+
+        # Ordinary env objects.
+        env_objects = placed_objects.get("env_objects", {})
+
+        for obj in env_objects.get("env_objects", []):
+            if isinstance(obj, EnvObject):
+                objects_to_remove.append(obj)
+
+        # Remove each PyBullet body once.
+        removed_uids = set()
+
+        for obj in objects_to_remove:
+            if obj.uid in removed_uids:
+                continue
+
+            self.p.removeBody(obj.uid)
+            removed_uids.add(obj.uid)
+
+    def _build_placement_request(self):
+        """
+        Build one unified placement request for the non-natural-language initialization path.
+
+        The request contains:
+            - active init object
+            - active goal object
+            - inactive future subtask objects
+            - ordinary used objects
+
+        The returned request is passed to _randomly_place_objects(...) exactly once.
+        """
+        if self.task_objects_were_given_as_list:
+            task_objects_dict = copy.deepcopy(self.task_objects_dict)
+            current_task = task_objects_dict[self.task.current_task]
+
+            request = {
+                "init": copy.deepcopy(current_task["init"]),
+                "goal": copy.deepcopy(current_task["goal"]),
+                "inactive_task_objects": [],
+                "used_objects": copy.deepcopy(current_task.get("used_objects", [])),
+            }
+
+            for task_idx, subtask in enumerate(task_objects_dict):
+                if task_idx == self.task.current_task:
+                    continue
+
+                request["inactive_task_objects"].append(copy.deepcopy(subtask["init"]))
+                request["inactive_task_objects"].append(copy.deepcopy(subtask["goal"]))
+
+                request["used_objects"].extend(
+                    copy.deepcopy(subtask.get("used_objects", []))
+                )
+
+            # Backward-compatible support for the old top-level used_objects.
+            # In the new config, this should usually be empty.
+            request["used_objects"].extend(
+                self._sample_object_infos(self.used_objects)
+            )
+
+            return request
+
+        if not self.reach_gesture:
+            init = self.rng.choice(self.task_objects_dict["init"])
+            goal = self.rng.choice(self.task_objects_dict["goal"])
+            objects = self.task_objects_dict["init"] + self.task_objects_dict["goal"]
+
+            other_objects = [
+                obj for obj in objects
+                if obj != init and obj != goal
+            ]
+
+            return {
+                "init": copy.deepcopy(init),
+                "goal": copy.deepcopy(goal),
+                "inactive_task_objects": [],
+                "used_objects": copy.deepcopy(other_objects) + self._sample_object_infos(self.used_objects),
+            }
+
+        goal = self.rng.choice(self.task_objects_dict["goal"])
+
+        other_objects = [
+            obj for obj in self.task_objects_dict["goal"]
+            if obj != goal
+        ]
+
+        return {
+            "init": {"obj_name": "null"},
+            "goal": copy.deepcopy(goal),
+            "inactive_task_objects": [],
+            "used_objects": copy.deepcopy(other_objects) + self._sample_object_infos(self.used_objects),
+        }
+
+
+    def _sample_object_infos(self, object_data):
+        """
+        Return selected object configs from either the new list format or the old obj_list format.
+
+        Supported inputs:
+            [{"obj_name": "apple", ...}, ...]
+            {"obj_list": [...], "num_range": [min, max]}
+        """
+        if not object_data:
+            return []
+
+        if isinstance(object_data, list):
+            return copy.deepcopy(object_data)
+
+        obj_list = object_data.get("obj_list", [])
+
+        if not obj_list:
+            return []
+
+        if "num_range" in object_data:
+            n_objects = random.randint(
+                object_data["num_range"][0],
+                object_data["num_range"][1],
+            )
+
+            return [
+                copy.deepcopy(random.choice(obj_list))
+                for _ in range(n_objects)
+            ]
+
+        return copy.deepcopy(obj_list)
+
+
+    def _make_placement_record(
+        self,
+        obj_info,
+        role,
+        target,
+        placement_id,
+        state_name=None,
+    ):
+        """
+        Prepare one object for placement.
+
+        The placement record stores:
+            - object config with resolved URDF
+            - visualization role
+            - where the created EnvObject should be saved later
+        """
+        if obj_info["obj_name"] == "null":
+            return None
+
+        prepared_info = copy.deepcopy(obj_info)
+        urdf = self._get_urdf_filename(prepared_info["obj_name"])
+
+        if not urdf:
+            return None
+
+        prepared_info["urdf"] = urdf
+        prepared_info["placement_id"] = placement_id
+
+        return {
+            "obj_info": prepared_info,
+            "role": role,
+            "target": target,
+            "state_name": state_name,
+        }
+
+
+    def _build_placement_records(self, object_dict):
+        """
+        Convert the unified placement request into a flat list of placement records.
+
+        This function only describes what should be placed.
+        It does not compute sampling areas and it does not create PyBullet objects.
+        """
+        records = []
+
+        def add_record(
+            obj_info,
+            role,
+            target,
+            prefix,
+            index=0,
+            state_name=None,
+        ):
+            record = self._make_placement_record(
+                obj_info=obj_info,
+                role=role,
+                target=target,
+                state_name=state_name,
+                placement_id=f"{prefix}_{index}_{obj_info['obj_name']}",
+            )
+
+            if record is not None:
+                records.append(record)
+
+        add_record(
+            obj_info=object_dict["init"],
+            role="init",
+            target="task_objects",
+            state_name="actual_state",
+            prefix="actual_state",
+        )
+
+        add_record(
+            obj_info=object_dict["goal"],
+            role="goal",
+            target="task_objects",
+            state_name="goal_state",
+            prefix="goal_state",
+        )
+
+        for idx, obj_info in enumerate(
+            self._sample_object_infos(object_dict.get("inactive_task_objects", []))
+        ):
+            add_record(
+                obj_info=obj_info,
+                role="other",
+                target="task_distractor",
+                prefix="inactive_task",
+                index=idx,
+            )
+
+        for idx, obj_info in enumerate(
+            self._sample_object_infos(object_dict.get("used_objects", []))
+        ):
+            add_record(
+                obj_info=obj_info,
+                role="other",
+                target="env_objects",
+                prefix="used_object",
+                index=idx,
+            )
+
+        return records
+
+
+    def _place_object(self, obj_info, sampling_area):
+        """
+        Create one EnvObject at a random position sampled from the given area.
+        """
         fixed = True if obj_info["fixed"] == 1 else False
 
-        if "sampling_area" in obj_info:
-            sampling_area = obj_info["sampling_area"]
-        else:
-            table = self.static_scene_objects[self.workspace]
-            sampling_area = InitPredicateResolver().get_area(obj_info, table, self.robot, predicates)
-        
         pos = env_object.EnvObject.get_random_object_position(sampling_area)
-        #print(obj_info["obj_name"],"position:", pos)
-        orn = env_object.EnvObject.get_random_object_orientation() if obj_info["rand_rot"] == 1 else [0, 0, 0, 1]
-        object = env_object.EnvObject(obj_info["urdf"], pos, orn, pybullet_client=self.p, fixed=fixed)
-        if self.color_dict: object.set_color(self.color_of_object(object))
+
+        orn = (
+            env_object.EnvObject.get_random_object_orientation()
+            if obj_info["rand_rot"] == 1
+            else [0, 0, 0, 1]
+        )
+
+        object = env_object.EnvObject(
+            obj_info["urdf"],
+            pos,
+            orn,
+            pybullet_client=self.p,
+            fixed=fixed,
+        )
+
+        if self.color_dict:
+            object.set_color(self.color_of_object(object))
+
         return object
+    
+
+    def _place_records_in_predicate_order(self, records, predicates=None):
+        """
+        Place objects one by one in the order decided by InitPredicateResolver.
+
+        InitPredicateResolver decides:
+            - which object should be placed first
+            - what sampling area each object should use
+
+        GymEnv still creates the actual EnvObject instances.
+        """
+        resolver = InitPredicateResolver()
+        table = self.static_scene_objects[self.workspace]
+
+        ordered_records = resolver.get_placement_order(
+            objects_to_place=records,
+            predicates=predicates,
+        )
+
+        placed_lookup = {
+            "table": table,
+            "workspace": table,
+        }
+
+        placed = {
+            "task_objects": {
+                "actual_state": None,
+                "goal_state": None,
+                "distractor": [],
+            },
+            "env_objects": {
+                "env_objects": [],
+            },
+        }
+
+        for record in ordered_records:
+            obj_info = record["obj_info"]
+
+            if "sampling_area" in obj_info:
+                area = obj_info["sampling_area"]
+
+            else:
+                area = resolver.get_area(
+                    obj_info=obj_info,
+                    table=table,
+                    robot=self.robot,
+                    predicates=predicates,
+                    placed_objects=placed_lookup,
+                )
+
+            env_o = self._place_object(
+                obj_info=obj_info,
+                sampling_area=area,
+            )
+
+            self.highlight_active_object(env_o, record["role"])
+
+            placed_lookup[obj_info["obj_name"]] = env_o
+
+            if record["target"] == "task_objects":
+                placed["task_objects"][record["state_name"]] = env_o
+
+            elif record["target"] == "task_distractor":
+                placed["task_objects"]["distractor"].append(env_o)
+
+            elif record["target"] == "env_objects":
+                placed["env_objects"]["env_objects"].append(env_o)
+
+            else:
+                raise ValueError(f"Unknown placement target: {record['target']}")
+
+        return placed
+
 
     def _randomly_place_objects(self, object_dict, predicates=None):
         """
-        Place dynamic objects to the scene randomly
+        Place dynamic objects into the scene.
 
-        Parameters:
-            :param n: (int) Number of objects to place in the scene
-            :param object_names: (list of strings) Objects that may be placed to the scene
-            :param random_pos: (bool) Whether to place object to random positions in the scene
-        Returns:
-            :return env_objects: (list of objects) Objects that are present in the current scene
+        New unified mode:
+            If object_dict contains "init", all objects are collected, sorted by
+            InitPredicateResolver, and placed one by one.
+
+        Backward-compatible mode:
+            If object_dict does not contain "init", it is treated as an old object-list
+            placement call and returns list[EnvObject].
         """
-        env_objects = []
-        if not "init" in object_dict.keys():  # solves used_objects
-            for idx, o in enumerate(object_dict["obj_list"]):
-                  if o["obj_name"] != "null":
-                      urdf = self._get_urdf_filename(o["obj_name"])
-                      if urdf:
-                        object_dict["obj_list"][idx]["urdf"] = urdf
-                      else:
-                        del object_dict["obj_list"][idx]
-            if "num_range" in object_dict.keys():
-                for x in range(random.randint(object_dict["num_range"][0], object_dict["num_range"][1])):
-                    env_o = self._place_object(random.choice(object_dict["obj_list"]))
-                    self.highlight_active_object(env_o, "other")
-                    env_objects.append(env_o)
-            else:
-                for o in object_dict["obj_list"]:
-                    if o["obj_name"] != "null":
-                        env_o = self._place_object(o)
-                        self.highlight_active_object(env_o, "other")
-                        env_objects.append(env_o)
-        else:  # solves task_objects
-            for o in ['init', 'goal']:
-                d = object_dict[o]
-                if d["obj_name"] != "null":
-                    d["urdf"] = self._get_urdf_filename(d["obj_name"])
-                    state_name = "actual_state" if o == "init" else "goal_state"
-                    env_o = self._place_object(d, predicates)
-                    self.highlight_active_object(env_o, o)
-                    env_objects.append({state_name: env_o})
-                elif d["obj_name"] == "null" and o == "init":
-                    env_objects.append({"actual_state": self.robot})
-        return env_objects
+        if "init" not in object_dict:
+            records = []
+
+            for idx, obj_info in enumerate(self._sample_object_infos(object_dict)):
+                record = self._make_placement_record(
+                    obj_info=obj_info,
+                    role="other",
+                    target="env_objects",
+                    placement_id=f"object_{idx}_{obj_info['obj_name']}",
+                )
+
+                if record is not None:
+                    records.append(record)
+
+            placed = self._place_records_in_predicate_order(
+                records=records,
+                predicates=predicates,
+            )
+
+            return placed["env_objects"]["env_objects"]
+
+        actual_state_is_robot = object_dict["init"]["obj_name"] == "null"
+
+        records = self._build_placement_records(object_dict)
+
+        placed = self._place_records_in_predicate_order(
+            records=records,
+            predicates=predicates,
+        )
+
+        if actual_state_is_robot:
+            placed["task_objects"]["actual_state"] = self.robot
+
+        return placed
 
     def highlight_active_object(self, env_o, obj_role):
         if obj_role == "goal":
