@@ -215,10 +215,10 @@ def parse_args() -> argparse.Namespace:
         help='Minimum number of successful trials required (default: 5)'
     )
     parser.add_argument(
-        '--gen',
-        type=bool,
-        default=True,
-        help='Testing on generated configs files (default True)'
+        "--gen",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Use generated config files from configs_gen. Use --no-gen for configs."
     )
     
     args = parser.parse_args()
