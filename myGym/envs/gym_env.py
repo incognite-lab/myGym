@@ -375,7 +375,7 @@ class GymEnv(CameraEnv):
                     self._remove_placed_objects(placed_objects)
 
                 if not success:
-                    raise RuntimeError("Object initialization check error")
+                    raise RuntimeError("Object initialization error")
 
             else:
                 init_objects = []
@@ -546,11 +546,15 @@ class GymEnv(CameraEnv):
             env=self,
             predicates=self.predicates_dict,
         ):
-            print("Predicates not satisfied")
+            RED = "\033[91m"
+            RESET = "\033[0m"
+            print(f"{RED}Goal predicates not satisfied{RESET}")
             terminated = False
         
         else:
-            print("Goal predicates satisfied")
+            GREEN = "\033[92m"
+            RESET = "\033[0m"
+            print(f"{GREEN}Goal predicates satisfied{RESET}")
             terminated = True
 
         truncated = self.episode_truncated

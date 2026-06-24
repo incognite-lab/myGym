@@ -20,13 +20,13 @@
     "task_type"             :"AGM",
     "natural_language"      :0,
     "task_objects"          :[{"init":{"obj_name":"apple","fixed":0,"rand_rot":0}, 
-                            "goal":{"obj_name":"tuna_can","fixed":1,"rand_rot":0}}],
-    "predicates"            :[{"init":["Reachable(apple)", "OnTop(apple,table)", "Reachable(tuna_can)"],
+                               "goal":{"obj_name":"tuna_can","fixed":1,"rand_rot":0},
+                               "used_objects":[]}],
+    "predicates"            :[{"init":["Reachable(apple)", "OnTop(apple,table)", "Reachable(tuna_can)", "OnTop(tuna_can,table)"],
                             "goal":["Near(apple,tuna_can)", "GripperAt(apple)", "GripperClosed()", "IsHolding(apple)"]}],
     "color_dict"            : {"apple":["green"], "target":["gray"]},
     "used_objects"          : {"num_range": [0, 0],
-                               "obj_list": [{"obj_name": "banana", "fixed": 0, "rand_rot": 0}]},
-    //                         "obj_list": [{"obj_name": "banana", "fixed": 0, "rand_rot": 0, "sampling_area":[0.5, 0.5, 0.4, 0.4, 0.3, 0.3]}]},
+                               "obj_list": []},
 
     // Observation
     // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"

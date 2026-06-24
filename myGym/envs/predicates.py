@@ -197,7 +197,7 @@ class IsReachable(AreaPredicate):
         # TODO: get the area from test_robot_reachability.py and save it to workspace_dict
 
         if robot.name == "g1":
-            return [0.2, 0.7, -0.4, 0.4, -0.07, 0.4]
+            return [0.2, 0.6, -0.4, 0.4, -0.07, 0.4]
 
         if "tiago" in robot.name or "nico" in robot.name:
             return [-0.1, 0.5, 0.15, 0.8, 0.6, 1.5]
@@ -313,7 +313,7 @@ class Near(Predicate):
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
         distance = get_aabb_distance(obj1_min, obj1_max, obj2_min, obj2_max)
         max_dist = self.MAX_DIST
-        print("distance", distance)
+        #print("distance", distance)
         return distance < max_dist
 
 
@@ -546,7 +546,7 @@ class InitPredicateResolver(PredicateResolver):
         placed_objects.setdefault("workspace", table)
         obj1_urdf = obj_info["urdf"]
         predicates = self._filter_obj_predicates(predicates, obj_info["obj_name"])
-        print(obj_info["obj_name"], "predicates:", predicates)
+        #print(obj_info["obj_name"], "predicates:", predicates)
 
         if not predicates:
             random_table_area = OnTop().compute_area(obj1_urdf, table)
@@ -592,7 +592,7 @@ class InitPredicateResolver(PredicateResolver):
             support_object = table
         else:
             support_object = placed_objects.get(obj2_name)
-            print(placed_objects)
+            #print(placed_objects)
             if not support_object:
                 raise ValueError(
                     f"Cannot compute OnTop area for '{predicate.args[0]}'. "
@@ -704,148 +704,4 @@ class GoalPredicateResolver(PredicateResolver):
     Check predicates describing the goal state.
     """
     predicate_key = "goal"
-
-
-
-
-
-if __name__ == '__main__':
-    import os
-    import importlib.resources as pkg_resources
-    from myGym.train import get_parser, get_arguments, automatic_argument_assignment, configure_env
-    
-    def _parse():
-        parser = get_parser()
-        parser.add_argument("-ct", "--control",
-                            help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
-        parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
-        parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
-        parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
-        parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
-        parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
-        parser.add_argument("-tp", "--top_grasp",  default = False, help="Use top grasp when reaching objects with oraculum.")
-        # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
-        arg_dict, commands = get_arguments(parser)
-        parameters = {}
-        args = parser.parse_args()
-        for key, arg in arg_dict.items():
-            if type(arg_dict[key]) == list:
-                if len(arg_dict[key]) > 1 and key != "robot_init" and key != "end_effector_orn":
-                    if key != "task_objects":
-                        parameters[key] = arg
-                        if key in commands:
-                            commands.pop(key)
-        
-        # Automatically adjust robot_action when oraculum control is selected
-        if arg_dict.get("control") == "oraculum":
-            if "gripper" in arg_dict.get("robot_action", ""):
-                arg_dict["robot_action"] = "absolute_gripper"
-            else:
-                arg_dict["robot_action"] = "absolute"
-            print(f"Oraculum control selected. Robot action automatically set to: {arg_dict['robot_action']}")
-        
-        if  arg_dict.get("control") == "keyboard":
-            if "gripper" in arg_dict.get("robot_action", ""):
-                arg_dict["robot_action"] = "step_gripper"
-            else:
-                arg_dict["robot_action"] = "step"
-            print(f"Keyboard control selected. Robot action automatically set to: {arg_dict['robot_action']}")
-        return arg_dict
-    
-    def _read_urdf_scale(urdf_path: str) -> float:
-        """
-        Read the first mesh scale value from a URDF file,
-        return 1 if not specified
-        """
-        with open(urdf_path) as file:
-            lines = file.readlines()
-
-        scale_lines = [line for line in lines if "scale" in line]
-
-        if not scale_lines:
-            return 1.0
-
-        return float(scale_lines[0].split('scale="')[1].split(" ")[0])
-    
-    def _voxel_demo(obj):
-        import open3d as o3d
-        from myGym.envs.test_volume_class import VolumeMesh
-
-        # load tuna model and check the scale
-        obj1_info = obj.p.getVisualShapeData(obj.get_uid())[0]
-        obj1_scale = _read_urdf_scale(obj.urdf_path)
-        objpth = obj1_info[4].decode("utf-8")
-
-        # voxelize
-        o3model = o3d.io.read_triangle_model(objpth)
-        mesh = o3model.meshes[0].mesh
-        mesh = mesh.scale(obj1_scale, center=mesh.get_center())
-        vm = VolumeMesh(mesh)
-        orig = vm.duplicate()
-        orig.paint(np.array([0, 1, 0]))
-        voxel_grid = vm.voxelgrid
-
-        # visualize geometry
-        o3d.visualization.draw_geometries([voxel_grid, orig.voxelgrid])
-    
-
-    arg_dict = _parse()
-
-    arg_dict["gui"] = 1
-    arg_dict = automatic_argument_assignment(arg_dict)
-    env = configure_env(arg_dict, model_logdir=None, for_train=0)
-    env = env.unwrapped
-    table = env.static_scene_objects[env.workspace]
-
-    on_top = OnTop()
-    touching = Touching()
-
-    urdf_tuna = os.path.join(pkg_resources.files("myGym"), "envs/objects/household/urdf/tuna_can.urdf")
-    tuna_on_table_area = on_top.compute_area(urdf_tuna, table)
-    pos_tuna = env_object.EnvObject.get_random_object_position(tuna_on_table_area)
-
-    obj_tuna = env_object.EnvObject(
-        urdf_tuna,
-        pos_tuna,
-        [0, 0, 0, 1],
-        pybullet_client=env.p,
-        fixed=False
-    )
-
-    pos_tuna2 = [pos_tuna[0], pos_tuna[1], pos_tuna[2]+0.2]
-    obj_tuna2 = env_object.EnvObject(
-        urdf_tuna,
-        pos_tuna2,
-        [0, 0, 0, 1],
-        pybullet_client=env.p,
-        fixed=False
-    )
-
-    for _ in range(15):
-        # tuna falls on the table
-        env.p.stepSimulation()
-
-    print("Tuna reachable:")
-    print(IsReachable().check(env.robot, obj_tuna))
-    print("Tuna touching table:")
-    print(touching.check(obj_tuna, table))
-    print("Tuna on top of table:")
-    print(on_top.check(obj_tuna, table))
-    print("Tunas touching:")
-    print(touching.check(obj_tuna2, obj_tuna))
-
-    print("-----------tuna2 falls-----------")
-    for _ in range(100):
-        # tuna2 falls on tuna
-        env.p.stepSimulation()
-
-    print("Tunas touching:")
-    print(touching.check(obj_tuna2, obj_tuna))
-    print("Tuna2 on top of tuna:")
-    print(on_top.check(obj_tuna2, obj_tuna))
-    print("Tuna on top of tuna2:")
-    print(on_top.check(obj_tuna, obj_tuna2))
-
-    urdf_towertarget = os.path.join(pkg_resources.files("myGym"), "envs/objects/assembly/urdf/towertarget.urdf")
-    tuna_on_table_area = on_top.compute_area(urdf_towertarget, table)
 
