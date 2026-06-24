@@ -21,6 +21,8 @@ Usage:
     python3 myGym/unittest/test_predicates.py --config configs/AGM.json --gui 1
 """
 
+import glob
+import itertools
 import os
 import importlib.resources as pkg_resources
 
@@ -28,12 +30,18 @@ from myGym.train import get_parser, get_arguments, automatic_argument_assignment
 from myGym.envs import env_object
 from myGym.envs.predicates import IsReachable, Touching, OnTop, InitPredicateResolver
 
+# ANSI colors for summary marks
+GREEN = "\033[92m"
+RED = "\033[91m"
+RESET = "\033[0m"
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_CONFIG = os.path.join(PROJECT_ROOT, "configs", "AGMD_predicates.json")
 
 APPLE_URDF = os.path.join(pkg_resources.files("myGym"), "envs/objects/household/urdf/apple.urdf")
 TUNA_CAN_URDF = os.path.join(pkg_resources.files("myGym"), "envs/objects/household/urdf/tuna_can.urdf")
-
+HOUSEHOLD_URDF_DIR = os.path.join(pkg_resources.files("myGym"), "envs/objects/household/urdf")
+ON_TOP_REPORT_PATH = os.path.join(PROJECT_ROOT, "unittest", "on_top_results.txt")
 
 
 def voxel_demo(obj):
@@ -58,7 +66,7 @@ def voxel_demo(obj):
 
     # load tuna model and check the scale
     obj1_info = obj.p.getVisualShapeData(obj.get_uid())[0]
-    obj1_scale = _read_urdf_scale(obj.urdf_path)
+    obj1_scale = read_urdf_scale(obj.urdf_path)
     objpth = obj1_info[4].decode("utf-8")
 
     # voxelize
@@ -83,7 +91,7 @@ def parse_args() -> tuple[dict, int]:
     parser.set_defaults(config=DEFAULT_CONFIG)
     parser.add_argument(
         "--trials", type=int, default=20,
-        help="Number of randomized placements to test in test_init_predicates_are_enforced (default: 20)"
+        help="Number of randomized placements/pairs to test (default: 20)"
     )
 
     arg_dict, _ = get_arguments(parser)
@@ -156,11 +164,11 @@ def test_is_reachable(env, trials: int):
         apple_pos = env_object.EnvObject.get_random_object_position(table_area)
         apple = spawn_object(env, APPLE_URDF, apple_pos)
         settle(env)
+
         assert reachable.check(env.robot, apple), (
             f"Trial {trial}: apple not reachable for apple_pos = {apple_pos}"
         )
-        
-        f"Trial {trial}: apple should be reachable"
+
         env.p.removeBody(apple.uid)
 
     print(f"PASS: test_is_reachable ({trials} trials)")
@@ -202,6 +210,84 @@ def test_init_predicates_are_enforced(env, trials: int):
     print(f"PASS: test_init_predicates_are_enforced ({trials} trials)")
 
 
+def _get_household_objects() -> list[str]:
+    """
+    Return paths to household object URDFs, excluding goal-marker variants.
+    """
+    urdfs = sorted(glob.glob(os.path.join(HOUSEHOLD_URDF_DIR, "*.urdf")))
+    return [path for path in urdfs if "target" not in os.path.basename(path)]
+
+
+def _check_stack(env, table, on_top: OnTop, obj1_urdf: str, obj2_urdf: str) -> bool:
+    """
+    Place obj2 on the table and obj1 on top of obj2.
+    Return whether OnTop(obj1, obj2) holds once the placement settles.
+    """
+    obj2_area = on_top.compute_area(obj2_urdf, table)
+    obj2_pos = env_object.EnvObject.get_random_object_position(obj2_area)
+    obj2 = spawn_object(env, obj2_urdf, obj2_pos)
+    settle(env, steps=100)
+
+    obj1_area = on_top.compute_area(obj1_urdf, obj2)
+    obj1_pos = env_object.EnvObject.get_random_object_position(obj1_area)
+    obj1 = spawn_object(env, obj1_urdf, obj1_pos)
+    settle(env, steps=100)
+
+    is_stacked = on_top.check(obj1, obj2)
+
+    env.p.removeBody(obj1.uid)
+    env.p.removeBody(obj2.uid)
+    return is_stacked
+
+
+def _write_on_top_report(results: list[dict], report_path: str) -> None:
+    """
+    Write a per-pair OnTop stacking report to a text file.
+    """
+    both_ok = sum(1 for r in results if r["obj1_on_obj2"] and r["obj2_on_obj1"])
+
+    with open(report_path, "w") as f:
+        f.write("OnTop STACKING REPORT\n")
+        f.write("=" * 80 + "\n")
+        f.write(f"Pairs tested: {len(results)}\n")
+        f.write(f"Both directions OK: {both_ok}\n\n")
+        for r in results:
+            f.write(f"{r['obj1']:<20s} on {r['obj2']:<20s}: {'OK' if r['obj1_on_obj2'] else 'FAIL'}\n")
+            f.write(f"{r['obj2']:<20s} on {r['obj1']:<20s}: {'OK' if r['obj2_on_obj1'] else 'FAIL'}\n")
+
+
+def test_on_top(env):
+    """
+    Stack every pair of household objects on each other (in both directions)
+    and report which pairs satisfy OnTop. Full results are written to
+    unittest/on_top_results.txt since not every shape combination is expected
+    to stack cleanly.
+    """
+    objects = _get_household_objects()
+    table = env.static_scene_objects[env.workspace]
+    on_top = OnTop()
+
+    results = []
+    for obj1, obj2 in itertools.combinations(objects, 2):
+        result = {
+            "obj1": os.path.basename(obj1),
+            "obj2": os.path.basename(obj2),
+            "obj1_on_obj2": _check_stack(env, table, on_top, obj1, obj2),
+            "obj2_on_obj1": _check_stack(env, table, on_top, obj2, obj1),
+        }
+        results.append(result)
+
+        mark1 = f"{GREEN}OK{RESET}" if result["obj1_on_obj2"] else f"{RED}FAIL{RESET}"
+        mark2 = f"{GREEN}OK{RESET}" if result["obj2_on_obj1"] else f"{RED}FAIL{RESET}"
+        #print(f"  {result['obj1']:<20s} on {result['obj2']:<20s}: {mark1}   "
+        #      f"{result['obj2']:<20s} on {result['obj1']:<20s}: {mark2}")
+
+    _write_on_top_report(results, ON_TOP_REPORT_PATH)
+
+    both_ok = sum(1 for r in results if r["obj1_on_obj2"] and r["obj2_on_obj1"])
+    print(f"PASS: test_on_top ({both_ok}/{len(results)} pairs OK in both directions, report: {ON_TOP_REPORT_PATH})")
+
+
 def main():
     arg_dict, trials = parse_args()
     env = build_env(arg_dict)
@@ -209,10 +295,10 @@ def main():
     #test_touching_and_on_top(env)
     #test_is_reachable(env, trials)
     #test_init_predicates_are_enforced(env, trials)
+    test_on_top(env)
 
     print("\nAll tests passed!")
 
 
 if __name__ == '__main__':
     main()
-
