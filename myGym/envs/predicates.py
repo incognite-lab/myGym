@@ -61,7 +61,7 @@ def aabb_overlap(min_a: Point3D, max_a: Point3D, min_b: Point3D, max_b: Point3D,
         for i in range(dims)
     )
 
-def get_aabb_distance(min_a: Point3D,max_a: Point3D,
+def get_aabb_distance(min_a: Point3D, max_a: Point3D,
     min_b: Point3D, max_b: Point3D,) -> float:
     """
     Return min Euclidean distance between two AABBs, 0 if overlap
@@ -81,15 +81,22 @@ def get_point_distance(pos1: Point3D, pos2:Point3D) -> float:
 
     return float(np.linalg.norm(pos1 - pos2))
 
-def pos_inside_area(pos: Point3D, area: Area) -> bool:
+def pos_inside_area(pos: Point3D, area: Area|BBox) -> bool:
     """
     Return True if a position is inside area
     """
-    return (
-        area[0] <= pos[0] <= area[1] and
-        area[2] <= pos[1] <= area[3] and
-        area[4] <= pos[2] <= area[5]
-    )
+    if isinstance(area[0], (int, float)):
+        return (
+            area[0] <= pos[0] <= area[1] and
+            area[2] <= pos[1] <= area[3] and
+            area[4] <= pos[2] <= area[5]
+        )
+    else:
+        return (
+            area[0][0] <= pos[0] <= area[1][0] and
+            area[0][1] <= pos[1] <= area[1][1] and
+            area[0][2] <= pos[2] <= area[1][2]
+        )
 
 def get_bounding_box_limits(obj) -> BBox:
     """
@@ -269,16 +276,20 @@ class OnTop(AreaPredicate):
 
         if obj2.name in ws_dict:
             # place at random pos on top of the table
-            obj2_min, obj2_max = get_desk_sampling_area(obj2)
+            xy_min, xy_max = get_desk_sampling_area(obj2)
+            placing_height += xy_max[2]
 
         else:
             # place at the xy center of the object
-            obj2_min = obj2.get_position()
-            obj2_max = obj2_min
+            xy_min = obj2.get_position()
+            xy_max = xy_min
+            # place on top
+            _ , obj2_max = get_bounding_box_limits(obj2)
+            placing_height += obj2_max[2]
 
-        sampling_area = [obj2_min[0], obj2_max[0],
-                         obj2_min[1], obj2_max[1],
-                         obj2_max[2] + placing_height, obj2_max[2] + placing_height,]
+        sampling_area = [xy_min[0], xy_max[0],
+                         xy_min[1], xy_max[1],
+                         placing_height, placing_height,]
         return sampling_area
 
     @staticmethod
@@ -297,6 +308,25 @@ class OnTop(AreaPredicate):
 
         bottom_offset = obj_pos[2] - obj_min[2]
         return bottom_offset
+
+
+class Inside(Predicate):
+    """
+    Check whether object1 is inside of object2
+    """
+
+    def check(self, obj1, obj2) -> bool:
+        """
+        Return True if obj1 bottom is inside of obj2 bounding box
+        """
+        obj1_min, obj1_max = get_bounding_box_limits(obj1)
+        obj2_min, obj2_max = get_bounding_box_limits(obj2)
+        obj1_center_x = (obj1_min[0] + obj1_max[0]) / 2
+        obj1_center_y = (obj1_min[1] + obj1_max[1]) / 2
+
+        obj1_bottom = [obj1_center_x, obj1_center_y, obj1_min[2]]
+        obj2_area = [obj2_min, obj2_max]
+        return pos_inside_area(obj1_bottom, obj2_area)
 
 
 class Near(Predicate):

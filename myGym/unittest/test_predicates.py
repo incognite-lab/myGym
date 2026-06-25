@@ -28,7 +28,7 @@ import importlib.resources as pkg_resources
 
 from myGym.train import get_parser, get_arguments, automatic_argument_assignment, configure_env
 from myGym.envs import env_object
-from myGym.envs.predicates import IsReachable, Touching, OnTop, InitPredicateResolver
+from myGym.envs.predicates import IsReachable, Touching, OnTop, Inside, InitPredicateResolver
 
 # ANSI colors for summary marks
 GREEN = "\033[92m"
@@ -42,9 +42,15 @@ APPLE_URDF = os.path.join(pkg_resources.files("myGym"), "envs/objects/household/
 TUNA_CAN_URDF = os.path.join(pkg_resources.files("myGym"), "envs/objects/household/urdf/tuna_can.urdf")
 HOUSEHOLD_URDF_DIR = os.path.join(pkg_resources.files("myGym"), "envs/objects/household/urdf")
 ON_TOP_REPORT_PATH = os.path.join(PROJECT_ROOT, "unittest", "on_top_results.txt")
+ON_TABLE_REPORT_PATH = os.path.join(PROJECT_ROOT, "unittest", "on_table_results.txt")
+INSIDE_REPORT_PATH = os.path.join(PROJECT_ROOT, "unittest", "inside_results.txt")
 
 
 def voxel_demo(obj):
+    """
+    Debug helper: voxelize obj's mesh with open3d and display it next to
+    the original mesh for visual inspection.
+    """
     import open3d as o3d
     import numpy as np
     from myGym.envs.test_volume_class import VolumeMesh
@@ -218,10 +224,12 @@ def _get_household_objects() -> list[str]:
     return [path for path in urdfs if "target" not in os.path.basename(path)]
 
 
-def _check_stack(env, table, on_top: OnTop, obj1_urdf: str, obj2_urdf: str) -> bool:
+def _check_inside(env, table, on_top: OnTop, inside: Inside, obj1_urdf: str,
+                 obj2_urdf: str, visual_check: bool = False) -> tuple[bool, bool]:
     """
     Place obj2 on the table and obj1 on top of obj2.
-    Return whether OnTop(obj1, obj2) holds once the placement settles.
+    Return whether OnTop(obj1, obj2) and Inside(obj1, obj2) hold once the
+    placement settles.
     """
     obj2_area = on_top.compute_area(obj2_urdf, table)
     obj2_pos = env_object.EnvObject.get_random_object_position(obj2_area)
@@ -231,29 +239,101 @@ def _check_stack(env, table, on_top: OnTop, obj1_urdf: str, obj2_urdf: str) -> b
     obj1_area = on_top.compute_area(obj1_urdf, obj2)
     obj1_pos = env_object.EnvObject.get_random_object_position(obj1_area)
     obj1 = spawn_object(env, obj1_urdf, obj1_pos)
-    settle(env, steps=100)
+    settle(env, steps=300)
 
-    is_stacked = on_top.check(obj1, obj2)
+    is_on_top = on_top.check(obj1, obj2)
+    is_inside = inside.check(obj1, obj2)
+
+    if visual_check:
+        print("On top:", is_on_top)
+        print("Inside:", is_inside)
+        input("Press Enter to continue...")
 
     env.p.removeBody(obj1.uid)
     env.p.removeBody(obj2.uid)
-    return is_stacked
+    return is_on_top, is_inside
+
+
+def _check_OnTop(env, table, on_top: OnTop, obj1_urdf: str, obj2_urdf: str,
+                 visual_check: bool = False) -> bool:
+    """
+    Place obj1 on top of obj2 (or directly on the table if obj2_urdf == "table"),
+    and return whether OnTop(obj1, obj2) holds once the placement settles.
+    """
+    if obj2_urdf == "table":
+        obj1_area = on_top.compute_area(obj1_urdf, table)
+        obj1_pos = env_object.EnvObject.get_random_object_position(obj1_area)
+        obj1 = spawn_object(env, obj1_urdf, obj1_pos)
+        settle(env, steps=100)
+
+        is_on_top = on_top.check(obj1, table)
+
+        if visual_check:
+            print("On top:", is_on_top)
+            input("Press Enter to continue...")
+
+        env.p.removeBody(obj1.uid)
+        return is_on_top
+
+    obj2_area = on_top.compute_area(obj2_urdf, table)
+    obj2_pos = env_object.EnvObject.get_random_object_position(obj2_area)
+    obj2 = spawn_object(env, obj2_urdf, obj2_pos)
+    settle(env, steps=100)
+
+    obj1_area = on_top.compute_area(obj1_urdf, obj2)
+    obj1_pos = env_object.EnvObject.get_random_object_position(obj1_area)
+    obj1 = spawn_object(env, obj1_urdf, obj1_pos)
+    settle(env, steps=300)
+
+    is_on_top = on_top.check(obj1, obj2)
+
+    if visual_check:
+        print("On top:", is_on_top)
+        input("Press Enter to continue...")
+
+    env.p.removeBody(obj1.uid)
+    env.p.removeBody(obj2.uid)
+    return is_on_top
 
 
 def _write_on_top_report(results: list[dict], report_path: str) -> None:
     """
     Write a per-pair OnTop stacking report to a text file.
     """
-    both_ok = sum(1 for r in results if r["obj1_on_obj2"] and r["obj2_on_obj1"])
+    passed = sum(1 for r in results if r["obj1_on_obj2"] and r["obj2_on_obj1"])
 
     with open(report_path, "w") as f:
         f.write("OnTop STACKING REPORT\n")
         f.write("=" * 80 + "\n")
-        f.write(f"Pairs tested: {len(results)}\n")
-        f.write(f"Both directions OK: {both_ok}\n\n")
+        f.write(f"Both directions passed: {passed} out of {len(results)}\n")
         for r in results:
             f.write(f"{r['obj1']:<20s} on {r['obj2']:<20s}: {'OK' if r['obj1_on_obj2'] else 'FAIL'}\n")
             f.write(f"{r['obj2']:<20s} on {r['obj1']:<20s}: {'OK' if r['obj2_on_obj1'] else 'FAIL'}\n")
+
+
+def _write_on_table_report(results: list[dict], report_path: str, passed) -> None:
+    """
+    Write a per-object OnTop-the-table report to a text file.
+    """
+    with open(report_path, "w") as f:
+        f.write("ON TABLE REPORT\n")
+        f.write("=" * 80 + "\n")
+        f.write(f"Objects passed: {passed} out of {len(results)}\n")
+        for r in results:
+            f.write(f"{r['obj_name']:<20s} on table: {'OK' if r['on_table'] else 'FAIL'}\n")
+
+
+def _write_inside_report(results: list[dict], report_path: str, passed) -> None:
+    """
+    Write a report Inside (+OnTop) of fixed object to a text file.
+    """
+    with open(report_path, "w") as f:
+        f.write(f"TEST INSIDE {results[0]['obj2']} REPORT\n")
+        f.write("=" * 80 + "\n")
+        f.write(f"Objects passed: {passed} out of {len(results)}\n")
+        for r in results:
+            f.write(f"{r['obj1']:<20s} on {r['obj2']:<20s}: {'OK' if r['obj1_on_obj2'] else 'FAIL'}\n")
+            f.write(f"{r['obj1']:<20s} in {r['obj2']:<20s}: {'OK' if r['obj1_inside_obj2'] else 'FAIL'}\n")
 
 
 def test_on_top(env):
@@ -272,33 +352,108 @@ def test_on_top(env):
         result = {
             "obj1": os.path.basename(obj1),
             "obj2": os.path.basename(obj2),
-            "obj1_on_obj2": _check_stack(env, table, on_top, obj1, obj2),
-            "obj2_on_obj1": _check_stack(env, table, on_top, obj2, obj1),
+            "obj1_on_obj2": _check_OnTop(env, table, on_top, obj1, obj2),
+            "obj2_on_obj1": _check_OnTop(env, table, on_top, obj2, obj1),
         }
         results.append(result)
 
-        mark1 = f"{GREEN}OK{RESET}" if result["obj1_on_obj2"] else f"{RED}FAIL{RESET}"
-        mark2 = f"{GREEN}OK{RESET}" if result["obj2_on_obj1"] else f"{RED}FAIL{RESET}"
+        #mark1 = f"{GREEN}OK{RESET}" if result["obj1_on_obj2"] else f"{RED}FAIL{RESET}"
+        #mark2 = f"{GREEN}OK{RESET}" if result["obj2_on_obj1"] else f"{RED}FAIL{RESET}"
         #print(f"  {result['obj1']:<20s} on {result['obj2']:<20s}: {mark1}   "
         #      f"{result['obj2']:<20s} on {result['obj1']:<20s}: {mark2}")
 
     _write_on_top_report(results, ON_TOP_REPORT_PATH)
-
     both_ok = sum(1 for r in results if r["obj1_on_obj2"] and r["obj2_on_obj1"])
     print(f"PASS: test_on_top ({both_ok}/{len(results)} pairs OK in both directions, report: {ON_TOP_REPORT_PATH})")
 
 
+def test_inside_obj(env, obj2_urdf: str):
+    """
+    Drop every household object onto obj2_urdf and report which ones land
+    OnTop of it or end up Inside it.
+    """
+    objects = _get_household_objects()
+    table = env.static_scene_objects[env.workspace]
+    on_top = OnTop()
+    inside = Inside()
+
+    results = []
+    for obj1_urdf in objects:
+        is_on_top1, is_inside1 = _check_inside(env, table, on_top, inside, obj1_urdf, obj2_urdf)
+        result = {
+            "obj1": os.path.basename(obj1_urdf),
+            "obj2": os.path.basename(obj2_urdf),
+            "obj1_on_obj2": is_on_top1 ,
+            "obj1_inside_obj2": is_inside1 ,
+        }
+        results.append(result)
+
+        mark = f"{GREEN}OK{RESET}" if result["obj1_inside_obj2"] else f"{RED}FAIL{RESET}"
+        print(f"{result['obj1']:<20s} in {result['obj2']:<20s}: {mark}")
+
+    passed = sum(1 for r in results if r["obj1_inside_obj2"])
+    _write_inside_report(results, INSIDE_REPORT_PATH, passed)
+    print(f"PASS: test_inside ({passed}/{len(results)} of tested objects, report: {INSIDE_REPORT_PATH})")
+
+
+def test_on_table(env):
+    """
+    Place every household object directly on the table and report which
+    ones satisfy OnTop(obj, table).
+    """
+    objects = _get_household_objects()
+    table = env.static_scene_objects[env.workspace]
+    on_top = OnTop()
+
+    results = []
+    for obj_urdf in objects:
+        result = {
+            "obj_name": os.path.basename(obj_urdf),
+            "on_table": _check_OnTop(env, table, on_top, obj_urdf, "table"),
+        }
+        results.append(result)
+
+        mark = f"{GREEN}OK{RESET}" if result["on_table"] else f"{RED}FAIL{RESET}"
+        print(f"{result['obj_name']:<20s} on table: {mark}")
+
+    passed = sum(1 for r in results if r["on_table"])
+    _write_on_table_report(results, ON_TABLE_REPORT_PATH, passed)
+    print(f"PASS: test_on_table ({passed}/{len(results)} of tested objects, report: {ON_TABLE_REPORT_PATH})")
+
+
+def show_stacking(arg_dict):
+    """
+    Open a GUI env and inspected visually placing objects OnTop/Inside.
+    """
+    arg_dict['gui'] = 1
+    env = build_env(arg_dict)
+
+    table = env.static_scene_objects[env.workspace]
+    name1 = "banana.urdf"
+    name2 = "bowl.urdf"
+    path1 = os.path.join(HOUSEHOLD_URDF_DIR, name1)
+    path2 = os.path.join(HOUSEHOLD_URDF_DIR, name2)
+    _check_inside(env, table, OnTop(), Inside(), path1, path2, True)
+    #_check_OnTop(env, table, on_top, path1, path2)
+
+
 def main():
+    """
+    Run selected tests.
+    """
     arg_dict, trials = parse_args()
     env = build_env(arg_dict)
 
     #test_touching_and_on_top(env)
     #test_is_reachable(env, trials)
     #test_init_predicates_are_enforced(env, trials)
-    test_on_top(env)
+    #test_on_table(env)
+    #test_on_top(env)
+    test_inside_obj(env, os.path.join(HOUSEHOLD_URDF_DIR, "jug.urdf"))
 
     print("\nAll tests passed!")
 
+    #show_stacking(arg_dict)
 
 if __name__ == '__main__':
     main()

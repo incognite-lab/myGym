@@ -1,0 +1,24 @@
+On Table REPORT
+================================================================================
+Pairs tested: 21
+apple.urdf           on table: OK
+apple50.urdf         on table: OK
+banana.urdf          on table: OK
+bottle.urdf          on table: OK
+bowl.urdf            on table: OK
+bowlycb.urdf         on table: OK
+cracker_box.urdf     on table: OK
+crackerbox.urdf      on table: OK
+fork.urdf            on table: FAIL
+glass.urdf           on table: FAIL
+jug.urdf             on table: OK
+mug.urdf             on table: FAIL
+mugycb.urdf          on table: OK
+mustard.urdf         on table: OK
+pan.urdf             on table: OK
+plate.urdf           on table: OK
+sharp_knife.urdf     on table: OK
+soup_can.urdf        on table: OK
+spatula.urdf         on table: OK
+spoon.urdf           on table: OK
+tuna_can.urdf        on table: OK

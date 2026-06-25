@@ -1,0 +1,45 @@
+TEST INSIDE jug REPORT
+================================================================================
+Objects passed: 13 out of 21
+apple.urdf           on jug.urdf            : FAIL
+apple.urdf           in jug.urdf            : OK
+apple50.urdf         on jug.urdf            : FAIL
+apple50.urdf         in jug.urdf            : FAIL
+banana.urdf          on jug.urdf            : FAIL
+banana.urdf          in jug.urdf            : OK
+bottle.urdf          on jug.urdf            : FAIL
+bottle.urdf          in jug.urdf            : FAIL
+bowl.urdf            on jug.urdf            : FAIL
+bowl.urdf            in jug.urdf            : OK
+bowlycb.urdf         on jug.urdf            : OK
+bowlycb.urdf         in jug.urdf            : OK
+cracker_box.urdf     on jug.urdf            : OK
+cracker_box.urdf     in jug.urdf            : OK
+crackerbox.urdf      on jug.urdf            : OK
+crackerbox.urdf      in jug.urdf            : OK
+fork.urdf            on jug.urdf            : FAIL
+fork.urdf            in jug.urdf            : OK
+glass.urdf           on jug.urdf            : FAIL
+glass.urdf           in jug.urdf            : FAIL
+jug.urdf             on jug.urdf            : FAIL
+jug.urdf             in jug.urdf            : OK
+mug.urdf             on jug.urdf            : FAIL
+mug.urdf             in jug.urdf            : FAIL
+mugycb.urdf          on jug.urdf            : FAIL
+mugycb.urdf          in jug.urdf            : OK
+mustard.urdf         on jug.urdf            : OK
+mustard.urdf         in jug.urdf            : OK
+pan.urdf             on jug.urdf            : FAIL
+pan.urdf             in jug.urdf            : FAIL
+plate.urdf           on jug.urdf            : FAIL
+plate.urdf           in jug.urdf            : FAIL
+sharp_knife.urdf     on jug.urdf            : FAIL
+sharp_knife.urdf     in jug.urdf            : FAIL
+soup_can.urdf        on jug.urdf            : FAIL
+soup_can.urdf        in jug.urdf            : OK
+spatula.urdf         on jug.urdf            : OK
+spatula.urdf         in jug.urdf            : OK
+spoon.urdf           on jug.urdf            : FAIL
+spoon.urdf           in jug.urdf            : FAIL
+tuna_can.urdf        on jug.urdf            : OK
+tuna_can.urdf        in jug.urdf            : OK
