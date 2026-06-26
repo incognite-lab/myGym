@@ -180,56 +180,11 @@ class GymEnv(CameraEnv):
         if self.unwrapped.reward == 'distractor':
             self.has_distractor = True
             self.distractor = ['bus'] if not self.distractors["list"] else self.distractors["list"]
-         # --- New logic for reward class determination based on self.task_type ---
-        source_shorthand_for_reward = self.task_type
-
-        if not source_shorthand_for_reward:
-            raise ValueError("self.task_type cannot be empty when used for reward class derivation.")
-
-        # Count capital letters in self.task_type to determine num_networks
-        num_capitals = sum(1 for char in source_shorthand_for_reward if char.isupper())
         
-        # Update self.num_networks based on this count
-        self.num_networks = num_capitals
-        
-        # Determine the scheme (e.g., "3-network", "1-network", "0-network")
-        scheme = f"{self.num_networks}-network"
+        if not self.task_type:
+            raise ValueError("self.task_type cannot be empty.")
 
-        # Construct the reward class name string from self.task_type
-        # e.g., "AGM" -> "AaGaM", "A" -> "A", "reach" -> "raeaaacah"
-        reward_class_name_str = 'a'.join(list(source_shorthand_for_reward))
-        # Ensure 'a'.join didn't produce an empty string if source_shorthand_for_reward was somehow non-empty but list(source_shorthand_for_reward) was empty (highly unlikely for strings)
-        if not reward_class_name_str and source_shorthand_for_reward: # If join resulted in empty but source wasn't, it's an issue.
-             reward_class_name_str = source_shorthand_for_reward # Fallback for single char non-alpha or unusual cases. 'a'.join handles 'A' correctly.
-
-        dynamically_constructed_reward_map = {}
-        try:
-            ActualRewardClass = globals()[reward_class_name_str]
-            dynamically_constructed_reward_map = {
-                scheme: {
-                    source_shorthand_for_reward: ActualRewardClass # Inner key is self.task_type
-                }
-            }
-        except KeyError:
-            raise ValueError(
-                f"Reward class '{reward_class_name_str}' (derived from task_type='{source_shorthand_for_reward}') "
-                f"was not found. Please ensure it is defined in 'myGym.envs.rewards.py' and imported."
-            )
-        
-        # Debug print, similar to original
-        if scheme in dynamically_constructed_reward_map:
-            print(f"Dynamically derived reward scheme: {scheme}, task_type key: {list(dynamically_constructed_reward_map[scheme].keys())}")
-            # Assertion to ensure self.task_type (source_shorthand_for_reward) is indeed the key
-            assert source_shorthand_for_reward in dynamically_constructed_reward_map[scheme].keys(), \
-                f"Internal consistency error: task_type '{source_shorthand_for_reward}' " \
-                f"not found as key in dynamically constructed map for scheme '{scheme}'."
-        else:
-            # This should not be reached if ActualRewardClass was found and map constructed
-            raise LookupError(
-                f"Failed to create reward map entry for scheme='{scheme}' and task_type='{source_shorthand_for_reward}'."
-            )
-
-        #assert self.unwrapped.reward in reward_classes[scheme].keys(), "Failed to find the right reward class. Check reward_classes in gym_env.py"
+        # Create task module
         self.task = t.TaskModule(task_type=self.task_type,
                                  observation=self.obs_type,
                                  vae_path=self.vae_path,
@@ -239,18 +194,14 @@ class GymEnv(CameraEnv):
                                  number_tasks=len(self.task_objects_dict),
                                  env=self)
         
-        # Instantiate the reward object using the dynamically constructed map
-        # self.unwrapped.reward (which was the init argument 'reward') will be overwritten here.
-        try:
-            reward_constructor = dynamically_constructed_reward_map[scheme][source_shorthand_for_reward]
-            self.unwrapped.reward = reward_constructor(env=self, task=self.task)
-        except KeyError:
-            # This should ideally be caught by earlier checks
-            raise LookupError(
-                f"Failed to instantiate reward. Could not find class for scheme='{scheme}' and "
-                f"task_type='{source_shorthand_for_reward}' in the dynamically constructed map: "
-                f"{dynamically_constructed_reward_map}"
-            )
+        # Get subgoals from task and update num_networks
+        task_subgoals = self.task.get_subgoals_from_task_type()
+        self.num_networks = len(task_subgoals)
+        
+        print(f"Task type: {self.task_type}, Subgoals: {task_subgoals}, Networks: {self.num_networks}")
+        
+        # Always use Rewarder class which adapts to the task_subgoals
+        self.unwrapped.reward = Rewarder(env=self, task=self.task)
 
     def get_wrapper_attr(self, name: str) -> Any:
         return getattr(self.unwrapped, name)
@@ -296,9 +247,9 @@ class GymEnv(CameraEnv):
         transform = self.workspace_dict[self.workspace]['transform']
         object = env_object.EnvObject(os.path.join(pkg_resources.files("myGym"), os.path.join("envs", path)), transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase)
         self.static_scene_objects[name] = object
-        print(f"Loaded static scene object '{name}' from: {path}")
-        print(f"Object position: {transform['position']}")
-        print(f"Object orientation: {transform['orientation']}")
+        #print(f"Loaded static scene object '{name}' from: {path}")
+        #print(f"Object position: {transform['position']}")
+        #print(f"Object orientation: {transform['orientation']}")
         return object.uid
     
 
@@ -471,6 +422,7 @@ class GymEnv(CameraEnv):
         if only_subtask:
             if self.task.current_task < (len(self.task_objects_dict)) and not self.nl_mode:
                 self.shift_next_subtask()
+                print(f"Switched to subtask {self.task.current_task+1} with init {self.task_objects['actual_state'].name} and goal {self.task_objects['goal_state'].name}")
         if self.has_distractor:
             distrs = []
             if self.distractors["list"]:
@@ -483,9 +435,9 @@ class GymEnv(CameraEnv):
                 self.task_objects["distractor"] = distrs
         self.env_objects = {**self.task_objects, **self.env_objects}
         self.task.reset_task()
-        self.unwrapped.reward.reset()
         self.p.stepSimulation()
         self._observation = self.get_observation()
+        self.unwrapped.reward.reset(observation=self._observation)
         info = {'d': 1, 'f': int(self.episode_failed),
                 'o': self._observation}
         if self.gui_on and self.nl_mode:
@@ -498,6 +450,8 @@ class GymEnv(CameraEnv):
 
     def shift_next_subtask(self):
         # put current init and goal back in env_objects
+        if "distractor" not in self.env_objects:
+            self.env_objects["distractor"] = []
         self.env_objects["distractor"].extend([self.env_objects["actual_state"], self.env_objects["goal_state"]])
         # set the next subtask objects as the actual and goal state and remove them from env_objects
         self.env_objects["actual_state"] = self.env_objects["distractor"][0]
@@ -557,21 +511,28 @@ class GymEnv(CameraEnv):
             :return info: (dict) Additional information about step
         """
         self._apply_action_robot(action)
-        if self.has_distractor: [self.dist.execute_distractor_step(d) for d in self.distractors["list"]]
         self._observation = self.get_observation()
-        if self.dataset:
-            reward, terminated, truncated, info = 0, False, False, {}
-        else:
-            reward = self.unwrapped.reward.compute(observation=self._observation)
-            self.episode_reward += reward
-            terminated = self.episode_terminated
-            truncated = self.episode_truncated
-            info = {'d': 1, 'f': int(self.episode_failed),
+
+        
+        reward = self.unwrapped.reward.compute(observation=self._observation)
+        self.episode_reward += reward
+        
+        #if self.unwrapped.reward.owner == self.unwrapped.reward.num_networks - 1:
+        #    self.task.check_goal()
+            
+        #if self.unwrapped.reward.last_result['task_solved'] and self.unwrapped.reward.last_result['gripper_solved']:
+        #    self.reset(only_subtask=True)
+
+        terminated = self.episode_terminated
+        truncated = self.episode_truncated
+        info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
         if terminated or truncated:
             self.successful_finish(info) #Maybe only change to 'if terminated'? Probably not
         if self.task.subtask_over:
             self.reset(only_subtask=True)
+            print("Subtask finished, shifting to the next one!")
+        #print(self.flatten_obs(self._observation.copy()))
         return self.flatten_obs(self._observation.copy()), reward, terminated, truncated, info
 
     def compute_reward(self, achieved_goal, desired_goal, info):
@@ -729,7 +690,7 @@ class GymEnv(CameraEnv):
         self.task_objects["actual_state"] = goal
 
     def network_control(self):
-        return self.unwrapped.reward.network_switch_control(self.observation["task_objects"])
+        return self.unwrapped.reward.current_network
 
     def get_actions(self, owner, observation):
         model = self.models_link[owner]

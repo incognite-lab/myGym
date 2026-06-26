@@ -575,37 +575,6 @@
   </joint>
 
 
-  <!-- IMU -->
-  <link name="imu_in_torso"></link>
-  <joint name="imu_in_torso_joint" type="fixed">
-    <origin xyz="-0.03959 -0.00224 0.14792" rpy="0 0 0"/>
-    <parent link="torso_link"/>
-    <child link="imu_in_torso"/>
-  </joint>
-
-  <link name="imu_in_pelvis"></link>
-  <joint name="imu_in_pelvis_joint" type="fixed">
-    <origin xyz="0.04525 0 -0.08339" rpy="0 0 0"/>
-    <parent link="pelvis"/>
-    <child link="imu_in_pelvis"/>
-  </joint>
-
-  <!-- d435 -->
-  <link name="d435_link"></link>
-  <joint name="d435_joint" type="fixed">
-    <origin xyz="0.0576235 0.01753 0.42987" rpy="0 0.8307767239493009 0"/>
-    <parent link="torso_link"/>
-    <child link="d435_link"/>
-  </joint>
-
-  <!-- mid360 -->
-  <link name="mid360_link"></link>
-  <joint name="mid360_joint" type="fixed">
-    <origin xyz="0.0002835 0.00003 0.41618" rpy="0 0.04014257279586953 0"/>
-    <parent link="torso_link"/>
-    <child link="mid360_link"/>
-  </joint>
-
   <!-- Arm -->
   <link name="left_shoulder_pitch_link">
     <inertial>
@@ -1271,7 +1240,7 @@
       </geometry>
     </collision>
     -->
-  </link>
+   </link>
    <link name="ee_x_axis">
     <visual>
     <origin xyz="0.03 0 0" rpy="0 1.57079632679 0"/>
@@ -1282,6 +1251,13 @@
       <color rgba="1 0 0 1"/>
     </material>
   </visual>
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.0001"/>
+    <inertia ixx="1e-6" ixy="0" ixz="0"
+             iyy="1e-6" iyz="0"
+             izz="1e-6"/>
+  </inertial>
     </link>
     <link name="ee_y_axis">
   <visual>
@@ -1293,6 +1269,13 @@
       <color rgba="0 1 0 1"/>
     </material>
   </visual>
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.0001"/>
+    <inertia ixx="1e-6" ixy="0" ixz="0"
+             iyy="1e-6" iyz="0"
+             izz="1e-6"/>
+  </inertial>
     </link>
     <link name="ee_z_axis">
   <visual>
@@ -1304,6 +1287,13 @@
       <color rgba="0 0 1 1"/>
     </material>
   </visual>
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.0001"/>
+    <inertia ixx="1e-6" ixy="0" ixz="0"
+             iyy="1e-6" iyz="0"
+             izz="1e-6"/>
+  </inertial>
 </link>
     <link name="endeffector">
   <visual>
@@ -1315,6 +1305,13 @@
       <color rgba="1 1 0 1"/>
     </material>
   </visual>
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.0001"/>
+    <inertia ixx="1e-6" ixy="0" ixz="0"
+             iyy="1e-6" iyz="0"
+             izz="1e-6"/>
+  </inertial>
 </link>
 <joint name="endeffector_joint" type="fixed">
     	<parent link="gripper"/>

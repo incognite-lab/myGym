@@ -47,6 +47,33 @@ class TaskModule():
         self.vision_src = self.vision_module.src
         self.writebool = False
 
+    def get_subgoals_from_task_type(self):
+        """
+        Convert task_type string (e.g., "AGM") to list of subgoal names (e.g., ["approach", "grasp", "move"])
+        
+        Returns:
+            :return subgoals: (list) List of full subgoal names
+        """
+        letter_to_name = {
+            "A": "approach",
+            "G": "grasp",
+            "M": "move",
+            "D": "drop",
+            "W": "withdraw",
+            "R": "rotate",
+            "T": "transform",
+            "F": "follow"
+        }
+        
+        subgoals = []
+        for letter in self.task_type:
+            if letter.upper() in letter_to_name:
+                subgoals.append(letter_to_name[letter.upper()])
+            else:
+                print(f"Warning: Unknown letter '{letter}' in task_type '{self.task_type}'")
+        
+        return subgoals
+
     def reset_task(self):
         """
         Reset task relevant data and statistics
@@ -98,6 +125,13 @@ class TaskModule():
                 info["additional_obs"]["joints_xyz"] = self.get_linkstates_unpacked()
             elif key == "joints_angles":
                 info["additional_obs"]["joints_angles"] = self.env.robot.get_joints_states()
+            elif key == "gjoints_angles":
+                info["additional_obs"]["gjoints_angles"] = self.env.robot.get_gjoints_states()
+            elif key == "gjoints_states":
+                _,metric = self.env.robot.check_gripper_status(self.env.robot.get_gjoints_states())
+                info["additional_obs"]["gjoints_states"] = [metric]
+            elif key == "init_6D":
+                info["additional_obs"]["init_6D"] = self.env.robot.robot_dict[self.env.robot.name]['ee_pos']
             elif key == "endeff_xyz":
                 info["additional_obs"]["endeff_xyz"] = self.vision_module.get_obj_position(robot, self.image, self.depth)[:3]
             elif key == "endeff_6D":
@@ -342,30 +376,20 @@ class TaskModule():
                 return
         
         finished = None
-        if self.task_type in ['A','AG','AGM','AGMD','AGMDW','AGTDW']: #all tasks ending with R (FMR) have to have distrot checker
-            finished = self.check_distance_threshold(self._observation)  
+        if self.env.unwrapped.reward.finished:
+            finished = True
+            #finished = self.check_distance_threshold(self._observation)  
         if self.task_type in ['compositional', 'AGRDW', 'AGFDW', "AGR"]:
             finished = self.check_distrot_threshold(self._observation)
 
         if self.task_type in ["dropmag"]: #FMOT should be compositional
             self.check_distance_threshold(self._observation)
             finished = self.drop_magnetic()
-        if self.task_type == "dice_throw":
-            finished = self.check_dice_moving(self._observation)
+        
         self.last_distance = self.current_norm_distance
         if self.init_distance is None:
             self.init_distance = self.current_norm_distance
-        #if self.task_type == 'pnp' and self.env.robot_action != 'joints_gripper' and finished:
-        #    if len(self.env.robot.magnetized_objects) == 0 and self.env.episode_steps > 5:
-        #        self.end_episode_success()
-        #    else:
-        #        self.env.episode_over = False
         if finished:
-            if self.task_type == "dice_throw":
-                
-                if finished == 1:
-                    self.end_episode_fail("Finished with wrong dice result thrown")
-                return finished
             self.end_episode_success()
         if self.check_time_exceeded() or self.env.episode_steps == self.env.max_episode_steps:
             self.end_episode_fail("Max amount of steps reached")
@@ -388,7 +412,7 @@ class TaskModule():
                 self.env.episode_info = "Task completed in initial configuration"
             else:
                 self.env.episode_info = "Task completed successfully"
-                time.sleep(1)
+                #time.sleep(1)
         else:
             print("self.env.episode_terminated set to false")
             self.env.episode_terminated = False
@@ -598,6 +622,9 @@ class TaskModule():
         for x in [t["actual_state"], t["goal_state"]]:
             get_datalen = {"joints_xyz":len(self.get_linkstates_unpacked()),
                            "joints_angles":len(self.env.robot.get_joints_states()),
+                           "gjoints_angles":len(self.env.robot.get_gjoints_states()),
+                           "gjoints_states":len([self.env.robot.check_gripper_status(self.env.robot.get_gjoints_states())[1]]),
+                           "init_6D":len(self.env.robot.robot_dict[self.env.robot.name]['ee_pos']),
                            "endeff_xyz":len(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)[:3]),
                            "endeff_6D":len(list(self.vision_module.get_obj_position(self.env.robot, self.image, self.depth)) \
                                                       + list(self.vision_module.get_obj_orientation(self.env.robot))),

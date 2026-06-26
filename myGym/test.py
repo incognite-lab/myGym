@@ -292,7 +292,7 @@ def test_env(env: object, arg_dict: dict) -> None:
                     # Compute element-wise difference safely using numpy
                     try:
                         diff = np.array(last_action, dtype=float) - np.array(action, dtype=float)
-                        print(f"\rLast action difference: {np.round(diff, 4)}", end='', flush=True)
+                        #print(f"\rLast action difference: {np.round(diff, 4)}", end='', flush=True)
                     except Exception:
                         # Fallback if shapes mismatch
                         print("\rLast action difference: (shape mismatch)", end='', flush=True)
@@ -300,6 +300,11 @@ def test_env(env: object, arg_dict: dict) -> None:
                     last_action = action
                     
             if arg_dict["control"] == "oraculum":
+                #if t == 0:
+                #    return env.action_space.sample()
+                #reward_params = env.env.unwrapped.reward.params
+                #action[:3] = env.env.unwrapped.reward.last_result["goal_state"][:3]
+                #action[-len(gripper_values):] = env.env.unwrapped.robot.gripper_dict[reward_params["gripper"]]
                 action = oraculum_obj.perform_oraculum_task(t, env, action, info)
             elif arg_dict["control"] == "keyboard":
                 keypress = p.getKeyboardEvents()
@@ -310,6 +315,17 @@ def test_env(env: object, arg_dict: dict) -> None:
             observation, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
             #print("observation shape:", len(obs))
+
+            # Print task progress from Rewarder during oraculum testing
+            rewarder = env.env.unwrapped.reward
+            if hasattr(rewarder, 'last_result'):
+                result = rewarder.last_result
+                subgoal = rewarder.network_names[rewarder.owner]
+                print(f"Subgoal: {rewarder.network_name} ({rewarder.owner+1}/{rewarder.num_networks}) | "
+                        f"Dist: {result['absolute_distance']:.4f} | "
+                        f"Arm: {result['arm_progress']:.1f}% (solved={result['arm_solved']}) | "
+                        f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
+                        f"Reward: {reward:.4f}", end ="\r", flush=True)
 
             n_p, last_call_time = n_pressed(last_call_time)
             if n_p:  # If key 'n' is pressed, switch to next task - useful if robot gets stuck
@@ -519,6 +535,16 @@ def test_model(
             steps_sum += 1
             action, _state = model.predict(obs, deterministic=deterministic)
             obs, reward, terminated, truncated, info = env.step(action)
+            rewarder = env.env.unwrapped.reward
+            if hasattr(rewarder, 'last_result'):
+                result = rewarder.last_result
+                subgoal = rewarder.network_names[rewarder.owner]
+                print(f"Subgoal: {rewarder.network_name} ({rewarder.owner+1}/{rewarder.num_networks}) | "
+                        f"Dist: {result['absolute_distance']:.4f} | "
+                        f"Arm: {result['arm_progress']:.1f}% (solved={result['arm_solved']}) | "
+                        f"Gripper: {result['gripper_distance']:.4f}, {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
+                        f"Reward: {reward:.4f}", end ="\r", flush=True)
+                
             done = terminated or truncated
             is_successful = not info['f']
             distance_error = info['d']
@@ -612,6 +638,13 @@ def main() -> None:
         else:
             arg_dict["robot_action"] = "absolute"
         print(f"Oraculum control selected. Robot action automatically set to: {arg_dict['robot_action']}")
+    
+    if  arg_dict.get("control") == "keyboard":
+        if "gripper" in arg_dict.get("robot_action", ""):
+            arg_dict["robot_action"] = "step_gripper"
+        else:
+            arg_dict["robot_action"] = "step"
+        print(f"Keyboard control selected. Robot action automatically set to: {arg_dict['robot_action']}")
     
     if arg_dict.get("pretrained_model") is None:
         print_init_info(arg_dict)

@@ -1,0 +1,1331 @@
+<robot name="iCub">
+  <link name="dummy">
+      <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <link name="root_link">
+    <inertial>
+      <origin xyz="0.02488209999999999 0.00010394699999999017 -0.04408060000000001" rpy="1.5707963267948961 0 -1.5707963267948961"/>
+      <mass value="5.09143"/>
+      <inertia ixx="0.0139679" ixy="-5.93488e-06" ixz="-1.55458e-05" iyy="0.0202112" iyz="-0.00170968" izz="0.0249124"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.036399999999999995 0 0.032" rpy="1.5707963267948961 0 -1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_root_link_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="root_link_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.036399999999999995 0 0.032" rpy="1.5707963267948961 0 -1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_root_link_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dummy_joint" type="fixed">
+    <parent link="dummy"/>
+    <child link="root_link"/>
+  </joint>
+  <link name="r_hip_1">
+    <inertial>
+      <origin xyz="-0.0005145000000000149 -0.038075299999999986 -7.099999999998774e-05" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <mass value="0.919978"/>
+      <inertia ixx="0.000404268" ixy="-1.26852e-06" ixz="1.11055e-06" iyy="0.000574741" iyz="-7.69474e-07" izz="0.000580025"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.04285150000011213 0.025999999999999232 0.1519129999999679" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_hip_1_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_hip_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.04285150000011213 0.025999999999999232 0.1519129999999679" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_hip_1_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hip_pitch" type="revolute">
+    <origin xyz="0.006451499999999992 0.025999999999999968 -0.11991299999999999" rpy="0 0 -3.141592653589793"/>
+    <axis xyz="-2.220446049250313e-16 -0.9999999999999998 0.0"/>
+    <parent link="root_link"/>
+    <child link="r_hip_1"/>
+    <limit effort="55.5" lower="-0.7853981633974483" upper="2.3387411976724017" velocity="5.1"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="r_hip_2">
+    <inertial>
+      <origin xyz="-0.0009315000000000018 8.09999999998312e-06 -0.04480899999999996" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <mass value="0.413242"/>
+      <inertia ixx="0.00046914" ixy="-4.76597e-08" ixz="7.12496e-08" iyy="0.000277108" iyz="3.3401e-06" izz="0.000303891"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.04285149980937101 0.07010000000000424 0.15191299999996632" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_hip_2_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_hip_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.04285149980937101 0.07010000000000424 0.15191299999996632" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_hip_2_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hip_roll" type="revolute">
+    <origin xyz="0 -0.04409999999999998 0" rpy="0 0 0"/>
+    <axis xyz="-0.9999999999999998 0.0 -2.220446049250313e-16"/>
+    <parent link="r_hip_1"/>
+    <child link="r_hip_2"/>
+    <limit effort="37.0" lower="-0.3490658503988659" upper="2.0943951023931953" velocity="7.64"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="r_hip_3">
+    <inertial>
+      <origin xyz="-0.00012300000000000505 -0.0002822999999999992 0.008718000000000031" rpy="-1.5707963267948961 0 -1.5707963267948961"/>
+      <mass value="0.126212"/>
+      <inertia ixx="0.01" ixy="2.67901e-07" ixz="-4.41463e-09" iyy="0.01" iyz="3.32338e-08" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0437090152 -0.07009999189999992 -0.22621299999996644" rpy="-1.5707963267948961 0 -1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_upper_thigh_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_hip_3_color">
+        <color rgba="0.0 0.0 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0437090152 -0.07009999189999992 -0.22621299999996644" rpy="-1.5707963267948961 0 -1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_upper_thigh_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_leg_ft_sensor" type="fixed">
+    <origin xyz="-0.0009362999999999941 1.3899999999969492e-05 -0.07429999999999995" rpy="3.141592653589793 0 0"/>
+    <parent link="r_hip_2"/>
+    <child link="r_hip_3"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="r_upper_leg">
+    <inertial>
+      <origin xyz="0.0033999999999999933 -2.9100000000018e-05 -0.078954" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <mass value="1.8035"/>
+      <inertia ixx="0.006477514229987116" ixy="0.0001295794295884975" ixz="5.482050947393938e-06" iyy="0.0014593786411035647" iyz="-0.0001366130868747447" izz="0.006467208238130081"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0437090152 0.07009999190000003 0.24081299999999994" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_thigh_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_upper_leg_color">
+        <color rgba="0.0 0.0 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0437090152 0.07009999190000003 0.24081299999999994" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_thigh_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hip_yaw" type="revolute">
+    <origin xyz="0 0 0.014399999999999996" rpy="-3.141592653589793 0 0"/>
+    <axis xyz="0.0 -2.220446049250313e-16 -0.9999999999999998"/>
+    <parent link="r_hip_3"/>
+    <child link="r_upper_leg"/>
+    <limit effort="37.0" lower="-1.3962634015954636" upper="1.3962634015954636" velocity="7.64"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="r_upper_leg_back_contact">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="r_upper_leg_back_contact_fixed_joint" type="fixed">
+    <origin xyz="-0.051199800000000004 0 0.014599999999999946" rpy="0 1.5707963267948963 0"/>
+    <parent link="r_upper_leg"/>
+    <child link="r_upper_leg_back_contact"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="r_upper_leg_dh_frame">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="r_upper_leg_dh_frame_fixed_joint" type="fixed">
+    <origin xyz="0 0 -0.14582499999999995" rpy="1.5707963267948966 0 0"/>
+    <parent link="r_upper_leg"/>
+    <child link="r_upper_leg_dh_frame"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="r_lower_leg">
+    <inertial>
+      <origin xyz="0.0012363999999999917 -0.003513100000000033 -0.08879400000000004" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <mass value="1.472"/>
+      <inertia ixx="0.00423993167477533" ixy="0.00022881454885381036" ixz="-5.556464594531433e-05" iyy="0.0015209504344685463" iyz="-0.0002641329792432387" izz="0.004573585842061655"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0437090152 0.07009999200000007 0.38663799999999987" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_shank_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_lower_leg_color">
+        <color rgba="0.0 0.0 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0437090152 0.07009999200000007 0.38663799999999987" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_shank_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_knee" type="revolute">
+    <origin xyz="0 0 -0.14582499999999995" rpy="0 0 0"/>
+    <axis xyz="-2.220446049250313e-16 -0.9999999999999998 0.0"/>
+    <parent link="r_upper_leg"/>
+    <child link="r_lower_leg"/>
+    <limit effort="37.0" lower="-2.1642082724729685" upper="0.06981317007977318" velocity="7.64"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="r_ankle_1">
+    <inertial>
+      <origin xyz="0.01514359999999999 -0.000868600000000011 4.199999999998649e-05" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <mass value="0.6803"/>
+      <inertia ixx="0.0004046188489317631" ixy="7.498192869450776e-07" ixz="-3.013494676905822e-05" iyy="0.00044863365466369986" iyz="2.5726697409005395e-06" izz="0.00030823593913944066"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0437090152 0.07009999200000011 0.5871379999999998" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_ankle_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_ankle_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0437090152 0.07009999200000011 0.5871379999999998" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_ankle_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_ankle_pitch" type="revolute">
+    <origin xyz="0 0 -0.20049999999999996" rpy="0 0 0"/>
+    <axis xyz="2.220446049250313e-16 0.9999999999999998 0.0"/>
+    <parent link="r_lower_leg"/>
+    <child link="r_ankle_1"/>
+    <limit effort="37.0" lower="-0.6108652381980153" upper="0.6108652381980153" velocity="7.64"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="r_ankle_2">
+    <inertial>
+      <origin xyz="0.0011445999999999956 3.599999999992498e-06 -0.03852" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <mass value="0.265122"/>
+      <inertia ixx="0.01" ixy="-4.74606e-08" ixz="4.94571e-08" iyy="0.01" iyz="-4.29975e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.043787799618642 0.07008610019070811 0.5871379999999998" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_foot_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_ankle_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.043787799618642 0.07008610019070811 0.5871379999999998" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_foot_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_ankle_roll" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="-0.9999999999999998 0.0 -2.220446049250313e-16"/>
+    <parent link="r_ankle_1"/>
+    <child link="r_ankle_2"/>
+    <limit effort="37.0" lower="-0.4363323129985824" upper="0.4363323129985824" velocity="7.64"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="r_foot">
+    <inertial>
+      <origin xyz="0.033600099999999994 0.005371899999999999 -0.001146999999999898" rpy="-1.5707963267948961 0 -1.5707963267948961"/>
+      <mass value="0.382866"/>
+      <inertia ixx="0.00120946" ixy="3.74585e-07" ixz="-5.78759e-05" iyy="0.00141439" iyz="-7.80325e-06" izz="0.000273599"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.04720901500000001 -0.07009999199999985 -0.6474380002860779" rpy="-1.5707963267948961 0 -1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_sole_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_foot_color">
+        <color rgba="0.1 0.1 0.1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.03 0.005 0.014" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/r_foot.obj" scale="1 1 1"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_foot_ft_sensor" type="fixed">
+    <origin xyz="-0.003500000000000003 0 -0.0605" rpy="3.141592653589793 0 0"/>
+    <parent link="r_ankle_2"/>
+    <child link="r_foot"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="r_sole">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="r_sole_fixed_joint" type="fixed">
+    <origin xyz="0.003500000000000003 0 0.0040000000000000036" rpy="-3.141592653589793 0 0"/>
+    <parent link="r_foot"/>
+    <child link="r_sole"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="torso_1">
+    <inertial>
+      <origin xyz="0.027092135899999998 0.02914798 -0.00043979999999999714" rpy="0 0 0"/>
+      <mass value="0.67144"/>
+      <inertia ixx="0.00040911" ixy="-1.04522e-06" ixz="-1.02516e-06" iyy="0.000384141" iyz="6.50708e-06" izz="0.000299445"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.027046299809264998 0.03199999999999968 0.036400000000000286" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_lap_belt_1_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="torso_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.027046299809264998 0.03199999999999968 0.036400000000000286" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_lap_belt_1_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="torso_pitch" type="revolute">
+    <origin xyz="0 0.027046299999999992 0" rpy="1.5707963267948961 0 -1.5707963267948961"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="root_link"/>
+    <child link="torso_1"/>
+    <limit effort="50000" lower="-0.3490658503988659" upper="1.2217304763960306" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="torso_2">
+    <inertial>
+      <origin xyz="-0.00011350780926499999 0.036152500000000004 0.05709630000000001" rpy="0 0 0"/>
+      <mass value="0.425685"/>
+      <inertia ixx="0.000829234" ixy="2.37006e-08" ixz="9.25231e-08" iyy="0.000436517" iyz="-1.74814e-07" izz="0.000604802"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0.1433 0.03865310000000001" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_lap_belt_2_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="torso_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0.1433 0.03865310000000001" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_lap_belt_2_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="torso_roll" type="revolute">
+    <origin xyz="0.027046299809264998 0.032 -0.05734460000000001" rpy="0 0 0"/>
+    <axis xyz="0.0 0.0 -1.0"/>
+    <parent link="torso_1"/>
+    <child link="torso_2"/>
+    <limit effort="50000" lower="-0.5235987755982988" upper="0.5235987755982988" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="chest">
+    <inertial>
+      <origin xyz="0.000188619190735 0.07309099999999999 -0.047238100000000005" rpy="0 0 0"/>
+      <mass value="7.638"/>
+      <inertia ixx="0.043032487861801666" ixy="2.9107538880437883e-05" ixz="0.00018198522994852988" iyy="0.04408357255482159" iyz="-0.0004291064091076428" izz="0.026056324991143805"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0.09280000000000001 -0.024189000000000002" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_chest_bb_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="chest_color">
+        <color rgba="0.0 0.0 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0.09280000000000001 -0.024189000000000002" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_chest_bb_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="torso_yaw" type="revolute">
+    <origin xyz="0 0.05 0.06284210000000001" rpy="0 0 0"/>
+    <axis xyz="0.0 -1.0 0.0"/>
+    <parent link="torso_2"/>
+    <child link="chest"/>
+    <limit effort="50000" lower="-0.8726646259971648" upper="0.8726646259971648" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="neck_1">
+    <inertial>
+      <origin xyz="0.0143705608 0.006567000000000017 -0.006384200000000003" rpy="0 0 0"/>
+      <mass value="0.125793"/>
+      <inertia ixx="0.01" ixy="8.09156e-08" ixz="-3.74998e-08" iyy="0.01" iyz="9.39717e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.014299999809265 -0.07999699999999998 -0.029500800000000004" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_neck_1_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="neck_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.014299999809265 -0.07999699999999998 -0.029500800000000004" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_neck_1_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="neck_pitch" type="revolute">
+    <origin xyz="-0.014299999809265 0.17279699999999998 0.0053118" rpy="0 0 0"/>
+    <axis xyz="-1.0 0.0 0.0"/>
+    <parent link="chest"/>
+    <child link="neck_1"/>
+    <limit effort="50000" lower="-0.6981317007977318" upper="0.3839724354387525" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="neck_2">
+    <inertial>
+      <origin xyz="-8.8573009265e-05 0.03522499999999998 -0.01954527" rpy="0 0 0"/>
+      <mass value="0.177087"/>
+      <inertia ixx="0.01" ixy="-5.25591e-07" ixz="4.68307e-07" iyy="0.01" iyz="9.81476e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 -0.089497 -0.05030077" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_neck_2_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="neck_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.089497 -0.05030077" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_neck_2_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="neck_roll" type="revolute">
+    <origin xyz="0.014299999809265 0.009500000000000008 0.020799969999999997" rpy="0 0 0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="neck_1"/>
+    <child link="neck_2"/>
+    <limit effort="50000" lower="-0.3490658503988659" upper="0.3490658503988659" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="head">
+    <inertial>
+      <origin xyz="-0.000574157809265 0.11351100000000003 -0.007539199999999999" rpy="0 0 0"/>
+      <mass value="1.50691"/>
+      <inertia ixx="0.00680478" ixy="-1.60267e-05" ixz="7.28166e-05" iyy="0.00634736" iyz="0.000292091" izz="0.00478116"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 -0.06715299999999999 -0.029500800000000004" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_head_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="head_color">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.06715299999999999 -0.029500800000000004" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_head_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="neck_yaw" type="revolute">
+    <origin xyz="0 -0.022344000000000003 -0.020799969999999997" rpy="0 0 0"/>
+    <axis xyz="0.0 1.0 0.0"/>
+    <parent link="neck_2"/>
+    <child link="head"/>
+    <limit effort="50000" lower="-0.8726646259971648" upper="0.8726646259971648" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="imu_frame">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="imu_frame_fixed_joint" type="fixed">
+    <origin xyz="0.023453700190734995 0.20544400000000002 -0.023077900000000023" rpy="1.5707963267948997 0 0"/>
+    <parent link="head"/>
+    <child link="imu_frame"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="r_shoulder_1">
+    <inertial>
+      <origin xyz="-0.012265601413295815 3.200000000000425e-05 -0.003210642904490607" rpy="0 0 0"/>
+      <mass value="0.114862"/>
+      <inertia ixx="0.01" ixy="-1.65173e-08" ixz="-3.55626e-06" iyy="0.01" iyz="-6.13337e-08" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.09900792530759175 0 -0.026529248755802246" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_shoulder_1_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_shoulder_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.09900792530759175 0 -0.026529248755802246" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_shoulder_1_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_shoulder_pitch" type="revolute">
+    <origin xyz="-0.12001599980926501 0.09280000000000001 0.007969299999999999" rpy="0 -0.523598883792035 3.141592653589793"/>
+    <axis xyz="-0.965925926173269 0.0 0.25881927552505174"/>
+    <parent link="chest"/>
+    <child link="r_shoulder_1"/>
+    <limit effort="50000" lower="-1.6667894356545847" upper="0.17453292519943295" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="r_shoulder_2">
+    <inertial>
+      <origin xyz="-0.02141417094380993 0.0002717252725513569 -0.019440234453461283" rpy="0 0 0"/>
+      <mass value="0.238162"/>
+      <inertia ixx="0.01" ixy="-1.12091e-07" ixz="1.02574e-05" iyy="0.01" iyz="1.19785e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.10658780856753214 2.3191471536232466e-07 -0.04073921211753291" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_shoulder_2_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_shoulder_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.10658780856753214 2.3191471536232466e-07 -0.04073921211753291" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_shoulder_2_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_shoulder_roll" type="revolute">
+    <origin xyz="-0.007580465732273667 0 0.014210246363868029" rpy="-0.2705976115829964 -0.252680154648383 -1.5015568003498747"/>
+    <axis xyz="-0.258819 9.361836320172563e-18 -0.965926"/>
+    <parent link="r_shoulder_1"/>
+    <child link="r_shoulder_2"/>
+    <limit effort="50000" lower="0.0" upper="2.8064894372068823" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="r_shoulder_3">
+    <inertial>
+      <origin xyz="-0.026762076687111974 -6.999999999979245e-06 0.014699920771321831" rpy="0 0 0"/>
+      <mass value="0.35913"/>
+      <inertia ixx="0.01" ixy="3.60361e-07" ixz="4.94445e-05" iyy="0.01" iyz="2.65919e-07" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.13193387916408805 0 -0.03535156676465449" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_upper_arm_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_shoulder_3_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.13193387916408805 0 -0.03535156676465449" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_upper_arm_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_shoulder_yaw" type="revolute">
+    <origin xyz="-0.02534607132315006 2.3275042732029405e-07 -0.005387648064565612" rpy="-0.25268954617505757 0.008518618321396991 0.06703988914196844"/>
+    <axis xyz="0.9659258438815126 -2.220446049250313e-16 -0.2588189794466167"/>
+    <parent link="r_shoulder_2"/>
+    <child link="r_shoulder_3"/>
+    <limit effort="50000" lower="-0.6457718232379019" upper="1.3962634015954636" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="r_upper_arm">
+    <inertial>
+      <origin xyz="-0.006087 0.0001260000000000011 0.029312099999999987" rpy="0 1.30899700696774 0"/>
+      <mass value="0.745104"/>
+      <inertia ixx="0.000509527" ixy="1.19292e-06" ixz="-1.17426e-05" iyy="0.000668487" iyz="1.13363e-06" izz="0.000599254"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.014999999999999994 0 -0.19329999999999997" rpy="0 1.30899700696774 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_elbow_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_upper_arm_color">
+        <color rgba="0.0 0.0 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.014999999999999994 0 -0.19329999999999997" rpy="0 1.30899700696774 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_elbow_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_arm_ft_sensor" type="fixed">
+    <origin xyz="-0.05089730176650909 0 0.029167029620599215" rpy="0 -1.3089970069677397 0"/>
+    <parent link="r_shoulder_3"/>
+    <child link="r_upper_arm"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="r_elbow_1">
+    <inertial>
+      <origin xyz="-0.006739129328428656 0.018801899999999996 -0.004657692361536201" rpy="0 0 0"/>
+      <mass value="0.267903"/>
+      <inertia ixx="0.01" ixy="7.36974e-06" ixz="-1.04536e-05" iyy="0.01" iyz="3.92498e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.25939046331664584 0.022499899999999948 -0.08503258869619254" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_elbow_prosup_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_elbow_1_color">
+        <color rgba="0.0 0.0 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.25939046331664584 0.022499899999999948 -0.08503258869619254" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_elbow_prosup_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_elbow" type="revolute">
+    <origin xyz="0 -0.022499900000000003 0.07925999999999998" rpy="0 1.3089970069677397 0"/>
+    <axis xyz="2.220446049250313e-16 1.0000000000000002 0.0"/>
+    <parent link="r_upper_arm"/>
+    <child link="r_elbow_1"/>
+    <limit effort="50000" lower="0.2617993877991494" upper="1.8500490071139892" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="r_forearm">
+    <inertial>
+      <origin xyz="-0.04043911338861204 -0.00032799999999999496 0.005327334483865201" rpy="0 0 0"/>
+      <mass value="0.6347"/>
+      <inertia ixx="0.000370044" ixy="-1.65419e-06" ixz="0.00010538" iyy="0.000672279" iyz="1.1456e-06" izz="0.000553637"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.29688696737542175 0 -0.07955060152271212" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_forearm_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_forearm_color">
+        <color rgba="0.0 0.0 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.29688696737542175 0 -0.07955060152271212" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_forearm_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_wrist_prosup" type="revolute">
+    <origin xyz="-0.0384624299026574 0.022499900000000017 -0.0052231681940338075" rpy="0 0 0"/>
+    <axis xyz="0.9659258438815126 -2.220446049250313e-16 -0.2588189794466167"/>
+    <parent link="r_elbow_1"/>
+    <child link="r_forearm"/>
+    <limit effort="50000" lower="-1.0471975511965976" upper="1.0471975511965976" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="r_forearm_dh_frame">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="r_forearm_dh_frame_fixed_joint" type="fixed">
+    <origin xyz="-0.1028711023733811 7.000000000020878e-06 0.027564221311064674" rpy="-0.2617993198271565 0 -1.570796326794897"/>
+    <parent link="r_forearm"/>
+    <child link="r_forearm_dh_frame"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="r_wrist_1">
+    <inertial>
+      <origin xyz="0.0009861019555474082 -0.0011759999999999826 0.004101327367239241" rpy="0 0 0"/>
+      <mass value="0.0362615"/>
+      <inertia ixx="0.01" ixy="-3.10462e-08" ixz="-9.44554e-07" iyy="0.01" iyz="-1.59685e-07" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.40039217624844703 -7.0000000000763896e-06 -0.1047483045162671" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_wrist_pitch_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_wrist_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.40039217624844703 -7.0000000000763896e-06 -0.1047483045162671" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_wrist_pitch_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_wrist_pitch" type="revolute">
+    <origin xyz="-0.1035052088730253 7.000000000020878e-06 0.02519770299355497" rpy="0 0 0"/>
+    <axis xyz="0.2588189794466167 0.0 0.9659258438815124"/>
+    <parent link="r_forearm"/>
+    <child link="r_wrist_1"/>
+    <limit effort="50000" lower="-1.3962634015954636" upper="0.4363323129985824" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="r_hand">
+    <inertial>
+      <origin xyz="-0.0646681637170268 0.005600200000000041 0.022681294091780244" rpy="0 0 0"/>
+      <mass value="0.248289"/>
+      <inertia ixx="0.01" ixy="-2.3536e-06" ixz="3.61526e-05" iyy="0.01" iyz="2.07146e-05" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.39975806974880285 0.019492899999999924 -0.1071148228337768" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_hand_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_hand_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.39975806974880285 0.019492899999999924 -0.1071148228337768" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_r_hand_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_wrist_yaw" type="revolute">
+    <origin xyz="0.0006341064996442103 -0.0194999 0.002366518317509704" rpy="0 0 0"/>
+    <axis xyz="-2.220446049250313e-16 -1.0000000000000002 0.0"/>
+    <parent link="r_wrist_1"/>
+    <child link="r_hand"/>
+    <limit effort="50000" lower="-0.3490658503988659" upper="0.4363323129985824" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="r_hand_dh_frame">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="r_hand_dh_frame_fixed_joint" type="fixed">
+    <origin xyz="-0.05765429784284365 -0.005556799999999987 0.013693832308330513" rpy="-1.5707963267948963 -0.2617993198271562 3.141592653589793"/>
+    <parent link="r_hand"/>
+    <child link="r_hand_dh_frame"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="l_shoulder_1">
+    <inertial>
+      <origin xyz="-0.008985000000000007 -3.300000000000525e-05 -0.0088998" rpy="0 0 0"/>
+      <mass value="0.114882"/>
+      <inertia ixx="0.01" ixy="-1.77064e-08" ixz="3.55951e-06" iyy="0.01" iyz="6.57597e-08" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.12025748200000001 0 -0.032223" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_shoulder_1_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_shoulder_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.12025748200000001 0 -0.032223" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_shoulder_1_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_shoulder_pitch" type="revolute">
+    <origin xyz="0.12001600019073501 0.09280000000000001 0.007969299999999999" rpy="0 0 0"/>
+    <axis xyz="0.965926 0.0 0.258819"/>
+    <parent link="chest"/>
+    <child link="l_shoulder_1"/>
+    <limit effort="50000" lower="-1.6667894356545847" upper="0.17453292519943295" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="l_shoulder_2">
+    <inertial>
+      <origin xyz="0.02147459512724749 0.0002689578996872277 -0.019410736153453706" rpy="0 0 0"/>
+      <mass value="0.238162"/>
+      <inertia ixx="0.01" ixy="1.19701e-07" ixz="-1.29687e-05" iyy="0.01" iyz="1.20112e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.10658669158059955 1.1080093428872395e-07 -0.04074338077098992" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_shoulder_2_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_shoulder_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.10658669158059955 1.1080093428872395e-07 -0.04074338077098992" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_shoulder_2_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_shoulder_roll" type="revolute">
+    <origin xyz="-0.013671000000000016 0 0.0085204" rpy="0.2705973179159597 0.2526801775423606 -1.5015568855866182"/>
+    <axis xyz="-0.258819 -9.361836320172563e-18 0.965926"/>
+    <parent link="l_shoulder_1"/>
+    <child link="l_shoulder_2"/>
+    <limit effort="50000" lower="0.0" upper="2.8064894372068823" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="l_shoulder_3">
+    <inertial>
+      <origin xyz="0.026798412222026474 -1.5999999999988246e-05 0.014695680617730612" rpy="0 0 0"/>
+      <mass value="0.35913"/>
+      <inertia ixx="0.01" ixy="-2.22441e-07" ixz="-4.95846e-05" iyy="0.01" iyz="1.07538e-07" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.1319010376853961 0 -0.03534276691935331" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_upper_arm_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_shoulder_3_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.1319010376853961 0 -0.03534276691935331" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_upper_arm_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_shoulder_yaw" type="revolute">
+    <origin xyz="0.025314346831209825 1.116364382186541e-07 -0.0054006165626487995" rpy="-0.25268954617505757 -0.008518618321396991 -0.06703988914196844"/>
+    <axis xyz="0.9659258438815126 2.220446049250313e-16 0.2588189794466167"/>
+    <parent link="l_shoulder_2"/>
+    <child link="l_shoulder_3"/>
+    <limit effort="50000" lower="-0.6457718232379019" upper="1.3962634015954636" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="l_upper_arm">
+    <inertial>
+      <origin xyz="-0.006120999999999996 -0.00018899999999999473 0.02936839999999999" rpy="0 -1.30899700696774 -3.1415926535897922"/>
+      <mass value="0.746799"/>
+      <inertia ixx="0.000509731" ixy="-6.90767e-07" ixz="1.20048e-05" iyy="0.00067086" iyz="3.11833e-06" izz="0.000601202"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.014999999999999994 0 -0.19329999999999997" rpy="0 -1.30899700696774 -3.1415926535897922"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_elbow_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_upper_arm_color">
+        <color rgba="0.0 0.0 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.014999999999999994 0 -0.19329999999999997" rpy="0 -1.30899700696774 -3.1415926535897922"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_elbow_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_arm_ft_sensor" type="fixed">
+    <origin xyz="0.05093014324520106 0 0.029175829465900395" rpy="0 -1.3089970069677395 3.1415926535897927"/>
+    <parent link="l_shoulder_3"/>
+    <child link="l_upper_arm"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="l_elbow_1">
+    <inertial>
+      <origin xyz="0.006739129328428652 0.030301900000000007 -0.004657692361536201" rpy="0 0 0"/>
+      <mass value="0.267903"/>
+      <inertia ixx="0.01" ixy="-7.37159e-06" ixz="1.04505e-05" iyy="0.01" iyz="3.9319e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.25939046331664584 0.03399989999999996 -0.08503258869619254" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_elbow_prosup_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_elbow_1_color">
+        <color rgba="0.0 0.0 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.25939046331664584 0.03399989999999996 -0.08503258869619254" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_elbow_prosup_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_elbow" type="revolute">
+    <origin xyz="0 0.03399989999999997 0.07925999999999998" rpy="0 -1.3089970069677395 -3.141592653589793"/>
+    <axis xyz="2.220446049250313e-16 -1.0000000000000002 0.0"/>
+    <parent link="l_upper_arm"/>
+    <child link="l_elbow_1"/>
+    <limit effort="50000" lower="0.2617993877991494" upper="1.8500490071139892" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="l_forearm">
+    <inertial>
+      <origin xyz="0.040451182882303864 -0.000686000000000006 0.005323632143791272" rpy="0 0 0"/>
+      <mass value="0.636185"/>
+      <inertia ixx="0.000371447" ixy="4.34562e-06" ixz="-0.000105871" iyy="0.000674229" iyz="4.05222e-06" izz="0.000557115"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.29688696737542175 0 -0.07955060152271212" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_forearm_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_forearm_color">
+        <color rgba="0.0 0.0 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.29688696737542175 0 -0.07955060152271212" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_forearm_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_wrist_prosup" type="revolute">
+    <origin xyz="0.03846242990265739 0.03399990000000003 -0.0052231681940338075" rpy="0 0 0"/>
+    <axis xyz="0.9659258438815126 2.220446049250313e-16 0.2588189794466167"/>
+    <parent link="l_elbow_1"/>
+    <child link="l_forearm"/>
+    <limit effort="50000" lower="-1.0471975511965976" upper="1.0471975511965976" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="l_forearm_dh_frame">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="l_forearm_dh_frame_fixed_joint" type="fixed">
+    <origin xyz="0.1028711023733811 7.000000000020878e-06 0.027564221311064674" rpy="2.879793333762637 0 1.5707963267948968"/>
+    <parent link="l_forearm"/>
+    <child link="l_forearm_dh_frame"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="l_wrist_1">
+    <inertial>
+      <origin xyz="-0.000981313804427647 -0.0011779999999999846 0.004083457739127433" rpy="0 0 0"/>
+      <mass value="0.0362152"/>
+      <inertia ixx="0.01" ixy="3.08362e-08" ixz="9.42153e-07" iyy="0.01" iyz="-1.58924e-07" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.4003145305546131 -7.0000000000763896e-06 -0.10503808226943155" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_wrist_pitch_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_wrist_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.4003145305546131 -7.0000000000763896e-06 -0.10503808226943155" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_wrist_pitch_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_wrist_pitch" type="revolute">
+    <origin xyz="0.10342756317919133 7.000000000020878e-06 0.025487480746719426" rpy="0 0 0"/>
+    <axis xyz="0.2588189794466167 0.0 -0.9659258438815124"/>
+    <parent link="l_forearm"/>
+    <child link="l_wrist_1"/>
+    <limit effort="50000" lower="-1.3962634015954636" upper="0.4363323129985824" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="l_hand">
+    <inertial>
+      <origin xyz="0.0647680204056704 0.005630400000000035 0.02266022084492256" rpy="0 0 0"/>
+      <mass value="0.247806"/>
+      <inertia ixx="0.01" ixy="2.96453e-06" ixz="-3.68906e-05" iyy="0.01" iyz="2.06885e-05" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.39968042405496884 0.019492899999999924 -0.10740460058694125" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_hand_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_hand_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.39968042405496884 0.019492899999999924 -0.10740460058694125" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_hand_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_wrist_yaw" type="revolute">
+    <origin xyz="-0.0006341064996442103 -0.0194999 0.0023665183175097023" rpy="0 0 0"/>
+    <axis xyz="-2.220446049250313e-16 1.0000000000000002 0.0"/>
+    <parent link="l_wrist_1"/>
+    <child link="l_hand"/>
+    <limit effort="50000" lower="-0.3490658503988659" upper="0.4363323129985824" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="l_hand_dh_frame">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="l_hand_dh_frame_fixed_joint" type="fixed">
+    <origin xyz="0.05765429784284365 -0.005556799999999987 0.013693832308330513" rpy="-1.5707963267948963 -0.2617993198271562 0"/>
+    <parent link="l_hand"/>
+    <child link="l_hand_dh_frame"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="l_hip_1">
+    <inertial>
+      <origin xyz="-0.0005107999999999918 0.03809229999999998 -8.299999999999974e-05" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <mass value="0.919725"/>
+      <inertia ixx="0.000404539" ixy="1.18502e-06" ixz="-9.64514e-07" iyy="0.000573315" iyz="-1.06028e-06" izz="0.000578982"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.04285150000005946 -0.025999999999999673 0.15191299999998345" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_hip_1_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_hip_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.04285150000005946 -0.025999999999999673 0.15191299999998345" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_hip_1_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hip_pitch" type="revolute">
+    <origin xyz="0.006451499999999999 -0.026000000000000023 -0.11991299999999999" rpy="0 0 -3.141592653589793"/>
+    <axis xyz="-2.220446049250313e-16 -0.9999999999999998 0.0"/>
+    <parent link="root_link"/>
+    <child link="l_hip_1"/>
+    <limit effort="55.5" lower="-0.7853981633974483" upper="2.3387411976724017" velocity="5.1"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="l_hip_2">
+    <inertial>
+      <origin xyz="-0.0011062999999999976 1.730000000001175e-05 -0.04457399999999995" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <mass value="0.415987"/>
+      <inertia ixx="0.000475741" ixy="2.89355e-07" ixz="-6.72876e-08" iyy="0.000279828" iyz="6.7417e-06" izz="0.000307828"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.04285149980932397 -0.07010000000000878 0.15191299999997981" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_hip_2_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_hip_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.04285149980932397 -0.07010000000000878 0.15191299999997981" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_hip_2_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hip_roll" type="revolute">
+    <origin xyz="0 0.044099999999999986 0" rpy="0 0 0"/>
+    <axis xyz="0.9999999999999998 0.0 2.220446049250313e-16"/>
+    <parent link="l_hip_1"/>
+    <child link="l_hip_2"/>
+    <limit effort="37.0" lower="-0.3490658503988659" upper="2.0943951023931953" velocity="7.64"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="l_hip_3">
+    <inertial>
+      <origin xyz="-0.00012290000000000217 -0.0002822999999999992 0.008718000000000031" rpy="-1.5707963267948961 0 -1.5707963267948961"/>
+      <mass value="0.126212"/>
+      <inertia ixx="0.01" ixy="2.67901e-07" ixz="-4.41463e-09" iyy="0.01" iyz="3.32338e-08" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.04370906139999997 0.07010002460000003 -0.22621299999998065" rpy="-1.5707963267948961 0 -1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_upper_thigh_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_hip_3_color">
+        <color rgba="0.0 0.0 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.04370906139999997 0.07010002460000003 -0.22621299999998065" rpy="-1.5707963267948961 0 -1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_upper_thigh_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_leg_ft_sensor" type="fixed">
+    <origin xyz="-0.0008301999999999962 7.519999999999749e-05 -0.07429999999999995" rpy="3.141592653589793 0 0"/>
+    <parent link="l_hip_2"/>
+    <child link="l_hip_3"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="l_upper_leg">
+    <inertial>
+      <origin xyz="0.0033868999999999913 0.00010179999999998524 -0.07891600000000001" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <mass value="1.8084"/>
+      <inertia ixx="0.0064851267308372795" ixy="-0.00012421121423996344" ixz="-3.973994214790893e-06" iyy="0.0014625052983306384" iyz="-0.00013681806887964204" izz="0.006476192420462333"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.04370906139999997 -0.07010002459999994 0.24081299999999994" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_thigh_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_upper_leg_color">
+        <color rgba="0.0 0.0 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.04370906139999997 -0.07010002459999994 0.24081299999999994" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_thigh_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hip_yaw" type="revolute">
+    <origin xyz="0 0 0.014399999999999996" rpy="-3.141592653589793 0 0"/>
+    <axis xyz="0.0 2.220446049250313e-16 0.9999999999999998"/>
+    <parent link="l_hip_3"/>
+    <child link="l_upper_leg"/>
+    <limit effort="37.0" lower="-1.3962634015954636" upper="1.3962634015954636" velocity="7.64"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="l_upper_leg_back_contact">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="l_upper_leg_back_contact_fixed_joint" type="fixed">
+    <origin xyz="-0.051256699999999995 0 0.014599999999999946" rpy="0 1.5707963267948963 0"/>
+    <parent link="l_upper_leg"/>
+    <child link="l_upper_leg_back_contact"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="l_upper_leg_dh_frame">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="l_upper_leg_dh_frame_fixed_joint" type="fixed">
+    <origin xyz="0 0 -0.14582499999999995" rpy="1.5707963267948966 0 0"/>
+    <parent link="l_upper_leg"/>
+    <child link="l_upper_leg_dh_frame"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="l_lower_leg">
+    <inertial>
+      <origin xyz="0.0009997999999999951 0.0034968999999999695 -0.088567" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <mass value="1.4724"/>
+      <inertia ixx="0.0042369860649861665" ixy="-0.00023961518142281364" ixz="6.76166218238396e-05" iyy="0.0015222131363604985" iyz="-0.00023314283575035712" izz="0.004570071832070392"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.04370906139999997 -0.07010002479999991 0.38663799999999987" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_shank_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_lower_leg_color">
+        <color rgba="0.0 0.0 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.04370906139999997 -0.07010002479999991 0.38663799999999987" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_shank_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_knee" type="revolute">
+    <origin xyz="0 0 -0.14582499999999995" rpy="0 0 0"/>
+    <axis xyz="-2.220446049250313e-16 -0.9999999999999998 0.0"/>
+    <parent link="l_upper_leg"/>
+    <child link="l_lower_leg"/>
+    <limit effort="37.0" lower="-2.1642082724729685" upper="0.06981317007977318" velocity="7.64"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="l_ankle_1">
+    <inertial>
+      <origin xyz="0.015153099999999989 0.0009020000000000139 4.199999999998649e-05" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <mass value="0.6798"/>
+      <inertia ixx="0.00040447429734460005" ixy="-1.1322603878053663e-06" ixz="3.046651057758992e-05" iyy="0.0004478873540695352" iyz="2.5726583414130826e-06" izz="0.0003076030453774591"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.04370906139999997 -0.07010002479999985 0.5871379999999998" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_ankle_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_ankle_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.04370906139999997 -0.07010002479999985 0.5871379999999998" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_ankle_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_ankle_pitch" type="revolute">
+    <origin xyz="0 0 -0.20049999999999996" rpy="0 0 0"/>
+    <axis xyz="2.220446049250313e-16 0.9999999999999998 0.0"/>
+    <parent link="l_lower_leg"/>
+    <child link="l_ankle_1"/>
+    <limit effort="37.0" lower="-0.6108652381980153" upper="0.6108652381980153" velocity="7.64"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="l_ankle_2">
+    <inertial>
+      <origin xyz="0.0011446999999999985 3.599999999992498e-06 -0.03852" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <mass value="0.265122"/>
+      <inertia ixx="0.01" ixy="-4.74606e-08" ixz="4.94571e-08" iyy="0.01" iyz="-4.29975e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.04368169961858297 -0.07017520019076885 0.5871379999999998" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_foot_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_ankle_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.04368169961858297 -0.07017520019076885 0.5871379999999998" rpy="1.5707963267948961 0 1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_foot_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_ankle_roll" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0.9999999999999998 0.0 2.220446049250313e-16"/>
+    <parent link="l_ankle_1"/>
+    <child link="l_ankle_2"/>
+    <limit effort="37.0" lower="-0.4363323129985824" upper="0.4363323129985824" velocity="7.64"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="l_foot">
+    <inertial>
+      <origin xyz="0.03366689999999999 -0.005373499999999989 -0.0011639999999999429" rpy="-1.5707963267948961 0 -1.5707963267948961"/>
+      <mass value="0.382968"/>
+      <inertia ixx="0.00121242" ixy="-3.69533e-07" ixz="5.79273e-05" iyy="0.00141712" iyz="-7.64972e-06" izz="0.000273846"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.04720906119999997 0.07010002480000013 -0.6474380002860819" rpy="-1.5707963267948961 0 -1.5707963267948961"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/sim_sea_2-5_l_sole_prt-binary.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_foot_color">
+        <color rgba="0.1 0.1 0.1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.03 -0.005 0.014" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iCub/meshes/visual/l_foot.obj" scale="1 1 1"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_foot_ft_sensor" type="fixed">
+    <origin xyz="-0.003500000000000003 0 -0.0605" rpy="3.141592653589793 0 0"/>
+    <parent link="l_ankle_2"/>
+    <child link="l_foot"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="l_sole">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="l_sole_fixed_joint" type="fixed">
+    <origin xyz="0.003500000000000003 0 0.0040000000000000036" rpy="-3.141592653589793 0 0"/>
+    <parent link="l_foot"/>
+    <child link="l_sole"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="base_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="base_link_fixed_joint" type="fixed">
+  <origin xyz="0 0 0" rpy="0 -0 0"/>
+  <axis xyz="0 0 0"/>
+  <parent link="root_link"/>
+  <child link="base_link"/>
+</joint>
+  <link name="l_foot_dh_frame">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="l_foot_dh_frame_fixed_joint" type="fixed">
+  <origin xyz="0.0 0 0.004" rpy="0 1.5708 0"/>
+  <axis xyz="0 0 0"/>
+  <parent link="l_foot"/>
+  <child link="l_foot_dh_frame"/>
+</joint>
+  <link name="r_foot_dh_frame">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <joint name="r_foot_dh_frame_fixed_joint" type="fixed">
+  <origin xyz="0.0 0 0.004" rpy="0 1.5708 0"/>
+  <axis xyz="0 0 0"/>
+  <parent link="r_foot"/>
+  <child link="r_foot_dh_frame"/>
+</joint>
+
+</robot>
