@@ -370,6 +370,12 @@ def test_env(env: object, arg_dict: dict) -> None:
                         # consider solved if we observed owner advance past this index or flagged solved
                         if i < len(subtask_solved_flags):
                             status = subtask_solved_flags[i] or (subtask_max_owner > i)
+                        # the last subtask is the overall goal: the rewarder's distance
+                        # threshold alone ("arm_solved"/"gripper_solved") only triggers a
+                        # goal predicate check, it doesn't guarantee the goal predicates
+                        # actually held, so require the env's own verdict ("terminated")
+                        if i == len(task_chars) - 1:
+                            status = status and terminated
                         pairs.append(f"{ch}: {str(bool(status))}")
                     subtasks_str = ", ".join(pairs)
                 else:
@@ -588,26 +594,6 @@ def test_model(
                         f"Arm: {result['arm_progress']:.1f}% (solved={result['arm_solved']}) | "
                         f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
                         f"Reward: {reward:.4f}", end ="\r", flush=True)
-
-            # update subtask tracking (if results_report enabled)
-            try:
-                owner = getattr(rewarder, "owner", None)
-                if owner is not None:
-                    subtask_max_owner = max(subtask_max_owner, owner)
-                    last = getattr(rewarder, "last_result", None)
-                    # mark subtask solved only if BOTH arm and gripper are solved for this owner
-                    if last:
-                        arm_solved = bool(last.get("arm_solved", False))
-                        gripper_solved = bool(last.get("gripper_solved", False))
-                        if arm_solved and gripper_solved:
-                            completed_index = owner
-                            if prev_owner is not None and owner > prev_owner:
-                                completed_index = owner - 1
-                            if 0 <= completed_index < len(subtask_solved_flags):
-                                subtask_solved_flags[completed_index] = True
-                    prev_owner = owner
-            except Exception:
-                pass
 
             done = terminated or truncated
             is_successful = not info['f']

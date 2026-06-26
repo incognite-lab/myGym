@@ -1,0 +1,3701 @@
+2:
+- action_list:
+  - Follow
+  - Move
+  all_objects:
+    entity_Can_4: Can
+    entity_CerealBox_3: CerealBox
+    entity_TiagoGripper_1: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1
+      location: entity_Can_4
+      object: entity_CerealBox_3
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1
+      location: entity_Can_4
+      object: entity_CerealBox_3
+- action_list:
+  - Approach
+  - Grasp
+  all_objects:
+    entity_Apple_22: Apple
+    entity_TiagoGripper_20: TiagoGripper
+  sequence:
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_20
+      object: entity_Apple_22
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_20
+      object: entity_Apple_22
+- action_list:
+  - Rotate
+  - Move
+  all_objects:
+    entity_AbstractRotation_39: AbstractRotation
+    entity_Bowl_38: Bowl
+    entity_TiagoGripper_36: TiagoGripper
+    entity_TiagoGripper_58: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_39
+      gripper: entity_TiagoGripper_36
+      object: entity_Bowl_38
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_36
+      location: entity_TiagoGripper_58
+      object: entity_Bowl_38
+- action_list:
+  - Follow
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_80: AbstractRotation
+    entity_Orange_69: Orange
+    entity_Orange_70: Orange
+    entity_TiagoGripper_67: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_67
+      location: entity_Orange_70
+      object: entity_Orange_69
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_80
+      gripper: entity_TiagoGripper_67
+      object: entity_Orange_69
+- action_list:
+  - Move
+  - Transform
+  all_objects:
+    entity_Bowl_91: Bowl
+    entity_Orange_92: Orange
+    entity_TiagoGripper_89: TiagoGripper
+  sequence:
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_89
+      location: entity_Orange_92
+      object: entity_Bowl_91
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_89
+      location: entity_Orange_92
+      object: entity_Bowl_91
+- action_list:
+  - Rotate
+  - Move
+  all_objects:
+    entity_AbstractRotation_114: AbstractRotation
+    entity_Bowl_113: Bowl
+    entity_Bowl_124: Bowl
+    entity_TiagoGripper_111: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_114
+      gripper: entity_TiagoGripper_111
+      object: entity_Bowl_113
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_111
+      location: entity_Bowl_124
+      object: entity_Bowl_113
+- action_list:
+  - Follow
+  - Transform
+  all_objects:
+    entity_Can_135: Can
+    entity_Orange_136: Orange
+    entity_TiagoGripper_133: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_133
+      location: entity_Orange_136
+      object: entity_Can_135
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_133
+      location: entity_Orange_136
+      object: entity_Can_135
+- action_list:
+  - Follow
+  - Follow
+  all_objects:
+    entity_Apple_155: Apple
+    entity_Bowl_154: Bowl
+    entity_TiagoGripper_152: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_152
+      location: entity_Apple_155
+      object: entity_Bowl_154
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_152
+      location: entity_Apple_155
+      object: entity_Bowl_154
+- action_list:
+  - Approach
+  - Withdraw
+  all_objects:
+    entity_Bowl_173: Bowl
+    entity_TiagoGripper_171: TiagoGripper
+  sequence:
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_171
+      object: entity_Bowl_173
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_171
+      object: entity_Bowl_173
+- action_list:
+  - Transform
+  - Move
+  all_objects:
+    entity_Bowl_194: Bowl
+    entity_Can_195: Can
+    entity_TiagoGripper_192: TiagoGripper
+  sequence:
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_192
+      location: entity_Can_195
+      object: entity_Bowl_194
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_192
+      location: entity_Can_195
+      object: entity_Bowl_194
+3:
+- action_list:
+  - Follow
+  - Follow
+  - Follow
+  all_objects:
+    entity_Apple_217: Apple
+    entity_CerealBox_216: CerealBox
+    entity_TiagoGripper_214: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_214
+      location: entity_Apple_217
+      object: entity_CerealBox_216
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_214
+      location: entity_Apple_217
+      object: entity_CerealBox_216
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_214
+      location: entity_Apple_217
+      object: entity_CerealBox_216
+- action_list:
+  - Move
+  - Move
+  - Follow
+  all_objects:
+    entity_Apple_247: Apple
+    entity_CerealBox_248: CerealBox
+    entity_TiagoGripper_245: TiagoGripper
+  sequence:
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_245
+      location: entity_CerealBox_248
+      object: entity_Apple_247
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_245
+      location: entity_CerealBox_248
+      object: entity_Apple_247
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_245
+      location: entity_CerealBox_248
+      object: entity_Apple_247
+- action_list:
+  - Transform
+  - Move
+  - Move
+  all_objects:
+    entity_Can_279: Can
+    entity_Orange_278: Orange
+    entity_TiagoGripper_276: TiagoGripper
+  sequence:
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_276
+      location: entity_Can_279
+      object: entity_Orange_278
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_276
+      location: entity_Can_279
+      object: entity_Orange_278
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_276
+      location: entity_Can_279
+      object: entity_Orange_278
+- action_list:
+  - Drop
+  - Grasp
+  - Follow
+  all_objects:
+    entity_Bowl_306: Bowl
+    entity_Can_325: Can
+    entity_TiagoGripper_304: TiagoGripper
+  sequence:
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_304
+      object: entity_Bowl_306
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_304
+      object: entity_Bowl_306
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_304
+      location: entity_Can_325
+      object: entity_Bowl_306
+- action_list:
+  - Rotate
+  - Move
+  - Move
+  all_objects:
+    entity_AbstractRotation_335: AbstractRotation
+    entity_Bowl_345: Bowl
+    entity_Orange_334: Orange
+    entity_TiagoGripper_332: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_335
+      gripper: entity_TiagoGripper_332
+      object: entity_Orange_334
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_332
+      location: entity_Bowl_345
+      object: entity_Orange_334
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_332
+      location: entity_Bowl_345
+      object: entity_Orange_334
+- action_list:
+  - Grasp
+  - Drop
+  - Grasp
+  all_objects:
+    entity_CerealBox_372: CerealBox
+    entity_TiagoGripper_370: TiagoGripper
+  sequence:
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_370
+      object: entity_CerealBox_372
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_370
+      object: entity_CerealBox_372
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_370
+      object: entity_CerealBox_372
+- action_list:
+  - Grasp
+  - Transform
+  - Move
+  all_objects:
+    entity_Bowl_396: Bowl
+    entity_Can_403: Can
+    entity_TiagoGripper_394: TiagoGripper
+  sequence:
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_394
+      object: entity_Bowl_396
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_394
+      location: entity_Can_403
+      object: entity_Bowl_396
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_394
+      location: entity_Can_403
+      object: entity_Bowl_396
+- action_list:
+  - Grasp
+  - Drop
+  - Withdraw
+  all_objects:
+    entity_Bowl_421: Bowl
+    entity_TiagoGripper_419: TiagoGripper
+  sequence:
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_419
+      object: entity_Bowl_421
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_419
+      object: entity_Bowl_421
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_419
+      object: entity_Bowl_421
+- action_list:
+  - Grasp
+  - Follow
+  - Drop
+  all_objects:
+    entity_Apple_445: Apple
+    entity_Bowl_454: Bowl
+    entity_TiagoGripper_443: TiagoGripper
+  sequence:
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_443
+      object: entity_Apple_445
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_443
+      location: entity_Bowl_454
+      object: entity_Apple_445
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_443
+      object: entity_Apple_445
+- action_list:
+  - Rotate
+  - Rotate
+  - Transform
+  all_objects:
+    entity_AbstractRotation_470: AbstractRotation
+    entity_Can_469: Can
+    entity_TiagoGripper_467: TiagoGripper
+    entity_TiagoGripper_486: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_470
+      gripper: entity_TiagoGripper_467
+      object: entity_Can_469
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_470
+      gripper: entity_TiagoGripper_467
+      object: entity_Can_469
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_467
+      location: entity_TiagoGripper_486
+      object: entity_Can_469
+4:
+- action_list:
+  - Follow
+  - Transform
+  - Transform
+  - Move
+  all_objects:
+    entity_Apple_497: Apple
+    entity_Can_498: Can
+    entity_TiagoGripper_495: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_495
+      location: entity_Can_498
+      object: entity_Apple_497
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_495
+      location: entity_Can_498
+      object: entity_Apple_497
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_495
+      location: entity_Can_498
+      object: entity_Apple_497
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_495
+      location: entity_Can_498
+      object: entity_Apple_497
+- action_list:
+  - Move
+  - Rotate
+  - Transform
+  - Move
+  all_objects:
+    entity_AbstractRotation_548: AbstractRotation
+    entity_CerealBox_537: CerealBox
+    entity_CerealBox_538: CerealBox
+    entity_TiagoGripper_535: TiagoGripper
+  sequence:
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_535
+      location: entity_CerealBox_538
+      object: entity_CerealBox_537
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_548
+      gripper: entity_TiagoGripper_535
+      object: entity_CerealBox_537
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_535
+      location: entity_CerealBox_538
+      object: entity_CerealBox_537
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_535
+      location: entity_CerealBox_538
+      object: entity_CerealBox_537
+- action_list:
+  - Drop
+  - Grasp
+  - Rotate
+  - Drop
+  all_objects:
+    entity_AbstractRotation_601: AbstractRotation
+    entity_CerealBox_579: CerealBox
+    entity_TiagoGripper_577: TiagoGripper
+  sequence:
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_577
+      object: entity_CerealBox_579
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_577
+      object: entity_CerealBox_579
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_601
+      gripper: entity_TiagoGripper_577
+      object: entity_CerealBox_579
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_577
+      object: entity_CerealBox_579
+- action_list:
+  - Rotate
+  - Rotate
+  - Move
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_617: AbstractRotation
+    entity_Apple_616: Apple
+    entity_CerealBox_636: CerealBox
+    entity_TiagoGripper_614: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_617
+      gripper: entity_TiagoGripper_614
+      object: entity_Apple_616
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_617
+      gripper: entity_TiagoGripper_614
+      object: entity_Apple_616
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_614
+      location: entity_CerealBox_636
+      object: entity_Apple_616
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_617
+      gripper: entity_TiagoGripper_614
+      object: entity_Apple_616
+- action_list:
+  - Move
+  - Transform
+  - Follow
+  - Follow
+  all_objects:
+    entity_Bowl_655: Bowl
+    entity_CerealBox_656: CerealBox
+    entity_TiagoGripper_653: TiagoGripper
+  sequence:
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_653
+      location: entity_CerealBox_656
+      object: entity_Bowl_655
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_653
+      location: entity_CerealBox_656
+      object: entity_Bowl_655
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_653
+      location: entity_CerealBox_656
+      object: entity_Bowl_655
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_653
+      location: entity_CerealBox_656
+      object: entity_Bowl_655
+- action_list:
+  - Grasp
+  - Rotate
+  - Rotate
+  - Follow
+  all_objects:
+    entity_AbstractRotation_696: AbstractRotation
+    entity_Can_718: Can
+    entity_CerealBox_689: CerealBox
+    entity_TiagoGripper_687: TiagoGripper
+  sequence:
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_687
+      object: entity_CerealBox_689
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_696
+      gripper: entity_TiagoGripper_687
+      object: entity_CerealBox_689
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_696
+      gripper: entity_TiagoGripper_687
+      object: entity_CerealBox_689
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_687
+      location: entity_Can_718
+      object: entity_CerealBox_689
+- action_list:
+  - Rotate
+  - Move
+  - Follow
+  - Move
+  all_objects:
+    entity_AbstractRotation_730: AbstractRotation
+    entity_Apple_743: Apple
+    entity_CerealBox_729: CerealBox
+    entity_TiagoGripper_727: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_730
+      gripper: entity_TiagoGripper_727
+      object: entity_CerealBox_729
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_727
+      location: entity_Apple_743
+      object: entity_CerealBox_729
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_727
+      location: entity_Apple_743
+      object: entity_CerealBox_729
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_727
+      location: entity_Apple_743
+      object: entity_CerealBox_729
+- action_list:
+  - Transform
+  - Rotate
+  - Move
+  - Move
+  all_objects:
+    entity_AbstractRotation_781: AbstractRotation
+    entity_Bowl_770: Bowl
+    entity_Orange_771: Orange
+    entity_TiagoGripper_768: TiagoGripper
+  sequence:
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_768
+      location: entity_Orange_771
+      object: entity_Bowl_770
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_781
+      gripper: entity_TiagoGripper_768
+      object: entity_Bowl_770
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_768
+      location: entity_Orange_771
+      object: entity_Bowl_770
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_768
+      location: entity_Orange_771
+      object: entity_Bowl_770
+- action_list:
+  - Grasp
+  - Follow
+  - Rotate
+  - Follow
+  all_objects:
+    entity_AbstractRotation_828: AbstractRotation
+    entity_Apple_808: Apple
+    entity_Apple_815: Apple
+    entity_TiagoGripper_806: TiagoGripper
+  sequence:
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_806
+      object: entity_Apple_808
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_806
+      location: entity_Apple_815
+      object: entity_Apple_808
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_828
+      gripper: entity_TiagoGripper_806
+      object: entity_Apple_808
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_806
+      location: entity_Apple_815
+      object: entity_Apple_808
+- action_list:
+  - Transform
+  - Follow
+  - Move
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_892: AbstractRotation
+    entity_CerealBox_851: CerealBox
+    entity_Orange_852: Orange
+    entity_TiagoGripper_849: TiagoGripper
+  sequence:
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_849
+      location: entity_Orange_852
+      object: entity_CerealBox_851
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_849
+      location: entity_Orange_852
+      object: entity_CerealBox_851
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_849
+      location: entity_Orange_852
+      object: entity_CerealBox_851
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_892
+      gripper: entity_TiagoGripper_849
+      object: entity_CerealBox_851
+5:
+- action_list:
+  - Transform
+  - Transform
+  - Move
+  - Transform
+  - Move
+  all_objects:
+    entity_Apple_903: Apple
+    entity_CerealBox_904: CerealBox
+    entity_TiagoGripper_901: TiagoGripper
+  sequence:
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_901
+      location: entity_CerealBox_904
+      object: entity_Apple_903
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_901
+      location: entity_CerealBox_904
+      object: entity_Apple_903
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_901
+      location: entity_CerealBox_904
+      object: entity_Apple_903
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_901
+      location: entity_CerealBox_904
+      object: entity_Apple_903
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_901
+      location: entity_CerealBox_904
+      object: entity_Apple_903
+- action_list:
+  - Follow
+  - Transform
+  - Move
+  - Follow
+  - Follow
+  all_objects:
+    entity_Bowl_946: Bowl
+    entity_Orange_947: Orange
+    entity_TiagoGripper_944: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_944
+      location: entity_Orange_947
+      object: entity_Bowl_946
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_944
+      location: entity_Orange_947
+      object: entity_Bowl_946
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_944
+      location: entity_Orange_947
+      object: entity_Bowl_946
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_944
+      location: entity_Orange_947
+      object: entity_Bowl_946
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_944
+      location: entity_Orange_947
+      object: entity_Bowl_946
+- action_list:
+  - Rotate
+  - Move
+  - Follow
+  - Transform
+  - Transform
+  all_objects:
+    entity_AbstractRotation_987: AbstractRotation
+    entity_Orange_986: Orange
+    entity_TiagoGripper_984: TiagoGripper
+    entity_TiagoGripper_997: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_987
+      gripper: entity_TiagoGripper_984
+      object: entity_Orange_986
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_984
+      location: entity_TiagoGripper_997
+      object: entity_Orange_986
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_984
+      location: entity_TiagoGripper_997
+      object: entity_Orange_986
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_984
+      location: entity_TiagoGripper_997
+      object: entity_Orange_986
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_984
+      location: entity_TiagoGripper_997
+      object: entity_Orange_986
+- action_list:
+  - Drop
+  - Grasp
+  - Drop
+  - Grasp
+  - Drop
+  all_objects:
+    entity_Bowl_1036: Bowl
+    entity_TiagoGripper_1034: TiagoGripper
+  sequence:
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1034
+      object: entity_Bowl_1036
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1034
+      object: entity_Bowl_1036
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1034
+      object: entity_Bowl_1036
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1034
+      object: entity_Bowl_1036
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1034
+      object: entity_Bowl_1036
+- action_list:
+  - Follow
+  - Follow
+  - Move
+  - Rotate
+  - Transform
+  all_objects:
+    entity_AbstractRotation_1101: AbstractRotation
+    entity_CerealBox_1064: CerealBox
+    entity_Orange_1063: Orange
+    entity_TiagoGripper_1061: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1061
+      location: entity_CerealBox_1064
+      object: entity_Orange_1063
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1061
+      location: entity_CerealBox_1064
+      object: entity_Orange_1063
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1061
+      location: entity_CerealBox_1064
+      object: entity_Orange_1063
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1101
+      gripper: entity_TiagoGripper_1061
+      object: entity_Orange_1063
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1061
+      location: entity_CerealBox_1064
+      object: entity_Orange_1063
+- action_list:
+  - Drop
+  - Grasp
+  - Move
+  - Move
+  - Drop
+  all_objects:
+    entity_Can_1135: Can
+    entity_CerealBox_1120: CerealBox
+    entity_TiagoGripper_1118: TiagoGripper
+  sequence:
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1118
+      object: entity_CerealBox_1120
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1118
+      object: entity_CerealBox_1120
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1118
+      location: entity_Can_1135
+      object: entity_CerealBox_1120
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1118
+      location: entity_Can_1135
+      object: entity_CerealBox_1120
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1118
+      object: entity_CerealBox_1120
+- action_list:
+  - Approach
+  - Grasp
+  - Transform
+  - Move
+  - Move
+  all_objects:
+    entity_Can_1167: Can
+    entity_Orange_1156: Orange
+    entity_TiagoGripper_1154: TiagoGripper
+  sequence:
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1154
+      object: entity_Orange_1156
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1154
+      object: entity_Orange_1156
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1154
+      location: entity_Can_1167
+      object: entity_Orange_1156
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1154
+      location: entity_Can_1167
+      object: entity_Orange_1156
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1154
+      location: entity_Can_1167
+      object: entity_Orange_1156
+- action_list:
+  - Approach
+  - Withdraw
+  - Approach
+  - Grasp
+  - Follow
+  all_objects:
+    entity_Bowl_1188: Bowl
+    entity_CerealBox_1228: CerealBox
+    entity_TiagoGripper_1186: TiagoGripper
+  sequence:
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1186
+      object: entity_Bowl_1188
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1186
+      object: entity_Bowl_1188
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1186
+      object: entity_Bowl_1188
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1186
+      object: entity_Bowl_1188
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1186
+      location: entity_CerealBox_1228
+      object: entity_Bowl_1188
+- action_list:
+  - Transform
+  - Move
+  - Transform
+  - Transform
+  - Follow
+  all_objects:
+    entity_CerealBox_1238: CerealBox
+    entity_Orange_1237: Orange
+    entity_TiagoGripper_1235: TiagoGripper
+  sequence:
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1235
+      location: entity_CerealBox_1238
+      object: entity_Orange_1237
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1235
+      location: entity_CerealBox_1238
+      object: entity_Orange_1237
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1235
+      location: entity_CerealBox_1238
+      object: entity_Orange_1237
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1235
+      location: entity_CerealBox_1238
+      object: entity_Orange_1237
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1235
+      location: entity_CerealBox_1238
+      object: entity_Orange_1237
+- action_list:
+  - Grasp
+  - Transform
+  - Transform
+  - Drop
+  - Grasp
+  all_objects:
+    entity_Bowl_1301: Bowl
+    entity_Can_1292: Can
+    entity_TiagoGripper_1290: TiagoGripper
+  sequence:
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1290
+      object: entity_Can_1292
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1290
+      location: entity_Bowl_1301
+      object: entity_Can_1292
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1290
+      location: entity_Bowl_1301
+      object: entity_Can_1292
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1290
+      object: entity_Can_1292
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1290
+      object: entity_Can_1292
+6:
+- action_list:
+  - Follow
+  - Transform
+  - Follow
+  - Transform
+  - Rotate
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_1366: AbstractRotation
+    entity_Apple_1331: Apple
+    entity_CerealBox_1332: CerealBox
+    entity_TiagoGripper_1329: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1329
+      location: entity_CerealBox_1332
+      object: entity_Apple_1331
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1329
+      location: entity_CerealBox_1332
+      object: entity_Apple_1331
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1329
+      location: entity_CerealBox_1332
+      object: entity_Apple_1331
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1329
+      location: entity_CerealBox_1332
+      object: entity_Apple_1331
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1366
+      gripper: entity_TiagoGripper_1329
+      object: entity_Apple_1331
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1366
+      gripper: entity_TiagoGripper_1329
+      object: entity_Apple_1331
+- action_list:
+  - Rotate
+  - Rotate
+  - Move
+  - Move
+  - Follow
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_1390: AbstractRotation
+    entity_Bowl_1418: Bowl
+    entity_CerealBox_1389: CerealBox
+    entity_TiagoGripper_1387: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1390
+      gripper: entity_TiagoGripper_1387
+      object: entity_CerealBox_1389
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1390
+      gripper: entity_TiagoGripper_1387
+      object: entity_CerealBox_1389
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1387
+      location: entity_Bowl_1418
+      object: entity_CerealBox_1389
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1387
+      location: entity_Bowl_1418
+      object: entity_CerealBox_1389
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1387
+      location: entity_Bowl_1418
+      object: entity_CerealBox_1389
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1390
+      gripper: entity_TiagoGripper_1387
+      object: entity_CerealBox_1389
+- action_list:
+  - Move
+  - Follow
+  - Follow
+  - Follow
+  - Rotate
+  - Follow
+  all_objects:
+    entity_AbstractRotation_1509: AbstractRotation
+    entity_Can_1465: Can
+    entity_CerealBox_1466: CerealBox
+    entity_TiagoGripper_1463: TiagoGripper
+  sequence:
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1463
+      location: entity_CerealBox_1466
+      object: entity_Can_1465
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1463
+      location: entity_CerealBox_1466
+      object: entity_Can_1465
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1463
+      location: entity_CerealBox_1466
+      object: entity_Can_1465
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1463
+      location: entity_CerealBox_1466
+      object: entity_Can_1465
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1509
+      gripper: entity_TiagoGripper_1463
+      object: entity_Can_1465
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1463
+      location: entity_CerealBox_1466
+      object: entity_Can_1465
+- action_list:
+  - Drop
+  - Withdraw
+  - Approach
+  - Grasp
+  - Move
+  - Transform
+  all_objects:
+    entity_Apple_1536: Apple
+    entity_TiagoGripper_1534: TiagoGripper
+    entity_TiagoGripper_1580: TiagoGripper
+  sequence:
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1534
+      object: entity_Apple_1536
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1534
+      object: entity_Apple_1536
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1534
+      object: entity_Apple_1536
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1534
+      object: entity_Apple_1536
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1534
+      location: entity_TiagoGripper_1580
+      object: entity_Apple_1536
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1534
+      location: entity_TiagoGripper_1580
+      object: entity_Apple_1536
+- action_list:
+  - Move
+  - Transform
+  - Rotate
+  - Rotate
+  - Rotate
+  - Transform
+  all_objects:
+    entity_AbstractRotation_1612: AbstractRotation
+    entity_Apple_1595: Apple
+    entity_Bowl_1596: Bowl
+    entity_TiagoGripper_1593: TiagoGripper
+  sequence:
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1593
+      location: entity_Bowl_1596
+      object: entity_Apple_1595
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1593
+      location: entity_Bowl_1596
+      object: entity_Apple_1595
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1612
+      gripper: entity_TiagoGripper_1593
+      object: entity_Apple_1595
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1612
+      gripper: entity_TiagoGripper_1593
+      object: entity_Apple_1595
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1612
+      gripper: entity_TiagoGripper_1593
+      object: entity_Apple_1595
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1593
+      location: entity_Bowl_1596
+      object: entity_Apple_1595
+- action_list:
+  - Approach
+  - Withdraw
+  - Approach
+  - Grasp
+  - Rotate
+  - Move
+  all_objects:
+    entity_AbstractRotation_1691: AbstractRotation
+    entity_Bowl_1698: Bowl
+    entity_CerealBox_1651: CerealBox
+    entity_TiagoGripper_1649: TiagoGripper
+  sequence:
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1649
+      object: entity_CerealBox_1651
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1649
+      object: entity_CerealBox_1651
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1649
+      object: entity_CerealBox_1651
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1649
+      object: entity_CerealBox_1651
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1691
+      gripper: entity_TiagoGripper_1649
+      object: entity_CerealBox_1651
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1649
+      location: entity_Bowl_1698
+      object: entity_CerealBox_1651
+- action_list:
+  - Rotate
+  - Follow
+  - Follow
+  - Move
+  - Move
+  - Move
+  all_objects:
+    entity_AbstractRotation_1710: AbstractRotation
+    entity_Bowl_1709: Bowl
+    entity_TiagoGripper_1707: TiagoGripper
+    entity_TiagoGripper_1726: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1710
+      gripper: entity_TiagoGripper_1707
+      object: entity_Bowl_1709
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1707
+      location: entity_TiagoGripper_1726
+      object: entity_Bowl_1709
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1707
+      location: entity_TiagoGripper_1726
+      object: entity_Bowl_1709
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1707
+      location: entity_TiagoGripper_1726
+      object: entity_Bowl_1709
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1707
+      location: entity_TiagoGripper_1726
+      object: entity_Bowl_1709
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1707
+      location: entity_TiagoGripper_1726
+      object: entity_Bowl_1709
+- action_list:
+  - Approach
+  - Grasp
+  - Rotate
+  - Follow
+  - Move
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_1805: AbstractRotation
+    entity_Apple_1812: Apple
+    entity_Orange_1781: Orange
+    entity_TiagoGripper_1779: TiagoGripper
+  sequence:
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1779
+      object: entity_Orange_1781
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1779
+      object: entity_Orange_1781
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1805
+      gripper: entity_TiagoGripper_1779
+      object: entity_Orange_1781
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1779
+      location: entity_Apple_1812
+      object: entity_Orange_1781
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1779
+      location: entity_Apple_1812
+      object: entity_Orange_1781
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1805
+      gripper: entity_TiagoGripper_1779
+      object: entity_Orange_1781
+- action_list:
+  - Move
+  - Follow
+  - Rotate
+  - Move
+  - Move
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_1862: AbstractRotation
+    entity_Bowl_1839: Bowl
+    entity_CerealBox_1840: CerealBox
+    entity_TiagoGripper_1837: TiagoGripper
+  sequence:
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1837
+      location: entity_CerealBox_1840
+      object: entity_Bowl_1839
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1837
+      location: entity_CerealBox_1840
+      object: entity_Bowl_1839
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1862
+      gripper: entity_TiagoGripper_1837
+      object: entity_Bowl_1839
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1837
+      location: entity_CerealBox_1840
+      object: entity_Bowl_1839
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1837
+      location: entity_CerealBox_1840
+      object: entity_Bowl_1839
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1862
+      gripper: entity_TiagoGripper_1837
+      object: entity_Bowl_1839
+- action_list:
+  - Transform
+  - Move
+  - Transform
+  - Rotate
+  - Rotate
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_1938: AbstractRotation
+    entity_Can_1909: Can
+    entity_Can_1910: Can
+    entity_TiagoGripper_1907: TiagoGripper
+  sequence:
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1907
+      location: entity_Can_1910
+      object: entity_Can_1909
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1907
+      location: entity_Can_1910
+      object: entity_Can_1909
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1907
+      location: entity_Can_1910
+      object: entity_Can_1909
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1938
+      gripper: entity_TiagoGripper_1907
+      object: entity_Can_1909
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1938
+      gripper: entity_TiagoGripper_1907
+      object: entity_Can_1909
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_1938
+      gripper: entity_TiagoGripper_1907
+      object: entity_Can_1909
+7:
+- action_list:
+  - Grasp
+  - Follow
+  - Drop
+  - Withdraw
+  - Approach
+  - Grasp
+  - Transform
+  all_objects:
+    entity_Apple_1965: Apple
+    entity_Apple_1974: Apple
+    entity_TiagoGripper_1963: TiagoGripper
+  sequence:
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1963
+      object: entity_Apple_1965
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1963
+      location: entity_Apple_1974
+      object: entity_Apple_1965
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1963
+      object: entity_Apple_1965
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1963
+      object: entity_Apple_1965
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1963
+      object: entity_Apple_1965
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_1963
+      object: entity_Apple_1965
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_1963
+      location: entity_Apple_1974
+      object: entity_Apple_1965
+- action_list:
+  - Rotate
+  - Rotate
+  - Move
+  - Rotate
+  - Rotate
+  - Transform
+  - Follow
+  all_objects:
+    entity_AbstractRotation_2045: AbstractRotation
+    entity_CerealBox_2044: CerealBox
+    entity_Orange_2076: Orange
+    entity_TiagoGripper_2042: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2045
+      gripper: entity_TiagoGripper_2042
+      object: entity_CerealBox_2044
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2045
+      gripper: entity_TiagoGripper_2042
+      object: entity_CerealBox_2044
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2042
+      location: entity_Orange_2076
+      object: entity_CerealBox_2044
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2045
+      gripper: entity_TiagoGripper_2042
+      object: entity_CerealBox_2044
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2045
+      gripper: entity_TiagoGripper_2042
+      object: entity_CerealBox_2044
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2042
+      location: entity_Orange_2076
+      object: entity_CerealBox_2044
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2042
+      location: entity_Orange_2076
+      object: entity_CerealBox_2044
+- action_list:
+  - Grasp
+  - Follow
+  - Transform
+  - Transform
+  - Rotate
+  - Drop
+  - Grasp
+  all_objects:
+    entity_AbstractRotation_2159: AbstractRotation
+    entity_Apple_2134: Apple
+    entity_Bowl_2127: Bowl
+    entity_TiagoGripper_2125: TiagoGripper
+  sequence:
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2125
+      object: entity_Bowl_2127
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2125
+      location: entity_Apple_2134
+      object: entity_Bowl_2127
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2125
+      location: entity_Apple_2134
+      object: entity_Bowl_2127
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2125
+      location: entity_Apple_2134
+      object: entity_Bowl_2127
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2159
+      gripper: entity_TiagoGripper_2125
+      object: entity_Bowl_2127
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2125
+      object: entity_Bowl_2127
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2125
+      object: entity_Bowl_2127
+- action_list:
+  - Move
+  - Transform
+  - Move
+  - Move
+  - Transform
+  - Follow
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_2250: AbstractRotation
+    entity_Bowl_2194: Bowl
+    entity_TiagoGripper_2192: TiagoGripper
+    entity_TiagoGripper_2195: TiagoGripper
+  sequence:
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2192
+      location: entity_TiagoGripper_2195
+      object: entity_Bowl_2194
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2192
+      location: entity_TiagoGripper_2195
+      object: entity_Bowl_2194
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2192
+      location: entity_TiagoGripper_2195
+      object: entity_Bowl_2194
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2192
+      location: entity_TiagoGripper_2195
+      object: entity_Bowl_2194
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2192
+      location: entity_TiagoGripper_2195
+      object: entity_Bowl_2194
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2192
+      location: entity_TiagoGripper_2195
+      object: entity_Bowl_2194
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2250
+      gripper: entity_TiagoGripper_2192
+      object: entity_Bowl_2194
+- action_list:
+  - Approach
+  - Withdraw
+  - Approach
+  - Grasp
+  - Move
+  - Transform
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_2312: AbstractRotation
+    entity_Apple_2299: Apple
+    entity_Bowl_2261: Bowl
+    entity_TiagoGripper_2259: TiagoGripper
+  sequence:
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2259
+      object: entity_Bowl_2261
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2259
+      object: entity_Bowl_2261
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2259
+      object: entity_Bowl_2261
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2259
+      object: entity_Bowl_2261
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2259
+      location: entity_Apple_2299
+      object: entity_Bowl_2261
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2259
+      location: entity_Apple_2299
+      object: entity_Bowl_2261
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2312
+      gripper: entity_TiagoGripper_2259
+      object: entity_Bowl_2261
+- action_list:
+  - Rotate
+  - Move
+  - Transform
+  - Follow
+  - Follow
+  - Transform
+  - Move
+  all_objects:
+    entity_AbstractRotation_2324: AbstractRotation
+    entity_Bowl_2323: Bowl
+    entity_Orange_2334: Orange
+    entity_TiagoGripper_2321: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2324
+      gripper: entity_TiagoGripper_2321
+      object: entity_Bowl_2323
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2321
+      location: entity_Orange_2334
+      object: entity_Bowl_2323
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2321
+      location: entity_Orange_2334
+      object: entity_Bowl_2323
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2321
+      location: entity_Orange_2334
+      object: entity_Bowl_2323
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2321
+      location: entity_Orange_2334
+      object: entity_Bowl_2323
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2321
+      location: entity_Orange_2334
+      object: entity_Bowl_2323
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2321
+      location: entity_Orange_2334
+      object: entity_Bowl_2323
+- action_list:
+  - Follow
+  - Transform
+  - Transform
+  - Transform
+  - Rotate
+  - Move
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_2465: AbstractRotation
+    entity_Apple_2434: Apple
+    entity_CerealBox_2433: CerealBox
+    entity_TiagoGripper_2431: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2431
+      location: entity_Apple_2434
+      object: entity_CerealBox_2433
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2431
+      location: entity_Apple_2434
+      object: entity_CerealBox_2433
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2431
+      location: entity_Apple_2434
+      object: entity_CerealBox_2433
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2431
+      location: entity_Apple_2434
+      object: entity_CerealBox_2433
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2465
+      gripper: entity_TiagoGripper_2431
+      object: entity_CerealBox_2433
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2431
+      location: entity_Apple_2434
+      object: entity_CerealBox_2433
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2465
+      gripper: entity_TiagoGripper_2431
+      object: entity_CerealBox_2433
+- action_list:
+  - Approach
+  - Withdraw
+  - Approach
+  - Withdraw
+  - Approach
+  - Withdraw
+  - Approach
+  all_objects:
+    entity_CerealBox_2504: CerealBox
+    entity_TiagoGripper_2502: TiagoGripper
+  sequence:
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2502
+      object: entity_CerealBox_2504
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2502
+      object: entity_CerealBox_2504
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2502
+      object: entity_CerealBox_2504
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2502
+      object: entity_CerealBox_2504
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2502
+      object: entity_CerealBox_2504
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2502
+      object: entity_CerealBox_2504
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_2502
+      object: entity_CerealBox_2504
+- action_list:
+  - Rotate
+  - Rotate
+  - Follow
+  - Rotate
+  - Move
+  - Rotate
+  - Move
+  all_objects:
+    entity_AbstractRotation_2579: AbstractRotation
+    entity_Apple_2578: Apple
+    entity_Orange_2604: Orange
+    entity_TiagoGripper_2576: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2579
+      gripper: entity_TiagoGripper_2576
+      object: entity_Apple_2578
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2579
+      gripper: entity_TiagoGripper_2576
+      object: entity_Apple_2578
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2576
+      location: entity_Orange_2604
+      object: entity_Apple_2578
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2579
+      gripper: entity_TiagoGripper_2576
+      object: entity_Apple_2578
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2576
+      location: entity_Orange_2604
+      object: entity_Apple_2578
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2579
+      gripper: entity_TiagoGripper_2576
+      object: entity_Apple_2578
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2576
+      location: entity_Orange_2604
+      object: entity_Apple_2578
+- action_list:
+  - Transform
+  - Transform
+  - Rotate
+  - Transform
+  - Follow
+  - Transform
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_2686: AbstractRotation
+    entity_Apple_2664: Apple
+    entity_Can_2663: Can
+    entity_TiagoGripper_2661: TiagoGripper
+  sequence:
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2661
+      location: entity_Apple_2664
+      object: entity_Can_2663
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2661
+      location: entity_Apple_2664
+      object: entity_Can_2663
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2686
+      gripper: entity_TiagoGripper_2661
+      object: entity_Can_2663
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2661
+      location: entity_Apple_2664
+      object: entity_Can_2663
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2661
+      location: entity_Apple_2664
+      object: entity_Can_2663
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2661
+      location: entity_Apple_2664
+      object: entity_Can_2663
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2686
+      gripper: entity_TiagoGripper_2661
+      object: entity_Can_2663
+8:
+- action_list:
+  - Transform
+  - Rotate
+  - Follow
+  - Follow
+  - Rotate
+  - Transform
+  - Rotate
+  - Transform
+  all_objects:
+    entity_AbstractRotation_2759: AbstractRotation
+    entity_Bowl_2746: Bowl
+    entity_CerealBox_2745: CerealBox
+    entity_TiagoGripper_2743: TiagoGripper
+  sequence:
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2743
+      location: entity_Bowl_2746
+      object: entity_CerealBox_2745
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2759
+      gripper: entity_TiagoGripper_2743
+      object: entity_CerealBox_2745
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2743
+      location: entity_Bowl_2746
+      object: entity_CerealBox_2745
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2743
+      location: entity_Bowl_2746
+      object: entity_CerealBox_2745
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2759
+      gripper: entity_TiagoGripper_2743
+      object: entity_CerealBox_2745
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2743
+      location: entity_Bowl_2746
+      object: entity_CerealBox_2745
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2759
+      gripper: entity_TiagoGripper_2743
+      object: entity_CerealBox_2745
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2743
+      location: entity_Bowl_2746
+      object: entity_CerealBox_2745
+- action_list:
+  - Transform
+  - Move
+  - Follow
+  - Transform
+  - Move
+  - Move
+  - Move
+  - Move
+  all_objects:
+    entity_Apple_2831: Apple
+    entity_Bowl_2830: Bowl
+    entity_TiagoGripper_2828: TiagoGripper
+  sequence:
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2828
+      location: entity_Apple_2831
+      object: entity_Bowl_2830
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2828
+      location: entity_Apple_2831
+      object: entity_Bowl_2830
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2828
+      location: entity_Apple_2831
+      object: entity_Bowl_2830
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2828
+      location: entity_Apple_2831
+      object: entity_Bowl_2830
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2828
+      location: entity_Apple_2831
+      object: entity_Bowl_2830
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2828
+      location: entity_Apple_2831
+      object: entity_Bowl_2830
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2828
+      location: entity_Apple_2831
+      object: entity_Bowl_2830
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2828
+      location: entity_Apple_2831
+      object: entity_Bowl_2830
+- action_list:
+  - Follow
+  - Follow
+  - Rotate
+  - Rotate
+  - Transform
+  - Transform
+  - Rotate
+  - Transform
+  all_objects:
+    entity_AbstractRotation_2926: AbstractRotation
+    entity_Bowl_2903: Bowl
+    entity_CerealBox_2904: CerealBox
+    entity_TiagoGripper_2901: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2901
+      location: entity_CerealBox_2904
+      object: entity_Bowl_2903
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2901
+      location: entity_CerealBox_2904
+      object: entity_Bowl_2903
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2926
+      gripper: entity_TiagoGripper_2901
+      object: entity_Bowl_2903
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2926
+      gripper: entity_TiagoGripper_2901
+      object: entity_Bowl_2903
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2901
+      location: entity_CerealBox_2904
+      object: entity_Bowl_2903
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2901
+      location: entity_CerealBox_2904
+      object: entity_Bowl_2903
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_2926
+      gripper: entity_TiagoGripper_2901
+      object: entity_Bowl_2903
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2901
+      location: entity_CerealBox_2904
+      object: entity_Bowl_2903
+- action_list:
+  - Transform
+  - Rotate
+  - Rotate
+  - Follow
+  - Rotate
+  - Transform
+  - Transform
+  - Follow
+  all_objects:
+    entity_AbstractRotation_3015: AbstractRotation
+    entity_Can_3002: Can
+    entity_CerealBox_3001: CerealBox
+    entity_TiagoGripper_2999: TiagoGripper
+  sequence:
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2999
+      location: entity_Can_3002
+      object: entity_CerealBox_3001
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3015
+      gripper: entity_TiagoGripper_2999
+      object: entity_CerealBox_3001
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3015
+      gripper: entity_TiagoGripper_2999
+      object: entity_CerealBox_3001
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2999
+      location: entity_Can_3002
+      object: entity_CerealBox_3001
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3015
+      gripper: entity_TiagoGripper_2999
+      object: entity_CerealBox_3001
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2999
+      location: entity_Can_3002
+      object: entity_CerealBox_3001
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2999
+      location: entity_Can_3002
+      object: entity_CerealBox_3001
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_2999
+      location: entity_Can_3002
+      object: entity_CerealBox_3001
+- action_list:
+  - Grasp
+  - Transform
+  - Follow
+  - Transform
+  - Follow
+  - Transform
+  - Move
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_3148: AbstractRotation
+    entity_Bowl_3105: Bowl
+    entity_CerealBox_3098: CerealBox
+    entity_TiagoGripper_3096: TiagoGripper
+  sequence:
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3096
+      object: entity_CerealBox_3098
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3096
+      location: entity_Bowl_3105
+      object: entity_CerealBox_3098
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3096
+      location: entity_Bowl_3105
+      object: entity_CerealBox_3098
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3096
+      location: entity_Bowl_3105
+      object: entity_CerealBox_3098
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3096
+      location: entity_Bowl_3105
+      object: entity_CerealBox_3098
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3096
+      location: entity_Bowl_3105
+      object: entity_CerealBox_3098
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3096
+      location: entity_Bowl_3105
+      object: entity_CerealBox_3098
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3148
+      gripper: entity_TiagoGripper_3096
+      object: entity_CerealBox_3098
+- action_list:
+  - Follow
+  - Transform
+  - Rotate
+  - Rotate
+  - Follow
+  - Move
+  - Follow
+  - Rotate
+  all_objects:
+    entity_AbstractRotation_3179: AbstractRotation
+    entity_Apple_3159: Apple
+    entity_Orange_3160: Orange
+    entity_TiagoGripper_3157: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3157
+      location: entity_Orange_3160
+      object: entity_Apple_3159
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3157
+      location: entity_Orange_3160
+      object: entity_Apple_3159
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3179
+      gripper: entity_TiagoGripper_3157
+      object: entity_Apple_3159
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3179
+      gripper: entity_TiagoGripper_3157
+      object: entity_Apple_3159
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3157
+      location: entity_Orange_3160
+      object: entity_Apple_3159
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3157
+      location: entity_Orange_3160
+      object: entity_Apple_3159
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3157
+      location: entity_Orange_3160
+      object: entity_Apple_3159
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3179
+      gripper: entity_TiagoGripper_3157
+      object: entity_Apple_3159
+- action_list:
+  - Approach
+  - Withdraw
+  - Approach
+  - Grasp
+  - Move
+  - Drop
+  - Withdraw
+  - Approach
+  all_objects:
+    entity_Can_3278: Can
+    entity_CerealBox_3246: CerealBox
+    entity_TiagoGripper_3244: TiagoGripper
+  sequence:
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3244
+      object: entity_CerealBox_3246
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3244
+      object: entity_CerealBox_3246
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3244
+      object: entity_CerealBox_3246
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3244
+      object: entity_CerealBox_3246
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3244
+      location: entity_Can_3278
+      object: entity_CerealBox_3246
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3244
+      object: entity_CerealBox_3246
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3244
+      object: entity_CerealBox_3246
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3244
+      object: entity_CerealBox_3246
+- action_list:
+  - Follow
+  - Transform
+  - Transform
+  - Move
+  - Rotate
+  - Move
+  - Follow
+  - Transform
+  all_objects:
+    entity_AbstractRotation_3346: AbstractRotation
+    entity_CerealBox_3309: CerealBox
+    entity_Orange_3308: Orange
+    entity_TiagoGripper_3306: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3306
+      location: entity_CerealBox_3309
+      object: entity_Orange_3308
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3306
+      location: entity_CerealBox_3309
+      object: entity_Orange_3308
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3306
+      location: entity_CerealBox_3309
+      object: entity_Orange_3308
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3306
+      location: entity_CerealBox_3309
+      object: entity_Orange_3308
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3346
+      gripper: entity_TiagoGripper_3306
+      object: entity_Orange_3308
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3306
+      location: entity_CerealBox_3309
+      object: entity_Orange_3308
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3306
+      location: entity_CerealBox_3309
+      object: entity_Orange_3308
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3306
+      location: entity_CerealBox_3309
+      object: entity_Orange_3308
+- action_list:
+  - Move
+  - Transform
+  - Follow
+  - Transform
+  - Move
+  - Transform
+  - Move
+  - Follow
+  all_objects:
+    entity_Apple_3406: Apple
+    entity_Bowl_3405: Bowl
+    entity_TiagoGripper_3403: TiagoGripper
+  sequence:
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3403
+      location: entity_Apple_3406
+      object: entity_Bowl_3405
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3403
+      location: entity_Apple_3406
+      object: entity_Bowl_3405
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3403
+      location: entity_Apple_3406
+      object: entity_Bowl_3405
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3403
+      location: entity_Apple_3406
+      object: entity_Bowl_3405
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3403
+      location: entity_Apple_3406
+      object: entity_Bowl_3405
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3403
+      location: entity_Apple_3406
+      object: entity_Bowl_3405
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3403
+      location: entity_Apple_3406
+      object: entity_Bowl_3405
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3403
+      location: entity_Apple_3406
+      object: entity_Bowl_3405
+- action_list:
+  - Move
+  - Transform
+  - Move
+  - Transform
+  - Transform
+  - Follow
+  - Rotate
+  - Follow
+  all_objects:
+    entity_AbstractRotation_3519: AbstractRotation
+    entity_Bowl_3461: Bowl
+    entity_CerealBox_3460: CerealBox
+    entity_TiagoGripper_3458: TiagoGripper
+  sequence:
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3458
+      location: entity_Bowl_3461
+      object: entity_CerealBox_3460
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3458
+      location: entity_Bowl_3461
+      object: entity_CerealBox_3460
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3458
+      location: entity_Bowl_3461
+      object: entity_CerealBox_3460
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3458
+      location: entity_Bowl_3461
+      object: entity_CerealBox_3460
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3458
+      location: entity_Bowl_3461
+      object: entity_CerealBox_3460
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3458
+      location: entity_Bowl_3461
+      object: entity_CerealBox_3460
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3519
+      gripper: entity_TiagoGripper_3458
+      object: entity_CerealBox_3460
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3458
+      location: entity_Bowl_3461
+      object: entity_CerealBox_3460
+9:
+- action_list:
+  - Approach
+  - Grasp
+  - Transform
+  - Transform
+  - Drop
+  - Withdraw
+  - Approach
+  - Grasp
+  - Transform
+  all_objects:
+    entity_Bowl_3542: Bowl
+    entity_Can_3570: Can
+    entity_TiagoGripper_3540: TiagoGripper
+  sequence:
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3540
+      object: entity_Bowl_3542
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3540
+      object: entity_Bowl_3542
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3540
+      location: entity_Can_3570
+      object: entity_Bowl_3542
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3540
+      location: entity_Can_3570
+      object: entity_Bowl_3542
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3540
+      object: entity_Bowl_3542
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3540
+      object: entity_Bowl_3542
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3540
+      object: entity_Bowl_3542
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3540
+      object: entity_Bowl_3542
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3540
+      location: entity_Can_3570
+      object: entity_Bowl_3542
+- action_list:
+  - Follow
+  - Move
+  - Move
+  - Rotate
+  - Move
+  - Follow
+  - Transform
+  - Move
+  - Transform
+  all_objects:
+    entity_AbstractRotation_3678: AbstractRotation
+    entity_Can_3650: Can
+    entity_CerealBox_3649: CerealBox
+    entity_TiagoGripper_3647: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3647
+      location: entity_Can_3650
+      object: entity_CerealBox_3649
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3647
+      location: entity_Can_3650
+      object: entity_CerealBox_3649
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3647
+      location: entity_Can_3650
+      object: entity_CerealBox_3649
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3678
+      gripper: entity_TiagoGripper_3647
+      object: entity_CerealBox_3649
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3647
+      location: entity_Can_3650
+      object: entity_CerealBox_3649
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3647
+      location: entity_Can_3650
+      object: entity_CerealBox_3649
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3647
+      location: entity_Can_3650
+      object: entity_CerealBox_3649
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3647
+      location: entity_Can_3650
+      object: entity_CerealBox_3649
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3647
+      location: entity_Can_3650
+      object: entity_CerealBox_3649
+- action_list:
+  - Follow
+  - Rotate
+  - Rotate
+  - Move
+  - Follow
+  - Follow
+  - Transform
+  - Rotate
+  - Transform
+  all_objects:
+    entity_AbstractRotation_3764: AbstractRotation
+    entity_Apple_3754: Apple
+    entity_CerealBox_3753: CerealBox
+    entity_TiagoGripper_3751: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3751
+      location: entity_Apple_3754
+      object: entity_CerealBox_3753
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3764
+      gripper: entity_TiagoGripper_3751
+      object: entity_CerealBox_3753
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3764
+      gripper: entity_TiagoGripper_3751
+      object: entity_CerealBox_3753
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3751
+      location: entity_Apple_3754
+      object: entity_CerealBox_3753
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3751
+      location: entity_Apple_3754
+      object: entity_CerealBox_3753
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3751
+      location: entity_Apple_3754
+      object: entity_CerealBox_3753
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3751
+      location: entity_Apple_3754
+      object: entity_CerealBox_3753
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3764
+      gripper: entity_TiagoGripper_3751
+      object: entity_CerealBox_3753
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3751
+      location: entity_Apple_3754
+      object: entity_CerealBox_3753
+- action_list:
+  - Drop
+  - Grasp
+  - Follow
+  - Rotate
+  - Rotate
+  - Drop
+  - Withdraw
+  - Approach
+  - Withdraw
+  all_objects:
+    entity_AbstractRotation_3869: AbstractRotation
+    entity_CerealBox_3851: CerealBox
+    entity_TiagoGripper_3849: TiagoGripper
+    entity_TiagoGripper_3862: TiagoGripper
+  sequence:
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3849
+      object: entity_CerealBox_3851
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3849
+      object: entity_CerealBox_3851
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3849
+      location: entity_TiagoGripper_3862
+      object: entity_CerealBox_3851
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3869
+      gripper: entity_TiagoGripper_3849
+      object: entity_CerealBox_3851
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_3869
+      gripper: entity_TiagoGripper_3849
+      object: entity_CerealBox_3851
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3849
+      object: entity_CerealBox_3851
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3849
+      object: entity_CerealBox_3851
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3849
+      object: entity_CerealBox_3851
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3849
+      object: entity_CerealBox_3851
+- action_list:
+  - Approach
+  - Grasp
+  - Move
+  - Transform
+  - Drop
+  - Withdraw
+  - Approach
+  - Grasp
+  - Drop
+  all_objects:
+    entity_Apple_3972: Apple
+    entity_CerealBox_3989: CerealBox
+    entity_TiagoGripper_3970: TiagoGripper
+  sequence:
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3970
+      object: entity_Apple_3972
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3970
+      object: entity_Apple_3972
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3970
+      location: entity_CerealBox_3989
+      object: entity_Apple_3972
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_3970
+      location: entity_CerealBox_3989
+      object: entity_Apple_3972
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3970
+      object: entity_Apple_3972
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3970
+      object: entity_Apple_3972
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3970
+      object: entity_Apple_3972
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3970
+      object: entity_Apple_3972
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_3970
+      object: entity_Apple_3972
+- action_list:
+  - Drop
+  - Grasp
+  - Drop
+  - Withdraw
+  - Approach
+  - Grasp
+  - Follow
+  - Follow
+  - Follow
+  all_objects:
+    entity_Can_4068: Can
+    entity_Can_4116: Can
+    entity_TiagoGripper_4066: TiagoGripper
+  sequence:
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4066
+      object: entity_Can_4068
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4066
+      object: entity_Can_4068
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4066
+      object: entity_Can_4068
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4066
+      object: entity_Can_4068
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4066
+      object: entity_Can_4068
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4066
+      object: entity_Can_4068
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4066
+      location: entity_Can_4116
+      object: entity_Can_4068
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4066
+      location: entity_Can_4116
+      object: entity_Can_4068
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4066
+      location: entity_Can_4116
+      object: entity_Can_4068
+- action_list:
+  - Rotate
+  - Move
+  - Move
+  - Transform
+  - Transform
+  - Move
+  - Rotate
+  - Follow
+  - Move
+  all_objects:
+    entity_AbstractRotation_4141: AbstractRotation
+    entity_CerealBox_4140: CerealBox
+    entity_TiagoGripper_4138: TiagoGripper
+    entity_TiagoGripper_4160: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4141
+      gripper: entity_TiagoGripper_4138
+      object: entity_CerealBox_4140
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4138
+      location: entity_TiagoGripper_4160
+      object: entity_CerealBox_4140
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4138
+      location: entity_TiagoGripper_4160
+      object: entity_CerealBox_4140
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4138
+      location: entity_TiagoGripper_4160
+      object: entity_CerealBox_4140
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4138
+      location: entity_TiagoGripper_4160
+      object: entity_CerealBox_4140
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4138
+      location: entity_TiagoGripper_4160
+      object: entity_CerealBox_4140
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4141
+      gripper: entity_TiagoGripper_4138
+      object: entity_CerealBox_4140
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4138
+      location: entity_TiagoGripper_4160
+      object: entity_CerealBox_4140
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4138
+      location: entity_TiagoGripper_4160
+      object: entity_CerealBox_4140
+- action_list:
+  - Move
+  - Move
+  - Move
+  - Move
+  - Transform
+  - Move
+  - Move
+  - Follow
+  - Move
+  all_objects:
+    entity_Apple_4247: Apple
+    entity_Can_4248: Can
+    entity_TiagoGripper_4245: TiagoGripper
+  sequence:
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4245
+      location: entity_Can_4248
+      object: entity_Apple_4247
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4245
+      location: entity_Can_4248
+      object: entity_Apple_4247
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4245
+      location: entity_Can_4248
+      object: entity_Apple_4247
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4245
+      location: entity_Can_4248
+      object: entity_Apple_4247
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4245
+      location: entity_Can_4248
+      object: entity_Apple_4247
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4245
+      location: entity_Can_4248
+      object: entity_Apple_4247
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4245
+      location: entity_Can_4248
+      object: entity_Apple_4247
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4245
+      location: entity_Can_4248
+      object: entity_Apple_4247
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4245
+      location: entity_Can_4248
+      object: entity_Apple_4247
+- action_list:
+  - Approach
+  - Grasp
+  - Transform
+  - Follow
+  - Rotate
+  - Drop
+  - Grasp
+  - Follow
+  - Drop
+  all_objects:
+    entity_AbstractRotation_4355: AbstractRotation
+    entity_Apple_4326: Apple
+    entity_Bowl_4339: Bowl
+    entity_TiagoGripper_4324: TiagoGripper
+  sequence:
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4324
+      object: entity_Apple_4326
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4324
+      object: entity_Apple_4326
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4324
+      location: entity_Bowl_4339
+      object: entity_Apple_4326
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4324
+      location: entity_Bowl_4339
+      object: entity_Apple_4326
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4355
+      gripper: entity_TiagoGripper_4324
+      object: entity_Apple_4326
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4324
+      object: entity_Apple_4326
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4324
+      object: entity_Apple_4326
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4324
+      location: entity_Bowl_4339
+      object: entity_Apple_4326
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4324
+      object: entity_Apple_4326
+- action_list:
+  - Rotate
+  - Move
+  - Follow
+  - Rotate
+  - Move
+  - Rotate
+  - Follow
+  - Transform
+  - Follow
+  all_objects:
+    entity_AbstractRotation_4411: AbstractRotation
+    entity_Bowl_4421: Bowl
+    entity_CerealBox_4410: CerealBox
+    entity_TiagoGripper_4408: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4411
+      gripper: entity_TiagoGripper_4408
+      object: entity_CerealBox_4410
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4408
+      location: entity_Bowl_4421
+      object: entity_CerealBox_4410
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4408
+      location: entity_Bowl_4421
+      object: entity_CerealBox_4410
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4411
+      gripper: entity_TiagoGripper_4408
+      object: entity_CerealBox_4410
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4408
+      location: entity_Bowl_4421
+      object: entity_CerealBox_4410
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4411
+      gripper: entity_TiagoGripper_4408
+      object: entity_CerealBox_4410
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4408
+      location: entity_Bowl_4421
+      object: entity_CerealBox_4410
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4408
+      location: entity_Bowl_4421
+      object: entity_CerealBox_4410
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4408
+      location: entity_Bowl_4421
+      object: entity_CerealBox_4410
+10:
+- action_list:
+  - Drop
+  - Withdraw
+  - Approach
+  - Withdraw
+  - Approach
+  - Grasp
+  - Transform
+  - Rotate
+  - Drop
+  - Grasp
+  all_objects:
+    entity_AbstractRotation_4562: AbstractRotation
+    entity_Orange_4516: Orange
+    entity_TiagoGripper_4514: TiagoGripper
+    entity_TiagoGripper_4555: TiagoGripper
+  sequence:
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4514
+      object: entity_Orange_4516
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4514
+      object: entity_Orange_4516
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4514
+      object: entity_Orange_4516
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4514
+      object: entity_Orange_4516
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4514
+      object: entity_Orange_4516
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4514
+      object: entity_Orange_4516
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4514
+      location: entity_TiagoGripper_4555
+      object: entity_Orange_4516
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4562
+      gripper: entity_TiagoGripper_4514
+      object: entity_Orange_4516
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4514
+      object: entity_Orange_4516
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4514
+      object: entity_Orange_4516
+- action_list:
+  - Drop
+  - Grasp
+  - Move
+  - Rotate
+  - Drop
+  - Grasp
+  - Drop
+  - Withdraw
+  - Approach
+  - Grasp
+  all_objects:
+    entity_AbstractRotation_4623: AbstractRotation
+    entity_Apple_4605: Apple
+    entity_Bowl_4616: Bowl
+    entity_TiagoGripper_4603: TiagoGripper
+  sequence:
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4603
+      object: entity_Apple_4605
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4603
+      object: entity_Apple_4605
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4603
+      location: entity_Bowl_4616
+      object: entity_Apple_4605
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4623
+      gripper: entity_TiagoGripper_4603
+      object: entity_Apple_4605
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4603
+      object: entity_Apple_4605
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4603
+      object: entity_Apple_4605
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4603
+      object: entity_Apple_4605
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4603
+      object: entity_Apple_4605
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4603
+      object: entity_Apple_4605
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4603
+      object: entity_Apple_4605
+- action_list:
+  - Follow
+  - Follow
+  - Move
+  - Rotate
+  - Transform
+  - Transform
+  - Rotate
+  - Rotate
+  - Rotate
+  - Follow
+  all_objects:
+    entity_AbstractRotation_4757: AbstractRotation
+    entity_Can_4734: Can
+    entity_Orange_4735: Orange
+    entity_TiagoGripper_4732: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4732
+      location: entity_Orange_4735
+      object: entity_Can_4734
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4732
+      location: entity_Orange_4735
+      object: entity_Can_4734
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4732
+      location: entity_Orange_4735
+      object: entity_Can_4734
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4757
+      gripper: entity_TiagoGripper_4732
+      object: entity_Can_4734
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4732
+      location: entity_Orange_4735
+      object: entity_Can_4734
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4732
+      location: entity_Orange_4735
+      object: entity_Can_4734
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4757
+      gripper: entity_TiagoGripper_4732
+      object: entity_Can_4734
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4757
+      gripper: entity_TiagoGripper_4732
+      object: entity_Can_4734
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4757
+      gripper: entity_TiagoGripper_4732
+      object: entity_Can_4734
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4732
+      location: entity_Orange_4735
+      object: entity_Can_4734
+- action_list:
+  - Grasp
+  - Follow
+  - Move
+  - Rotate
+  - Follow
+  - Drop
+  - Grasp
+  - Follow
+  - Rotate
+  - Transform
+  all_objects:
+    entity_AbstractRotation_4862: AbstractRotation
+    entity_Bowl_4843: Bowl
+    entity_CerealBox_4836: CerealBox
+    entity_TiagoGripper_4834: TiagoGripper
+  sequence:
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4834
+      object: entity_CerealBox_4836
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4834
+      location: entity_Bowl_4843
+      object: entity_CerealBox_4836
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4834
+      location: entity_Bowl_4843
+      object: entity_CerealBox_4836
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4862
+      gripper: entity_TiagoGripper_4834
+      object: entity_CerealBox_4836
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4834
+      location: entity_Bowl_4843
+      object: entity_CerealBox_4836
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4834
+      object: entity_CerealBox_4836
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4834
+      object: entity_CerealBox_4836
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4834
+      location: entity_Bowl_4843
+      object: entity_CerealBox_4836
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4862
+      gripper: entity_TiagoGripper_4834
+      object: entity_CerealBox_4836
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4834
+      location: entity_Bowl_4843
+      object: entity_CerealBox_4836
+- action_list:
+  - Drop
+  - Grasp
+  - Follow
+  - Rotate
+  - Transform
+  - Follow
+  - Move
+  - Transform
+  - Rotate
+  - Move
+  all_objects:
+    entity_AbstractRotation_4956: AbstractRotation
+    entity_Apple_4929: Apple
+    entity_Can_4949: Can
+    entity_TiagoGripper_4927: TiagoGripper
+  sequence:
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4927
+      object: entity_Apple_4929
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_4927
+      object: entity_Apple_4929
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4927
+      location: entity_Can_4949
+      object: entity_Apple_4929
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4956
+      gripper: entity_TiagoGripper_4927
+      object: entity_Apple_4929
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4927
+      location: entity_Can_4949
+      object: entity_Apple_4929
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4927
+      location: entity_Can_4949
+      object: entity_Apple_4929
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4927
+      location: entity_Can_4949
+      object: entity_Apple_4929
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4927
+      location: entity_Can_4949
+      object: entity_Apple_4929
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_4956
+      gripper: entity_TiagoGripper_4927
+      object: entity_Apple_4929
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_4927
+      location: entity_Can_4949
+      object: entity_Apple_4929
+- action_list:
+  - Rotate
+  - Move
+  - Move
+  - Move
+  - Transform
+  - Transform
+  - Rotate
+  - Transform
+  - Rotate
+  - Transform
+  all_objects:
+    entity_AbstractRotation_5024: AbstractRotation
+    entity_Bowl_5037: Bowl
+    entity_Orange_5023: Orange
+    entity_TiagoGripper_5021: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_5024
+      gripper: entity_TiagoGripper_5021
+      object: entity_Orange_5023
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5021
+      location: entity_Bowl_5037
+      object: entity_Orange_5023
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5021
+      location: entity_Bowl_5037
+      object: entity_Orange_5023
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5021
+      location: entity_Bowl_5037
+      object: entity_Orange_5023
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5021
+      location: entity_Bowl_5037
+      object: entity_Orange_5023
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5021
+      location: entity_Bowl_5037
+      object: entity_Orange_5023
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_5024
+      gripper: entity_TiagoGripper_5021
+      object: entity_Orange_5023
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5021
+      location: entity_Bowl_5037
+      object: entity_Orange_5023
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_5024
+      gripper: entity_TiagoGripper_5021
+      object: entity_Orange_5023
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5021
+      location: entity_Bowl_5037
+      object: entity_Orange_5023
+- action_list:
+  - Follow
+  - Transform
+  - Move
+  - Rotate
+  - Follow
+  - Rotate
+  - Transform
+  - Rotate
+  - Move
+  - Follow
+  all_objects:
+    entity_AbstractRotation_5169: AbstractRotation
+    entity_Apple_5140: Apple
+    entity_Orange_5141: Orange
+    entity_TiagoGripper_5138: TiagoGripper
+  sequence:
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5138
+      location: entity_Orange_5141
+      object: entity_Apple_5140
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5138
+      location: entity_Orange_5141
+      object: entity_Apple_5140
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5138
+      location: entity_Orange_5141
+      object: entity_Apple_5140
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_5169
+      gripper: entity_TiagoGripper_5138
+      object: entity_Apple_5140
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5138
+      location: entity_Orange_5141
+      object: entity_Apple_5140
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_5169
+      gripper: entity_TiagoGripper_5138
+      object: entity_Apple_5140
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5138
+      location: entity_Orange_5141
+      object: entity_Apple_5140
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_5169
+      gripper: entity_TiagoGripper_5138
+      object: entity_Apple_5140
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5138
+      location: entity_Orange_5141
+      object: entity_Apple_5140
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5138
+      location: entity_Orange_5141
+      object: entity_Apple_5140
+- action_list:
+  - Approach
+  - Withdraw
+  - Approach
+  - Grasp
+  - Rotate
+  - Transform
+  - Follow
+  - Transform
+  - Follow
+  - Follow
+  all_objects:
+    entity_AbstractRotation_5283: AbstractRotation
+    entity_Can_5290: Can
+    entity_CerealBox_5252: CerealBox
+    entity_TiagoGripper_5250: TiagoGripper
+  sequence:
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_5250
+      object: entity_CerealBox_5252
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_5250
+      object: entity_CerealBox_5252
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_5250
+      object: entity_CerealBox_5252
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_5250
+      object: entity_CerealBox_5252
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_5283
+      gripper: entity_TiagoGripper_5250
+      object: entity_CerealBox_5252
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5250
+      location: entity_Can_5290
+      object: entity_CerealBox_5252
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5250
+      location: entity_Can_5290
+      object: entity_CerealBox_5252
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5250
+      location: entity_Can_5290
+      object: entity_CerealBox_5252
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5250
+      location: entity_Can_5290
+      object: entity_CerealBox_5252
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5250
+      location: entity_Can_5290
+      object: entity_CerealBox_5252
+- action_list:
+  - Grasp
+  - Rotate
+  - Follow
+  - Drop
+  - Withdraw
+  - Approach
+  - Withdraw
+  - Approach
+  - Grasp
+  - Transform
+  all_objects:
+    entity_AbstractRotation_5346: AbstractRotation
+    entity_Bowl_5359: Bowl
+    entity_Orange_5337: Orange
+    entity_TiagoGripper_5335: TiagoGripper
+  sequence:
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_5335
+      object: entity_Orange_5337
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_5346
+      gripper: entity_TiagoGripper_5335
+      object: entity_Orange_5337
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5335
+      location: entity_Bowl_5359
+      object: entity_Orange_5337
+  - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_5335
+      object: entity_Orange_5337
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_5335
+      object: entity_Orange_5337
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_5335
+      object: entity_Orange_5337
+  - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_5335
+      object: entity_Orange_5337
+  - action: 'Approach(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_5335
+      object: entity_Orange_5337
+  - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+    action_objects:
+      gripper: entity_TiagoGripper_5335
+      object: entity_Orange_5337
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5335
+      location: entity_Bowl_5359
+      object: entity_Orange_5337
+- action_list:
+  - Rotate
+  - Follow
+  - Rotate
+  - Rotate
+  - Move
+  - Transform
+  - Follow
+  - Transform
+  - Transform
+  - Follow
+  all_objects:
+    entity_AbstractRotation_5463: AbstractRotation
+    entity_Apple_5462: Apple
+    entity_Can_5473: Can
+    entity_TiagoGripper_5460: TiagoGripper
+  sequence:
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_5463
+      gripper: entity_TiagoGripper_5460
+      object: entity_Apple_5462
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5460
+      location: entity_Can_5473
+      object: entity_Apple_5462
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_5463
+      gripper: entity_TiagoGripper_5460
+      object: entity_Apple_5462
+  - action: 'Rotate(gripper: Gripper, object: GraspableObject, angle: AbstractRotation)'
+    action_objects:
+      angle: entity_AbstractRotation_5463
+      gripper: entity_TiagoGripper_5460
+      object: entity_Apple_5462
+  - action: 'Move(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5460
+      location: entity_Can_5473
+      object: entity_Apple_5462
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5460
+      location: entity_Can_5473
+      object: entity_Apple_5462
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5460
+      location: entity_Can_5473
+      object: entity_Apple_5462
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5460
+      location: entity_Can_5473
+      object: entity_Apple_5462
+  - action: 'Transform(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5460
+      location: entity_Can_5473
+      object: entity_Apple_5462
+  - action: 'Follow(gripper: Gripper, object: GraspableObject, location: Location)'
+    action_objects:
+      gripper: entity_TiagoGripper_5460
+      location: entity_Can_5473
+      object: entity_Apple_5462

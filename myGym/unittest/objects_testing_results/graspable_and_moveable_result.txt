@@ -1,0 +1,106 @@
+SUMMARY
+================================================================================
+Total configs tested: 21
+Successful: 11
+Failed: 10
+
+SUCCESSFULLY TESTED CONFIGS (ORACULUM)
+================================================================================
+ 1. OK AGM_apple.json (10/10 successful)
+ 2. OK AGM_apple50.json (10/10 successful)
+ 3. OK AGM_banana.json (10/10 successful)
+ 4. OK AGM_bottle.json (10/10 successful)
+ 5. OK AGM_bowlycb.json (10/10 successful)
+ 6. OK AGM_fork.json (10/10 successful)
+ 7. OK AGM_plate.json (10/10 successful)
+ 8. OK AGM_sharp_knife.json (10/10 successful)
+ 9. OK AGM_spatula.json (10/10 successful)
+10. OK AGM_spoon.json (10/10 successful)
+11. OK AGM_tuna_can.json (10/10 successful)
+
+FAILED CONFIGS
+================================================================================
+FAIL AGM_bowl.json (0/10 successful)
+  Error: Testing timed out after 300 seconds
+FAIL AGM_cracker_box.json (0/10 successful)
+  Failed subtask sequences:
+    Run 1: A: True, G: True, M: False
+    Run 2: A: True, G: True, M: False
+    Run 3: A: True, G: True, M: False
+    Run 4: A: True, G: True, M: False
+    Run 5: A: True, G: True, M: False
+    Run 6: A: True, G: True, M: False
+    Run 7: A: True, G: True, M: False
+    Run 8: A: True, G: True, M: False
+    Run 9: A: True, G: True, M: False
+    Run 10: A: True, G: True, M: False
+  Error: Only 0/10 trials succeeded (minimum required: 8)
+FAIL AGM_crackerbox.json (0/10 successful)
+  Failed subtask sequences:
+    Run 1: A: True, G: True, M: False
+    Run 2: A: True, G: True, M: False
+    Run 3: A: True, G: True, M: False
+    Run 4: A: True, G: True, M: False
+    Run 5: A: True, G: True, M: False
+    Run 6: A: True, G: True, M: False
+    Run 7: A: True, G: True, M: False
+    Run 8: A: True, G: True, M: False
+    Run 9: A: True, G: True, M: False
+    Run 10: A: True, G: True, M: False
+  Error: Only 0/10 trials succeeded (minimum required: 8)
+FAIL AGM_glass.json (0/10 successful)
+  Error: Testing timed out after 300 seconds
+FAIL AGM_jug.json (0/10 successful)
+  Error: Testing timed out after 300 seconds
+FAIL AGM_mug.json (0/10 successful)
+  Failed subtask sequences:
+    Run 1: A: False, G: False, M: False
+    Run 2: A: False, G: False, M: False
+    Run 3: A: False, G: False, M: False
+    Run 4: A: False, G: False, M: False
+    Run 5: A: False, G: False, M: False
+    Run 6: A: False, G: False, M: False
+    Run 7: A: False, G: False, M: False
+    Run 8: A: False, G: False, M: False
+    Run 9: A: False, G: False, M: False
+    Run 10: A: False, G: False, M: False
+  Error: Only 0/10 trials succeeded (minimum required: 8)
+FAIL AGM_mugycb.json (4/10 successful)
+  Failed subtask sequences:
+    Run 1: A: True, G: True, M: False
+    Run 2: A: True, G: True, M: False
+    Run 3: A: True, G: True, M: False
+    Run 4: A: True, G: True, M: False
+    Run 7: A: True, G: True, M: False
+    Run 10: A: True, G: True, M: False
+  Error: Only 4/10 trials succeeded (minimum required: 8)
+FAIL AGM_mustard.json (0/10 successful)
+  - is able to do, but the mesh object position is incorrect
+  Failed subtask sequences:
+    Run 1: A: True, G: True, M: False
+    Run 2: A: True, G: True, M: False
+    Run 3: A: True, G: True, M: False
+    Run 4: A: True, G: True, M: False
+    Run 5: A: True, G: True, M: False
+    Run 6: A: True, G: True, M: False
+    Run 7: A: True, G: True, M: False
+    Run 8: A: True, G: True, M: False
+    Run 9: A: True, G: True, M: False
+    Run 10: A: True, G: True, M: False
+  Error: Only 0/10 trials succeeded (minimum required: 8)
+FAIL AGM_pan.json (0/10 successful)
+  Error: Testing timed out after 300 seconds
+  - is able to do, but the simulation is super slow probably because of weird mesh
+FAIL AGM_soup_can.json (0/10 successful)
+  Failed subtask sequences:
+    Run 1: A: False, G: False, M: False
+    Run 2: A: False, G: False, M: False
+    Run 3: A: False, G: False, M: False
+    Run 4: A: False, G: False, M: False
+    Run 5: A: False, G: False, M: False
+    Run 6: A: False, G: False, M: False
+    Run 7: A: False, G: False, M: False
+    Run 8: A: False, G: False, M: False
+    Run 9: A: False, G: False, M: False
+    Run 10: A: False, G: False, M: False
+  Error: Only 0/10 trials succeeded (minimum required: 8)
