@@ -1,5 +1,6 @@
 from matplotlib.pyplot import table
 import numpy as np
+from sympy import false
 
 class PrintEveryNCalls:
     def __init__(self, msg, n):
@@ -56,7 +57,6 @@ def get_workspace_dict():
     
     return ws_dict
 
-
 def get_robot_dict():
     r_dict =   {
                              'g1': {'path': '/envs/robots/unitree/g1_mygym.urdf', 'position': np.array([-0.3, 0.0, 0.07]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [0.33, -0.11, -0.16, 0.69, -1.42, -0.89, -0.17, -0.01, 0.19, 0.39, 0.72, 0.0, 0.0], 'ee_pos': [0.0, -0.2734, 0.3939], 'ee_ori': [-0.0075, -0.0165, 0.049], 'ee_quat_ori': [-0.0035, -0.0083, 0.0245, 0.9997], 'fixed': True},
@@ -72,6 +72,8 @@ def get_robot_dict():
                              'kuka': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_magnetic.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [0.41, 0.17, 2.59, 0.86, 0.1, -2.09, 3.05], 'ee_pos': [0.4105, -0.0007, 0.7563], 'ee_ori': [-0.0035, -0.0396, 0.0047], 'ee_quat_ori': [-0.0017, -0.0198, 0.0023, 0.9998], 'fixed': True},
                              'kuka_push': {'path': '/envs/robots/kuka_magnetic_gripper_sdf/kuka_push.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [0.36, -0.13, -0.29, -1.22, -0.05, 2.05, 0.05], 'ee_pos': [0.3053, -0.0, 0.7789], 'ee_ori': [-0.01, 0.0, 0.0046], 'ee_quat_ori': [-0.005, -0.0, 0.0023, 1.0], 'fixed': True},
                              'kuka_gripper': {'path': '/envs/robots/kuka_gripper/kuka_gripper.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [0.0, -0.38, 0.0, -1.46, 0.0, 2.05, 0.0, 1.57, 0.0, 1.57, 0.0], 'ee_pos': [0.1997, 0.0, 0.7076], 'ee_ori': [0.0, -0.0132, 0.0], 'ee_quat_ori': [0.0, -0.0066, 0.0, 1.0], 'fixed': True},
+                             'icub': {'path': '/envs/robots/iCub/icub.urdf', 'position': np.array([-0.3, 0.0, 0.0]), 'orientation': [0.0, 0.0, 3.14], 'default_joint_ori': [-1.61, 1.27, 1.4, 1.42, 0.06, 0.44, 0.14, 1.34], 'ee_pos': [0.0008, -0.1995, 0.2007], 'ee_ori': [0.0162, -0.0348, -0.0002], 'ee_quat_ori': [0.0081, -0.0174, 0.0, 0.9998], 'fixed': True},
+                             'icubfull': {'path': '/envs/robots/iCub/icubfull.urdf', 'position': np.array([-0.3, 0.0, 0.0]), 'orientation': [0.0, 0.0, 3.14], 'default_joint_ori': [0.17, 1.7, -0.12, 0.26, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'ee_pos': [-0.1479, -0.3618, 0.1984], 'ee_ori': [-1.7368, 0.1746, 2.1151], 'ee_quat_ori': [0.4224, 0.6348, -0.5933, -0.258], 'fixed': True},
                              'leachy': {'path': '/envs/robots/pollen/reachy/urdf/leachy.urdf', 'position': np.array([0.0, 0.0, 0.32]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-0.46, 1.1, -1.57, -1.11, 1.53, 0.43, 0.0, 0.0], 'ee_pos': [0.457, 0.3629, 0.4495], 'ee_ori': [0.0433, 0.0434, 0.0087], 'ee_quat_ori': [0.0215, 0.0218, 0.0039, 0.9995], 'fixed': True},
                              'nico': {'path': '/envs/robots/nico/nico_grasper.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [-0.29, 0.66, 0.78, 1.32, 0.57, 0.79, 0.0, 0.0, 0.0, 0.0], 'ee_pos': [0.1955, -0.2696, 0.2666], 'ee_ori': [0.0952, -0.0253, 0.0274], 'ee_quat_ori': [0.0477, -0.012, 0.0143, 0.9987], 'fixed': True},
                              'panda': {'path': '/envs/robots/franka_emika/panda/urdf/panda1.urdf', 'position': np.array([0.0, 0.0, 0.0]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [2.97, 0.31, -2.84, -1.86, 1.66, 3.71, 1.91, 0.06, 0.06], 'ee_pos': [0.3262, -0.0002, 0.5358], 'ee_ori': [-0.0006, -0.0093, -0.0079], 'ee_quat_ori': [-0.0003, -0.0047, -0.0039, 1.0], 'fixed': True},

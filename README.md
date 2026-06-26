@@ -1,22 +1,28 @@
 
-![alt text](myGym/images/mygymlogo310.png "myGym")
-
-
-We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. Our toolbox is fully modular, so that you can train your network with different robots, in several environments and on various tasks. You can also create a curriculum of tasks with increasing complexity and test your network on them. 
-
-From version 3.10 there is SB3 and Gymnasium implemented and there is a basic set of protorewards to create any manipulation task from their combination. Their composition is semi automated and will be fully automated in next realese. It is possible to train multiple networks within one task and switch between them based on reward or adaptively. The number of networks is specified in config file.
-
-
-[![Generic badge](https://img.shields.io/badge/OS-Linux-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/OS-Linux,Win-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Computation-CPU,GPU-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Language-Python:3.7-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Language-Python:3.10-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Physics-Bullet-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Env-Gym-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Learning-TF,Torch-green.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Docs-Yes-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Env-Gymnasium-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Learning-Torch-green.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://shields.io/)
 
-## Install myGym 3.10
+
+![alt text](myGym/images/mygym40.png "myGym")
+
+We introduce myGym, a toolkit suitable for fast prototyping of neural networks in the area of robotic manipulation and navigation. 
+
+From version 4.0 you can easily create new training task without coding. You will just specify target objects in config, create long horizon task as sequence of atomic actions vocabulary (approach,withdraw,grasp,drop,move,rotate,follow,trasform) and select robot. Your task will be automatically build with the rewards paired for each stag.  It is possible to train multiple networks (multippo) within one task.
+
+There are also novel functions to automatize workflow. Load new objects and robots, check their physical functionality (test_robot, test_robot_ik), configure task and test its  feasibility via taskchecker, and let it train on CPU,GPU you specify. After training visualize and benchmark via show command. 
+
+We provide pretrained baselines for G1,Tiago, Nico and Pepper humanoids and also Kuka, Panda, UR and other robotic arms.
+
+The next release will include [PRAG](https://arxiv.org/abs/2507.09167)  - procedural action generator 
+
+
+
+## Install myGym 4.0
 
 From myGym 3.10 there is Stable Baseline 3 and Gymnasium. 
 If you want to use old myGym 3.7. with Stable Baselines1 and Gym, switch to branch mygym-3.7
@@ -30,7 +36,7 @@ Clone the repository:
 
 Create Python 3.10 conda env:
 
-`conda create -n  mygym Python=3.10`
+`conda create -n mygym Python=3.10`
 
 `conda activate mygym`
 
@@ -43,165 +49,99 @@ If you face troubles with mpi4py dependency install the lib:
 `sudo apt install libopenmpi-dev`
 
 
+## How to train new robot and tasks
 
-## myGym 3.10 presents
+### visualize_robot
 
-* Atomic rewards 
-
-* Protorewards
-
-* Atomic actions
-
-* Easy multi-step task definition
-
-* Nico and Tiago robot support
-
-* Multi-step tasks with custom robots
-
-![alt text](myGym/images/workspaces/mygym310.gif "Multistep")
-
-* Multi-goal rewards for training long horizon
-
-![alt text](myGym/images/workspaces/mygym310a.gif "Multireward")
-
-* Automatic tasks checker (oraculum) 
-
-![alt text](myGym/images/workspaces/oraculum.gif "Oraculum")
-
-* Parallelized training within CPU and GPU on cluster
-
-
-## Overview
-
-
-| Environment  | Gym-v0 is suitable both single-step and multi-step manipulation and navigation|
-|---|---|
-| Workspaces | Table, Collaborative table, Maze, Vertical maze, Drawer, Darts, Football, Fridge, Stairs, Baskets |
-| Vision  | Cartesians, RGB, Depth, Class, Centroid, Bounding Box, Semantic Mask, Latent Vector |
-| Robots  | 9 robotic arms, 2 dualarms, humanoid |
-| Robot actions  | Absolute, Relative, Joints |
-| Objects  | 54 objects in 5 categories |
-| Tasks  | Reach, Press, Switch, Turn, Push, Pick, Place, PicknPlace, Poke,MultiReach, MultiPNP|
-| Randomizers  | Light, Texture, Size, Camera position |
-| Baselines  | Tensorflow, Pytorch |
-| Physics  | Bullet, Mujoco deprecated from version 2.0 |
-
-## Test the environments prior training
-
-You can visualize the virtual gym env prior to the training. 
-
-`python test.py`
-
-There will be the default workspace activated.  
-
-## Visualization Tools
-
-myGym includes several visualization utilities to help you explore and understand the environment:
-
-### Visualize All Objects
-
-View all available URDF objects in a grid layout:
-
-```bash
-python myGym/visualize_all_objects.py
-```
-
-This script:
-- Recursively finds all URDF files in `myGym/envs/objects` directory
-- Displays them in a square grid on a plane in PyBullet
-- Supports customization options:
-
-```bash
-# Custom spacing between objects (default: 0.3 meters)
-python myGym/visualize_all_objects.py --spacing 0.5
-
-# Use a different plane
-python myGym/visualize_all_objects.py --plane plane_old.urdf
-
-# Run without GUI (useful for testing)
-python myGym/visualize_all_objects.py --no-gui
-```
-
-### Visualize Robot
-
-Interactively visualize and control robot joints:
+It allows you to load and manipulate robot models in a 3D environment with joint sliders to control each joint independently.
 
 ```bash
 python myGym/visualize_robot.py
 ```
 
-### Visualize Robot IK
+### visualize_robot_ik
 
-Visualize robot inverse kinematics:
+It allows you to test IK solutions by specifying target positions and orientations.
 
 ```bash
 python myGym/visualize_robot_ik.py
 ```
 
-### VR Teleoperation (NEW!)
+### taskchecker
 
-Control the Pepper robot using Meta Quest 3 VR headset and controllers:
 
 ```bash
-# Quick test with simulated VR (no hardware needed)
-python myGym/pepper_vr_example.py
-
-# Or run directly with different modes
-python myGym/pepper_vr_teleoperation.py --mode simulated   # Testing mode
-python myGym/pepper_vr_teleoperation.py --mode openxr     # Meta Quest 3 via Link
-python myGym/pepper_vr_teleoperation.py --mode alvr       # Wireless via ALVR
+python myGym/taskchecker.py
 ```
 
-Features:
-- Real-time IK control of robot arms via VR controllers
-- Head tracking from VR headset
-- Support for OpenXR (native) and ALVR (wireless)
-- Simulated mode for testing without VR hardware
-- Visual feedback with color-coded target markers
 
-See [`myGym/QUICKSTART_VR.md`](myGym/QUICKSTART_VR.md) for a quick start guide, or [`myGym/PEPPER_VR_TELEOPERATION.md`](myGym/PEPPER_VR_TELEOPERATION.md) for detailed documentation.
+### train
+
+Train selected robot with preselcted task.
+
+```bash
+# Default training
+python myGym/train.py
+
+# Train with specific config
+python myGym/train.py --config ./configs/train_A.json
+
+# Train with GUI enabled
+python myGym/train.py --config ./configs/train_A.json -g 1
+
+# Train with multiprocessing
+python myGym/train.py --config ./configs/train_A.json -i 4
+
+# Train for specific number of steps
+python myGym/train.py --config ./configs/train_A.json -s 100000
+```
+
+### show
+
+The `interactive launcher for viewing training results and testing trained models.
+
+```bash
+
+python myGym/show.py
+
+```
+
+![alt text](myGym/images/workspaces/mygym310a.gif "Multireward")
 
 ## Unit Tests
 
-The repository includes unit tests in the `myGym/unittest/` directory:
 
-### Test all training configs
-Test train.py with all configuration files in the `./configs` folder:
-
-```bash
-# Test all configs with default settings (10000 steps)
-python3 myGym/unittest/test_train_configs.py
-
-# Test with custom step count
-python3 myGym/unittest/test_train_configs.py --steps 5000
-
-# Test a specific config
-python3 myGym/unittest/test_train_configs.py --config train_A_nico.json
-```
-
-The test will display each config with a ✔ OK mark if training succeeds without errors, and provide a summary table of successfully trained configs at the end.
-
-### Test robot URDFs
-Test robot URDF joint limit reachability:
+#### test_robots.py
+Tests robot URDF joint limit reachability for all robots in the robot dictionary.
 
 ```bash
 python3 myGym/unittest/test_robots.py
+
 ```
 
-See `myGym/unittest/README.md` for more details on available tests.  
+#### test_robot_reachability.py
+Tests robot IK reachability across a 3D volume. Generates a 3D plot of reachable points and bounding box.
 
-## Training
+```bash
+python3 myGym/unittest/test_robot_reachability.py
+```
 
-Run the default training without specifying the parameters:
+#### test_train_configs.py
+Tests train.py with all configuration files in the `./configs` folder. Reports which configs train successfully.
 
-`python train.py`
+```bash
+python3 myGym/unittest/test_train_configs.py
 
-The default traning is without GUI. You can turn GUI on, or parallelize traning (see train parameters)
+```
 
+#### test_oraculum_configs.py
+Tests the oraculum (automatic solver) with all configuration files. Verifies task feasibility.
 
-## Environment
+```bash
+python3 myGym/unittest/test_oraculum_configs.py
+```
 
-As myGym allows curriculum learning, the workspaces and tasks are concentrated in single gym, so that you can easily transfer the robot. The basic environment is called Gym-v0. There are more gyms for navigation and multi-agent collaboration in preparation. 
+For more details, see `myGym/unittest/README.md`.
 
 ## Robots
 
@@ -219,26 +159,10 @@ As myGym allows curriculum learning, the workspaces and tasks are concentrated i
 | Human Support Robot (HSR) | arm | gripper | 7 | hsr |
 | ABB Yumi  | dualarm  | two finger  |  12 | yumi  |
 | ReachyLeachy  | dualarm  | passive palms  |  14 | reachy_and_leachy |
-| Pepper  | humanoid | --  |  20 | pepper  |
-| Tiago | humanoid  | --  |  19 | tiago  |
-| Nico  | humanoid  | --  |  14 | nico  |
-
-## Workspaces
-
-| Name  |Type| Suitable tasks | Parameter value |
-|---|---|---|---|
-| Tabledesk | manipulation  | Reach,Press, Switch, Turn, PicknPlace | table |
-| Drawer | manipulation  | Pick, Place, PicknPlace  | drawer |
-| Fridge | manipulation  | Push, Pick | fridge |
-| Baskets | manipulation  | Throw, Hit | baskets |
-| Darts | manipulation  | Throw, Hit | darts |
-| Football | manipulation  | Throw, Hit | football |
-| Collaborative table | collaboration  | Give, Hold, Move together | collabtable |
-| Vertical maze | planning  | -- | veticalmaze |
-| Maze | navigation  | -- | maze |
-| Stairs | navigation  | -- | stairs |
-
-
+| Pepper  | humanoid | 5 fingers  |  20 | pepper  |
+| Tiago | humanoid  | 2 fingers  |  19 | tiago  |
+| Nico  | humanoid  | 4 fingers  |  14 | nico  |
+| G1  | humanoid  | 3 fingers  |  42 | g1  |
 
 ## Authors
 

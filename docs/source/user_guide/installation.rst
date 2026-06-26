@@ -1,35 +1,25 @@
 .. _installation:
 
-Install
-=======
+Install myGym 4.0
+=================
+From myGym 3.10 there is Stable Baseline 3 and Gymnasium. 
+If you want to use old myGym 3.7. with Stable Baselines1 and Gym, switch to branch mygym-3.7
 
-You can install myGym by standard procedure:
+Clone the repository:
 
-``git clone https://github.com/incognite_lab/mygym.git``
+``git clone https://github.com/incognite-lab/mygym.git``
 
 ``cd myGym``
 
-We reccomend to create conda environment:
+Create Python 3.10 conda env:
 
-``conda env create -f environment.yml``
+``conda create -n mygym Python=3.10``
 
 ``conda activate mygym``
 
 Install myGym:
 
-``python setup.py develop``
-
-Pretrained modules
-------------------
-
-If you want to use pretrained visual modules, please download them
-first:
-
-``cd myGym`` ``sh download_vision.sh``
-
-If you want to use pretrained baselines models, download them here:
-
-``cd myGym`` ``sh download_baselines.sh``
+``pip install -e .``
 
 Supported systems
 -----------------
