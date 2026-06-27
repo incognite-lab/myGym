@@ -32,7 +32,7 @@ class DistractorModule():
         position = [((gripper_position[0]+goal[0])/2), ((gripper_position[1]+goal[1])/2), ((gripper_position[2]+goal[2])/2)-a]
         orientation = [0,0,50,50]
         object_filename = self.env._get_random_urdf_filenames(1, [distractor])[0]
-        object = env_object.EnvObject(object_filename, position, orientation, pybullet_client=p)
+        object = env_object.EnvObject(object_filename, position=position, orientation=orientation, pybullet_client=p)
         object.move([0,0,0]) # turn off gravity
         # if self.color_dict:
         #     object.set_color(self.env.color_of_object(object))

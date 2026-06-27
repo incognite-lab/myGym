@@ -248,7 +248,7 @@ class GymEnv(CameraEnv):
     
     def _load_static_scene_urdf(self, path, name, fixedbase=True):
         transform = self.workspace_dict[self.workspace]['transform']
-        object = env_object.EnvObject(os.path.join(pkg_resources.files("myGym"), os.path.join("envs", path)), transform['position'], self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase)
+        object = env_object.EnvObject(os.path.join(pkg_resources.files("myGym"), os.path.join("envs", path)), position = transform['position'], orientation = self.p.getQuaternionFromEuler(transform['orientation']), pybullet_client=self.p, fixed=fixedbase)
         self.static_scene_objects[name] = object
         #print(f"Loaded static scene object '{name}' from: {path}")
         #print(f"Object position: {transform['position']}")
@@ -361,15 +361,19 @@ class GymEnv(CameraEnv):
                         self.p.stepSimulation()
 
                     init_ok = InitPredicateResolver().check(
-                        placed_objects=placed_objects["task_objects"],
+                        placed_objects=placed_objects,
                         env=self,
                         predicates=self.predicates_dict,
                     )
 
                     if init_ok:
                         success = True
-                        self.task_objects = placed_objects["task_objects"]
-                        self.env_objects = placed_objects["env_objects"]
+                        self.task_objects = {
+                            "actual_state": placed_objects["actual_state"],
+                            "goal_state": placed_objects["goal_state"],
+                            "distractor": placed_objects["distractor"],
+                        }
+                        self.env_objects = placed_objects
                         break
 
                     self._remove_placed_objects(placed_objects)
@@ -542,7 +546,7 @@ class GymEnv(CameraEnv):
             terminated = False
 
         elif not GoalPredicateResolver().check(
-            placed_objects=self.task_objects,
+            placed_objects=self.env_objects,
             env=self,
             predicates=self.predicates_dict,
         ):
@@ -649,21 +653,17 @@ class GymEnv(CameraEnv):
         objects_to_remove = []
 
         # Task objects: actual_state, goal_state, distractor list.
-        task_objects = placed_objects.get("task_objects", {})
-
         for key in ["actual_state", "goal_state"]:
-            obj = task_objects.get(key)
+            obj = placed_objects.get(key)
             if isinstance(obj, EnvObject):
                 objects_to_remove.append(obj)
 
-        for obj in task_objects.get("distractor", []):
+        for obj in placed_objects.get("distractor", []):
             if isinstance(obj, EnvObject):
                 objects_to_remove.append(obj)
 
         # Ordinary env objects.
-        env_objects = placed_objects.get("env_objects", {})
-
-        for obj in env_objects.get("env_objects", []):
+        for obj in placed_objects.get("env_objects", []):
             if isinstance(obj, EnvObject):
                 objects_to_remove.append(obj)
 
@@ -804,7 +804,10 @@ class GymEnv(CameraEnv):
             return None
 
         prepared_info = copy.deepcopy(obj_info)
-        urdf = self._get_urdf_filename(prepared_info["obj_name"])
+        if "urdf_name" in prepared_info:
+            urdf = self._get_urdf_filename(prepared_info["urdf_name"])
+        else:
+            urdf = self._get_urdf_filename(prepared_info["obj_name"])
 
         if not urdf:
             return None
@@ -905,8 +908,9 @@ class GymEnv(CameraEnv):
 
         object = env_object.EnvObject(
             obj_info["urdf"],
-            pos,
-            orn,
+            obj_name = obj_info["obj_name"],
+            position = pos,
+            orientation = orn,
             pybullet_client=self.p,
             fixed=fixed,
         )
@@ -941,14 +945,10 @@ class GymEnv(CameraEnv):
         }
 
         placed = {
-            "task_objects": {
-                "actual_state": None,
-                "goal_state": None,
-                "distractor": [],
-            },
-            "env_objects": {
-                "env_objects": [],
-            },
+            "actual_state": None,
+            "goal_state": None,
+            "distractor": [],
+            "env_objects": [],
         }
 
         for record in ordered_records:
@@ -964,6 +964,7 @@ class GymEnv(CameraEnv):
                     robot=self.robot,
                     predicates=predicates,
                     placed_objects=placed_lookup,
+                    env=self,
                 )
 
             env_o = self._place_object(
@@ -976,13 +977,13 @@ class GymEnv(CameraEnv):
             placed_lookup[obj_info["obj_name"]] = env_o
 
             if record["target"] == "task_objects":
-                placed["task_objects"][record["state_name"]] = env_o
+                placed[record["state_name"]] = env_o
 
             elif record["target"] == "task_distractor":
-                placed["task_objects"]["distractor"].append(env_o)
+                placed["distractor"].append(env_o)
 
             elif record["target"] == "env_objects":
-                placed["env_objects"]["env_objects"].append(env_o)
+                placed["env_objects"].append(env_o)
 
             else:
                 raise ValueError(f"Unknown placement target: {record['target']}")
@@ -1021,7 +1022,7 @@ class GymEnv(CameraEnv):
                 predicates=predicates,
             )
 
-            return placed["env_objects"]["env_objects"]
+            return placed["env_objects"]
 
         actual_state_is_robot = object_dict["init"]["obj_name"] == "null"
 
@@ -1033,7 +1034,7 @@ class GymEnv(CameraEnv):
         )
 
         if actual_state_is_robot:
-            placed["task_objects"]["actual_state"] = self.robot
+            placed["actual_state"] = self.robot
 
         return placed
 

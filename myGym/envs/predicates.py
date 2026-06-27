@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import re
 from dataclasses import dataclass
@@ -219,6 +220,7 @@ class Touching(Predicate):
     TOLERANCE = 0.01 # TODO tune and move somewhere alse
 
     def check(self, obj1, obj2) -> bool:
+        # NOTE: currently not in use, because the PyBullet contacts didnt work well enough
         """
         Return True if AABB overlap (with tolerance)
         """
@@ -250,6 +252,9 @@ class OnTop(AreaPredicate):
         """
         Return True if obj1 is on top of obj2
         """
+        if os.path.splitext(os.path.basename(obj1.urdf_path))[0] == "towertarget":
+            return True # Above().check(obj1, obj2)
+        
         obj1_min, obj1_max = get_bounding_box_limits(obj1)
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
         obj1_center_x = (obj1_min[0] + obj1_max[0]) / 2
@@ -266,11 +271,11 @@ class OnTop(AreaPredicate):
 
         return bottom_is_near_top and center_inside_support_xy
 
-    def compute_area(self, obj1_urdf: str, obj2) -> Area:
+    def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
         """
         Return sampling area for obj1 origin so that obj1 is placed on top of obj2
         """
-        obj1_bottom_offset = self._get_bottom_offset_from_urdf(obj1_urdf, obj2.p)
+        obj1_bottom_offset = self._get_bottom_offset_from_urdf(obj1_urdf, obj2.p, env)
         placing_height = obj1_bottom_offset + self.PLACING_MARGIN
         ws_dict = get_workspace_dict()
 
@@ -293,11 +298,14 @@ class OnTop(AreaPredicate):
         return sampling_area
 
     @staticmethod
-    def _get_bottom_offset_from_urdf(obj1_urdf: str, pybullet_client) -> float:
+    def _get_bottom_offset_from_urdf(obj1_urdf: str, pybullet_client, env=None) -> float:
+        if os.path.splitext(os.path.basename(obj1_urdf))[0] == "towertarget":
+            obj1_urdf = env._get_urdf_filename("kostka")
+
         temp_obj = env_object.EnvObject(
             obj1_urdf,
-            [0.0, 0.0, 1.0],
-            [0.0, 0.0, 0.0, 1.0],
+            position=[0.0, 0.0, 1.0],
+            orientation=[0.0, 0.0, 0.0, 1.0],
             pybullet_client=pybullet_client,
             fixed=True,
         )
@@ -421,11 +429,10 @@ class PredicateResolver:
         if not selected_predicates:
             # no restriction for object placement
             return True
-
+        
         objects_by_name = self._build_object_lookup(env, placed_objects)
-
         for predicate in self._parse_predicates(selected_predicates):
-            if not self._check_predicate(predicate, objects_by_name, env):
+            if not self._check_predicate(predicate, objects_by_name):
                 return False
 
         return True
@@ -476,14 +483,13 @@ class PredicateResolver:
         return [p for p in predicates if self._predicate_has_obj_as_first_arg(p, obj_name)]
 
     @staticmethod
-    def _check_predicate(predicate: PredicateCall, objects_by_name: dict, env,
-                         )-> bool:
+    def _check_predicate(predicate: PredicateCall, objects_by_name: dict)-> bool:
         """
         Check a predicate after objects have already been placed.
         """
         if predicate.predicate == "Reachable":
             obj_name = predicate.args[0]
-            return IsReachable().check(env.robot, objects_by_name[obj_name])
+            return IsReachable().check(objects_by_name["robot"], objects_by_name[obj_name])
 
         if predicate.predicate == "OnTop":
             obj_name, support_name = predicate.args
@@ -503,39 +509,43 @@ class PredicateResolver:
         
         if predicate.predicate == "GripperAt":
             target_name = predicate.args[0]
-            return ObjectAt().check(objects_by_name["robot"], objects_by_name[target_name])
+            return ObjectAt().check(objects_by_name["gripper"], objects_by_name[target_name])
         
         if predicate.predicate == "GripperClosed":
-            return GripperStatus().check(objects_by_name["robot"], "close")
+            return GripperStatus().check(objects_by_name["gripper"], "close")
         
         if predicate.predicate == "GripperOpen":
-            return GripperStatus().check(objects_by_name["robot"], "open")
+            return GripperStatus().check(objects_by_name["gripper"], "open")
         
         if predicate.predicate == "IsHolding":
             target_name = predicate.args[0]
-            return IsHolding().check(env.robot, objects_by_name[target_name])
+            return IsHolding().check(objects_by_name["gripper"], objects_by_name[target_name])
 
         raise ValueError(f"Unknown predicate: {predicate.predicate}")
 
     @staticmethod
     def _build_object_lookup(env, placed_objects: dict) -> dict:
         """
-        Build name -> object lookup for predicates.
+        Build {"name": object} lookup for env objects
         """
-        objects_by_name = {}
+        objects_by_name = {
+            "table": env.static_scene_objects[env.workspace],
+            "workspace": env.static_scene_objects[env.workspace],
+            "robot": env.robot,
+            "gripper": env.robot,
+        }
 
-        # Active task objects.
-        for obj in placed_objects.values():
+        # Active task objects
+        for key in ["actual_state", "goal_state"]:
+            obj = placed_objects.get(key)
+
             if hasattr(obj, "name"):
                 objects_by_name[obj.name] = obj
-
-        # Static scene aliases.
-        objects_by_name["table"] = env.static_scene_objects[env.workspace]
-        objects_by_name[env.workspace] = env.static_scene_objects[env.workspace]
-
-        # Robot alias.
-        objects_by_name["robot"] = env.robot
-        objects_by_name["gripper"] = env.robot
+        
+        # Other env objects
+        for obj in placed_objects.get("env_objects", []):
+            if hasattr(obj, "name"):
+                objects_by_name[obj.name] = obj
 
         return objects_by_name
 
@@ -566,7 +576,7 @@ class InitPredicateResolver(PredicateResolver):
 
     predicate_key = "init"
 
-    def get_area(self, obj_info, table, robot, predicates, placed_objects=None) -> Area | None:
+    def get_area(self, obj_info, table, robot, predicates, placed_objects=None, env=None) -> Area | None:
         """
         Compute object sampling area from init predicates
         """
@@ -579,13 +589,13 @@ class InitPredicateResolver(PredicateResolver):
         #print(obj_info["obj_name"], "predicates:", predicates)
 
         if not predicates:
-            random_table_area = OnTop().compute_area(obj1_urdf, table)
+            random_table_area = OnTop().compute_area(obj1_urdf, table, env)
             return random_table_area
-        
+
         area = get_infinite_area()
         predicate_calls = self._parse_predicates(predicates)
         predicate_map = self._get_predicate_map(predicate_calls)
-        
+
         for on_top_predicate in predicate_map.get("OnTop", []):
             area = self._apply_on_top_area(
                 current_area=area,
@@ -593,6 +603,7 @@ class InitPredicateResolver(PredicateResolver):
                 table=table,
                 obj1_urdf=obj1_urdf,
                 placed_objects=placed_objects,
+                env=env,
             )
 
         for reachable_predicate in predicate_map.get("Reachable", []):
@@ -607,7 +618,7 @@ class InitPredicateResolver(PredicateResolver):
     
 
     def _apply_on_top_area(
-            self, current_area: Area, predicate: PredicateCall, table, obj1_urdf: str, placed_objects
+            self, current_area: Area, predicate: PredicateCall, table, obj1_urdf: str, placed_objects, env=None
             ) -> Area | None:
         """
         Apply OnTop(obj1, obj2) as an area constraint
@@ -629,7 +640,7 @@ class InitPredicateResolver(PredicateResolver):
                     f"Supporting object '{obj2_name}' has not been placed yet."
                 )
         
-        on_top_area = OnTop().compute_area(obj1_urdf, support_object)
+        on_top_area = OnTop().compute_area(obj1_urdf, support_object, env)
         return get_range_intersection(current_area, on_top_area)
 
     def _apply_reachable_area(

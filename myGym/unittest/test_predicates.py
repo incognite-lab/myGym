@@ -123,8 +123,8 @@ def spawn_object(env, urdf_path: str, position, fixed: bool = False):
     """
     return env_object.EnvObject(
         urdf_path,
-        position,
-        [0, 0, 0, 1],
+        position=position,
+        orientation=[0, 0, 0, 1],
         pybullet_client=env.p,
         fixed=fixed,
     )

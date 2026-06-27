@@ -1,0 +1,58 @@
+{
+    #Environment
+    "env_name"  :"Gym-v0",
+    "workspace" :"table_complex",
+    "engine"    :"pybullet",
+    "render"    :"opengl",
+    "seed"      :1,
+    "camera"    :0,
+    "gui"       :0,
+    "visualize" :0,
+    "visgym"    :0,
+    #Robot
+    "robot"         :"g1",
+    "robot_action"  :"joints_gripper",
+    "robot_init"    : "default",
+    "max_velocity"  :1,
+    "max_force"     :200,
+    "action_repeat" :1,
+    #Task
+    "task_type"             :"AGMD",
+    "natural_language"      :0,
+    "task_objects"          :[{"init":{"obj_name":"kostka_top", "urdf_name":"kostka", "fixed":0,"rand_rot":0}, 
+                               "goal":{"obj_name":"target", "urdf_name":"towertarget", "fixed":1,"rand_rot":0},
+                               "used_objects":[{"obj_name": "kostka_bottom", "urdf_name":"kostka", "fixed": 0, "rand_rot": 0}]}],
+    "predicates"            :[{"init":["Reachable(kostka_bottom)", "OnTop(kostka_bottom,table)", "OnTop(target,kostka_bottom)",
+                                       "Reachable(kostka_top)", "OnTop(kostka_top,table)"],
+                               "goal":["Near(kostka_top,target)", "OnTop(kostka_top,kostka_bottom)", "GripperOpen()"]}],
+    "color_dict"            : {"kostka_top":["green"], "target":["gray"]},
+    "used_objects"          : {"num_range": [0, 0],
+                               "obj_list": []},
+
+    // Observation
+    // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
+    // goal_state options (pick one): "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
+    // additional_obs options (pick none/one/more): "joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"
+    "observation"           : {"actual_state":"obj_6D", "goal_state":"obj_6D", "additional_obs":["endeff_6D","joints_angles","gjoints_angles","gjoints_states","init_6D"]},
+    #Distractor
+    "distractors"           : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
+                                       "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
+    #Reward
+    "distance_type" :"euclidean",
+    "vae_path"      :null,
+    "yolact_path"   :null,
+    "yolact_config" :null,
+    #Train
+    "train_framework"   :"pytorch",
+    "algo"              :"ppo",
+    "max_episode_steps" :1024,
+    "algo_steps"        :1024,
+    "steps"             :15000000,
+    "pretrained_model"  :null,
+    "multiprocessing"   :null,
+    #Evaluation
+    "eval_freq"     :500000,
+    "eval_episodes" :50,
+    #Saving and logging
+    "record"    :0
+    }
