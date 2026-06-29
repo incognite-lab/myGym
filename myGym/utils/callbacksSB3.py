@@ -123,6 +123,7 @@ class CustomEvalCallback(EvalCallback):
             srewardsuccess = np.zeros(evaluation_env.unwrapped.reward.num_networks)
             while not done:
                 steps_sum += 1
+                print("Episode:", e, "Step:", steps, "Network:", evaluation_env.unwrapped.reward.current_network)   
                 action, state = model.predict(obs, deterministic=deterministic)
                 if isinstance(self.eval_env, VecMonitor):
                     obs, reward, done, info = self.eval_env.step(action)
@@ -150,11 +151,14 @@ class CustomEvalCallback(EvalCallback):
                                                       [.8, .5, 0.55], textSize=1.0, lifeTime=0.5,
                                                       textColorRGB=[0.2, 0.8, 1])
                 episode_reward += reward
+                print (info)
                 is_successful = not info['f']
 
                 if evaluation_env.unwrapped.reward.current_network != last_network:
                     srewardsteps.put([last_network], steps - last_steps)
-                    srewardsuccess.put([last_network], 1)
+                    # Count subgoal as finished only for episodes that finish successfully.
+                    if is_successful:
+                        srewardsuccess.put([last_network], 1)
                     last_network = evaluation_env.unwrapped.reward.current_network
                     last_steps = steps
                 #distance_error = self.eval_env.env.unwrapped.reward.get_distance_error(info['o'])
@@ -390,7 +394,9 @@ class MultiPPOEvalCallback(EvalCallback):
                 if current_network != last_network:
                     if not done:
                         srewardsteps.put([last_network], steps - last_steps)
-                        srewardsuccess.put([last_network], 1)
+                        # Count subgoal as finished only for episodes that finish successfully.
+                        if is_successful:
+                            srewardsuccess.put([last_network], 1)
                         last_network = current_network
                         last_steps = steps
 
@@ -628,7 +634,9 @@ class PPOEvalCallback(EvalCallback):
                 if current_network != last_network:
                     if not done:
                         srewardsteps.put([last_network], steps - last_steps)
-                        srewardsuccess.put([last_network], 1)
+                        # Count subgoal as finished only for episodes that finish successfully.
+                        if is_successful:
+                            srewardsuccess.put([last_network], 1)
                         last_network = current_network
                         last_steps = steps
                 distance_error = env_reward.last_result["absolute_distance"]

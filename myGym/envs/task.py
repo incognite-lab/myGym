@@ -221,9 +221,10 @@ class TaskModule():
         Returns:
             :return: (bool)
         """
-        if self.env.episode_steps == self.env.max_episode_steps:
+        if self.env.episode_steps >= self.env.max_episode_steps:
+            # Mark episode as failed/truncated and keep that state for the caller.
             self.end_episode_fail("Max amount of steps reached")
-        return False
+        return self.env.episode_failed
 
     def check_object_moved(self, object, threshold=0.3):
         """

@@ -560,7 +560,7 @@ class GymEnv(CameraEnv):
             RESET = "\033[0m"
             print(f"{GREEN}Goal predicates satisfied{RESET}")
             terminated = True
-
+        self.task.check_episode_steps()
         truncated = self.episode_truncated
         info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
