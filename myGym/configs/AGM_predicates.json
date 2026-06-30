@@ -19,12 +19,12 @@
     #Task
     "task_type"             :"AGM",
     "natural_language"      :0,
-    "task_objects"          :[{"init":{"obj_name":"apple","fixed":0,"rand_rot":0}, 
-                               "goal":{"obj_name":"tuna_can","fixed":1,"rand_rot":0},
+    "task_objects"          :[{"init":{"obj_name":"apple1", "urdf_name":"apple", "fixed":0,"rand_rot":0}, 
+                               "goal":{"obj_name":"apple2", "urdf_name":"apple","fixed":1,"rand_rot":0},
                                "used_objects":[]}],
-    "predicates"            :[{"init":["Reachable(apple)", "OnTop(apple,table)", "Reachable(tuna_can)", "OnTop(tuna_can,table)"],
-                            "goal":["Near(apple,tuna_can)", "GripperAt(apple)", "GripperClosed()", "IsHolding(apple)"]}],
-    "color_dict"            : {"apple":["green"], "target":["gray"]},
+    "predicates"            :[{"init":["Reachable(apple1)", "OnTop(apple1,table)", "Reachable(apple2)", "OnTop(apple2,table)"],
+                            "goal":["Near(apple1,apple2)", "GripperAt(apple1)", "GripperClosed()", "IsHolding(apple1)"]}],
+    "color_dict"            : {"apple1":["green"], "target":["gray"]},
     "used_objects"          : {"num_range": [0, 0],
                                "obj_list": []},
 

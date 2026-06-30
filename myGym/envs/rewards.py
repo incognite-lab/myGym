@@ -8,6 +8,7 @@ from myGym.utils.vector import Vector
 import random
 import time
 import json
+from myGym.envs.predicates import GoalPredicateResolver, SubgoalPredicateResolver
 
 class UniversalReward:
     """
@@ -332,13 +333,34 @@ class Rewarder(UniversalReward):
 
         # Check if arm is solved and progress to next network
         if result["arm_solved"] and result["gripper_solved"]:
+            current_preds = self.env._get_current_predicates()
             if self.owner < self.num_networks - 1:
-                self.owner += 1
-                print(f"Switching to ({self.network_names[self.owner]})")
+                if SubgoalPredicateResolver(self.task.current_subgoal).check(
+                    placed_objects=self.env.env_objects,
+                    env=self.env,
+                    predicates=current_preds,
+                ):
+                    print(f"Subgoal {self.task.current_subgoal} satisfied, switching to ({self.network_names[self.owner + 1]})")
+                    self.task.current_subgoal += 1
+                    self.owner += 1
+                    #GREEN = "\033[92m"
+                    #RESET = "\033[0m"
+                    #print(f"{GREEN}Goal predicates satisfied{RESET}")
+                #else:
+                    #RED = "\033[91m"
+                    #RESET = "\033[0m"
+                    #print(f"{RED}Goal predicates not satisfied{RESET}")
             else:
-                self.finished = True
-                print(f"All subgoals completed!")
-                self.task.check_goal()
+                if GoalPredicateResolver().check(
+                    placed_objects=self.env.env_objects,
+                    env=self.env,
+                    predicates=current_preds,
+                ):
+                    print("All subgoals completed! Goal predicates satisfied.")
+                    self.finished = True
+                    self.task.check_goal()
+                else:
+                    print("Geometric goal reached but goal predicates not yet satisfied.")
                 
 
             
