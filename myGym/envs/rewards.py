@@ -369,28 +369,19 @@ class Rewarder(UniversalReward):
                     print(f"Subgoal {self.task.current_subgoal} satisfied, switching to ({self.network_names[self.owner + 1]})")
                     self.task.current_subgoal += 1
                     self.owner += 1
-                    #GREEN = "\033[92m"
-                    #RESET = "\033[0m"
-                    #print(f"{GREEN}Goal predicates satisfied{RESET}")
-                #else:
-                    #RED = "\033[91m"
-                    #RESET = "\033[0m"
-                    #print(f"{RED}Goal predicates not satisfied{RESET}")
+
             else:
                 if GoalPredicateResolver().check(
                     placed_objects=self.env.env_objects,
                     env=self.env,
                     predicates=current_preds,
                 ):
-                    print("All subgoals completed! Goal predicates satisfied.")
                     self.finished = True
-                    self.task.check_goal()
-                else:
-                    print("Geometric goal reached but goal predicates not yet satisfied.")
+                    GREEN = "\033[92m"
+                    RESET = "\033[0m"
+                    print(f"{GREEN}Goal predicates satisfied{RESET}")
+                self.task.check_goal()
                 
-
-            
-            
 
         self.current_network = self.owner
         self.network_rewards[self.current_network] += reward
