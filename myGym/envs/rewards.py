@@ -8,6 +8,7 @@ from myGym.utils.vector import Vector
 import random
 import time
 import json
+from pyquaternion import Quaternion  
 
 class UniversalReward:
     """
@@ -211,6 +212,30 @@ class UniversalReward:
             self.grip_absolute_reward_history, self.grip_relative_reward_history
         )
 
+
+        #Calculate gripper orientation reward (fixed value - TODO: add as parameter)
+        gripper_orientation_reward = 0.0  # Replace with actual orientation reward calculation
+        #gripper_orientation_weight = 1  # Weight for orientation reward (can be adjusted)
+
+        # Default gripper orientation (identity quaternion)
+        default_gripper_orientation = np.array([0.0, 0.0, 0.0, 1.0])
+
+        # Current gripper orientation
+        current_gripper_orientation = np.asarray(self.env.robot.get_orientation(), dtype=float)
+
+        # Normalize quaternions
+        q1 = default_gripper_orientation / np.linalg.norm(default_gripper_orientation)
+        q2 = current_gripper_orientation / np.linalg.norm(current_gripper_orientation)
+
+        # Smallest angular difference between orientations (0 to pi radians)
+        angular_error = 2.0 * np.arccos(
+            np.clip(np.abs(np.dot(q1, q2)), 0.0, 1.0)
+        )
+
+        # Reward: +1 (perfect alignment) to -1 (180° error)
+        gripper_orientation_reward = 1.0 - 2.0 * (angular_error / np.pi)
+
+        
         # Update previous distances for next step
         self.prev_trans_dist = trans_dist
         self.prev_rot_dist = rot_dist
@@ -222,7 +247,8 @@ class UniversalReward:
                         arm_temporal_reward * armweight * temporalweight +
                         gripper_absolute_reward * gripperweight * absoluteweight + 
                         gripper_relative_reward * gripperweight * relativeweight + 
-                        gripper_temporal_reward * gripperweight * temporalweight)
+                        gripper_temporal_reward * gripperweight * temporalweight +
+                        gripper_orientation_reward * gripperweight)
 
         result = {
             "arm_absolute_reward": arm_absolute_reward,
