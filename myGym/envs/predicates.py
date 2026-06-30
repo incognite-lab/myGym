@@ -396,9 +396,21 @@ class GripperStatus(Predicate):
 class IsHolding(Predicate):
     """
     Check whether gripper is holding object
+
+    Uses gripper joint status + proximity rather than magnetized_objects, because
+    magnetize_object has an independent 0.1m distance gate that can fire later than
+    the protoreward's arm_solved (85% progress), causing inconsistent results.
     """
+    DISTANCE_THRESHOLD = 0.15
+
     def check(self, gripper, obj) -> bool:
-        return obj in gripper.holding
+        closed = GripperStatus().check(gripper, "close")
+        if not closed:
+            return False
+        distance = np.linalg.norm(
+            np.asarray(gripper.get_position()) - np.asarray(obj.get_position()[:3])
+        )
+        return distance <= self.DISTANCE_THRESHOLD
 
 
 
@@ -408,6 +420,7 @@ class IsHolding(Predicate):
 class PredicateCall:
     predicate: str
     args: list[str]
+    negated: bool = False
 
 
 class PredicateResolver:
@@ -460,7 +473,7 @@ class PredicateResolver:
         """
         parsed_predicates = []
         for predicate in predicates:
-            match = re.fullmatch(r"\s*(\w+)\s*\((.*)\)\s*", predicate)
+            match = re.fullmatch(r"\s*(\w+)\s*\((.*)\)\s*(?::\s*(True|False))?\s*", predicate)
 
             if match is None:
                 raise ValueError(f"Invalid predicate format: {predicate}")
@@ -468,8 +481,9 @@ class PredicateResolver:
             name = match.group(1)
             args_text = match.group(2)
             args = [arg.strip() for arg in args_text.split(",") if arg.strip()]
+            negated = match.group(3) == "False" if match.group(3) is not None else False
 
-            parsed_predicates.append(PredicateCall(predicate=name, args=args))
+            parsed_predicates.append(PredicateCall(predicate=name, args=args, negated=negated))
 
         return parsed_predicates
     
@@ -483,45 +497,52 @@ class PredicateResolver:
         return [p for p in predicates if self._predicate_has_obj_as_first_arg(p, obj_name)]
 
     @staticmethod
-    def _check_predicate(predicate: PredicateCall, objects_by_name: dict)-> bool:
+    def _check_predicate(predicate: PredicateCall, objects_by_name: dict) -> bool:
         """
-        Check a predicate after objects have already been placed.
+        Evaluate predicate and apply negation. Returns the final bool.
         """
+        gripper = objects_by_name.get("gripper")
+
+        if predicate.predicate == "GripperOpen":
+            status = "close" if predicate.negated else "open"  # Open/Closed are not logic complements (neutral state)
+            return GripperStatus().check(gripper, status)
+
+        if predicate.predicate == "GripperClosed":
+            status = "open" if predicate.negated else "close"
+            return GripperStatus().check(gripper, status)
+
         if predicate.predicate == "Reachable":
             obj_name = predicate.args[0]
-            return IsReachable().check(objects_by_name["robot"], objects_by_name[obj_name])
+            result = IsReachable().check(objects_by_name["robot"], objects_by_name[obj_name])
 
-        if predicate.predicate == "OnTop":
+        elif predicate.predicate == "OnTop":
             obj_name, support_name = predicate.args
-            return OnTop().check(objects_by_name[obj_name], objects_by_name[support_name])
-        
-        if predicate.predicate == "Touching":
-            obj1_name, obj2_name = predicate.args
-            return Touching().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
-        
-        if predicate.predicate == "Near":
-            obj1_name, obj2_name = predicate.args
-            return Near().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
+            result = OnTop().check(objects_by_name[obj_name], objects_by_name[support_name])
 
-        if predicate.predicate == "ObjectAt":
+        elif predicate.predicate == "Touching":
+            obj1_name, obj2_name = predicate.args
+            result = Touching().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
+
+        elif predicate.predicate == "Near":
+            obj1_name, obj2_name = predicate.args
+            result = Near().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
+
+        elif predicate.predicate == "ObjectAt":
             obj_name, target_name = predicate.args
-            return ObjectAt().check(objects_by_name[obj_name], objects_by_name[target_name])
-        
-        if predicate.predicate == "GripperAt":
-            target_name = predicate.args[0]
-            return ObjectAt().check(objects_by_name["gripper"], objects_by_name[target_name])
-        
-        if predicate.predicate == "GripperClosed":
-            return GripperStatus().check(objects_by_name["gripper"], "close")
-        
-        if predicate.predicate == "GripperOpen":
-            return GripperStatus().check(objects_by_name["gripper"], "open")
-        
-        if predicate.predicate == "IsHolding":
-            target_name = predicate.args[0]
-            return IsHolding().check(objects_by_name["gripper"], objects_by_name[target_name])
+            result = ObjectAt().check(objects_by_name[obj_name], objects_by_name[target_name])
 
-        raise ValueError(f"Unknown predicate: {predicate.predicate}")
+        elif predicate.predicate == "GripperAt":
+            target_name = predicate.args[0]
+            result = ObjectAt().check(gripper, objects_by_name[target_name])
+
+        elif predicate.predicate == "IsHolding":
+            target_name = predicate.args[0]
+            result = IsHolding().check(gripper, objects_by_name[target_name])
+
+        else:
+            raise ValueError(f"Unknown predicate: {predicate.predicate}")
+
+        return (not result) if predicate.negated else result
 
     @staticmethod
     def _build_object_lookup(env, placed_objects: dict) -> dict:

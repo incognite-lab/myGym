@@ -530,8 +530,6 @@ class GymEnv(CameraEnv):
         self._apply_action_robot(action)
         self._observation = self.get_observation()
 
-        self.robot.holding = self.robot.magnetized_objects  # magnetized_objects are erased after reward.compute()
-
         reward = self.unwrapped.reward.compute(observation=self._observation,)
         self.episode_reward += reward
         
