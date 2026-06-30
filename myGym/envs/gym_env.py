@@ -9,7 +9,7 @@ from collections import ChainMap
 
 from myGym.envs.env_object import EnvObject
 from myGym.envs.rewards import *
-from myGym.envs.predicates import InitPredicateResolver, GoalPredicateResolver
+from myGym.envs.predicates import InitPredicateResolver
 import numpy as np
 from itertools import chain
 import random
@@ -353,7 +353,7 @@ class GymEnv(CameraEnv):
                 for _ in range(100):
                     placed_objects = self._randomly_place_objects(
                         object_dict=self._build_placement_request(),
-                        predicates=self.predicates_dict,
+                        predicates=self._get_current_predicates(),
                     )
 
                     for _ in range(100):
@@ -363,7 +363,7 @@ class GymEnv(CameraEnv):
                     init_ok = InitPredicateResolver().check(
                         placed_objects=placed_objects,
                         env=self,
-                        predicates=self.predicates_dict,
+                        predicates=self._get_current_predicates(),
                     )
 
                     if init_ok:
@@ -530,10 +530,9 @@ class GymEnv(CameraEnv):
         self._apply_action_robot(action)
         self._observation = self.get_observation()
 
-        # WARNING: might or might not be illegal
         self.robot.holding = self.robot.magnetized_objects  # magnetized_objects are erased after reward.compute()
 
-        reward = self.unwrapped.reward.compute(observation=self._observation)
+        reward = self.unwrapped.reward.compute(observation=self._observation,)
         self.episode_reward += reward
         
         #if self.unwrapped.reward.owner == self.unwrapped.reward.num_networks - 1:
@@ -542,36 +541,18 @@ class GymEnv(CameraEnv):
         #if self.unwrapped.reward.last_result['task_solved'] and self.unwrapped.reward.last_result['gripper_solved']:
         #    self.reset(only_subtask=True)
 
-        if not self.episode_terminated:
-            terminated = False
-
-        elif not GoalPredicateResolver().check(
-            placed_objects=self.env_objects,
-            env=self,
-            predicates=self.predicates_dict,
-        ):
-            RED = "\033[91m"
-            RESET = "\033[0m"
-            print(f"{RED}Goal predicates not satisfied{RESET}")
-            terminated = False
-        
-        else:
-            GREEN = "\033[92m"
-            RESET = "\033[0m"
-            print(f"{GREEN}Goal predicates satisfied{RESET}")
-            terminated = True
-        self.task.check_episode_steps()
+        terminated = self.episode_terminated
         truncated = self.episode_truncated
         info = {'d': 1, 'f': int(self.episode_failed),
                     'o': self._observation}
-        
+
         if terminated or truncated:
-            self.successful_finish(info) #Maybe only change to 'if terminated'? Probably not
+            self.successful_finish(info)
 
         if self.task.subtask_over:
             self.reset(only_subtask=True)
             print("Subtask finished, shifting to the next one!")
-        #print(self.flatten_obs(self._observation.copy()))
+
         return self.flatten_obs(self._observation.copy()), reward, terminated, truncated, info
 
     def compute_reward(self, achieved_goal, desired_goal, info):
@@ -676,6 +657,19 @@ class GymEnv(CameraEnv):
 
             self.p.removeBody(obj.uid)
             removed_uids.add(obj.uid)
+
+    def _get_current_predicates(self) -> dict:
+        """
+        Return the predicates dict for the currently active task.
+
+        Mirrors task_objects_dict[current_task] indexing: predicates are given as a
+        list with one entry per task_objects subtask.
+        """
+        if not self.predicates_dict:
+            return {}
+        if isinstance(self.predicates_dict, list):
+            return self.predicates_dict[self.task.current_task]
+        return self.predicates_dict
 
     def _build_placement_request(self):
         """

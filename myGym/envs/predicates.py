@@ -746,3 +746,12 @@ class GoalPredicateResolver(PredicateResolver):
     """
     predicate_key = "goal"
 
+
+class SubgoalPredicateResolver(PredicateResolver):
+    """
+    Check predicates describing an intermediate subgoal state, e.g. "subgoal1", "subgoal2".
+    """
+
+    def __init__(self, subgoal_index: int):
+        self.predicate_key = f"subgoal{subgoal_index}"
+
