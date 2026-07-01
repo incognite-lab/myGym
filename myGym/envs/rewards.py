@@ -243,6 +243,33 @@ class UniversalReward:
         self.prev_grip_dist = grip_dist
         self.step += 1
 
+        # Default gripper orientation (identity quaternion)
+        default_gripper_orientation = np.array([0.0, 0.0, 0.0, 1.0])
+
+        # Current gripper orientation
+        current_gripper_orientation = np.asarray(self.env.robot.get_orientation(), dtype=float)
+
+        # Normalize quaternions
+        q1 = default_gripper_orientation / np.linalg.norm(default_gripper_orientation)
+        q2 = current_gripper_orientation / np.linalg.norm(current_gripper_orientation)
+
+        # Convert quaternions to Euler angles (roll, pitch, yaw)
+        # Using PyQuaternion for conversion
+        q_default = Quaternion(q1[3], q1[0], q1[1], q1[2])  # (w, x, y, z)
+        q_current = Quaternion(q2[3], q2[0], q2[1], q2[2])
+
+        roll_default, _, _ = q_default.yaw_pitch_roll
+        roll_current, _, _ = q_current.yaw_pitch_roll
+
+        # Compute absolute difference in roll only
+        roll_diff = abs(roll_current - roll_default)
+
+        # Normalize roll difference to [0, π] range (max possible is π radians)
+        roll_diff = min(roll_diff, 2 * pi - roll_diff)  # Handle wrap-around
+
+        # Reward: +1 (perfect alignment) to -1 (π radian error)
+        gripper_orientation_reward = 1.0 - 2.0 * (roll_diff / pi)
+
         total_reward = (arm_absolute_reward * armweight * absoluteweight + 
                         arm_relative_reward * armweight * relativeweight + 
                         arm_temporal_reward * armweight * temporalweight +
