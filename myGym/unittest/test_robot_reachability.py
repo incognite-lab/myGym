@@ -7,6 +7,7 @@ can reach each point within a threshold distance of 0.05 (L-norm).
 """
 
 import argparse
+import json
 import os
 import sys
 import numpy as np
@@ -22,6 +23,18 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.helpers import get_robot_dict, get_workspace_dict
 import importlib.resources as pkg_resources
+
+
+GRASP_EULERS = {
+    "top": [0.0, 0.0, 0.0],
+    "left": [np.pi / 2, 0.0, 0.0],
+    "right": [-np.pi / 2, 0.0, 0.0],
+    "back": [0.0, -np.pi / 2, 0.0],
+    "front": [0.0, np.pi / 2, 0.0],
+    "bottom": [np.pi, 0.0, 0.0],
+}
+
+GRASP_ORDER = ["any", "top", "left", "right", "back", "front", "bottom"]
 
 
 def get_controllable_arm_joints(robot_id, num_joints):
@@ -178,18 +191,13 @@ def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target
     if not joints_within_limits:
         return False
     
-    # Set motor commands instead of resetting joint states
-    p.setJointMotorControlArray(
-        bodyUniqueId=robot_id,
-        jointIndices=joint_idxs,
-        controlMode=p.POSITION_CONTROL,
-        targetPositions=target_positions,
-        forces=[50] * len(joint_idxs),
-        targetVelocities=[1] * len(joint_idxs)
-    )
-    
-    # Run simulation for 100 steps to let motors reach target
-    for _ in range(300):
+    # Set exact joint states directly.
+    # p.setJointMotorControlArray(...)  # Disabled per request.
+    for joint_idx, target_pos in zip(joint_idxs, target_positions):
+        p.resetJointState(robot_id, joint_idx, target_pos)
+
+    # Run a short settle period.
+    for _ in range(10):
         p.stepSimulation()
         #time.sleep(0.01)
     
@@ -212,6 +220,31 @@ def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target
     distance = np.linalg.norm(np.array(target_pos) - ee_pos)
     
     return distance <= threshold
+
+
+def test_grasp_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, threshold=0.05):
+    """Test reachability for all configured grasp orientations at a single point."""
+    grasp_results = {
+        "any": test_reachability(
+            robot_id,
+            end_effector_idx,
+            joint_idxs,
+            target_pos,
+            None,
+            threshold,
+        )
+    }
+    for grasp_name, grasp_euler in GRASP_EULERS.items():
+        grasp_quat = p.getQuaternionFromEuler(grasp_euler)
+        grasp_results[grasp_name] = test_reachability(
+            robot_id,
+            end_effector_idx,
+            joint_idxs,
+            target_pos,
+            grasp_quat,
+            threshold,
+        )
+    return grasp_results
 
 
 def generate_grid_points(min_coords, max_coords, step):
@@ -708,6 +741,9 @@ def test_robot_reachability(robot_key, r_dict, args):
         print(f"Using orientation constraint: Euler={args.euler}, Quat={target_orientation}")
     else:
         print("Using position-only IK (no orientation constraint)")
+
+    if args.all_grasps:
+        print("Using all grasp orientations plus orientation-unconstrained IK ('any')")
     
     # Create IK target visualization object
     box_size = 0.02
@@ -730,6 +766,8 @@ def test_robot_reachability(robot_key, r_dict, args):
     
     # Test reachability for each point
     reachable_points = []
+    point_grasp_stats = []
+    grasp_summary = {grasp_name: {"reachable": 0, "tested": 0} for grasp_name in GRASP_ORDER}
     
     # Visual marker lists (only used in GUI mode)
     reachable_visual_ids = []
@@ -740,10 +778,29 @@ def test_robot_reachability(robot_key, r_dict, args):
         p.resetBasePositionAndOrientation(box_id, point, [0, 0, 0, 1])
         
         # Test reachability
-        is_reachable = test_reachability(
-            robot_id, end_effector_idx, joint_idxs,
-            point, target_orientation, args.threshold
-        )
+        if args.all_grasps:
+            grasp_results = test_grasp_reachability(
+                robot_id,
+                end_effector_idx,
+                joint_idxs,
+                point,
+                args.threshold,
+            )
+            is_reachable = any(grasp_results.values())
+            point_grasp_stats.append({
+                "point": [float(coord) for coord in point],
+                "results": {name: bool(value) for name, value in grasp_results.items()},
+            })
+            for grasp_name, grasp_reachable in grasp_results.items():
+                grasp_summary[grasp_name]["tested"] += 1
+                if grasp_reachable:
+                    grasp_summary[grasp_name]["reachable"] += 1
+        else:
+            grasp_results = None
+            is_reachable = test_reachability(
+                robot_id, end_effector_idx, joint_idxs,
+                point, target_orientation, args.threshold
+            )
         
         # Reset robot to home position after each test
         reset_robot_with_joint_angles(robot_id, joint_idxs, init_joint_angles)
@@ -786,6 +843,12 @@ def test_robot_reachability(robot_key, r_dict, args):
             reachable_count = len(reachable_points)
             print(f"Progress: {i+1}/{total_points} ({progress:.1f}%) - "
                   f"Reachable: {reachable_count} ({reachable_count/(i+1)*100:.1f}%)")
+            if args.all_grasps:
+                grasp_counts = ", ".join(
+                    f"{grasp_name}={grasp_summary[grasp_name]['reachable']}"
+                    for grasp_name in GRASP_ORDER
+                )
+                print(f"  Grasp reachability so far: {grasp_counts}")
     
     # Compute bounding box
     bbox_min, bbox_max = compute_bounding_box(reachable_points)
@@ -801,6 +864,38 @@ def test_robot_reachability(robot_key, r_dict, args):
     print(f"Workspace: {workspace_key}")
     print(f"Total points tested: {total_points}")
     print(f"Reachable points: {len(reachable_points)} ({len(reachable_points)/total_points*100:.2f}%)")
+
+    if args.all_grasps:
+        print("\nPer-grasp summary:")
+        for grasp_name in GRASP_ORDER:
+            tested = grasp_summary[grasp_name]["tested"]
+            reachable = grasp_summary[grasp_name]["reachable"]
+            ratio = (reachable / tested * 100.0) if tested else 0.0
+            print(f"  {grasp_name:>6}: {reachable}/{tested} ({ratio:.2f}%)")
+
+        grasp_report_path = f"./unittest/reachability_{robot_key}_grasps.json"
+        grasp_report = {
+            "robot": robot_key,
+            "workspace": workspace_key,
+            "tested_min": list(map(float, args.min)),
+            "tested_max": list(map(float, args.max)),
+            "step": float(args.step),
+            "threshold": float(args.threshold),
+            "orientation_any": "IK called without orientation parameter",
+            "grasp_eulers": {name: [float(v) for v in euler] for name, euler in GRASP_EULERS.items()},
+            "point_statistics": point_grasp_stats,
+            "summary": {
+                name: {
+                    "reachable": int(data["reachable"]),
+                    "tested": int(data["tested"]),
+                    "ratio": (data["reachable"] / data["tested"] if data["tested"] else 0.0),
+                }
+                for name, data in grasp_summary.items()
+            },
+        }
+        with open(grasp_report_path, "w", encoding="utf-8") as report_file:
+            json.dump(grasp_report, report_file, indent=2)
+        print(f"Per-point grasp statistics saved to {grasp_report_path}")
     
     if bbox_min is not None and bbox_max is not None:
         print(f"\n3D Bounding Box of Reachable Volume:")
@@ -886,6 +981,11 @@ def main():
         "--with-orientation",
         action="store_true",
         help="Use orientation constraint in IK (default: position only)"
+    )
+    parser.add_argument(
+        "--all-grasps",
+        action="store_true",
+        help="Test all basic grasp orientations at each grid point"
     )
     parser.add_argument(
         "--euler",
