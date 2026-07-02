@@ -11,6 +11,7 @@ import json
 import os
 import sys
 import numpy as np
+import pinocchio as pin
 import pybullet as p
 import pybullet_data
 import matplotlib.pyplot as plt
@@ -65,40 +66,24 @@ def find_end_effector(robot_id):
     return -1
 
 
-def calculate_home_joint_angles(robot_id, end_effector_idx, joint_idxs, home_position=[0.0, 0.0, 3]):
-    """Calculate joint angles to move end effector to home position.
-    
-    Args:
-        robot_id: PyBullet robot ID
-        end_effector_idx: End effector link index
-        joint_idxs: List of controllable joint indices
-        home_position: Target home position for end effector [x, y, z]
-        
-    Returns:
-        List of joint angles (clipped to joint limits if they exist)
-    """
-    # Calculate IK for home position
-    ik_solution = p.calculateInverseKinematics(
-        robot_id, end_effector_idx, home_position
+def calculate_home_joint_angles(robot_id, end_effector_idx, joint_idxs, home_position=[0.0, 0.0, 3], pin_ctx=None, init_joint_angles=None):
+    """Calculate joint angles to move end effector to home position using Pinocchio IK."""
+    del robot_id, end_effector_idx  # Kept for backward-compatible signature.
+
+    if pin_ctx is None:
+        raise ValueError("Pinocchio context is required to compute home joint angles")
+
+    if init_joint_angles is None:
+        init_joint_angles = [0.0] * len(pin_ctx["ordered_pin_q_indices"])
+
+    ik_solution_map = solve_ik_pinocchio(
+        pin_ctx,
+        init_joint_angles,
+        home_position,
+        target_orientation=None,
     )
-    
-    # Clip IK solution to joint limits
-    joint_angles = []
-    for index, joint_idx in enumerate(joint_idxs):
-        if index < len(ik_solution):
-            joint_info = p.getJointInfo(robot_id, joint_idx)
-            joint_lower_limit = joint_info[8]
-            joint_upper_limit = joint_info[9]
-            
-            ik_value = ik_solution[index]
-            
-            # Clip to joint limits if they exist
-            #if joint_lower_limit < joint_upper_limit:
-            #    ik_value = np.clip(ik_value, joint_lower_limit, joint_upper_limit)
-            
-            joint_angles.append(ik_value)
-    
-    return joint_angles
+
+    return [ik_solution_map.get(joint_idx, 0.0) for joint_idx in joint_idxs]
 
 
 def reset_robot_with_joint_angles(robot_id, joint_idxs, joint_angles):
@@ -136,7 +121,111 @@ def reset_robot_to_home(robot_id, end_effector_idx, joint_idxs, robot_info):
     return joint_angles
 
 
-def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target_orientation=None, threshold=0.05):
+def create_pinocchio_context(urdf_path, robot_id, joint_idxs, end_effector_link_name="endeffector"):
+    """Create Pinocchio model/data and mapping to controlled PyBullet joints."""
+    model = pin.buildModelFromUrdf(urdf_path)
+    data = model.createData()
+
+    try:
+        ee_frame_id = model.getFrameId(end_effector_link_name)
+    except Exception:
+        ee_frame_id = None
+
+    if ee_frame_id is None or ee_frame_id >= model.nframes:
+        raise ValueError(f"End effector frame '{end_effector_link_name}' not found in Pinocchio model")
+
+    pb_joint_name_to_idx = {}
+    for pb_joint_idx in joint_idxs:
+        pb_joint_name = p.getJointInfo(robot_id, pb_joint_idx)[1].decode("utf-8")
+        pb_joint_name_to_idx[pb_joint_name] = pb_joint_idx
+
+    ordered_pb_joint_indices = []
+    ordered_pin_q_indices = []
+
+    for joint_id in range(1, model.njoints):
+        joint_name = model.names[joint_id]
+        if joint_name in pb_joint_name_to_idx:
+            joint_model = model.joints[joint_id]
+            if joint_model.nq != 1:
+                raise ValueError(
+                    f"Joint '{joint_name}' has nq={joint_model.nq}; this script expects 1-DOF joints"
+                )
+            ordered_pb_joint_indices.append(pb_joint_name_to_idx[joint_name])
+            ordered_pin_q_indices.append(joint_model.idx_q)
+
+    if not ordered_pb_joint_indices:
+        raise ValueError("No overlapping controllable joints between PyBullet and Pinocchio")
+
+    return {
+        "model": model,
+        "data": data,
+        "ee_frame_id": ee_frame_id,
+        "ordered_pb_joint_indices": ordered_pb_joint_indices,
+        "ordered_pin_q_indices": ordered_pin_q_indices,
+    }
+
+
+def solve_ik_pinocchio(pin_ctx, init_joint_angles, target_pos, target_orientation=None, max_iters=200, eps=1e-4, damp=1e-6):
+    """Solve IK with Pinocchio and return target positions aligned with joint_idxs order."""
+    model = pin_ctx["model"]
+    data = pin_ctx["data"]
+    ee_frame_id = pin_ctx["ee_frame_id"]
+    ordered_pb_joint_indices = pin_ctx["ordered_pb_joint_indices"]
+    ordered_pin_q_indices = pin_ctx["ordered_pin_q_indices"]
+
+    q = pin.neutral(model)
+    for q_idx, q_val in zip(ordered_pin_q_indices, init_joint_angles):
+        q[q_idx] = q_val
+
+    if target_orientation is not None:
+        target_rot = pin.Quaternion(np.array(target_orientation)).toRotationMatrix()
+        target_se3 = pin.SE3(target_rot, np.array(target_pos))
+
+    for _ in range(max_iters):
+        pin.forwardKinematics(model, data, q)
+        pin.updateFramePlacements(model, data)
+
+        current_se3 = data.oMf[ee_frame_id]
+
+        if target_orientation is not None:
+            err = pin.log6(current_se3.inverse() * target_se3).vector
+            if np.linalg.norm(err) < eps:
+                break
+            J = pin.computeFrameJacobian(
+                model,
+                data,
+                q,
+                ee_frame_id,
+                pin.ReferenceFrame.LOCAL,
+            )
+            regularizer = damp * np.eye(6)
+        else:
+            err = np.array(target_pos) - current_se3.translation
+            if np.linalg.norm(err) < eps:
+                break
+            full_J = pin.computeFrameJacobian(
+                model,
+                data,
+                q,
+                ee_frame_id,
+                pin.ReferenceFrame.LOCAL_WORLD_ALIGNED,
+            )
+            J = full_J[:3, :]
+            regularizer = damp * np.eye(3)
+
+        JJt = J @ J.T + regularizer
+        dq = J.T @ np.linalg.solve(JJt, err)
+        q = pin.integrate(model, q, dq)
+
+    solved_positions_by_pb_idx = {
+        pb_idx: float(q[q_idx])
+        for pb_idx, q_idx in zip(ordered_pb_joint_indices, ordered_pin_q_indices)
+    }
+
+    return solved_positions_by_pb_idx
+
+
+def test_reachability(robot_id, end_effector_idx, joint_idxs, pin_ctx, init_joint_angles, target_pos, target_orientation=None, threshold=0.05):
     """
     Test if robot can reach target position.
     
@@ -151,41 +240,41 @@ def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target
     Returns:
         bool: True if position is reachable within threshold
     """
-    # Calculate IK
-    if target_orientation is not None:
-        ik_solution = p.calculateInverseKinematics(
-            robot_id, end_effector_idx, target_pos, target_orientation
-        )
-    else:
-        ik_solution = p.calculateInverseKinematics(
-            robot_id, end_effector_idx, target_pos
-        )
+    # Calculate IK with Pinocchio
+    ik_solution_map = solve_ik_pinocchio(
+        pin_ctx,
+        init_joint_angles,
+        target_pos,
+        target_orientation,
+    )
     
     # Apply IK solution to joints with joint limit checking
     joints_within_limits = True
     target_positions = []
     
-    for index, joint_idx in enumerate(joint_idxs):
-        if index < len(ik_solution):
-            joint_info = p.getJointInfo(robot_id, joint_idx)
-            joint_lower_limit = joint_info[8]  # Lower joint limit
-            joint_upper_limit = joint_info[9]  # Upper joint limit
-            
-            ik_value = ik_solution[index]
-            
-            # Check if joint has limits (some joints may have limits set to 0, meaning unlimited)
-            if joint_lower_limit < joint_upper_limit:
-                # Clip to joint limits
-                clipped_value = np.clip(ik_value, joint_lower_limit, joint_upper_limit)
-                
-                # Track if any joint was outside limits
-                if abs(clipped_value - ik_value) > 1e-6:
-                    joints_within_limits = False
-                
-                target_positions.append(clipped_value)
-            else:
-                # No limits, use IK solution directly
-                target_positions.append(ik_value)
+    for joint_idx in joint_idxs:
+        if joint_idx not in ik_solution_map:
+            continue
+
+        joint_info = p.getJointInfo(robot_id, joint_idx)
+        joint_lower_limit = joint_info[8]  # Lower joint limit
+        joint_upper_limit = joint_info[9]  # Upper joint limit
+
+        ik_value = ik_solution_map[joint_idx]
+
+        # Check if joint has limits (some joints may have limits set to 0, meaning unlimited)
+        if joint_lower_limit < joint_upper_limit:
+            # Clip to joint limits
+            clipped_value = np.clip(ik_value, joint_lower_limit, joint_upper_limit)
+
+            # Track if any joint was outside limits
+            if abs(clipped_value - ik_value) > 1e-6:
+                joints_within_limits = False
+
+            target_positions.append((joint_idx, clipped_value))
+        else:
+            # No limits, use IK solution directly
+            target_positions.append((joint_idx, ik_value))
     
     # If any joint was outside limits, the IK solution is not valid
     if not joints_within_limits:
@@ -193,8 +282,8 @@ def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target
     
     # Set exact joint states directly.
     # p.setJointMotorControlArray(...)  # Disabled per request.
-    for joint_idx, target_pos in zip(joint_idxs, target_positions):
-        p.resetJointState(robot_id, joint_idx, target_pos)
+    for joint_idx, target_joint_pos in target_positions:
+        p.resetJointState(robot_id, joint_idx, target_joint_pos)
 
     # Run a short settle period.
     for _ in range(200):
@@ -222,13 +311,15 @@ def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target
     return distance <= threshold
 
 
-def test_grasp_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, threshold=0.05):
+def test_grasp_reachability(robot_id, end_effector_idx, joint_idxs, pin_ctx, init_joint_angles, target_pos, threshold=0.05):
     """Test reachability for all configured grasp orientations at a single point."""
     grasp_results = {
         "any": test_reachability(
             robot_id,
             end_effector_idx,
             joint_idxs,
+            pin_ctx,
+            init_joint_angles,
             target_pos,
             None,
             threshold,
@@ -240,6 +331,8 @@ def test_grasp_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, 
             robot_id,
             end_effector_idx,
             joint_idxs,
+            pin_ctx,
+            init_joint_angles,
             target_pos,
             grasp_quat,
             threshold,
@@ -728,6 +821,13 @@ def test_robot_reachability(robot_key, r_dict, args):
         return 1
     
     print(f"End effector link index: {end_effector_idx}")
+
+    try:
+        pin_ctx = create_pinocchio_context(urdf_path, robot_id, joint_idxs, "endeffector")
+    except Exception as ex:
+        print(f"Error initializing Pinocchio IK model: {ex}")
+        p.disconnect()
+        return 1
     
     # Reset robot to home position
     print(f"Resetting robot to home position using default_joint_ori")
@@ -783,6 +883,8 @@ def test_robot_reachability(robot_key, r_dict, args):
                 robot_id,
                 end_effector_idx,
                 joint_idxs,
+                pin_ctx,
+                init_joint_angles,
                 point,
                 args.threshold,
             )
@@ -799,11 +901,12 @@ def test_robot_reachability(robot_key, r_dict, args):
             grasp_results = None
             is_reachable = test_reachability(
                 robot_id, end_effector_idx, joint_idxs,
+                pin_ctx, init_joint_angles,
                 point, target_orientation, args.threshold
             )
         
         # Reset robot to home position after each test
-        #reset_robot_with_joint_angles(robot_id, joint_idxs, init_joint_angles)
+        reset_robot_with_joint_angles(robot_id, joint_idxs, init_joint_angles)
         if is_reachable:
             reachable_points.append(point)
             
