@@ -478,14 +478,14 @@ class Robot:
                                     controlMode=self.p.POSITION_CONTROL,
                                     targetPosition=action[i],
                                     force=self.gjoints_max_force[i],
-                                    maxVelocity=self.gjoints_max_velo[i],
+                                    maxVelocity=self.gjoints_max_velo[i] * 2,
                                     positionGain=0.7,
                                     velocityGain=0.3,
                                     # maxVelocity = self.gjoints_max_velo[i]
                                    )
 
         # force = self.gjoints_max_force[i],
-        # maxVelocity = self.gjoints_max_velo[i],
+        # maxVelocity=self.gjoints_max_velo[i] * 2,
         
         gjoints = self.get_gjoints_states()
         #print(gjoints)

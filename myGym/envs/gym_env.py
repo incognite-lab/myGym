@@ -101,6 +101,7 @@ class GymEnv(CameraEnv):
                  natural_language=False,
                  training=True,
                  top_grasp = False,
+                 protorewards="protorewards.json",
                  **kwargs
                  ):
 
@@ -146,6 +147,7 @@ class GymEnv(CameraEnv):
         self.visgym    = visgym
         self.logdir    = logdir
         self.top_grasp = top_grasp
+        self.protorewards = protorewards
         self.workspace_dict = get_workspace_dict()
         if not hasattr(self, "task"):
           self.task = None
@@ -204,7 +206,7 @@ class GymEnv(CameraEnv):
         print(f"Task type: {self.task_type}, Subgoals: {task_subgoals}, Networks: {self.num_networks}")
         
         # Always use Rewarder class which adapts to the task_subgoals
-        self.unwrapped.reward = Rewarder(env=self, task=self.task)
+        self.unwrapped.reward = Rewarder(env=self, task=self.task, protorewards=self.protorewards)
 
     def get_wrapper_attr(self, name: str) -> Any:
         return getattr(self.unwrapped, name)

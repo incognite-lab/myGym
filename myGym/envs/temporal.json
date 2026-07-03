@@ -7,8 +7,8 @@
     "armweight": 1,
     "gripperweight": 1,
     "absoluteweight": 0,
-    "relativeweight": 1,
-    "temporalweight": 0,
+    "relativeweight": 0,
+    "temporalweight": 1,
     "grip_orient_reward": 0,
     "grip_type": "any"
   },
@@ -20,8 +20,8 @@
     "armweight": 1,
     "gripperweight": 1,
     "absoluteweight": 0,
-    "relativeweight": 1,
-    "temporalweight": 0,
+    "relativeweight": 0,
+    "temporalweight": 1,
     "grip_orient_reward": 0,
     "grip_type": "any"
   },
@@ -33,8 +33,8 @@
     "armweight": 1,
     "gripperweight": 1,
     "absoluteweight": 0,
-    "relativeweight": 1,
-    "temporalweight": 0,
+    "relativeweight": 0,
+    "temporalweight": 1,
     "grip_orient_reward": 0,
     "grip_type": "any"
   },
@@ -46,8 +46,8 @@
     "armweight": 1,
     "gripperweight": 1,
     "absoluteweight": 0,
-    "relativeweight": 1,
-    "temporalweight": 0,
+    "relativeweight": 0,
+    "temporalweight": 1,
     "grip_orient_reward": 0,
     "grip_type": "any"
   },
@@ -59,8 +59,8 @@
     "armweight": 1,
     "gripperweight": 1,
     "absoluteweight": 0,
-    "relativeweight": 1,
-    "temporalweight": 0,
+    "relativeweight": 0,
+    "temporalweight": 1,
     "grip_orient_reward": 0,
     "grip_type": "any"
   },
@@ -72,8 +72,8 @@
     "armweight": 1,
     "gripperweight": 1,
     "absoluteweight": 0,
-    "relativeweight": 1,
-    "temporalweight": 0,
+    "relativeweight": 0,
+    "temporalweight": 1,
     "grip_orient_reward": 0,
     "grip_type": "any"
   },
@@ -85,8 +85,8 @@
     "armweight": 1,
     "gripperweight": 1,
     "absoluteweight": 0,
-    "relativeweight": 1,
-    "temporalweight": 0,
+    "relativeweight": 0,
+    "temporalweight": 1,
     "grip_orient_reward": 0,
     "grip_type": "any"
   },
@@ -98,8 +98,8 @@
     "armweight": 1,
     "gripperweight": 1,
     "absoluteweight": 0,
-    "relativeweight": 1,
-    "temporalweight": 0,
+    "relativeweight": 0,
+    "temporalweight": 1,
     "grip_orient_reward": 0,
     "grip_type": "any"
   }

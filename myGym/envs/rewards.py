@@ -86,8 +86,9 @@ class UniversalReward:
         """Default compute method that calls calculate with default parameters."""
         raise NotImplementedError("Subclasses should override compute() method")
 
-    def calculate(self, observation, rot=True, gripper="close", actual_state=None, goal_state=None, 
-                  armweight=1, gripperweight=1, absoluteweight=1, relativeweight=1, temporalweight=1):
+    def calculate(self, observation, rot=True, gripper="close", actual_state=None, goal_state=None,
+                  armweight=1, gripperweight=1, absoluteweight=1, relativeweight=1, temporalweight=1,
+                  grip_orient_reward=0, grip_type="any"):
         """
         Calculate universal reward for the current step.
 
@@ -106,6 +107,11 @@ class UniversalReward:
             :param absoluteweight: (float) Weight multiplier for all absolute rewards (default: 1)
             :param relativeweight: (float) Weight multiplier for all relative rewards (default: 1)
             :param temporalweight: (float) Weight multiplier for all temporal rewards (default: 1)
+            :param grip_orient_reward: (float) Multiplier for optional gripper orientation reward.
+                Orientation reward is computed only when this value is greater than 0.
+            :param grip_type: (str) Target gripper orientation profile for orientation reward.
+                Supported values: "top", "left", "right", "back", "front", "bottom", "any".
+                If set to "any", orientation reward is skipped.
         Returns:
             :return result: (dict) Dictionary containing:
                 - arm_absolute_reward: Rescaled arm distance reward (0=max dist, 1=min dist)
@@ -214,27 +220,7 @@ class UniversalReward:
         )
 
 
-        #Calculate gripper orientation reward (fixed value - TODO: add as parameter)
-        gripper_orientation_reward = 0.0  # Replace with actual orientation reward calculation
-        #gripper_orientation_weight = 1  # Weight for orientation reward (can be adjusted)
-
-        # Default gripper orientation (identity quaternion)
-        default_gripper_orientation = np.array([0.0, 0.0, 0.0, 1.0])
-
-        # Current gripper orientation
-        current_gripper_orientation = np.asarray(self.env.robot.get_orientation(), dtype=float)
-
-        # Normalize quaternions
-        q1 = default_gripper_orientation / np.linalg.norm(default_gripper_orientation)
-        q2 = current_gripper_orientation / np.linalg.norm(current_gripper_orientation)
-
-        # Smallest angular difference between orientations (0 to pi radians)
-        angular_error = 2.0 * np.arccos(
-            np.clip(np.abs(np.dot(q1, q2)), 0.0, 1.0)
-        )
-
-        # Reward: +1 (perfect alignment) to -1 (180° error)
-        gripper_orientation_reward = 1.0 - 2.0 * (angular_error / np.pi)
+        gripper_orientation_reward = 0.0
 
         
         # Update previous distances for next step
@@ -243,32 +229,60 @@ class UniversalReward:
         self.prev_grip_dist = grip_dist
         self.step += 1
 
-        # Default gripper orientation (identity quaternion)
-        default_gripper_orientation = np.array([0.0, 0.0, 0.0, 1.0])
+        if grip_orient_reward > 0 and grip_type != "any":
+            grip_eulers = {
+                "top": [0.0, 0.0, 0.0],
+                "left": [np.pi / 2, 0.0, 0.0],
+                "right": [-np.pi / 2, 0.0, 0.0],
+                "back": [0.0, -np.pi / 2, 0.0],
+                "front": [0.0, np.pi / 2, 0.0],
+                "bottom": [np.pi, 0.0, 0.0],
+                "any": None,
+            }
 
-        # Current gripper orientation
-        current_gripper_orientation = np.asarray(self.env.robot.get_orientation(), dtype=float)
+            if grip_type not in grip_eulers:
+                raise ValueError(
+                    f"Unknown grip_type: {grip_type}. Supported values: {list(grip_eulers.keys())}"
+                )
 
-        # Normalize quaternions
-        q1 = default_gripper_orientation / np.linalg.norm(default_gripper_orientation)
-        q2 = current_gripper_orientation / np.linalg.norm(current_gripper_orientation)
+            roll_default, pitch_default, yaw_default = grip_eulers[grip_type]
 
-        # Convert quaternions to Euler angles (roll, pitch, yaw)
-        # Using PyQuaternion for conversion
-        q_default = Quaternion(q1[3], q1[0], q1[1], q1[2])  # (w, x, y, z)
-        q_current = Quaternion(q2[3], q2[0], q2[1], q2[2])
+            # Euler (roll, pitch, yaw) to quaternion via PyQuaternion composition.
+            q_roll = Quaternion(axis=[1.0, 0.0, 0.0], angle=roll_default)
+            q_pitch = Quaternion(axis=[0.0, 1.0, 0.0], angle=pitch_default)
+            q_yaw = Quaternion(axis=[0.0, 0.0, 1.0], angle=yaw_default)
+            q_default = q_yaw * q_pitch * q_roll
 
-        roll_default, _, _ = q_default.yaw_pitch_roll
-        roll_current, _, _ = q_current.yaw_pitch_roll
+            default_gripper_orientation = np.array([
+                q_default.x,
+                q_default.y,
+                q_default.z,
+                q_default.w,
+            ])
 
-        # Compute absolute difference in roll only
-        roll_diff = abs(roll_current - roll_default)
+            # Current gripper orientation
+            current_gripper_orientation = np.asarray(self.env.robot.get_orientation(), dtype=float)
 
-        # Normalize roll difference to [0, π] range (max possible is π radians)
-        roll_diff = min(roll_diff, 2 * pi - roll_diff)  # Handle wrap-around
+            # Normalize quaternions
+            q1 = default_gripper_orientation / np.linalg.norm(default_gripper_orientation)
+            q2 = current_gripper_orientation / np.linalg.norm(current_gripper_orientation)
 
-        # Reward: +1 (perfect alignment) to -1 (π radian error)
-        gripper_orientation_reward = 1.0 - 2.0 * (roll_diff / pi)
+            # Convert quaternions to Euler angles (roll, pitch, yaw)
+            # Using PyQuaternion for conversion
+            q_default = Quaternion(q1[3], q1[0], q1[1], q1[2])  # (w, x, y, z)
+            q_current = Quaternion(q2[3], q2[0], q2[1], q2[2])
+
+            roll_default, _, _ = q_default.yaw_pitch_roll
+            roll_current, _, _ = q_current.yaw_pitch_roll
+
+            # Compute absolute difference in roll only
+            roll_diff = abs(roll_current - roll_default)
+
+            # Normalize roll difference to [0, π] range (max possible is π radians)
+            roll_diff = min(roll_diff, 2 * pi - roll_diff)  # Handle wrap-around
+
+            # Reward: +1 (perfect alignment) to -1 (π radian error)
+            gripper_orientation_reward = 1.0 - 2.0 * (roll_diff / pi)
 
         total_reward = (arm_absolute_reward * armweight * absoluteweight + 
                         arm_relative_reward * armweight * relativeweight + 
@@ -276,7 +290,7 @@ class UniversalReward:
                         gripper_absolute_reward * gripperweight * absoluteweight + 
                         gripper_relative_reward * gripperweight * relativeweight + 
                         gripper_temporal_reward * gripperweight * temporalweight +
-                        gripper_orientation_reward * gripperweight)
+                        gripper_orientation_reward * gripperweight * grip_orient_reward)
 
         result = {
             "arm_absolute_reward": arm_absolute_reward,
@@ -303,7 +317,7 @@ class Rewarder(UniversalReward):
     Inherits from UniversalReward.
     """
 
-    def __init__(self, env, task=None):
+    def __init__(self, env, task=None, protorewards="protorewards.json"):
         # Call parent init first
         super().__init__(env, task)
         # Initialize Rewarder-specific attributes
@@ -319,8 +333,12 @@ class Rewarder(UniversalReward):
         self.finished = False
         
         # Load protorewards configuration from JSON file
-        json_path = os.path.join(os.path.dirname(__file__), 'protorewards.json')
-        with open(json_path, 'r') as f:
+        if os.path.isabs(protorewards):
+            json_path = protorewards
+        else:
+            json_path = os.path.join(os.path.dirname(__file__), protorewards)
+
+        with open(json_path, 'r', encoding='utf-8') as f:
             self.protorewards_config = json.load(f)
 
     def reset(self, observation=None):

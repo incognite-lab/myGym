@@ -85,7 +85,8 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "natural_language": bool(arg_dict["natural_language"]),
                      "training": bool(for_train), "top_grasp": arg_dict["top_grasp"],
                      "max_ep_steps": arg_dict["max_episode_steps"],
-                     "gui_on": arg_dict["gui"]
+                     "gui_on": arg_dict["gui"],
+                     "protorewards": arg_dict.get("protorewards", "protorewards.json")
                      }
 
     if "network_switcher" in arg_dict.keys():
@@ -296,6 +297,8 @@ def get_parser():
     parser.add_argument("-yp", "--yolact_path", type=str, help="Path to a trained Yolact in 3dvu reward type")
     parser.add_argument("-yc", "--yolact_config", type=str, help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
     parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
+    parser.add_argument("--protorewards", type=str, default="protorewards.json",
+                        help="Protorewards JSON filename (or absolute path) loaded by Rewarder")
     #Language
     parser.add_argument("-nl", "--natural_language", type=str, default="",
                         help="If passed, instead of training the script will produce a natural language output "
@@ -423,8 +426,13 @@ def main():
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
-    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join(
-        (arg_dict["robot_action"], arg_dict["algo"])))
+    protorewards_name = os.path.splitext(
+        os.path.basename(arg_dict.get("protorewards", "protorewards.json"))
+    )[0]
+    model_logdir_ori = os.path.join(
+        arg_dict["logdir"],
+        "_".join((arg_dict["robot_action"], arg_dict["algo"], protorewards_name)),
+    )
 
     model_logdir = model_logdir_ori
     add = 1
