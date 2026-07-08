@@ -123,7 +123,7 @@ class CustomEvalCallback(EvalCallback):
             srewardsuccess = np.zeros(evaluation_env.unwrapped.reward.num_networks)
             while not done:
                 steps_sum += 1
-                print("Episode:", e, "Step:", steps, "Network:", evaluation_env.unwrapped.reward.current_network)   
+                #print("Episode:", e, "Step:", steps, "Network:", evaluation_env.unwrapped.reward.current_network)   
                 action, state = model.predict(obs, deterministic=deterministic)
                 if isinstance(self.eval_env, VecMonitor):
                     obs, reward, done, info = self.eval_env.step(action)

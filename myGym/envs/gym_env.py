@@ -540,7 +540,7 @@ class GymEnv(CameraEnv):
             
         #if self.unwrapped.reward.last_result['task_solved'] and self.unwrapped.reward.last_result['gripper_solved']:
         #    self.reset(only_subtask=True)
-
+        self.task.check_episode_steps()
         terminated = self.episode_terminated
         truncated = self.episode_truncated
         info = {'d': 1, 'f': int(self.episode_failed),
