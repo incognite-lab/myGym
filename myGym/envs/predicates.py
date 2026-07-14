@@ -207,8 +207,8 @@ class IsReachable(AreaPredicate):
         if robot.name == "g1":
             return [0.2, 0.6, -0.4, 0.4, -0.07, 0.4]
 
-        if "tiago" in robot.name or "nico" in robot.name:
-            return [-0.1, 0.5, 0.15, 0.8, 0.6, 1.5]
+        if robot.name == "S2":
+            return [0.2, 0.6, -0.4, 0.4, -0.27, 0.6]
 
         return [-0.7, 0.7, 0.1, 0.8, -0.1, 1.2]
 
@@ -606,12 +606,12 @@ class InitPredicateResolver(PredicateResolver):
         placed_objects.setdefault("table", table)
         placed_objects.setdefault("workspace", table)
         obj1_urdf = obj_info["urdf"]
+        default_table_area = OnTop().compute_area(obj1_urdf, table, env)
         predicates = self._filter_obj_predicates(predicates, obj_info["obj_name"])
         #print(obj_info["obj_name"], "predicates:", predicates)
 
         if not predicates:
-            random_table_area = OnTop().compute_area(obj1_urdf, table, env)
-            return random_table_area
+            return default_table_area
 
         area = get_infinite_area()
         predicate_calls = self._parse_predicates(predicates)
@@ -634,6 +634,11 @@ class InitPredicateResolver(PredicateResolver):
                 robot=robot,
             )
             break  # repetitive input
+
+        if area is None:
+            # Keep reset robust when predicate constraints do not overlap
+            # (common with new robot/workspace combinations).
+            return default_table_area
 
         return area
     

@@ -378,6 +378,26 @@ class GymEnv(CameraEnv):
                         self.env_objects = placed_objects
                         break
 
+                    predicates = self._get_current_predicates()
+                    resolver = InitPredicateResolver()
+                    objects_by_name = resolver._build_object_lookup(self, placed_objects)
+                    print(
+                        f"[reset] placement rejected for robot={self.robot.name}, "
+                        f"task={self.task_type}; retrying..."
+                    )
+                    for key in ("actual_state", "goal_state"):
+                        obj = placed_objects.get(key)
+                        if hasattr(obj, "get_position"):
+                            print(f"  {key}: {obj.name} at {obj.get_position()}")
+                    for predicate in resolver._parse_predicates(predicates.get("init", []) if predicates else []):
+                        try:
+                            result = resolver._check_predicate(predicate, objects_by_name)
+                        except Exception as exc:
+                            result = f"ERROR: {exc}"
+                        print(
+                            f"  init {predicate.predicate}({', '.join(predicate.args)}) -> {result}"
+                        )
+
                     self._remove_placed_objects(placed_objects)
 
                 if not success:
