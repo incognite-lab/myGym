@@ -141,13 +141,17 @@ def reset_robot_to_home(robot_id, end_effector_idx, joint_idxs, robot_info):
     return joint_angles
 
 
-def update_robot_volume_in_helpers(robot_key, bbox_min, bbox_max, helpers_path):
+def update_robot_volume_in_helpers(robot_key, bbox_min, bbox_max, helpers_path, volume_key='reachable'):
     """Update or add volume bounds for a robot entry in utils/helpers.py r_dict."""
     if bbox_min is None or bbox_max is None:
         return False
 
-    volume_value = [[round(float(v), 4) for v in bbox_min], [round(float(v), 4) for v in bbox_max]]
-    volume_text = f"'volume': {volume_value}"
+    volume_value = [
+        round(float(bbox_min[0]), 4), round(float(bbox_max[0]), 4),
+        round(float(bbox_min[1]), 4), round(float(bbox_max[1]), 4),
+        round(float(bbox_min[2]), 4), round(float(bbox_max[2]), 4),
+    ]
+    volume_text = f"'{volume_key}': {volume_value}"
 
     with open(helpers_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -158,9 +162,9 @@ def update_robot_volume_in_helpers(robot_key, bbox_min, bbox_max, helpers_path):
         if robot_marker not in line:
             continue
 
-        if "'volume':" in line:
+        if f"'{volume_key}':" in line:
             lines[i] = re.sub(
-                r"'volume':\s*\[\s*\[[^\]]*\]\s*,\s*\[[^\]]*\]\s*\]",
+                rf"'{re.escape(volume_key)}':\s*\[[^\]]*\]",
                 volume_text,
                 line,
             )
@@ -953,6 +957,7 @@ def test_robot_reachability(robot_key, r_dict, args):
     
     # Test reachability for each point
     reachable_points = []
+    reachable_points_per_grasp = {grasp_name: [] for grasp_name in GRASP_ORDER}
     point_grasp_stats = []
     grasp_summary = {grasp_name: {"reachable": 0, "tested": 0} for grasp_name in GRASP_ORDER}
     
@@ -985,6 +990,7 @@ def test_robot_reachability(robot_key, r_dict, args):
                 grasp_summary[grasp_name]["tested"] += 1
                 if grasp_reachable:
                     grasp_summary[grasp_name]["reachable"] += 1
+                    reachable_points_per_grasp[grasp_name].append(point)
         else:
             grasp_results = None
             is_reachable = test_reachability(
@@ -1046,12 +1052,21 @@ def test_robot_reachability(robot_key, r_dict, args):
     bbox_min, bbox_max = compute_bounding_box(reachable_points)
 
     # Persist reachable volume bounds into helpers r_dict only when requested.
-    if args.store_volume and bbox_min is not None and bbox_max is not None:
+    if args.store_volume:
         helpers_path = os.path.join(base_dir, "utils", "helpers.py")
-        if update_robot_volume_in_helpers(robot_key, bbox_min, bbox_max, helpers_path):
-            print(f"Updated volume in helpers.py for robot '{robot_key}'")
-        else:
-            print(f"Warning: Could not update volume in helpers.py for robot '{robot_key}'")
+        if args.all_grasps:
+            for grasp_name in GRASP_ORDER:
+                g_bbox_min, g_bbox_max = compute_bounding_box(reachable_points_per_grasp[grasp_name])
+                vkey = 'reachable' if grasp_name == 'any' else f"reachable_{grasp_name}"
+                if update_robot_volume_in_helpers(robot_key, g_bbox_min, g_bbox_max, helpers_path, volume_key=vkey):
+                    print(f"Updated {vkey} in helpers.py for robot '{robot_key}'")
+                else:
+                    print(f"Warning: Could not update {vkey} in helpers.py for robot '{robot_key}'")
+        elif bbox_min is not None and bbox_max is not None:
+            if update_robot_volume_in_helpers(robot_key, bbox_min, bbox_max, helpers_path):
+                print(f"Updated reachable in helpers.py for robot '{robot_key}'")
+            else:
+                print(f"Warning: Could not update reachable in helpers.py for robot '{robot_key}'")
     
     # Get robot kinematic tree for visualization
     robot_links = get_robot_kinematic_tree(robot_id)
@@ -1073,29 +1088,29 @@ def test_robot_reachability(robot_key, r_dict, args):
             ratio = (reachable / tested * 100.0) if tested else 0.0
             print(f"  {grasp_name:>6}: {reachable}/{tested} ({ratio:.2f}%)")
 
-        grasp_report_path = f"./unittest/reachability_{robot_key}_grasps.json"
-        grasp_report = {
-            "robot": robot_key,
-            "workspace": workspace_key,
-            "tested_min": list(map(float, args.min)),
-            "tested_max": list(map(float, args.max)),
-            "step": float(args.step),
-            "threshold": float(args.threshold),
-            "orientation_any": "IK called without orientation parameter",
-            "grasp_eulers": {name: [float(v) for v in euler] for name, euler in GRASP_EULERS.items()},
-            "point_statistics": point_grasp_stats,
-            "summary": {
-                name: {
-                    "reachable": int(data["reachable"]),
-                    "tested": int(data["tested"]),
-                    "ratio": (data["reachable"] / data["tested"] if data["tested"] else 0.0),
-                }
-                for name, data in grasp_summary.items()
-            },
-        }
-        with open(grasp_report_path, "w", encoding="utf-8") as report_file:
-            json.dump(grasp_report, report_file, indent=2)
-        print(f"Per-point grasp statistics saved to {grasp_report_path}")
+        #grasp_report_path = f"./unittest/reachability_{robot_key}_grasps.json"
+        #grasp_report = {
+        #    "robot": robot_key,
+        #    "workspace": workspace_key,
+        #    "tested_min": list(map(float, args.min)),
+        #    "tested_max": list(map(float, args.max)),
+        #    "step": float(args.step),
+        #    "threshold": float(args.threshold),
+        #    "orientation_any": "IK called without orientation parameter",
+        #    "grasp_eulers": {name: [float(v) for v in euler] for name, euler in GRASP_EULERS.items()},
+        #    "point_statistics": point_grasp_stats,
+        #    "summary": {
+        #        name: {
+        #            "reachable": int(data["reachable"]),
+        #            "tested": int(data["tested"]),
+        #            "ratio": (data["reachable"] / data["tested"] if data["tested"] else 0.0),
+        #        }
+        #        for name, data in grasp_summary.items()
+        #    },
+        #}
+        #with open(grasp_report_path, "w", encoding="utf-8") as report_file:
+        #    json.dump(grasp_report, report_file, indent=2)
+        #print(f"Per-point grasp statistics saved to {grasp_report_path}")
     
     if bbox_min is not None and bbox_max is not None:
         print(f"\n3D Bounding Box of Reachable Volume:")
