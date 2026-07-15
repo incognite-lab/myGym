@@ -204,7 +204,7 @@ class IsReachable(AreaPredicate):
         # old helper from PRAG
         # TODO: get the area from test_robot_reachability.py and save it to workspace_dict
 
-        if robot.name == "g1":
+        if robot.name in ("g1", "g16DOF", "g1_loose", "g1_rotslide"):
             return [0.2, 0.6, -0.4, 0.4, -0.07, 0.4]
 
         if robot.name == "S2":
