@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
 from myGym.envs import env_object
-from myGym.utils.helpers import get_workspace_dict
+from myGym.utils.helpers import get_workspace_dict, get_robot_dict
 
 
 # Area format: [x_min, x_max, y_min, y_max, z_min, z_max]
@@ -182,35 +182,47 @@ class IsReachable(AreaPredicate):
     ! does not solve IK and does not check collisions
     """
 
-    def check(self, robot, obj) -> bool:
+    def check(self, robot, obj, grip_type: str | None) -> bool:
         """
-        Return True if object is inside reachable area
+        Return True if object can be reached
         """
-        reachable_area = self.compute_area(robot)
+        reachable_area = self.compute_area(robot, grip_type)
         obj_position = obj.get_position()
         return pos_inside_area(obj_position, reachable_area)
-    
-    def compute_area(self, robot) -> Area:
+
+    def compute_area(self, robot, grip_type: str | None) -> Area:
         """
-        Return reachable area
+        Return reachable area for default robot position
         """
-        reachable_range = np.array(self._get_reachable_range(robot))
-        robot_pos = np.repeat(list(robot.position), 2)
-        reachable_area = robot_pos + reachable_range
+        reachable_area = np.array(self._get_reachable_range(robot, grip_type))
         return reachable_area.tolist()
 
     @staticmethod
-    def _get_reachable_range(robot) -> Area:
-        # old helper from PRAG
-        # TODO: get the area from test_robot_reachability.py and save it to workspace_dict
+    def _get_reachable_range(robot, grip_type: str | None) -> Area:
+        key = IsReachable._reachable_key(grip_type)
+        robot_ws = get_robot_dict().get(robot.name, {})
 
-        if robot.name in ("g1", "g16DOF", "g1_loose", "g1_rotslide"):
-            return [0.2, 0.6, -0.4, 0.4, -0.07, 0.4]
+        if key in robot_ws:
+            return robot_ws[key]
 
-        if robot.name == "S2":
-            return [0.2, 0.6, -0.4, 0.4, -0.27, 0.6]
+        if key != "reachable" and "reachable" in robot_ws:
+            print(f"Warning: '{key}' not defined for robot '{robot.name}', falling back to 'reachable'")
+            return robot_ws["reachable"]
 
-        return [-0.7, 0.7, 0.1, 0.8, -0.1, 1.2]
+        print(f"Warning: Reachable area not found for robot '{robot.name}'")
+        return [0.2, 0.6, -0.4, 0.4, -0.07, 0.4]
+    
+    @staticmethod
+    def _reachable_key(grip_type: str | None) -> str:
+        """
+        Translate a grip_type keyword from protorewards.json ("top", "left",
+        "right", "back", "front", "bottom", "any") into the matching
+        reachable_<grip_type> key used in helpers.py's ROBOTS dict.
+        """
+        if not grip_type or grip_type in ("any", "reachable"):
+            return "reachable"
+
+        return f"reachable_{grip_type}"
 
 
 class Touching(Predicate):
@@ -351,7 +363,6 @@ class Near(Predicate):
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
         distance = get_aabb_distance(obj1_min, obj1_max, obj2_min, obj2_max)
         max_dist = self.MAX_DIST
-        #print("distance", distance)
         return distance < max_dist
 
 
@@ -430,7 +441,7 @@ class PredicateResolver:
 
     predicate_key: str | None = None
 
-    def check(self, placed_objects: dict, env, predicates: dict) -> bool:
+    def check(self, placed_objects: dict, env, predicates: dict, grip_type: str | None = None) -> bool:
         """
         Return True if all of the selected predicates are satisfied
         """
@@ -442,10 +453,10 @@ class PredicateResolver:
         if not selected_predicates:
             # no restriction for object placement
             return True
-        
+
         objects_by_name = self._build_object_lookup(env, placed_objects)
         for predicate in self._parse_predicates(selected_predicates):
-            if not self._check_predicate(predicate, objects_by_name):
+            if not self._check_predicate(predicate, objects_by_name, grip_type):
                 return False
 
         return True
@@ -497,7 +508,7 @@ class PredicateResolver:
         return [p for p in predicates if self._predicate_has_obj_as_first_arg(p, obj_name)]
 
     @staticmethod
-    def _check_predicate(predicate: PredicateCall, objects_by_name: dict) -> bool:
+    def _check_predicate(predicate: PredicateCall, objects_by_name: dict, grip_type: str | None = None) -> bool:
         """
         Evaluate predicate and apply negation. Returns the final bool.
         """
@@ -513,7 +524,7 @@ class PredicateResolver:
 
         if predicate.predicate == "Reachable":
             obj_name = predicate.args[0]
-            result = IsReachable().check(objects_by_name["robot"], objects_by_name[obj_name])
+            result = IsReachable().check(objects_by_name["robot"], objects_by_name[obj_name], grip_type)
 
         elif predicate.predicate == "OnTop":
             obj_name, support_name = predicate.args
@@ -592,12 +603,12 @@ class PredicateResolver:
 
 class InitPredicateResolver(PredicateResolver):
     """
-        Resolve predicates describing the initial state
+    Resolve predicates describing the initial state
     """
 
     predicate_key = "init"
 
-    def get_area(self, obj_info, table, robot, predicates, placed_objects=None, env=None) -> Area | None:
+    def get_area(self, obj_info, table, robot, predicates, placed_objects=None, env=None, grip_type: str | None = None) -> Area | None:
         """
         Compute object sampling area from init predicates
         """
@@ -608,7 +619,6 @@ class InitPredicateResolver(PredicateResolver):
         obj1_urdf = obj_info["urdf"]
         default_table_area = OnTop().compute_area(obj1_urdf, table, env)
         predicates = self._filter_obj_predicates(predicates, obj_info["obj_name"])
-        #print(obj_info["obj_name"], "predicates:", predicates)
 
         if not predicates:
             return default_table_area
@@ -632,6 +642,7 @@ class InitPredicateResolver(PredicateResolver):
                 current_area=area,
                 predicate=reachable_predicate,
                 robot=robot,
+                grip_type=grip_type,
             )
             break  # repetitive input
 
@@ -659,7 +670,6 @@ class InitPredicateResolver(PredicateResolver):
             support_object = table
         else:
             support_object = placed_objects.get(obj2_name)
-            #print(placed_objects)
             if not support_object:
                 raise ValueError(
                     f"Cannot compute OnTop area for '{predicate.args[0]}'. "
@@ -670,7 +680,7 @@ class InitPredicateResolver(PredicateResolver):
         return get_range_intersection(current_area, on_top_area)
 
     def _apply_reachable_area(
-        self, current_area: Area, predicate: PredicateCall, robot
+        self, current_area: Area, predicate: PredicateCall, robot, grip_type: str | None = None
         ) -> Area | None:
         """
         Apply Reachable(obj) as an area constraint
@@ -678,7 +688,7 @@ class InitPredicateResolver(PredicateResolver):
         if len(predicate.args) != 1:
             raise ValueError(f"Reachable expects 1 argument, got {predicate.args}")
 
-        reachable_area = IsReachable().compute_area(robot)
+        reachable_area = IsReachable().compute_area(robot, grip_type)
         final_area = get_range_intersection(current_area, reachable_area)
         return final_area
     

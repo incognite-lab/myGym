@@ -366,6 +366,7 @@ class GymEnv(CameraEnv):
                         placed_objects=placed_objects,
                         env=self,
                         predicates=self._get_current_predicates(),
+                        grip_type=self._get_init_grip_type(),
                     )
 
                     if init_ok:
@@ -391,7 +392,7 @@ class GymEnv(CameraEnv):
                             print(f"  {key}: {obj.name} at {obj.get_position()}")
                     for predicate in resolver._parse_predicates(predicates.get("init", []) if predicates else []):
                         try:
-                            result = resolver._check_predicate(predicate, objects_by_name)
+                            result = resolver._check_predicate(predicate, objects_by_name, self._get_init_grip_type())
                         except Exception as exc:
                             result = f"ERROR: {exc}"
                         print(
@@ -691,6 +692,19 @@ class GymEnv(CameraEnv):
             return self.predicates_dict[self.task.current_task]
         return self.predicates_dict
 
+    def _get_init_grip_type(self) -> str | None:
+        """
+        Return the grip_type of the first subgoal's protoreward params.
+
+        Used to check Reachable(...) init predicates against the same
+        directional envelope the reward will use once the episode starts
+        (the Rewarder itself has not been reset yet at this point).
+        """
+        network_names = self.unwrapped.reward.network_names
+        if not network_names:
+            return None
+        return self.unwrapped.reward.protoreward_params(network_names[0]).get("grip_type")
+
     def _build_placement_request(self):
         """
         Build one unified placement request for the non-natural-language initialization path.
@@ -947,6 +961,7 @@ class GymEnv(CameraEnv):
         """
         resolver = InitPredicateResolver()
         table = self.static_scene_objects[self.workspace]
+        grip_type = self._get_init_grip_type()
 
         ordered_records = resolver.get_placement_order(
             objects_to_place=records,
@@ -979,6 +994,7 @@ class GymEnv(CameraEnv):
                     predicates=predicates,
                     placed_objects=placed_lookup,
                     env=self,
+                    grip_type=grip_type,
                 )
 
             env_o = self._place_object(

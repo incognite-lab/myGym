@@ -405,11 +405,13 @@ class Rewarder(UniversalReward):
         # Check if arm is solved and progress to next network
         if result["arm_solved"] and result["gripper_solved"]:
             current_preds = self.env._get_current_predicates()
+            grip_type = self.params.get("grip_type", "any")
             if self.owner < self.num_networks - 1:
                 if SubgoalPredicateResolver(self.task.current_subgoal).check(
                     placed_objects=self.env.env_objects,
                     env=self.env,
                     predicates=current_preds,
+                    grip_type=grip_type,
                 ):
                     print(f"Subgoal {self.task.current_subgoal} satisfied, switching to ({self.network_names[self.owner + 1]})")
                     self.task.current_subgoal += 1
@@ -420,6 +422,7 @@ class Rewarder(UniversalReward):
                     placed_objects=self.env.env_objects,
                     env=self.env,
                     predicates=current_preds,
+                    grip_type=grip_type,
                 ):
                     self.finished = True
                     GREEN = "\033[92m"
