@@ -18,10 +18,10 @@ Usage:
     # Test a specific config
     python3 myGym/unittest/test_oraculum_configs.py --config train_A.json
     
-    # Custom timeout per config
-    python3 myGym/unittest/test_oraculum_configs.py --timeout 300
+    # Custom timeout per trial (total timeout for a config = timeout * trials)
+    python3 myGym/unittest/test_oraculum_configs.py --timeout 90
     
-    # Minimum successful trials required (default: 5)
+    # Minimum successful trials required (default: same as --trials)
     python3 myGym/unittest/test_oraculum_configs.py --min-success 3
 """
 import os
@@ -39,9 +39,10 @@ RESET = "\033[0m"
 
 # Get the project root directory
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CONFIGS_DIR = os.path.join(PROJECT_ROOT, 'configs')
-GEN_CONFIGS_DIR = os.path.join(PROJECT_ROOT, 'configs_gen')
 TEST_SCRIPT = os.path.join(PROJECT_ROOT, 'test.py')
+REPORT_DIR = os.path.join(PROJECT_ROOT, 'oraculum_results')
+DEF_CONFIGS_DIR = os.path.join(PROJECT_ROOT, 'configs')
+CONFIGS_DIR2 = os.path.join(PROJECT_ROOT, 'unittest', 'test_configs')
 
 
 def clean_oraculum_results(oraculum_results_dir: str) -> None:
@@ -102,23 +103,30 @@ def test_config_with_oraculum(
     config_path: str,
     oraculum_results_dir: str,
     trials: int = 5,
-    timeout: int = 300,
+    timeout: int = 60,
     min_success: int = 5,
+    gui: int = 0,
+    robot: str | None = None,
     ) -> tuple[bool, int, str | None, list[tuple[int, str]]]:
     """
     Test a single config by running test.py with oraculum control.
-    
+
     Args:
         config_path: Path to the config file
         trials: Number of trials (eval_episodes) to run (default: 5)
-        timeout: Timeout in seconds (default: 300 = 5 minutes)
+        timeout: Timeout in seconds per trial (default: 60). The subprocess runs all
+            trials in one go, so the actual timeout applied is timeout * trials.
         min_success: Minimum number of successful trials required (default: 5)
-    
+        gui: Whether to show GUI when running test.py (default: 0)
+        robot: Robot to test with, overriding the config's own "robot" field (default: None, use config's)
+
     Returns:
         tuple: (success: bool, success_count: int, error_message: str or None)
     """
-    
-    try:        
+
+    total_timeout = timeout * trials
+
+    try:
         # Run test.py with oraculum control
         cmd = [
             sys.executable,
@@ -126,17 +134,20 @@ def test_config_with_oraculum(
             '--config', config_path,
             '-ct', 'oraculum',
             '-ba', 'absolute_gripper',
-            '-g', '0',  # No GUI
+            '-g', str(gui),
             '--eval_episodes', str(trials),
             '-rr', 'True'  # Enable results report
         ]
-        
+
+        if robot:
+            cmd += ['-b', robot]
+
         # Run the command and capture output
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=timeout,
+            timeout=total_timeout,
             cwd=PROJECT_ROOT
         )
         
@@ -177,7 +188,7 @@ def test_config_with_oraculum(
     )
   
     except subprocess.TimeoutExpired:
-        return False, 0, f"Testing timed out after {timeout} seconds", []
+        return False, 0, f"Testing timed out after {total_timeout} seconds ({timeout}s x {trials} trials)", []
     except Exception as e:
         return False, 0, str(e), []
 
@@ -199,8 +210,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--timeout',
         type=int,
-        default=300,
-        help='Timeout in seconds for each config test (default: 300)'
+        default=60,
+        help='Timeout in seconds per trial (default: 60). The total timeout for a config '
+             'is this value times --trials, since all trials run in one subprocess call.'
     )
     parser.add_argument(
         '--config',
@@ -212,16 +224,33 @@ def parse_args() -> argparse.Namespace:
         '--min-success',
         type=int,
         default=5,
-        help='Minimum number of successful trials required (default: 5)'
+        help='Minimum number of successful trials required (default: same as --trials)'
     )
     parser.add_argument(
-        "--gen",
+        "--dir2",
         action=argparse.BooleanOptionalAction,
         default=False,
-        help="Use generated config files from configs_gen. Use --no-gen for configs."
+        help="Use selected configs in testing folder instead of default config folder. Use --dir2."
     )
-    
+    parser.add_argument(
+        '-g', '--gui',
+        type=int,
+        default=0,
+        help='Whether to show GUI when running test.py (default: 0)'
+    )
+    parser.add_argument(
+        '-b', '--robots',
+        type=str,
+        nargs='*',
+        default=None,
+        help='Robots to test with, overriding each config\'s own "robot" field: kuka, panda, jaco ... '
+             'Pass multiple to test them one by one, e.g. --robots kuka panda '
+             '(default: None, use each config\'s own robot)'
+    )
+
     args = parser.parse_args()
+    if args.min_success is None:
+        args.min_success = args.trials
     return args
 
     
@@ -236,7 +265,7 @@ def return_configs_path(args: argparse.Namespace) -> list[str]:
         List of config file paths.
     """
 
-    configs_dir = GEN_CONFIGS_DIR if args.gen else CONFIGS_DIR
+    configs_dir = CONFIGS_DIR2 if args.dir2 else DEF_CONFIGS_DIR
 
     if args.config:
         # Test only the specified config
@@ -271,12 +300,29 @@ def get_unique_filepath(directory: str, filename: str) -> str:
 
         index += 1
 
+def _overall_trial_stats(
+    config_files: list[str],
+    successful_configs: list[tuple[str, int]],
+    failed_configs: list[tuple[str, int, str | None, list[tuple[int, str]]]],
+    trials: int,
+    ) -> tuple[int, int]:
+    """
+    Aggregate each config's trial count into an overall passed/run total,
+    e.g. 5 configs x 5 trials each = 25 trials overall.
+    """
+    total_passed = sum(success_count for _, success_count in successful_configs)
+    total_passed += sum(success_count for _, success_count, _, _ in failed_configs)
+    total_trials = len(config_files) * trials
+    return total_passed, total_trials
+
+
 def save_result_summary(
     oraculum_results_dir: str,
     config_files: list[str],
     successful_configs: list[tuple[str, int]],
     failed_configs: list[tuple[str, int, str | None, list[tuple[int, str]]]],
     trials: int,
+    robot: str | None = None,
     ) -> None:
     """
     Save the final test summary to a text file.
@@ -287,15 +333,22 @@ def save_result_summary(
         successful_configs: Successfully tested configs with success counts.
         failed_configs: Failed configs with errors and failed subtask sequences.
         trials: Number of trials run per config.
+        robot: Robot the configs were tested with, if overridden (default: None).
     """
 
-    summary_path = get_unique_filepath(oraculum_results_dir, "results_summary")
+    filename = f"{robot}_result" if robot else "results_summary"
+    summary_path = get_unique_filepath(oraculum_results_dir, filename)
     with open(summary_path, "w") as f:
         f.write("SUMMARY\n")
         f.write("=" * 80 + "\n")
+        if robot:
+            f.write(f"Robot: {robot}\n")
         f.write(f"Total configs tested: {len(config_files)}\n")
         f.write(f"Successful: {len(successful_configs)}\n")
         f.write(f"Failed: {len(failed_configs)}\n")
+
+        total_passed, total_trials = _overall_trial_stats(config_files, successful_configs, failed_configs, trials)
+        f.write(f"Overall trials passed: {total_passed}/{total_trials}\n")
 
         if successful_configs:
             f.write("\nSUCCESSFULLY TESTED CONFIGS (ORACULUM)\n")
@@ -323,6 +376,8 @@ def print_init_info(config_files: list[str], args: argparse.Namespace) -> None:
     """
 
     print(f"Testing {len(config_files)} config file(s) with oraculum control")
+    if args.robots:
+        print(f"Robots: {', '.join(args.robots)}")
     print(f"Trials per config: {args.trials}")
     print(f"Minimum successful trials required: {args.min_success}")
     print(f"Timeout per config: {args.timeout} seconds")
@@ -344,7 +399,10 @@ def print_summary(
     print(f"Total configs tested: {len(config_files)}")
     print(f"Successful: {GREEN}{len(successful_configs)}{RESET}")
     print(f"Failed: {RED}{len(failed_configs)}{RESET}")
-    
+
+    total_passed, total_trials = _overall_trial_stats(config_files, successful_configs, failed_configs, trials)
+    print(f"Overall trials passed: {total_passed}/{total_trials}")
+
     # Table of successfully tested configs
     if successful_configs:
         print("\n" + "="*80)
@@ -392,51 +450,65 @@ def main() -> int:
         if args.config:
             print(f"{RED}Config file not found: {args.config}{RESET}")
         else:
-            print(f"No config files found in {CONFIGS_DIR}")
+            print(f"No config files found in {DEF_CONFIGS_DIR}")
         return 1
     
     # Create oraculum_results directory if it doesn't exist
-    oraculum_results_dir = os.path.join(PROJECT_ROOT, 'oraculum_results')
+    oraculum_results_dir = REPORT_DIR
     os.makedirs(oraculum_results_dir, exist_ok=True)
     clean_oraculum_results(oraculum_results_dir)
     
     print_init_info(config_files, args)
-    
-    successful_configs = []
-    failed_configs = []
-    
-    # Test each config file
-    for idx, config_path in enumerate(config_files, 1):
-        config_name = os.path.basename(config_path)
-        print(f"[{idx}/{len(config_files)}] Testing: {config_name}...", end=" ", flush=True)
-        
-        success, success_count, error, failed_subtasks = test_config_with_oraculum(
-            config_path, 
+
+    # None means "use each config's own robot field" - a single pass with no override
+    robots_to_test = args.robots if args.robots else [None]
+    any_failures = False
+
+    for robot in robots_to_test:
+        if robot:
+            print(f"\n{'#'*80}\nTesting robot: {robot}\n{'#'*80}")
+
+        successful_configs = []
+        failed_configs = []
+
+        # Test each config file
+        for idx, config_path in enumerate(config_files, 1):
+            config_name = os.path.basename(config_path)
+            print(f"[{idx}/{len(config_files)}] Testing: {config_name}...", end=" ", flush=True)
+
+            success, success_count, error, failed_subtasks = test_config_with_oraculum(
+                config_path,
+                oraculum_results_dir,
+                trials=args.trials,
+                timeout=args.timeout,
+                min_success=args.min_success,
+                gui=args.gui,
+                robot=robot
+            )
+
+            if success:
+                print(f"{GREEN}✔ OK{RESET} ({success_count}/{args.trials} successful)")
+                successful_configs.append((config_name, success_count))
+            else:
+                print(f"{RED}✖ FAIL{RESET} ({success_count}/{args.trials} successful)")
+                failed_configs.append((config_name, success_count, error, failed_subtasks))
+
+        print_summary(config_files, successful_configs, failed_configs, args.trials)
+        save_result_summary(
             oraculum_results_dir,
-            trials=args.trials, 
-            timeout=args.timeout,
-            min_success=args.min_success
+            config_files,
+            successful_configs,
+            failed_configs,
+            args.trials,
+            robot=robot
         )
-        
-        if success:
-            print(f"{GREEN}✔ OK{RESET} ({success_count}/{args.trials} successful)")
-            successful_configs.append((config_name, success_count))
-        else:
-            print(f"{RED}✖ FAIL{RESET} ({success_count}/{args.trials} successful)")
-            failed_configs.append((config_name, success_count, error, failed_subtasks))
-    
-    print_summary(config_files, successful_configs, failed_configs, args.trials)
-    save_result_summary(
-    oraculum_results_dir,
-    config_files,
-    successful_configs,
-    failed_configs,
-    args.trials
-    )
-    clean_oraculum_results(oraculum_results_dir)
-    
+        clean_oraculum_results(oraculum_results_dir)
+
+        if failed_configs:
+            any_failures = True
+
     # Return exit code based on results
-    return 0 if len(failed_configs) == 0 else 1
+    return 0 if not any_failures else 1
 
 
 if __name__ == '__main__':
