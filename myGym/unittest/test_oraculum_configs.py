@@ -1,28 +1,47 @@
 #!/usr/bin/env python3
 """
 Unit test that runs test.py with all configs in ./configs folder with -ct oraculum.
-Tests all configs with oraculum method. If there is task success for at least 5 trials 
-then marks as OK and continues to next config.
+Tests all configs with oraculum method. If there is task success for at least
+--min-success trials then marks as OK and continues to next config.
 
 Requirements:
     - All dependencies from pyproject.toml must be installed
     - Run: pip install -e . (from repository root)
-    
+
 Usage:
     # Test all configs with oraculum method (5 trials per config by default)
     python3 myGym/unittest/test_oraculum_configs.py
-    
+
     # Test with custom number of trials
     python3 myGym/unittest/test_oraculum_configs.py --trials 10
-    
+
     # Test a specific config
     python3 myGym/unittest/test_oraculum_configs.py --config train_A.json
-    
+
+    # Use configs from unittest/test_configs instead of ./configs
+    python3 myGym/unittest/test_oraculum_configs.py --dir2
+
+    # Show the pybullet GUI while testing (default: 0, no GUI)
+    python3 myGym/unittest/test_oraculum_configs.py --gui 1
+
     # Custom timeout per trial (total timeout for a config = timeout * trials)
     python3 myGym/unittest/test_oraculum_configs.py --timeout 90
-    
+
     # Minimum successful trials required (default: same as --trials)
     python3 myGym/unittest/test_oraculum_configs.py --min-success 3
+
+    # Test with one robot, overriding each config's own "robot" field
+    python3 myGym/unittest/test_oraculum_configs.py --robots kuka
+
+    # Test with multiple robots, one after another
+    python3 myGym/unittest/test_oraculum_configs.py --robots kuka panda jaco
+
+Output (written to myGym/oraculum_results/):
+    - <robot>_result.txt (or results_summary.txt if --robots is not given):
+      per-config pass/fail detail for that robot, plus an overall trials-passed count.
+    - results_summary.txt: only produced when --robots is given. A plain-text table
+      of configs (rows) x robots (columns), each cell showing that config's oraculum
+      success rate (%) for that robot.
 """
 import os
 import sys
@@ -223,7 +242,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--min-success',
         type=int,
-        default=5,
+        default=None,
         help='Minimum number of successful trials required (default: same as --trials)'
     )
     parser.add_argument(
@@ -370,6 +389,54 @@ def save_result_summary(
                 if error:
                     f.write(f"  Error: {error}\n")
                     
+def save_robot_comparison_table(
+    oraculum_results_dir: str,
+    robots: list[str],
+    config_names: list[str],
+    robot_config_scores: dict[str, dict[str, int]],
+    trials: int,
+    ) -> str:
+    """
+    Save a plain-text table comparing per-config success rate (%) across tested robots,
+    with one row per config and one column per robot.
+
+    Args:
+        oraculum_results_dir: Directory where the summary file will be saved.
+        robots: Robots that were tested, in column order.
+        config_names: Config file basenames tested, in row order.
+        robot_config_scores: robot -> {config_name: success_count}.
+        trials: Number of trials run per config (used to turn success_count into a %).
+
+    Returns:
+        Path to the saved summary file.
+    """
+
+    config_col_width = max([len("Config")] + [len(c) for c in config_names]) + 2
+    robot_col_width = max([len(r) for r in robots] + [len("100%")]) + 2
+
+    header = "Config".ljust(config_col_width) + "".join(r.ljust(robot_col_width) for r in robots)
+
+    rows = []
+    for config_name in config_names:
+        row = config_name.ljust(config_col_width)
+        for robot in robots:
+            success_count = robot_config_scores.get(robot, {}).get(config_name, 0)
+            pct = round(success_count / trials * 100) if trials else 0
+            row += f"{pct}%".ljust(robot_col_width)
+        rows.append(row)
+
+    summary_path = get_unique_filepath(oraculum_results_dir, "results_summary")
+    with open(summary_path, "w") as f:
+        f.write("ROBOT COMPARISON SUMMARY\n")
+        f.write("=" * len(header) + "\n")
+        f.write(f"Trials per config: {trials}\n\n")
+        f.write(header + "\n")
+        f.write("-" * len(header) + "\n")
+        f.write("\n".join(rows) + "\n")
+
+    return summary_path
+
+
 def print_init_info(config_files: list[str], args: argparse.Namespace) -> None:
     """
     Print initial information about the test run.
@@ -463,6 +530,8 @@ def main() -> int:
     # None means "use each config's own robot field" - a single pass with no override
     robots_to_test = args.robots if args.robots else [None]
     any_failures = False
+    robot_config_scores: dict[str, dict[str, int]] = {}
+    config_names = [os.path.basename(p) for p in config_files]
 
     for robot in robots_to_test:
         if robot:
@@ -470,6 +539,7 @@ def main() -> int:
 
         successful_configs = []
         failed_configs = []
+        scores_for_robot = {}
 
         # Test each config file
         for idx, config_path in enumerate(config_files, 1):
@@ -485,6 +555,7 @@ def main() -> int:
                 gui=args.gui,
                 robot=robot
             )
+            scores_for_robot[config_name] = success_count
 
             if success:
                 print(f"{GREEN}✔ OK{RESET} ({success_count}/{args.trials} successful)")
@@ -492,6 +563,9 @@ def main() -> int:
             else:
                 print(f"{RED}✖ FAIL{RESET} ({success_count}/{args.trials} successful)")
                 failed_configs.append((config_name, success_count, error, failed_subtasks))
+
+        if args.robots:
+            robot_config_scores[robot] = scores_for_robot
 
         print_summary(config_files, successful_configs, failed_configs, args.trials)
         save_result_summary(
@@ -506,6 +580,15 @@ def main() -> int:
 
         if failed_configs:
             any_failures = True
+
+    if args.robots:
+        save_robot_comparison_table(
+            oraculum_results_dir,
+            args.robots,
+            config_names,
+            robot_config_scores,
+            args.trials
+        )
 
     # Return exit code based on results
     return 0 if not any_failures else 1
