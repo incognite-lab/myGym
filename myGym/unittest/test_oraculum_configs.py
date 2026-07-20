@@ -36,12 +36,16 @@ Usage:
     # Test with multiple robots, one after another
     python3 myGym/unittest/test_oraculum_configs.py --robots kuka panda jaco
 
-Output (written to myGym/oraculum_results/):
-    - <robot>_result.txt (or results_summary.txt if --robots is not given):
-      per-config pass/fail detail for that robot, plus an overall trials-passed count.
-    - results_summary.txt: only produced when --robots is given. A plain-text table
-      of configs (rows) x robots (columns), each cell showing that config's oraculum
-      success rate (%) for that robot.
+Output:
+    - myGym/oraculum_results/ holds the raw CSV that test.py writes
+      for the config currently being run (cleaned up between configs/robots).
+    - unittest/test_oraculum_results/run_<timestamp>/ holds this script's own summaries,
+      one fresh subfolder per invocation so old runs don't pile up in one flat folder:
+        - <robot>_result.txt (or results_summary.txt if --robots is not given):
+          per-config pass/fail detail for that robot, plus an overall trials-passed count.
+        - results_summary.txt: only produced when --robots is given. A plain-text table
+          of configs (rows) x robots (columns), each cell showing that config's oraculum
+          success rate (%) for that robot.
 """
 import os
 import sys
@@ -49,6 +53,7 @@ import subprocess
 import glob
 import argparse
 import csv
+import datetime
 
 # ANSI colors for output marks
 GREEN = "\033[92m"
@@ -62,6 +67,9 @@ TEST_SCRIPT = os.path.join(PROJECT_ROOT, 'test.py')
 REPORT_DIR = os.path.join(PROJECT_ROOT, 'oraculum_results')
 DEF_CONFIGS_DIR = os.path.join(PROJECT_ROOT, 'configs')
 CONFIGS_DIR2 = os.path.join(PROJECT_ROOT, 'unittest', 'test_configs')
+# This script's own per-run summaries, kept separate from REPORT_DIR (which only ever
+# holds the raw CSV that test.py writes for whichever config is currently being run)
+TEST_RESULTS_DIR = os.path.join(PROJECT_ROOT, 'unittest', 'test_oraculum_results')
 
 
 def clean_oraculum_results(oraculum_results_dir: str) -> None:
@@ -299,25 +307,14 @@ def return_configs_path(args: argparse.Namespace) -> list[str]:
         # Find all JSON config files in the configs directory
         return sorted(glob.glob(os.path.join(configs_dir, "*.json")))
 
-def get_unique_filepath(directory: str, filename: str) -> str:
+def make_run_dir(base_dir: str = TEST_RESULTS_DIR) -> str:
     """
-    Generate unique filepath by appending number if the file already exists.
+    Create and return a fresh run_<timestamp> subfolder for this invocation's summaries,
+    so results from different runs land in their own folder instead of one flat directory.
     """
-    
-    summary_path = os.path.join(directory, f"{filename}.txt")
-
-    if not os.path.exists(summary_path):
-        return summary_path
-    
-    index = 1
-
-    while True:
-        summary_path = os.path.join(directory, f"{filename}{index}.txt")
-
-        if not os.path.exists(summary_path):
-            return summary_path
-
-        index += 1
+    run_dir = os.path.join(base_dir, datetime.datetime.now().strftime("run_%Y%m%d_%H%M%S"))
+    os.makedirs(run_dir, exist_ok=True)
+    return run_dir
 
 def _overall_trial_stats(
     config_files: list[str],
@@ -336,7 +333,7 @@ def _overall_trial_stats(
 
 
 def save_result_summary(
-    oraculum_results_dir: str,
+    run_dir: str,
     config_files: list[str],
     successful_configs: list[tuple[str, int]],
     failed_configs: list[tuple[str, int, str | None, list[tuple[int, str]]]],
@@ -347,7 +344,7 @@ def save_result_summary(
     Save the final test summary to a text file.
 
     Args:
-        oraculum_results_dir: Directory where the summary file will be saved.
+        run_dir: This invocation's summary folder (see make_run_dir).
         config_files: All tested config file paths.
         successful_configs: Successfully tested configs with success counts.
         failed_configs: Failed configs with errors and failed subtask sequences.
@@ -356,7 +353,7 @@ def save_result_summary(
     """
 
     filename = f"{robot}_result" if robot else "results_summary"
-    summary_path = get_unique_filepath(oraculum_results_dir, filename)
+    summary_path = os.path.join(run_dir, f"{filename}.txt")
     with open(summary_path, "w") as f:
         f.write("SUMMARY\n")
         f.write("=" * 80 + "\n")
@@ -390,7 +387,7 @@ def save_result_summary(
                     f.write(f"  Error: {error}\n")
                     
 def save_robot_comparison_table(
-    oraculum_results_dir: str,
+    run_dir: str,
     robots: list[str],
     config_names: list[str],
     robot_config_scores: dict[str, dict[str, int]],
@@ -401,7 +398,7 @@ def save_robot_comparison_table(
     with one row per config and one column per robot.
 
     Args:
-        oraculum_results_dir: Directory where the summary file will be saved.
+        run_dir: This invocation's summary folder (see make_run_dir).
         robots: Robots that were tested, in column order.
         config_names: Config file basenames tested, in row order.
         robot_config_scores: robot -> {config_name: success_count}.
@@ -425,7 +422,7 @@ def save_robot_comparison_table(
             row += f"{pct}%".ljust(robot_col_width)
         rows.append(row)
 
-    summary_path = get_unique_filepath(oraculum_results_dir, "results_summary")
+    summary_path = os.path.join(run_dir, "results_summary.txt")
     with open(summary_path, "w") as f:
         f.write("ROBOT COMPARISON SUMMARY\n")
         f.write("=" * len(header) + "\n")
@@ -520,11 +517,13 @@ def main() -> int:
             print(f"No config files found in {DEF_CONFIGS_DIR}")
         return 1
     
-    # Create oraculum_results directory if it doesn't exist
+    # oraculum_results_dir only ever holds the raw CSV test.py writes for the config
+    # currently being run; run_dir is where this script's own summaries are saved
     oraculum_results_dir = REPORT_DIR
     os.makedirs(oraculum_results_dir, exist_ok=True)
     clean_oraculum_results(oraculum_results_dir)
-    
+    run_dir = make_run_dir()
+
     print_init_info(config_files, args)
 
     # None means "use each config's own robot field" - a single pass with no override
@@ -569,7 +568,7 @@ def main() -> int:
 
         print_summary(config_files, successful_configs, failed_configs, args.trials)
         save_result_summary(
-            oraculum_results_dir,
+            run_dir,
             config_files,
             successful_configs,
             failed_configs,
@@ -583,7 +582,7 @@ def main() -> int:
 
     if args.robots:
         save_robot_comparison_table(
-            oraculum_results_dir,
+            run_dir,
             args.robots,
             config_names,
             robot_config_scores,
