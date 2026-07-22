@@ -13,8 +13,8 @@
     "robot"         :"g1",
     "robot_action"  :"joints_gripper",
     "robot_init"    : "default",
-    "max_velocity"  :0.4,
-    "max_force"     :40,
+    "max_velocity"  :0.5,
+    "max_force"     :70,
     "action_repeat" :1,
     #Task
     "task_type"             :"AGM",
@@ -46,8 +46,8 @@
     #Train
     "train_framework"   :"pytorch",
     "algo"              :"ppo",
-    "max_episode_steps" :1024,
-    "algo_steps"        :1024,
+    "max_episode_steps" :2048,
+    "algo_steps"        :2048,
     "steps"             :15000000,
     "pretrained_model"  :null,
     "multiprocessing"   :null,
