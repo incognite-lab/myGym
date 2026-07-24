@@ -581,6 +581,7 @@ def test_model(
             err = "invalid model_path argument"
         raise Exception(err)
 
+    results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Subtasks", "Success"])
     images = []  # Empty list for GIF images
     video_path = None
     success_episodes_num = 0
@@ -596,6 +597,24 @@ def test_model(
         is_successful = 0
         distance_error = 0
 
+        # Store results if selected:
+        if arg_dict.get("results_report"):
+            if len(arg_dict["task_type"]) <= 2:  # A or AG task
+                positions = [info['o']['actual_state'], None, info['o']['goal_state']]
+            else:
+                positions = [info['o']['actual_state'], None, info['o']['goal_state']]
+            current_result = [arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"],
+                            np.round(np.array(positions[0]), 2) if positions[0] is not None else None,
+                            np.round(np.array(positions[1]), 2) if positions[1] is not None else None,
+                            np.round(np.array(positions[2]), 2) if positions[2] is not None else None]
+            # Prepare subtask tracking: one flag per char in task_type (e.g. 'AGM' -> [A,G,M])
+            task_type_str = str(arg_dict.get("task_type", ""))
+            subtask_solved_flags = [False] * len(task_type_str)
+            # track the maximum network owner index seen during the episode
+            rewarder = getattr(env.env.unwrapped, "reward", None)
+            subtask_max_owner = getattr(rewarder, "owner", -1) if rewarder is not None else -1
+            prev_owner = None
+
         while not done:
             steps_sum += 1
             action, _state = model.predict(obs, deterministic=deterministic)
@@ -610,9 +629,59 @@ def test_model(
                         f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
                         f"Reward: {reward:.4f}", end ="\r", flush=True)
 
+            # update subtask tracking (if results_report enabled)
+            try:
+                owner = getattr(rewarder, "owner", None)
+                if owner is not None:
+                    subtask_max_owner = max(subtask_max_owner, owner)
+                    last = getattr(rewarder, "last_result", None)
+                    # mark subtask solved only if BOTH arm and gripper are solved for this owner
+                    if last:
+                        arm_solved = bool(last.get("arm_solved", False))
+                        gripper_solved = bool(last.get("gripper_solved", False))
+                        if arm_solved and gripper_solved:
+                            completed_index = owner
+                            if prev_owner is not None and owner > prev_owner:
+                                completed_index = owner - 1
+                            if 'subtask_solved_flags' in locals() and 0 <= completed_index < len(subtask_solved_flags):
+                                subtask_solved_flags[completed_index] = True
+                    prev_owner = owner
+            except Exception:
+                pass
+
             done = terminated or truncated
             is_successful = not info['f']
             distance_error = info['d']
+
+            if arg_dict.get("results_report") and done:
+                # Build subtasks status string like "A: True, G: False, M: True"
+                subtasks_str = ""
+                if 'subtask_solved_flags' in locals():
+                    task_chars = list(task_type_str)
+                    pairs = []
+                    for i, ch in enumerate(task_chars):
+                        status = False
+                        # consider solved if we observed owner advance past this index or flagged solved
+                        if i < len(subtask_solved_flags):
+                            status = subtask_solved_flags[i] or (subtask_max_owner > i)
+                        # the last subtask is the overall goal: require terminated
+                        if i == len(task_chars) - 1:
+                            status = status and terminated
+                        pairs.append(f"{ch}: {str(bool(status))}")
+                    subtasks_str = ", ".join(pairs)
+                else:
+                    subtasks_str = None
+
+                current_result.append(subtasks_str)
+
+                if terminated:
+                    current_result.append(True)
+                elif truncated:
+                    current_result.append(False)
+                else:
+                    current_result.append(False)
+                results.loc[len(results)] = current_result
+
             if arg_dict["vinfo"]:
                 visualize_infotext(action, env, info)
 
@@ -636,6 +705,19 @@ def test_model(
     print("Mean distance error is {:.2f}%".format(mean_distance_error * 100))
     print("Mean number of steps {}".format(mean_steps_num))
     print("#------------------------------------#")
+
+    if arg_dict.get("results_report"):
+        i = 1
+        print(results.dtypes)
+        print(results)
+        print(type(results))
+        os.makedirs("./evaluation_results", exist_ok=True)
+        while True:
+            filename = f"./evaluation_results/results{i}.csv"
+            if not(os.path.exists(filename)):
+                break
+            i += 1
+        results.to_csv(filename, index=False)
 
     file = open(os.path.join(model_logdir, "train_" + model_name + ".txt"), 'a')
     file.write("\n")
@@ -671,7 +753,7 @@ def main() -> None:
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
-    parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
+    parser.add_argument("-rr", "--results_report", default = False, help="Shows report of task feasibility and subtask breakdown at the end.")
     parser.add_argument("-tp", "--top_grasp",  default = False, help="Use top grasp when reaching objects with oraculum.")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
     arg_dict, commands = get_arguments(parser)
@@ -691,9 +773,9 @@ def main() -> None:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
     
-    # Check if results_report is used with oraculum control
-    if arg_dict["results_report"] and arg_dict.get("control") != "oraculum":
-        print("Results report cannot be used without oraculum.")
+    # Check if results_report is used with oraculum control or pretrained model evaluation
+    if arg_dict["results_report"] and arg_dict.get("control") != "oraculum" and arg_dict.get("pretrained_model") is None:
+        print("Results report can only be used with oraculum control or pretrained model evaluation.")
         arg_dict["results_report"] = False
     
     # Automatically adjust robot_action when oraculum control is selected
