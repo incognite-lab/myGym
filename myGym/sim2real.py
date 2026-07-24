@@ -38,6 +38,8 @@ from myGym.train import (
     configure_implemented_combos,
     automatic_argument_assignment,
 )
+from myGym import oraculum
+from myGym.utils.helpers import get_gripper_dict
 
 # ── ROS 2 / real-robot support (optional) ───────────────────────────────────
 try:
@@ -370,6 +372,116 @@ def _handle_success_menu(waypoints: list, episode: int,
             print('Invalid choice. Enter 1, 2, or s.')
 
 
+# ── Oraculum evaluation loop ─────────────────────────────────────────────────
+
+def evaluate_oraculum(env: Any, arg_dict: Dict[str, Any]) -> None:
+    """Evaluate using the oraculum IK solver (no trained model required) and
+    offer sim→real transfer after each episode."""
+    sample_every  = arg_dict.get('sample_every', 5)
+    step_delay    = arg_dict.get('step_delay',   0.05)
+    eval_episodes = arg_dict.get('eval_episodes', 10)
+    max_episode_steps = arg_dict.get('max_episode_steps', 1024)
+    script_dir    = os.path.dirname(os.path.abspath(__file__))
+    traj_file     = os.path.join(script_dir, 'trajectories.csv')
+
+    # Force robot_action to absolute (required by oraculum)
+    if 'gripper' in arg_dict.get('robot_action', ''):
+        arg_dict['robot_action'] = 'absolute_gripper'
+    else:
+        arg_dict['robot_action'] = 'absolute'
+    print(f'[oraculum] robot_action set to: {arg_dict["robot_action"]}')
+
+    # Obtain gripper open/close values
+    g_dict = get_gripper_dict()
+    robot_name = env.unwrapped.robot.name
+    if robot_name not in g_dict:
+        raise ValueError(
+            f"Robot '{robot_name}' not found in gripper dictionary. "
+            f"Available robots: {', '.join(sorted(g_dict.keys()))}"
+        )
+    gripper_open   = g_dict[robot_name]['open']
+    gripper_closed = g_dict[robot_name]['close']
+
+    success_count    = 0
+    distance_err_sum = 0.0
+    steps_sum        = 0
+
+    print(f'\n[oraculum] Running {eval_episodes} episode(s), '
+          f'sampling joints every {sample_every} step(s).')
+    print(f'[oraculum] Trajectory file: {traj_file}')
+    print()
+
+    for ep in range(1, eval_episodes + 1):
+        _, info = env.reset()
+        oraculum_obj = oraculum.Oraculum(
+            env, info, arg_dict['robot_action'], gripper_open, gripper_closed
+        )
+        action = env.action_space.sample().tolist()
+        done   = False
+        step   = 0
+        waypoints: list = []
+        is_successful   = False
+        distance_error  = 0.0
+
+        print(f'--- Episode {ep} / {eval_episodes} ---')
+
+        for t in range(max_episode_steps):
+            step      += 1
+            steps_sum += 1
+
+            action = oraculum_obj.perform_oraculum_task(t, env, action, info)
+            obs, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated
+
+            # Print subgoal progress
+            rewarder = env.unwrapped.reward if hasattr(env.unwrapped, 'reward') else None
+            if rewarder is not None and hasattr(rewarder, 'last_result'):
+                result = rewarder.last_result
+                print(
+                    f"  Subgoal: {rewarder.network_name} "
+                    f"({rewarder.owner + 1}/{rewarder.num_networks}) | "
+                    f"Dist: {result['absolute_distance']:.4f} | "
+                    f"Arm: {result['arm_progress']:.1f}% (solved={result['arm_solved']}) | "
+                    f"Gripper: {result['gripper_progress']:.1f}% "
+                    f"(solved={result['gripper_solved']}) | "
+                    f"Reward: {reward:.4f}",
+                    end='\r', flush=True,
+                )
+
+            # Record joint snapshot every sample_every steps
+            if step % sample_every == 0 or done:
+                try:
+                    wp = _snapshot_from_env(env)
+                    waypoints.append(wp)
+                except Exception as exc:
+                    print(f'\n[warn] Could not snapshot joints at step {step}: {exc}')
+
+            is_successful  = not info.get('f', True)
+            distance_error = info.get('d', 0.0)
+
+            if done:
+                break
+
+        print()  # newline after \r progress
+        print(f'  Episode {ep}: {"SUCCESS" if is_successful else "FAIL"} '
+              f'after {step} steps  (dist={distance_error:.4f})')
+
+        success_count    += int(is_successful)
+        distance_err_sum += distance_error
+
+        if waypoints:
+            _handle_success_menu(waypoints, ep, traj_file, step_delay)
+
+    # Summary
+    print()
+    print('#─────────────── Oraculum Evaluation Summary ───────────────#')
+    print(f'  {success_count} / {eval_episodes} episodes successful '
+          f'({success_count / eval_episodes * 100:.1f} %)')
+    print(f'  Mean distance error: {distance_err_sum / eval_episodes * 100:.2f} %')
+    print(f'  Mean steps per episode: {steps_sum // eval_episodes}')
+    print('#────────────────────────────────────────────────────────────#')
+
+
 # ── Main evaluation loop ─────────────────────────────────────────────────────
 
 def evaluate(env: Any, model, arg_dict: Dict[str, Any],
@@ -487,6 +599,14 @@ def main() -> None:
         '--deterministic', action='store_true', default=False,
         help='Use deterministic model predictions (default: False).',
     )
+    parser.add_argument(
+        '-ct', '--control', default=None,
+        help='Control method when no model is specified. Use "oraculum" for IK-based execution.',
+    )
+    parser.add_argument(
+        '-tp', '--top_grasp', default=False,
+        help='Use top grasp when reaching objects with oraculum.',
+    )
 
     # Convenience: if a .zip file was passed as --config, treat it as --pretrained_model
     for flag in ('-cfg', '--config'):
@@ -521,8 +641,24 @@ def main() -> None:
 
     arg_dict, _ = get_arguments(parser)
 
+    # Automatically adjust robot_action when oraculum control is selected
+    if arg_dict.get('control') == 'oraculum':
+        if 'gripper' in arg_dict.get('robot_action', ''):
+            arg_dict['robot_action'] = 'absolute_gripper'
+        else:
+            arg_dict['robot_action'] = 'absolute'
+        print(f"[sim2real] Oraculum control selected. Robot action automatically set to: {arg_dict['robot_action']}")
+
+    # ── Oraculum mode: no model required ──────────────────────────────────────
+    if arg_dict.get('control') == 'oraculum' and arg_dict.get('pretrained_model') is None:
+        arg_dict = automatic_argument_assignment(arg_dict)
+        print('[sim2real] Configuring environment …')
+        env = configure_env(arg_dict, model_logdir=None, for_train=0)
+        evaluate_oraculum(env, arg_dict)
+        return
+
     if arg_dict.get('pretrained_model') is None:
-        print('[sim2real] --pretrained_model is required.')
+        print('[sim2real] --pretrained_model is required (or use --control oraculum).')
         print('           Specify the path to a trained model directory or zip file.')
         parser.print_help()
         sys.exit(1)
