@@ -1,541 +1,584 @@
-from ast import arg
-import gym
-from myGym import envs
-import cv2
-from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env
-import os, imageio
-import numpy as np
+#!/usr/bin/env python3
+"""
+sim2real.py — Evaluate a trained myGym model in PyBullet simulation, then
+              offer to save or directly execute successful trajectories on the
+              real S2 robot.
+
+Workflow:
+  1. Load a pretrained model + PyBullet environment (identical to test.py model path)
+  2. Run evaluation episodes one at a time
+  3. During each episode, record joint snapshots every --sample_every steps
+  4. When an episode terminates with success, prompt:
+       [1] Save trajectory to trajectories.csv  (same format as visualize_real_robot_ik.py)
+       [2] Execute trajectory on real S2 robot  (requires ROS 2 / real robot)
+       [s] Skip and continue to next episode
+  5. After all eval episodes, print summary
+
+Usage:
+    python sim2real.py --config configs/AGM.json \\
+                       --pretrained_model trained_models/.../best_model.zip \\
+                       [--eval_episodes 10] [--sample_every 5]
+"""
+
+import csv
+import json
+import math
+import os
+import sys
 import time
-from numpy import matrix
-import pybullet as p
-import pybullet_data
-import importlib.resources as pkg_resources
-import random
-import getkey
-import signal
-from utils.nicomotors import NicoMotors
+import threading
+from typing import Any, Dict, Optional
+
+import numpy as np
+
+from myGym.train import (
+    get_parser,
+    get_arguments,
+    configure_env,
+    configure_implemented_combos,
+    automatic_argument_assignment,
+)
+
+# ── ROS 2 / real-robot support (optional) ───────────────────────────────────
+try:
+    import rclpy
+    from rclpy.node import Node
+    from bodyctrl_msgs.msg import CmdSetMotorPosition, SetMotorPosition, MotorStatusMsg
+    from sensor_msgs.msg import JointState
+    _ROS2_AVAILABLE = True
+except ImportError:
+    _ROS2_AVAILABLE = False
 
 
-clear = lambda: os.system('clear')
+# ── Joint mapping (mirrors visualize_real_robot_ik.py) ──────────────────────
 
-AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
-AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
+MOTOR_TO_URDF: Dict[int, str] = {
+    # Head
+    1: 'head_roll_joint',
+    2: 'head_pitch_joint',
+    3: 'head_yaw_joint',
+    # Left arm
+    11: 'shoulder_pitch_l_joint',
+    12: 'shoulder_roll_l_joint',
+    13: 'shoulder_yaw_l_joint',
+    14: 'elbow_pitch_l_joint',
+    15: 'wrist_yaw_l_joint',
+    16: 'wrist_pitch_l_joint',
+    17: 'wrist_roll_l_joint',
+    # Right arm
+    21: 'shoulder_pitch_r_rjoint',
+    22: 'shoulder_roll_r_rjoint',
+    23: 'shoulder_yaw_r_rjoint',
+    24: 'elbow_pitch_r_rjoint',
+    25: 'wrist_yaw_r_rjoint',
+    26: 'wrist_pitch_r_rjoint',
+    27: 'wrist_roll_r_rjoint',
+    # Waist
+    31: 'body_yaw_rjoint',
+    # Left leg
+    51: 'hip_roll_l_joint',
+    52: 'hip_pitch_l_joint',
+    53: 'hip_yaw_l_joint',
+    54: 'knee_pitch_l_joint',
+    55: 'ankle_pitch_l_joint',
+    56: 'ankle_roll_l_joint',
+    # Right leg
+    61: 'hip_roll_r_joint',
+    62: 'hip_pitch_r_joint',
+    63: 'hip_yaw_r_joint',
+    64: 'knee_pitch_r_joint',
+    65: 'ankle_pitch_r_joint',
+    66: 'ankle_roll_r_joint',
+}
 
-def visualize_sampling_area(arg_dict):
-    rx = (arg_dict["task_objects"][0]["goal"]["sampling_area"][0] - arg_dict["task_objects"][0]["goal"]["sampling_area"][1])/2
-    ry = (arg_dict["task_objects"][0]["goal"]["sampling_area"][2] - arg_dict["task_objects"][0]["goal"]["sampling_area"][3])/2
-    rz = (arg_dict["task_objects"][0]["goal"]["sampling_area"][4] - arg_dict["task_objects"][0]["goal"]["sampling_area"][5])/2
+# Mapping from URDF joint name → (position-array key, index-within-array)
+# Used to build the waypoint payload from PyBullet joint states.
+URDF_TO_GUI: Dict[str, tuple] = {
+    # Left leg
+    'hip_roll_l_joint':    ('left_leg_pos',  0),
+    'hip_pitch_l_joint':   ('left_leg_pos',  1),
+    'hip_yaw_l_joint':     ('left_leg_pos',  2),
+    'knee_pitch_l_joint':  ('left_leg_pos',  3),
+    'ankle_pitch_l_joint': ('left_leg_pos',  4),
+    'ankle_roll_l_joint':  ('left_leg_pos',  5),
+    # Right leg
+    'hip_roll_r_joint':    ('right_leg_pos', 0),
+    'hip_pitch_r_joint':   ('right_leg_pos', 1),
+    'hip_yaw_r_joint':     ('right_leg_pos', 2),
+    'knee_pitch_r_joint':  ('right_leg_pos', 3),
+    'ankle_pitch_r_joint': ('right_leg_pos', 4),
+    'ankle_roll_r_joint':  ('right_leg_pos', 5),
+    # Waist
+    'body_yaw_rjoint':         ('waist_pos',     0),
+    # Head
+    'head_roll_joint':         ('head_pos',      0),
+    'head_pitch_joint':        ('head_pos',      1),
+    'head_yaw_joint':          ('head_pos',      2),
+    # Left arm
+    'shoulder_pitch_l_joint':  ('left_arm_pos',  0),
+    'shoulder_roll_l_joint':   ('left_arm_pos',  1),
+    'shoulder_yaw_l_joint':    ('left_arm_pos',  2),
+    'elbow_pitch_l_joint':     ('left_arm_pos',  3),
+    'wrist_yaw_l_joint':       ('left_arm_pos',  4),
+    'wrist_pitch_l_joint':     ('left_arm_pos',  5),
+    'wrist_roll_l_joint':      ('left_arm_pos',  6),
+    # Right arm — S2full URDF names (used by real robot)
+    'shoulder_pitch_r_rjoint': ('right_arm_pos', 0),
+    'shoulder_roll_r_rjoint':  ('right_arm_pos', 1),
+    'shoulder_yaw_r_rjoint':   ('right_arm_pos', 2),
+    'elbow_pitch_r_rjoint':    ('right_arm_pos', 3),
+    'wrist_yaw_r_rjoint':      ('right_arm_pos', 4),
+    # S2 simulation URDF may use elbow_yaw instead of wrist_yaw (slot 4)
+    'elbow_yaw_r_rjoint':      ('right_arm_pos', 4),
+    'wrist_pitch_r_rjoint':    ('right_arm_pos', 5),
+    'wrist_roll_r_rjoint':     ('right_arm_pos', 6),
+}
 
-    visual = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[rx,ry,rz], rgbaColor=[1,0,0,.2])
-    collision = -1
-    
-    sampling = p.createMultiBody(
-        baseVisualShapeIndex=visual,
-        baseCollisionShapeIndex=collision,
-        baseMass=0,
-        basePosition=[arg_dict["task_objects"][0]["goal"]["sampling_area"][0]-rx, arg_dict["task_objects"][0]["goal"]["sampling_area"][2]-ry,arg_dict["task_objects"][0]["goal"]["sampling_area"][4]-rz],
-    )
+_LIMB_TO_MOTORS: Dict[str, list] = {
+    'head_pos':      [1,  2,  3],
+    'left_arm_pos':  [11, 12, 13, 14, 15, 16, 17],
+    'right_arm_pos': [21, 22, 23, 24, 25, 26, 27],
+    'waist_pos':     [31],
+    'left_leg_pos':  [51, 52, 53, 54, 55, 56],
+    'right_leg_pos': [61, 62, 63, 64, 65, 66],
+}
 
-def visualize_trajectories (info,action):
-        
-                visualo = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[0,0,1,.3])
-                collision = -1
-                p.createMultiBody(
-                        baseVisualShapeIndex=visualo,
-                        baseCollisionShapeIndex=collision,
-                        baseMass=0,
-                        basePosition=info['o']['actual_state'],
+
+# ── ROS 2 node (only instantiated when option 2 is selected) ────────────────
+
+if _ROS2_AVAILABLE:
+    def _motor_route(motor_id: int):
+        if 11 <= motor_id <= 27:
+            return 'arm',   0.5, 8.0
+        if 51 <= motor_id <= 66:
+            return 'leg',   0.5, 8.0
+        if motor_id == 31:
+            return 'waist', 0.2, 8.0
+        if 1 <= motor_id <= 3:
+            return 'head',  0.2, 2.0
+        return None, 0.5, 8.0
+
+    class _RobotNode(Node):
+        def __init__(self):
+            super().__init__('sim2real_node')
+            self._pubs = {
+                'arm':   self.create_publisher(CmdSetMotorPosition, '/arm/cmd_pos',   10),
+                'leg':   self.create_publisher(CmdSetMotorPosition, '/leg/cmd_pos',   10),
+                'waist': self.create_publisher(CmdSetMotorPosition, '/waist/cmd_pos', 10),
+                'head':  self.create_publisher(CmdSetMotorPosition, '/head/cmd_pos',  10),
+            }
+
+        def send_positions(self, commands: Dict[int, float]):
+            groups: Dict[str, list] = {}
+            for motor_id, pos_rad in commands.items():
+                topic_key, spd, cur = _motor_route(motor_id)
+                if topic_key is None:
+                    continue
+                c = SetMotorPosition()
+                c.name = motor_id
+                c.pos  = float(pos_rad)
+                c.spd  = spd
+                c.cur  = cur
+                groups.setdefault(topic_key, []).append(c)
+            for topic_key, cmds in groups.items():
+                msg = CmdSetMotorPosition()
+                msg.cmds = cmds
+                self._pubs[topic_key].publish(msg)
+
+
+# ── Trajectory utilities (same format as visualize_real_robot_ik.py) ─────────
+
+def _snapshot_from_env(env) -> dict:
+    """Read current joint positions from the myGym env's PyBullet robot and
+    return a waypoint payload dict (degrees) in the trajectories.csv format.
+
+    All limbs not controlled by the simulation stay at 0.0 degrees, which
+    means the real robot will hold its current/default position for those joints.
+    """
+    robot = env.unwrapped.robot
+    pb    = robot.p
+    uid   = robot.robot_uid
+
+    limb_sizes = {
+        'left_leg_pos': 6, 'right_leg_pos': 6,
+        'left_arm_pos': 7, 'right_arm_pos': 7,
+        'waist_pos':    1, 'head_pos':      3,
+    }
+    positions = {k: [0.0] * n for k, n in limb_sizes.items()}
+
+    num_joints = pb.getNumJoints(uid)
+    for ji in range(num_joints):
+        info  = pb.getJointInfo(uid, ji)
+        jtype = info[2]
+        if jtype == pb.JOINT_FIXED:
+            continue
+        jname = info[1].decode('utf-8')
+        if jname not in URDF_TO_GUI:
+            continue
+        limb_key, idx = URDF_TO_GUI[jname]
+        angle_rad = pb.getJointState(uid, ji)[0]
+        positions[limb_key][idx] = round(math.degrees(angle_rad), 2)
+
+    return {
+        'leg_mode': 'Position', 'arm_mode': 'Position',
+        'left_leg_pos':  positions['left_leg_pos'],
+        'right_leg_pos': positions['right_leg_pos'],
+        'left_arm_pos':  positions['left_arm_pos'],
+        'right_arm_pos': positions['right_arm_pos'],
+        'leg_profile_speed': 0.5, 'leg_position_current': 8.0, 'leg_speed_current': 8.0,
+        'arm_profile_speed': 0.5, 'arm_position_current': 8.0, 'arm_speed_current': 8.0,
+        'waist_pos': positions['waist_pos'], 'waist_speed': [0.2],
+        'head_pos':  positions['head_pos'],  'head_speed':  [0.2],
+        'left_finger_pos':  [0.0] * 6, 'right_finger_pos': [0.0] * 6,
+        'left_finger_vel':  [1.0] * 6, 'right_finger_vel': [1.0] * 6,
+        'hand_effort': [1.0],
+    }
+
+
+def _save_trajectory(traj_name: str, waypoints: list, traj_file: str) -> None:
+    """Append / overwrite a named trajectory in trajectories.csv."""
+    trajectories: dict = {}
+    if os.path.exists(traj_file):
+        try:
+            with open(traj_file, 'r', newline='', encoding='utf-8') as f:
+                for row in csv.DictReader(f):
+                    n  = (row.get('name') or '').strip()
+                    wps = row.get('waypoints')
+                    if n and wps:
+                        try:
+                            trajectories[n] = json.loads(wps)
+                        except json.JSONDecodeError:
+                            pass
+        except OSError:
+            pass
+    trajectories[traj_name] = waypoints
+    with open(traj_file, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=['name', 'waypoints'])
+        writer.writeheader()
+        for n, wps in trajectories.items():
+            writer.writerow({'name': n, 'waypoints': json.dumps(wps)})
+
+
+def _execute_trajectory_ros(waypoints: list, ros_node, step_delay: float = 2.0,
+                             interp_hz: float = 20.0) -> None:
+    """Stream trajectory waypoints to the real S2 robot via ROS 2 (blocking),
+    then return to the start by replaying waypoints in reverse order."""
+
+    def _interp_commands(wp_a: dict, wp_b: dict, alpha: float) -> Dict[int, float]:
+        cmds: Dict[int, float] = {}
+        for limb_key, motor_ids in _LIMB_TO_MOTORS.items():
+            a_ang = wp_a.get(limb_key, [])
+            b_ang = wp_b.get(limb_key, [])
+            for idx, motor_id in enumerate(motor_ids):
+                a = float(a_ang[idx]) if idx < len(a_ang) else 0.0
+                b = float(b_ang[idx]) if idx < len(b_ang) else 0.0
+                cmds[motor_id] = math.radians(a + alpha * (b - a))
+        return cmds
+
+    def _stream(sequence: list, label: str) -> None:
+        """Interpolate and stream a list of waypoints."""
+        n_interp = max(1, int(step_delay * interp_hz))
+        sleep_dt = 1.0 / interp_hz
+        ros_node.send_positions(_interp_commands(sequence[0], sequence[0], 1.0))
+        print(f'[real] {label} waypoint 1 / {len(sequence)}')
+        for i in range(1, len(sequence)):
+            for step in range(1, n_interp + 1):
+                alpha = step / n_interp
+                ros_node.send_positions(
+                    _interp_commands(sequence[i - 1], sequence[i], alpha)
+                )
+                time.sleep(sleep_dt)
+            print(f'[real] {label} waypoint {i + 1} / {len(sequence)}')
+
+    print(f'[real] Executing {len(waypoints)} waypoints '
+          f'({step_delay} s × {interp_hz:.0f} Hz per step) …')
+    _stream(waypoints, 'Forward')
+
+    print(f'[real] Returning to start — replaying {len(waypoints)} waypoints in reverse …')
+    _stream(list(reversed(waypoints)), 'Return')
+
+    print('[real] Done.')
+
+
+# ── Post-success menu ────────────────────────────────────────────────────────
+
+def _handle_success_menu(waypoints: list, episode: int,
+                          traj_file: str, step_delay: float) -> None:
+    """Prompt the user what to do with the recorded trajectory."""
+    print()
+    print('=' * 60)
+    print(f'  SUCCESS — Episode {episode}  ({len(waypoints)} waypoints recorded)')
+    print('=' * 60)
+    print('  [1] Save trajectory to trajectories.csv')
+    print('  [2] Execute trajectory on real S2 robot now')
+    print('  [s] Skip')
+    print('=' * 60)
+
+    while True:
+        choice = input('Choice: ').strip().lower()
+
+        if choice == '1':
+            default_name = f'sim2real_ep{episode}'
+            name = input(f'Trajectory name [{default_name}]: ').strip()
+            if not name:
+                name = default_name
+            _save_trajectory(name, waypoints, traj_file)
+            print(f"[1] Saved '{name}' ({len(waypoints)} waypoints) → {traj_file}")
+            break
+
+        elif choice == '2':
+            if not _ROS2_AVAILABLE:
+                print('[2] ROS 2 is not available in this environment. '
+                      'Install rclpy and robot message packages to use this option.')
+                continue
+            spd_str = input('[2] Step delay in seconds per waypoint [0.05]: ').strip()
+            try:
+                exec_delay = float(spd_str) if spd_str else 0.05
+                if exec_delay <= 0:
+                    raise ValueError
+            except ValueError:
+                print('[2] Invalid delay — using 0.05 s.')
+                exec_delay = 0.05
+            print('[2] Initialising ROS 2 …')
+            try:
+                rclpy.init()
+                ros_node = _RobotNode()
+                spin_thread = threading.Thread(
+                    target=rclpy.spin, args=(ros_node,), daemon=True
+                )
+                spin_thread.start()
+                print('[2] ⚠  WARNING — This will move physical hardware!')
+                print(f'[2] Speed: {exec_delay} s/waypoint  |  will return to start after completion.')
+                input('[2] Press Enter to confirm execution (Ctrl+C to abort): ')
+                _execute_trajectory_ros(waypoints, ros_node, step_delay=exec_delay)
+            except Exception as exc:
+                print(f'[2] Error during real-robot execution: {exc}')
+            finally:
+                try:
+                    if 'ros_node' in dir():
+                        ros_node.destroy_node()
+                    rclpy.shutdown()
+                except Exception:
+                    pass
+            break
+
+        elif choice in ('s', 'skip', ''):
+            print('Skipping.')
+            break
+
+        else:
+            print('Invalid choice. Enter 1, 2, or s.')
+
+
+# ── Main evaluation loop ─────────────────────────────────────────────────────
+
+def evaluate(env: Any, model, arg_dict: Dict[str, Any],
+             model_logdir: str, deterministic: bool = False) -> None:
+    """Evaluate model in PyBullet and offer sim→real transfer after each success."""
+    import pybullet as p_module
+
+    sample_every  = arg_dict.get('sample_every', 5)
+    step_delay    = arg_dict.get('step_delay',   0.05)
+    eval_episodes = arg_dict.get('eval_episodes', 10)
+    script_dir    = os.path.dirname(os.path.abspath(__file__))
+    traj_file     = os.path.join(script_dir, 'trajectories.csv')
+
+    success_count    = 0
+    distance_err_sum = 0.0
+    steps_sum        = 0
+
+    print(f'\n[sim2real] Running {eval_episodes} episode(s), '
+          f'sampling joints every {sample_every} step(s).')
+    print(f'[sim2real] Trajectory file: {traj_file}')
+    print()
+
+    for ep in range(1, eval_episodes + 1):
+        obs, info = env.reset()
+        done      = False
+        step      = 0
+        waypoints: list = []
+        is_successful   = False
+        distance_error  = 0.0
+
+        print(f'--- Episode {ep} / {eval_episodes} ---')
+
+        while not done:
+            step      += 1
+            steps_sum += 1
+
+            action, _ = model.predict(obs, deterministic=deterministic)
+            obs, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated
+
+            # Print subgoal progress
+            rewarder = env.unwrapped.reward if hasattr(env.unwrapped, 'reward') else None
+            if rewarder is not None and hasattr(rewarder, 'last_result'):
+                result = rewarder.last_result
+                print(
+                    f"  Subgoal: {rewarder.network_name} "
+                    f"({rewarder.owner + 1}/{rewarder.num_networks}) | "
+                    f"Dist: {result['absolute_distance']:.4f} | "
+                    f"Arm: {result['arm_progress']:.1f}% (solved={result['arm_solved']}) | "
+                    f"Gripper: {result['gripper_progress']:.1f}% "
+                    f"(solved={result['gripper_solved']}) | "
+                    f"Reward: {reward:.4f}",
+                    end='\r', flush=True,
                 )
 
-                #visualr = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[0,1,0,.5])
-                #p.createMultiBody(
-                #        baseVisualShapeIndex=visualr,
-                #        baseCollisionShapeIndex=collision,
-                #        baseMass=0,
-                #        basePosition=info['o']['additional_obs']['endeff_xyz'],
-                #)
+            # Record joint snapshot every sample_every steps
+            if step % sample_every == 0 or done:
+                try:
+                    wp = _snapshot_from_env(env)
+                    waypoints.append(wp)
+                except Exception as exc:
+                    print(f'\n[warn] Could not snapshot joints at step {step}: {exc}')
 
-                visuala = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[1,0,0,.3])
-                p.createMultiBody(
-                        baseVisualShapeIndex=visuala,
-                        baseCollisionShapeIndex=collision,
-                        baseMass=0,
-                        basePosition=action[:3],
-                )  
+            is_successful  = not info.get('f', True)
+            distance_error = info.get('d', 0.0)
 
-def visualize_goal(info):
-                    visualg = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[1,0,0,.5])
-                    collision = -1
-                    p.createMultiBody(
-                        baseVisualShapeIndex=visualg,
-                        baseCollisionShapeIndex=collision,
-                        baseMass=0,
-                        basePosition=info['o']['goal_state'],
-                    )
-def change_dynamics(cubex,lfriction,rfriction,ldamping,adamping):
-                    p.changeDynamics(cubex, -1, lateralFriction=p.readUserDebugParameter(lfriction))
-                    p.changeDynamics(cubex,-1,rollingFriction=p.readUserDebugParameter(rfriction))
-                    p.changeDynamics(cubex, -1, linearDamping=p.readUserDebugParameter(ldamping))
-                    p.changeDynamics(cubex, -1, angularDamping=p.readUserDebugParameter(adamping))
+        print()  # newline after \r progress
+        print(f'  Episode {ep}: {"SUCCESS" if is_successful else "FAIL"} '
+              f'after {step} steps  (dist={distance_error:.4f})')
 
-    #visualrobot = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=1, rgbaColor=[0,1,0,.2])
-    #collisionrobot = -1
-    #sampling = p.createMultiBody(
-    #    baseVisualShapeIndex=visualrobot,
-    #    baseCollisionShapeIndex=collisionrobot,
-    #    baseMass=0,
-    #    basePosition=[0,0,0.3],
-    #)
+        success_count    += int(is_successful)
+        distance_err_sum += distance_error
 
-def visualize_infotext(action, env, info):
-    p.addUserDebugText(f"Episode:{env.env.episode_number}",
-        [.65, 1., 0.45], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, .3])
-    p.addUserDebugText(f"Step:{env.env.episode_steps}",
-        [.67, 1, .40], textSize=1.0, lifeTime=0.5, textColorRGB=[0.2, 0.8, 1])   
-    p.addUserDebugText(f"Subtask:{env.env.task.current_task}",
-        [.69, 1, 0.35], textSize=1.0, lifeTime=0.5, textColorRGB=[0.4, 0.2, 1])
-    p.addUserDebugText(f"Network:{env.env.unwrapped.reward.current_network}",
-        [.71, 1, 0.3], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-    p.addUserDebugText(f"Action (Gripper):{matrix(np.around(np.array(action),2))}",
-        [.73, 1, 0.25], textSize=1.0, lifeTime=0.5, textColorRGB=[1, 0, 0])
-    p.addUserDebugText(f"Actual_state:{matrix(np.around(np.array(env.env.observation['task_objects']['actual_state'][:3]),2))}",
-        [.75, 1, 0.2], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
-    p.addUserDebugText(f"End_effector:{matrix(np.around(np.array(env.env.robot.end_effector_pos),2))}",
-        [.77, 1, 0.15], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
-    p.addUserDebugText(f"        Object:{matrix(np.around(np.array(info['o']['actual_state']),2))}",
-        [.8, 1, 0.10], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 0.0, 1])
-    p.addUserDebugText(f"Velocity:{env.env.max_velocity}",
-        [.79, 1, 0.05], textSize=1.0, lifeTime=0.5, textColorRGB=[0.6, 0.8, .3])
-    p.addUserDebugText(f"Force:{env.env.max_force}",
-        [.81, 1, 0.00], textSize=1.0, lifeTime=0.5, textColorRGB=[0.3, 0.2, .4])
+        #if is_successful and waypoints:
+        if waypoints:
+            _handle_success_menu(waypoints, ep, traj_file, step_delay)
 
-def detect_key(keypress,arg_dict,action):
+    # Summary
+    print()
+    print('#─────────────── Evaluation Summary ───────────────#')
+    print(f'  {success_count} / {eval_episodes} episodes successful '
+          f'({success_count / eval_episodes * 100:.1f} %)')
+    print(f'  Mean distance error: {distance_err_sum / eval_episodes * 100:.2f} %')
+    print(f'  Mean steps per episode: {steps_sum // eval_episodes}')
+    print('#──────────────────────────────────────────────────#')
 
-    if 97 in keypress.keys() and keypress[97] == 1: # A
-        action[2] += .03
-        print(action)
-    if 122 in keypress.keys() and keypress[122] == 1: # Z/Y
-        action[2] -= .03
-        print(action)
-    if 65297 in keypress.keys() and keypress[65297] == 1: # ARROW UP
-        action[1] -= .03
-        print(action)
-    if 65298 in keypress.keys() and keypress[65298] == 1: # ARROW DOWN
-        action[1] += .03
-        print(action)
-    if 65295 in keypress.keys() and keypress[65295] == 1: # ARROW LEFT
-        action[0] += .03
-        print(action)
-    if 65296 in keypress.keys() and keypress[65296] == 1: # ARROW RIGHT
-        action[0] -= .03
-        print(action)
-    if 120 in keypress.keys() and keypress[120] == 1: # X
-        action[3] -= .03
-        action[4] -= .03
-        print(action)
-    if 99 in keypress.keys() and keypress[99] == 1: # C
-        action[3] += .03
-        action[4] += .03
-        print(action)
-    # if 100 in keypress.keys() and keypress[100] == 1:
-    #     cube[cubecount] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [action[0], action[1],action[2]-0.2 ])
-    #     change_dynamics(cube[cubecount],lfriction,rfriction,ldamping,adamping)
-    #     cubecount +=1
-    if "step" in arg_dict["robot_action"]:
-        action[:3] = np.multiply(action [:3],10)
-    elif "joints" in arg_dict["robot_action"]:
-        print("Robot action: Joints - KEYBOARD CONTROL UNDER DEVELOPMENT")
-        quit()
-    #for i in range (env.action_space.shape[0]):
-    #    env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
-    #    env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
-    return action
-
-def test_env(env, arg_dict):
-    real_robot = True
-    motors = NicoMotors()
-    dofs = motors.dofs()
+    # Write summary to log file (matches test.py behaviour)
+    model_name = arg_dict.get('algo', 'model') + '_' + str(arg_dict.get('steps', ''))
+    log_path   = os.path.join(model_logdir, f'sim2real_{model_name}.txt')
     try:
-        motors.open()
-    except:
-        print('motors are not operational')
-    
-    for k in dofs:
-        motors.enableTorque(k)
-        torque = True
-    
-    
-    arg_dict["vsampling"] = 0
-    arg_dict["vinfo"] = 0
-    spawn_objects = False
-    env.render("human")
-    #env.reset()
-    #Prepare names for sliders
-    joints = ['Joint1','Joint2','Joint3','Joint4','Joint5','Joint6','Joint7','Joint 8','Joint 9', 'Joint10', 'Joint11','Joint12','Joint13','Joint14','Joint15','Joint16','Joint17','Joint 18','Joint 19']
-    jointparams = ['Jnt1','Jnt2','Jnt3','Jnt4','Jnt5','Jnt6','Jnt7','Jnt 8','Jnt 9', 'Jnt10', 'Jnt11','Jnt12','Jnt13','Jnt14','Jnt15','Jnt16','Jnt17','Jnt 18','Jnt 19']
-    cube = ['Cube1','Cube2','Cube3','Cube4','Cube5','Cube6','Cube7','Cube8','Cube9','Cube10','Cube11','Cube12','Cube13','Cube14','Cube15','Cube16','Cube17','Cube18','Cube19']
-    cubecount = 0
-    
-    if arg_dict["gui"] == 0:
-        print ("Add --gui 1 parameter to visualize environment")
-        quit()
-
-    p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-    
-    p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
-    p.setAdditionalSearchPath(pybullet_data.getDataPath())
-    #newobject = p.loadURDF("cube.urdf", [3.1,3.7,0.1])
-    #p.changeDynamics(newobject, -1, lateralFriction=1.00)
-    #p.setRealTimeSimulation(1)
-    if arg_dict["control"] == "slider":
-        p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
-        if "joints" in arg_dict["robot_action"]:
-            if 'gripper' in arg_dict["robot_action"]:
-                print ("gripper is present")
-                for i in range (env.action_space.shape[0]):
-                    if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
-                        joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
-                    else:
-                        joints[i] = p.addUserDebugParameter(joints[i], env.action_space.low[i], env.action_space.high[i], .02)
-            else:
-                for i in range (env.action_space.shape[0]):
-                    joints[i] = p.addUserDebugParameter(joints[i],env.action_space.low[i], env.action_space.high[i], env.env.robot.init_joint_poses[i])
-        elif "absolute" in arg_dict["robot_action"]:
-            if 'gripper' in arg_dict["robot_action"]:
-                print ("gripper is present")
-                for i in range (env.action_space.shape[0]):
-                    if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
-                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
-                    else:
-                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
-            else:
-                for i in range (env.action_space.shape[0]):
-                    joints[i] = p.addUserDebugParameter(joints[i], -1, 1, arg_dict["robot_init"][i])
-        elif "step" in arg_dict["robot_action"]:
-            if 'gripper' in arg_dict["robot_action"]:
-                print ("gripper is present")
-                for i in range (env.action_space.shape[0]):
-                    if i < (env.action_space.shape[0] - len(env.env.robot.gjoints_rest_poses)):
-                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
-                    else:
-                        joints[i] = p.addUserDebugParameter(joints[i], -1, 1, .02)
-            else:
-                for i in range (env.action_space.shape[0]):
-                    joints[i] = p.addUserDebugParameter(joints[i], -1, 1, 0)
-    
-    
-    #maxvelo = p.addUserDebugParameter("Max Velocity", 0.1, 50, env.env.robot.joints_max_velo[0]) 
-    #maxforce = p.addUserDebugParameter("Max Force", 0.1, 300, env.env.robot.joints_max_force[0])
-    lfriction = p.addUserDebugParameter("Lateral Friction", 0, 100, 0)   
-    rfriction = p.addUserDebugParameter("Spinning Friction", 0, 100, 0)
-    ldamping = p.addUserDebugParameter("Linear Damping", 0, 100, 0)
-    adamping = p.addUserDebugParameter("Angular Damping", 0, 100, 0)
-            #action.append(jointparams[i])
-    if arg_dict["vsampling"] == True:
-        visualize_sampling_area(arg_dict)
-
-    #visualgr = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=.005, rgbaColor=[0,0,1,.1])
-
-    if arg_dict["control"] == "random":
-            action = env.action_space.sample()
-    if arg_dict["control"] == "keyboard":
-        action = arg_dict["robot_init"]
-        if "gripper" in arg_dict["robot_action"]:
-            action.append(.1)
-            action.append(.1)
-    if arg_dict["control"] == "slider":
-        action = [] 
-        for i in range (env.action_space.shape[0]):
-            jointparams[i] = p.readUserDebugParameter(joints[i])
-            action.append(jointparams[i])
-
-    for e in range(50):
-        env.reset()
-        #if spawn_objects:
-        #    cube[e] = p.loadURDF(pkg_resources.resource_filename("myGym", os.path.join("envs", "objects/assembly/urdf/cube_holes.urdf")), [0, 0.5, .1])
-        
-        #if visualize_traj:
-        #    visualize_goal(info)
-        trajectory=[]
-        degdiff =  []
-        actiondiff =  []
+        with open(log_path, 'a') as f:
+            f.write('\n#sim2real evaluation results:\n')
+            f.write(f'#{success_count} / {eval_episodes} episodes successful\n')
+            f.write(f'#Mean distance error: {distance_err_sum / eval_episodes * 100:.2f}%\n')
+            f.write(f'#Mean steps: {steps_sum // eval_episodes}\n')
+        print(f'[sim2real] Log written to {log_path}')
+    except OSError as exc:
+        print(f'[sim2real] Could not write log: {exc}')
 
 
+# ── Entry point ──────────────────────────────────────────────────────────────
 
+def main() -> None:
+    parser = get_parser()
+    # Extra sim2real-specific arguments
+    parser.add_argument(
+        '--sample_every', type=int, default=3,
+        help='Record a joint snapshot every N simulation steps (default: 5).',
+    )
+    parser.add_argument(
+        '--step_delay', type=float, default=0.05,
+        help='Seconds per waypoint when executing on the real robot (default: 0.05).',
+    )
+    parser.add_argument(
+        '--deterministic', action='store_true', default=False,
+        help='Use deterministic model predictions (default: False).',
+    )
 
-        for t in range(arg_dict["max_episode_steps"]):
-
-
-            if arg_dict["control"] == "slider":
-                action = []
-                for i in range (env.action_space.shape[0]):
-                    jointparams[i] = p.readUserDebugParameter(joints[i])
-                    action.append(jointparams[i])
-                    #env.env.robot.joints_max_velo[i] = p.readUserDebugParameter(maxvelo)
-                    #env.env.robot.joints_max_force[i] = p.readUserDebugParameter(maxforce)
-            
-
-            if arg_dict["control"] == "observation":
-                if t == 0:
-                    action = env.action_space.sample()
-                else:    
-
-                    if "joints" in arg_dict["robot_action"]:
-                        action = info['o']["additional_obs"]["joints_angles"] #n
-                    elif "absolute" in arg_dict["robot_action"]:
-                        action = info['o']["actual_state"]
-                    else:
-                        action = [0,0,0]
-            
-            if arg_dict["control"] == "oraculum":
-                if t == 0:
-                    action = env.action_space.sample()
-                else:    
-
-                    if "absolute" in arg_dict["robot_action"]:
-                        action = info['o']["goal_state"]
-                    else:
-                        print("ERROR - Oraculum mode only works for absolute actions")
-                        quit()
-
-
-            elif arg_dict["control"] == "keyboard":
-                keypress = p.getKeyboardEvents()
-                #print(action)    
-                action =  detect_key(keypress,arg_dict,action)
-            elif arg_dict["control"] == "random":
-                action = env.action_space.sample()
-            
-            prejointaction = env.env.robot.get_joints_states()
-
-            
-            jointaction = env.env.robot.get_joints_states()
-            predeg = np.rad2deg(prejointaction)
-            actiondeg = np.rad2deg(env.env.robot.joint_poses)
-            
-            deg = np.rad2deg(jointaction)
-            #print("Prejointaction: ", predeg)
-            #print("Actiondeg: ", actiondeg)
-            #print("Jointaction: ", deg)
-            degdifference = deg - predeg
-            actiondifference = actiondeg - deg
-            if arg_dict["ik_solver"]:
-                print("Step: ", t,end="")
-                for i in range(len(REALJOINTS)):
-                    print(" - {}:{:.2f}, ".format(REALJOINTS[i],degdifference[i]), end="")
-                print(" ")
-                print(actiondifference)
-                degdiff.append(degdifference)
-                actiondiff.append(actiondifference)
-                #time.sleep(0.06)
-
-            #Execute action on real robot
-            if arg_dict["real_robot"]:
-                #jointaction = info['o']["additional_obs"]["joints_angles"]                
-                for i,realjoint in enumerate(REALJOINTS):
-                    robot.setAngle(realjoint,deg[i],DEFAULT_SPEED)
-                time.sleep(SIMREALDELAY)
-                print("Step:" + str(t))
-                #if t % 10 == 0:
-                #         print('Temperature:', str(robot.getTemperature('r_shoulder_y')))
-                #        print('Current:', str(robot.getCurrent('r_shoulder_y')))
-
-            print (f"Action:{action}")
-            observation, reward, done, info = env.step(action)
-            if real_robot:
-                for k in dofs:
-                    motors.setPositionDg(k,int(values[k]))
-
-            if arg_dict["vtrajectory"] == True:
-                visualize_trajectories(info,action)
-            if arg_dict["vinfo"] == True:
-                visualize_infotext(action, env, info)
-
-                
-                #visualize_goal(info)
-            #if debug_mode:
-                #print("Reward is {}, observation is {}".format(reward, observation))
-                #if t>=1:
-                    #action = matrix(np.around(np.array(action),5))
-                    #oaction = env.env.robot.get_joints_states()
-                    #oaction = matrix(np.around(np.array(oaction[0:action.shape[0]]),5))
-                    #diff = matrix(np.around(np.array(action-oaction),5))
-                    #print(env.env.robot.get_joints_states())
-                    #print(f"Step:{t}")
-                    #print (f"RAction:{action}")
-                    #print(f"OAction:{oaction}")
-                    #print(f"DAction:{diff}")
-                    #p.addUserDebugText(f"DAction:{diff}",
-                    #                    [1, 1, 0.1], textSize=1.0, lifeTime=0.05, textColorRGB=[0.6, 0.0, 0.6])
-            #time.sleep(.4)
-                    #clear()
-                    
-            #if action_control == "slider":
-            #    action=[]
-            if "step" in arg_dict["robot_action"]:
-                action[:3] = [0,0,0] 
-            
-            if arg_dict["visualize"]:
-                visualizations = [[],[]]
-                env.render("human")
-                for camera_id in range(len(env.cameras)):
-                    camera_render = env.render(mode="rgb_array", camera_id=camera_id)
-                    image = cv2.cvtColor(camera_render[camera_id]["image"], cv2.COLOR_RGB2BGR)
-                    depth = camera_render[camera_id]["depth"]
-                    image = cv2.copyMakeBorder(image, 30, 10, 10, 20, cv2.BORDER_CONSTANT, value=[255, 255, 255])
-                    cv2.putText(image, 'Camera {}'.format(camera_id), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, .5,
-                                (0, 0, 0), 1, 0)
-                    visualizations[0].append(image)
-                    depth = cv2.copyMakeBorder(depth, 30, 10, 10, 20, cv2.BORDER_CONSTANT, value=[255, 255, 255])
-                    cv2.putText(depth, 'Camera {}'.format(camera_id), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, .5,
-                                (0, 0, 0), 1, 0)
-                    visualizations[1].append(depth)
-                    
-                if len(visualizations[0])%2 !=0:
-                        visualizations[0].append(255*np.ones(visualizations[0][0].shape, dtype=np.uint8))
-                        visualizations[1].append(255*np.ones(visualizations[1][0].shape, dtype=np.float32))
-                fig_rgb = np.vstack((np.hstack((visualizations[0][0::2])),np.hstack((visualizations[0][1::2]))))
-                fig_depth = np.vstack((np.hstack((visualizations[1][0::2])),np.hstack((visualizations[1][1::2]))))
-                cv2.imshow('Camera RGB renders', fig_rgb)
-                cv2.imshow('Camera depthrenders', fig_depth)
-                cv2.waitKey(1)
-
-            if done:
-                print("Episode finished after {} timesteps".format(t + 1))
-                if arg_dict["ik_solver"]:
-                    file = open(os.path.join("trajectory.txt"), 'a')
-                    for value in trajectory:
-                        file.write(f"{value}\n")
-                    file.write("\n")
-                    file.close()
-                    #Plot actiondiff in graph
-                    fig, axs = plt.subplots(2)
-                    axs[0].plot(actiondiff)
-                    axs[0].set_title('Difference between Action and Sim position')
-                    axs[0].set_xlabel('Steps')
-                    axs[0].set_ylabel('Difference in degrees')                    
-                    axs[1].plot(degdiff)
-                    axs[1].set_title('Difference between SimPreaction and SimPostaction')
-                    axs[1].set_xlabel('Steps')
-                    axs[1].set_ylabel('Difference in degrees')   
-                    plt.tight_layout()
-                    plt.show()
-                    input("Press key to continue...")
-                    plt.close
-                if arg_dict["real_robot"]:
-                    time.sleep(FINISHDELAY)
-                    reset_robot(robot)
-
+    # Convenience: if a .zip file was passed as --config, treat it as --pretrained_model
+    for flag in ('-cfg', '--config'):
+        if flag in sys.argv:
+            idx = sys.argv.index(flag)
+            val = sys.argv[idx + 1] if idx + 1 < len(sys.argv) else ''
+            if val.endswith('.zip'):
+                print(f'[sim2real] Detected model zip passed as {flag}; '
+                      f'treating as --pretrained_model.')
+                sys.argv[idx] = '--pretrained_model'
                 break
 
-def test_model(env, model=None, implemented_combos=None, arg_dict=None, model_logdir=None, deterministic=False):
+    # Auto-discover train.json from the model directory when no --config is given
+    config_flags = {'-cfg', '--config'}
+    has_config = any(f in sys.argv for f in config_flags)
+    if not has_config:
+        # Find the model path from sys.argv
+        model_zip = None
+        for flag in ('-ptm', '--pretrained_model'):
+            if flag in sys.argv:
+                idx = sys.argv.index(flag)
+                if idx + 1 < len(sys.argv):
+                    model_zip = sys.argv[idx + 1]
+                    break
+        if model_zip:
+            candidate = os.path.join(os.path.dirname(os.path.abspath(model_zip)), 'train.json')
+            if os.path.exists(candidate):
+                print(f'[sim2real] Auto-loading config: {candidate}')
+                sys.argv.extend(['--config', candidate])
+            else:
+                print(f'[sim2real] Warning: no train.json found in {os.path.dirname(model_zip)}')
+
+    arg_dict, _ = get_arguments(parser)
+
+    if arg_dict.get('pretrained_model') is None:
+        print('[sim2real] --pretrained_model is required.')
+        print('           Specify the path to a trained model directory or zip file.')
+        parser.print_help()
+        sys.exit(1)
+
+    ptm = arg_dict['pretrained_model']
+    # The custom PPO.load() appends "/best_model" internally, so model_logdir
+    # must be the directory containing best_model.zip.  If the user passed the
+    # zip file itself, take its parent directory.
+    if ptm.endswith('.zip'):
+        model_logdir = os.path.dirname(os.path.abspath(ptm))
+    else:
+        model_logdir = os.path.abspath(ptm)
+
+    print('[sim2real] Configuring environment …')
+    env = configure_env(arg_dict, model_logdir, for_train=0)
+
+    print('[sim2real] Loading model …')
+    implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
+
+    # The custom PPO.load() appends "/best_model" internally, so it expects
+    # a directory path, not a .zip file path.
+    load_path = model_logdir
 
     try:
-        if "multi" in arg_dict["algo"]:
-            model_args = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][1]
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"], env=model_args[1].env)
+        if 'multi' in arg_dict.get('algo', ''):
+            model = implemented_combos[arg_dict['algo']][arg_dict['train_framework']][0].load(
+                load_path, env=env
+            )
         else:
-            model = implemented_combos[arg_dict["algo"]][arg_dict["train_framework"]][0].load(arg_dict["model_path"])
-    except:
-        if (arg_dict["algo"] in implemented_combos.keys()) and (arg_dict["train_framework"] not in list(implemented_combos[arg_dict["algo"]].keys())):
-            err = "{} is only implemented with {}".format(arg_dict["algo"],list(implemented_combos[arg_dict["algo"]].keys())[0])
-        elif arg_dict["algo"] not in implemented_combos.keys():
-            err = "{} algorithm is not implemented.".format(arg_dict["algo"])
+            model = implemented_combos[arg_dict['algo']][arg_dict['train_framework']][0].load(
+                load_path, env=env
+            )
+    except Exception as exc:
+        algo = arg_dict.get('algo', '?')
+        fw   = arg_dict.get('train_framework', '?')
+        if algo in implemented_combos and fw not in implemented_combos[algo]:
+            print(f'[sim2real] {algo} is only implemented for '
+                  f'{list(implemented_combos[algo].keys())[0]}')
+        elif algo not in implemented_combos:
+            print(f'[sim2real] Algorithm "{algo}" is not implemented.')
         else:
-            err = "invalid model_path argument"
-        raise Exception(err)
+            print(f'[sim2real] Failed to load model: {exc}')
+        sys.exit(1)
 
-    images = []  # Empty list for gif images
-    success_episodes_num = 0
-    distance_error_sum = 0
-    vel= arg_dict["max_velocity"]
-    force = arg_dict["max_force"]
-    steps_sum = 0
-    p.resetDebugVisualizerCamera(1.2, 180, -30, [0.0, 0.5, 0.05])
-    #p.setRealTimeSimulation(1)
-    #p.setTimeStep(0.01)
+    print(f'[sim2real] Model loaded: {arg_dict["pretrained_model"]}')
+    print(f'[sim2real] Eval episodes: {arg_dict.get("eval_episodes", 10)}')
+    print(f'[sim2real] Sample every:  {arg_dict.get("sample_every", 5)} steps')
 
-    for e in range(arg_dict["eval_episodes"]):
-        done = False
-        obs = env.reset()
-        is_successful = 0
-        distance_error = 0
-        step_sum = 0
-        while not done:
-            steps_sum += 1
-            action, _state = model.predict(obs, deterministic=deterministic)
-            obs, reward, done, info = env.step(action)
-            is_successful = not info['f']
-            distance_error = info['d']
-            if arg_dict["vinfo"] == True:
-                visualize_infotext(action, env, info)
+    evaluate(
+        env,
+        model,
+        arg_dict,
+        model_logdir,
+        deterministic=arg_dict.get('deterministic', False),
+    )
 
 
-            if (arg_dict["record"] > 0) and (len(images) < 8000):
-                render_info = env.render(mode="rgb_array", camera_id = arg_dict["camera"])
-                image = render_info[arg_dict["camera"]]["image"]
-                images.append(image)
-                print(f"appending image: total size: {len(images)}]")
-
-        success_episodes_num += is_successful
-        distance_error_sum += distance_error
-
-    mean_distance_error = distance_error_sum / arg_dict["eval_episodes"]
-    mean_steps_num = steps_sum // arg_dict["eval_episodes"]
-
-    print("#---------Evaluation-Summary---------#")
-    print("{} of {} episodes ({} %) were successful".format(success_episodes_num, arg_dict["eval_episodes"], success_episodes_num / arg_dict["eval_episodes"]*100))
-    print("Mean distance error is {:.2f}%".format(mean_distance_error * 100))
-    print("Mean number of steps {}".format(mean_steps_num))
-    print("#------------------------------------#")
-    model_name = arg_dict["algo"] + '_' + str(arg_dict["steps"])
-    file = open(os.path.join(model_logdir, "train_" + model_name + ".txt"), 'a')
-    file.write("\n")
-    file.write("#Evaluation results: \n")
-    file.write("#{} of {} episodes were successful \n".format(success_episodes_num, arg_dict["eval_episodes"]))
-    file.write("#Mean distance error is {:.2f}% \n".format(mean_distance_error * 100))
-    file.write("#Mean number of steps {}\n".format(mean_steps_num))
-    file.close()
-
-    if arg_dict["record"] == 1:
-        gif_path = os.path.join(model_logdir, "train_" + model_name + ".gif")
-        imageio.mimsave(gif_path, [np.array(img) for i, img in enumerate(images) if i%2 == 0], fps=15)
-        os.system('./utils/gifopt -O3 --lossy=5 -o {dest} {source}'.format(source=gif_path, dest=gif_path))
-        print("Record saved to " + gif_path)
-    elif arg_dict["record"] == 2:
-        video_path = os.path.join(model_logdir, "train_" + model_name + ".avi")
-        height, width, layers = image.shape
-        out = cv2.VideoWriter(video_path,cv2.VideoWriter_fourcc(*'XVID'), 30, (width,height))
-        for img in images:
-            out.write(cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
-        out.release()
-        print("Record saved to " + video_path)
-
-
-def main():
-    parser = get_parser()
-    parser.add_argument("-ct", "--control", default="slider", help="How to control robot during testing. Valid arguments: keyboard, observation, random, oraculum, slider")
-    parser.add_argument("-vs", "--vsampling", action="store_true", help="Visualize sampling area.")
-    parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectgory.")
-    parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
-    parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")      
-    arg_dict = get_arguments(parser)
-    model_logdir = os.path.dirname(arg_dict.get("model_path",""))
-    # Check if we chose one of the existing engines
-    if arg_dict["engine"] not in AVAILABLE_SIMULATION_ENGINES:
-        print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
-        return
-    if arg_dict.get("model_path") is None:
-        print("Path to the model using --model_path argument not specified. Testing random actions in selected environment.")
-        arg_dict["gui"] = 1
-        env = configure_env(arg_dict, model_logdir, for_train=0)
-        test_env(env, arg_dict)
-        
-    else:        
-        env = configure_env(arg_dict, model_logdir, for_train=0)
-        implemented_combos = configure_implemented_combos(env, model_logdir, arg_dict)
-        test_model(env, None, implemented_combos, arg_dict, model_logdir)
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
