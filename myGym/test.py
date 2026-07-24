@@ -15,7 +15,7 @@ import pandas as pd
 
 from myGym import oraculum
 from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env, automatic_argument_assignment
-from myGym.utils.helpers import get_workspace_dict, get_gripper_dict
+from myGym.utils.helpers import get_workspace_dict, get_gripper_dict, get_robot_dict
 
 
 clear = lambda: os.system('clear')
@@ -24,23 +24,38 @@ AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
 def visualize_sampling_area(arg_dict: dict) -> None:
-    task_object = arg_dict["task_objects"][0]
-    goal_area = task_object["goal"]["sampling_area"]
+    robot_name = arg_dict.get("robot", "")
+    if isinstance(robot_name, list):
+        robot_name = robot_name[0]
 
-    # Calculate the half-extents (rx, ry, rz)
-    rx = (goal_area[0] - goal_area[1]) / 2
-    ry = (goal_area[2] - goal_area[3]) / 2
-    rz = (goal_area[4] - goal_area[5]) / 2
+    r_dict = get_robot_dict()
+    robot_info = r_dict.get(robot_name, {})
+    goal_area = robot_info.get("reachable", None)
+
+    if goal_area is None:
+        if "task_objects" in arg_dict and len(arg_dict["task_objects"]) > 0:
+            goal_area = arg_dict["task_objects"][0]["goal"]["sampling_area"]
+        else:
+            goal_area = [0.2, 0.6, -0.4, 0.4, -0.07, 0.4]
+
+    # Calculate the half-extents (rx, ry, rz) and center position
+    rx = abs(goal_area[1] - goal_area[0]) / 2.0
+    ry = abs(goal_area[3] - goal_area[2]) / 2.0
+    rz = abs(goal_area[5] - goal_area[4]) / 2.0
+
+    center_x = (goal_area[0] + goal_area[1]) / 2.0
+    center_y = (goal_area[2] + goal_area[3]) / 2.0
+    center_z = (goal_area[4] + goal_area[5]) / 2.0
 
     # Create a visual shape and multi-body for the sampling area
-    visual = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[rx, ry, rz], rgbaColor=[1, 0, 0, .2])
+    visual = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[rx, ry, rz], rgbaColor=[0, 0, 1, .1])
     collision = -1
 
     p.createMultiBody(
         baseVisualShapeIndex=visual,
         baseCollisionShapeIndex=collision,
         baseMass=0,
-        basePosition=[goal_area[0] - rx, goal_area[2] - ry, goal_area[4] - rz],
+        basePosition=[center_x, center_y, center_z],
     )
 
 
