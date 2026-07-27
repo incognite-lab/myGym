@@ -169,6 +169,12 @@ if _ROS2_AVAILABLE:
                 'waist': self.create_publisher(CmdSetMotorPosition, '/waist/cmd_pos', 10),
                 'head':  self.create_publisher(CmdSetMotorPosition, '/head/cmd_pos',  10),
             }
+            self._hand_right_pub = self.create_publisher(
+                JointState, '/inspire_hand/ctrl/right_hand', 10
+            )
+            self._hand_left_pub = self.create_publisher(
+                JointState, '/inspire_hand/ctrl/left_hand', 10
+            )
 
         def send_positions(self, commands: Dict[int, float]):
             groups: Dict[str, list] = {}
@@ -187,12 +193,37 @@ if _ROS2_AVAILABLE:
                 msg.cmds = cmds
                 self._pubs[topic_key].publish(msg)
 
+        def send_right_hand(self, positions: list, velocities: list | None = None):
+            """Publish a JointState command to the right Inspire hand."""
+            if velocities is None:
+                velocities = [1.0] * 6
+            msg = JointState()
+            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.name     = ['1', '2', '3', '4', '5', '6']
+            msg.position = [float(p) for p in positions]
+            msg.velocity = [float(v) for v in velocities]
+            msg.effort   = [1.0] * 6
+            self._hand_right_pub.publish(msg)
+
+        def send_left_hand(self, positions: list, velocities: list | None = None):
+            """Publish a JointState command to the left Inspire hand."""
+            if velocities is None:
+                velocities = [1.0] * 6
+            msg = JointState()
+            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.name     = ['1', '2', '3', '4', '5', '6']
+            msg.position = [float(p) for p in positions]
+            msg.velocity = [float(v) for v in velocities]
+            msg.effort   = [1.0] * 6
+            self._hand_left_pub.publish(msg)
+
 
 # ── Trajectory utilities (same format as visualize_real_robot_ik.py) ─────────
 
 def _snapshot_from_env(env) -> dict:
     """Read current joint positions from the myGym env's PyBullet robot and
-    return a waypoint payload dict (degrees) in the trajectories.csv format.
+    return a waypoint payload dict (degrees for limbs, 0.0-1.0 for fingers)
+    in the trajectories.csv format.
 
     All limbs not controlled by the simulation stay at 0.0 degrees, which
     means the real robot will hold its current/default position for those joints.
@@ -221,6 +252,58 @@ def _snapshot_from_env(env) -> dict:
         angle_rad = pb.getJointState(uid, ji)[0]
         positions[limb_key][idx] = round(math.degrees(angle_rad), 2)
 
+    # Retrieve gripper joint positions and rescale (0.0 = closed, 1.0 = opened)
+    g_dict = get_gripper_dict()
+    robot_name = getattr(robot, 'name', '')
+    g_info = g_dict.get(robot_name, {})
+    open_vals = g_info.get('open', [])
+    close_vals = g_info.get('close', [])
+    if isinstance(open_vals, (int, float)):
+        open_vals = [float(open_vals)]
+    if isinstance(close_vals, (int, float)):
+        close_vals = [float(close_vals)]
+
+    gripper_indices = getattr(robot, 'gripper_indices', [])
+    if not gripper_indices:
+        for ji in range(num_joints):
+            info = pb.getJointInfo(uid, ji)
+            if info[2] != pb.JOINT_FIXED:
+                jname = info[1].decode('utf-8')
+                if any(k in jname for k in ('gjoint', 'finger', 'gripper')):
+                    gripper_indices.append(ji)
+
+    right_finger_pos = []
+    if gripper_indices:
+        norm_vals = []
+        for i, ji in enumerate(gripper_indices):
+            pos_rad = pb.getJointState(uid, ji)[0]
+            if i < len(open_vals) and i < len(close_vals):
+                o_val = float(open_vals[i])
+                c_val = float(close_vals[i])
+            elif len(open_vals) > 0 and len(close_vals) > 0:
+                o_val = float(open_vals[0])
+                c_val = float(close_vals[0])
+            else:
+                jinfo = pb.getJointInfo(uid, ji)
+                c_val = jinfo[8]  # min value / lower limit = closed
+                o_val = jinfo[9]  # max value / upper limit = opened
+
+            if abs(o_val - c_val) > 1e-6:
+                norm = (pos_rad - c_val) / (o_val - c_val)
+            else:
+                norm = 0.0
+            norm = float(np.clip(norm, 0.0, 1.0))
+            norm_vals.append(round(norm, 4))
+
+        if len(norm_vals) == 1:
+            right_finger_pos = [norm_vals[0]] * 6
+        elif len(norm_vals) >= 6:
+            right_finger_pos = norm_vals[:6]
+        else:
+            right_finger_pos = norm_vals + [norm_vals[-1]] * (6 - len(norm_vals))
+    else:
+        right_finger_pos = [0.0] * 6
+
     return {
         'leg_mode': 'Position', 'arm_mode': 'Position',
         'left_leg_pos':  positions['left_leg_pos'],
@@ -231,7 +314,7 @@ def _snapshot_from_env(env) -> dict:
         'arm_profile_speed': 0.5, 'arm_position_current': 8.0, 'arm_speed_current': 8.0,
         'waist_pos': positions['waist_pos'], 'waist_speed': [0.2],
         'head_pos':  positions['head_pos'],  'head_speed':  [0.2],
-        'left_finger_pos':  [0.0] * 6, 'right_finger_pos': [0.0] * 6,
+        'left_finger_pos':  [0.0] * 6, 'right_finger_pos': right_finger_pos,
         'left_finger_vel':  [1.0] * 6, 'right_finger_vel': [1.0] * 6,
         'hand_effort': [1.0],
     }
@@ -277,11 +360,27 @@ def _execute_trajectory_ros(waypoints: list, ros_node, step_delay: float = 2.0,
                 cmds[motor_id] = math.radians(a + alpha * (b - a))
         return cmds
 
+    def _interp_fingers(wp_a: dict, wp_b: dict, alpha: float, finger_key: str) -> list:
+        a_pos = wp_a.get(finger_key, [0.0] * 6)
+        b_pos = wp_b.get(finger_key, [0.0] * 6)
+        res = []
+        for idx in range(6):
+            a = float(a_pos[idx]) if idx < len(a_pos) else 0.0
+            b = float(b_pos[idx]) if idx < len(b_pos) else 0.0
+            res.append(a + alpha * (b - a))
+        return res
+
     def _stream(sequence: list, label: str) -> None:
         """Interpolate and stream a list of waypoints."""
         n_interp = max(1, int(step_delay * interp_hz))
         sleep_dt = 1.0 / interp_hz
+
         ros_node.send_positions(_interp_commands(sequence[0], sequence[0], 1.0))
+        if hasattr(ros_node, 'send_right_hand'):
+            ros_node.send_right_hand(_interp_fingers(sequence[0], sequence[0], 1.0, 'right_finger_pos'))
+        if hasattr(ros_node, 'send_left_hand'):
+            ros_node.send_left_hand(_interp_fingers(sequence[0], sequence[0], 1.0, 'left_finger_pos'))
+
         print(f'[real] {label} waypoint 1 / {len(sequence)}')
         for i in range(1, len(sequence)):
             for step in range(1, n_interp + 1):
@@ -289,6 +388,10 @@ def _execute_trajectory_ros(waypoints: list, ros_node, step_delay: float = 2.0,
                 ros_node.send_positions(
                     _interp_commands(sequence[i - 1], sequence[i], alpha)
                 )
+                if hasattr(ros_node, 'send_right_hand'):
+                    ros_node.send_right_hand(_interp_fingers(sequence[i - 1], sequence[i], alpha, 'right_finger_pos'))
+                if hasattr(ros_node, 'send_left_hand'):
+                    ros_node.send_left_hand(_interp_fingers(sequence[i - 1], sequence[i], alpha, 'left_finger_pos'))
                 time.sleep(sleep_dt)
             print(f'[real] {label} waypoint {i + 1} / {len(sequence)}')
 
