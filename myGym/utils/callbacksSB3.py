@@ -388,7 +388,7 @@ class MultiPPOEvalCallback(EvalCallback):
             print("Episode:", e)
             while not done: #Carry out episode steps until the episode is done
                 steps_sum += 1
-                if isinstance(self.eval_env, SubprocVecEnv):
+                if hasattr(self.eval_env, "eval_step"):
                     action, state = model.eval_predict(obs, deterministic=deterministic) #Predict action in first environment
                     obs, reward, done, info, current_network = self.eval_env.eval_step(action)
                 else:
@@ -657,7 +657,7 @@ class PPOEvalCallback(EvalCallback):
                 steps_sum += 1
                 action, state = model.predict(obs, deterministic=deterministic)
 
-                if isinstance(self.eval_env, VecMonitor):
+                if hasattr(self.eval_env, "eval_step"):
                     obs, reward, done, info, current_network = self.eval_env.eval_step(action)
                 else:
                     obs, reward, terminated, truncated, info = self.eval_env.step(action)
