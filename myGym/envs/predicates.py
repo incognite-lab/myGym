@@ -460,6 +460,30 @@ class PredicateResolver:
                 return False
 
         return True
+
+    def get_failed_predicates(self, placed_objects: dict, env, predicates: dict, grip_type: str | None = None) -> list[str]:
+        """
+        Return list of selected predicate strings that evaluated to False
+        """
+        if self.predicate_key is None:
+            return []
+
+        selected_predicates = predicates.get(self.predicate_key, []) if predicates else []
+
+        if not selected_predicates:
+            return []
+
+        failed = []
+        try:
+            objects_by_name = self._build_object_lookup(env, placed_objects)
+            for raw_str, predicate in zip(selected_predicates, self._parse_predicates(selected_predicates)):
+                if not self._check_predicate(predicate, objects_by_name, grip_type):
+                    failed.append(raw_str)
+        except Exception:
+            pass
+
+        return failed
+
     
     
     @staticmethod
