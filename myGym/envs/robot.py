@@ -10,6 +10,22 @@ currentdir = os.path.join(pkg_resources.files("myGym"), "envs")
 repodir = pkg_resources.files("myGym")
 
 
+def parse_range(val, default_min=0.0):
+    if val is None:
+        return None
+    if isinstance(val, (list, tuple, np.ndarray)):
+        if len(val) == 1:
+            return [float(default_min), float(val[0])]
+        elif len(val) >= 2:
+            return [float(val[0]), float(val[1])]
+    elif isinstance(val, (int, float, str)):
+        try:
+            return [float(default_min), float(val)]
+        except ValueError:
+            pass
+    return val
+
+
 class Robot:
     """
     Robot class for control of robot environment interaction
@@ -25,8 +41,8 @@ class Robot:
         :param use_fixed_end_effector_orn: (bool) Whether to fix robot's end-effector orientation or not
         :param gripper_orn: (list) Orientation of gripper in Euler angles for the fixed_gripper_orn option
         :param dimension_velocity: (float) Maximum allowed velocity for robot movements in individual x,y,z axis
-        :param max_velocity: (float) Maximum allowed velocity for robot movements. Should be adjusted in case of sim2real scenario.
-        :param max_force: (float) Maximum allowed force reached by individual joint motor. Should be adjusted in case of sim2real scenario.
+        :param max_velocity: (float or list) Maximum allowed velocity range [min, max] or value for robot movements. Should be adjusted in case of sim2real scenario.
+        :param max_force: (float or list) Maximum allowed force range [min, max] or value reached by individual joint motor. Should be adjusted in case of sim2real scenario.
         :param pybullet_client: Which pybullet client the environment should refere to in case of parallel existence of multiple instances of this environment
     """
     def __init__(self,
@@ -56,8 +72,8 @@ class Robot:
                                                        self.robot_dict[robot].get('orientation',np.zeros(len(orientation))))
 
         self.use_fixed_base = use_fixed_base
-        self.max_velocity = max_velocity
-        self.max_force = max_force
+        self.max_velocity = parse_range(max_velocity, default_min=0.0)
+        self.max_force = parse_range(max_force, default_min=0.0)
         self.end_effector_index = end_effector_index
         self.gripper_index = gripper_index
         self.init_position = init_joint_poses
@@ -317,8 +333,10 @@ class Robot:
             joints_limits_u.append(joint_info[9])
             joints_ranges.append(joint_info[9] - joint_info[8])
             joints_rest_poses.append((joint_info[9] + joint_info[8])/2)
-            joints_max_force.append(self.max_force if self.max_force is not None else joint_info[10])
-            joints_max_velo.append(self.max_velocity if self.max_velocity is not None else joint_info[11])  
+            max_f = self.max_force[1] if (isinstance(self.max_force, (list, tuple, np.ndarray)) and len(self.max_force) >= 2) else (self.max_force if self.max_force is not None else joint_info[10])
+            max_v = self.max_velocity[1] if (isinstance(self.max_velocity, (list, tuple, np.ndarray)) and len(self.max_velocity) >= 2) else (self.max_velocity if self.max_velocity is not None else joint_info[11])
+            joints_max_force.append(max_f)
+            joints_max_velo.append(max_v)  
         return [joints_limits_l, joints_limits_u], joints_ranges, joints_rest_poses, joints_max_force, joints_max_velo
 
     def get_action_dimension(self):
@@ -331,7 +349,7 @@ class Robot:
         if "absolute" in self.robot_action or "step" in self.robot_action:
             self.action_dim = 3
         elif "joints" in self.robot_action:
-            self.action_dim = self.joints_num
+            self.action_dim = 3 * self.joints_num
         if "gripper" in self.robot_action:
             self.action_dim += self.gjoints_num
         return self.action_dim
@@ -424,14 +442,25 @@ class Robot:
         """
         return self.p.getLinkState(self.robot_uid, self.end_effector_index)[1]
 
-    def _run_motors(self, joint_poses):
+    def _run_motors(self, joint_poses, velocities=None, forces=None):
         """
         Move joint motors towards desired joint poses respecting robot's dynamics
 
         Parameters:
             :param joint_poses: (list) Desired poses of individual joints
+            :param velocities: (list, optional) Desired max velocities for individual joints
+            :param forces: (list, optional) Desired max forces for individual joints
         """
         joint_poses = np.clip(joint_poses, self.joints_limits[0], self.joints_limits[1])
+
+        vel_range = self.max_velocity if (isinstance(self.max_velocity, (list, tuple, np.ndarray)) and len(self.max_velocity) >= 2) else [0.0, self.max_velocity if self.max_velocity is not None else 1.0]
+        force_range = self.max_force if (isinstance(self.max_force, (list, tuple, np.ndarray)) and len(self.max_force) >= 2) else [0.0, self.max_force if self.max_force is not None else 100.0]
+
+        if velocities is not None:
+            velocities = np.clip(velocities, vel_range[0], vel_range[1])
+        if forces is not None:
+            forces = np.clip(forces, force_range[0], force_range[1])
+
         self.joints_state = []
         for i in range(self.joints_num):
             joint_info = self.p.getJointInfo(self.robot_uid, self.motor_indices[i])
@@ -439,12 +468,16 @@ class Robot:
             joint_name = joint_info[1]
             lower_limit, upper_limit = joint_info[8:10]
             joint_idx = self.motor_indices[i]
+
+            target_velo = velocities[i] if velocities is not None else (self.joints_max_velo[i] if not isinstance(self.joints_max_velo[i], (list, tuple, np.ndarray)) else self.joints_max_velo[i])
+            target_force = forces[i] if forces is not None else (self.joints_max_force[i] if not isinstance(self.joints_max_force[i], (list, tuple, np.ndarray)) else self.joints_max_force[i])
+
             self.p.setJointMotorControl2(bodyUniqueId=self.robot_uid,
                                     jointIndex=self.motor_indices[i],
                                     controlMode=self.p.POSITION_CONTROL,
                                     targetPosition=joint_poses[i],
-                                    force=self.joints_max_force[i],
-                                    maxVelocity=self.joints_max_velo[i],
+                                    force=target_force,
+                                    maxVelocity=target_velo,
                                     positionGain=0.7,
                                     velocityGain=0.3
                                     )
@@ -716,7 +749,13 @@ class Robot:
         Parameters:
             :param action: (list) Desired action data
         """
-        self._run_motors(action[:(self.joints_num)])
+        if len(action) >= 3 * self.joints_num:
+            positions = action[:self.joints_num]
+            velocities = action[self.joints_num : 2 * self.joints_num]
+            forces = action[2 * self.joints_num : 3 * self.joints_num]
+            self._run_motors(positions, velocities, forces)
+        else:
+            self._run_motors(action[:self.joints_num])
         
     def apply_action_joints_step(self, action):
         """
@@ -724,9 +763,17 @@ class Robot:
         Parameters:
             :param action: (list) Desired action data
         """
-        action = [i * self.dimension_velocity for i in action]
-        joint_poses = np.add(self.joints_state, action)
-        self._run_motors(joint_poses)
+        if len(action) >= 3 * self.joints_num:
+            pos_action = action[:self.joints_num]
+            velocities = action[self.joints_num : 2 * self.joints_num]
+            forces = action[2 * self.joints_num : 3 * self.joints_num]
+            pos_action = [i * self.dimension_velocity for i in pos_action]
+            joint_poses = np.add(self.joints_state, pos_action)
+            self._run_motors(joint_poses, velocities, forces)
+        else:
+            action = [i * self.dimension_velocity for i in action]
+            joint_poses = np.add(self.joints_state, action)
+            self._run_motors(joint_poses)
 
     def apply_action(self, action, env_objects=None):
         """

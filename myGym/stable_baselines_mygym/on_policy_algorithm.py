@@ -219,14 +219,10 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                         actions_i, values_i, log_probs_i = model.policy(obs_tensor)
 
                     actions[indices] = actions_i[indices].cpu().numpy()
-                    values[indices] = values_i[indices].cpu().numpy().squeeze()
-                    log_probs[indices] = log_probs_i[indices].cpu().numpy()
+                    values[indices] = values_i[indices].cpu().numpy().flatten()
+                    log_probs[indices] = log_probs_i[indices].cpu().numpy().flatten()
 
-                actions = actions_i.cpu().numpy()
-                values = values_i.cpu().numpy()
-                log_probs = log_probs_i.cpu().numpy()
                 model = self.models[owner[0]]  # Surrogate choice of model (action has already been determined)
-                values = np.squeeze(values)
 
             else: #Single policy algorithm
                 with th.no_grad():
