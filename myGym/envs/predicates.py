@@ -1,3 +1,48 @@
+"""
+this file contains
+1. geometry helpers
+2. predicate classes
+3. predicate parsing/resolving
+
+
+The implemented predicates are:
+ unary predicates:
+    IsReachable
+     -able to generate area for placing objects
+    Upright
+    Empty
+    GripperAt
+     -see ObjectAt
+    GripperStatus
+     -GripperClosed, GripperOpen
+    IsHolding TODO
+
+ binary predicates:
+    Touching
+    OnTop
+     -able to generate area for placing objects
+    Inside
+    Near
+    Far
+    ObjectAt
+    Above
+     -able to generate area for placing objects
+    Below
+    LeftOf
+    RightOf
+    InFrontOF
+    Behind
+    Nextto
+
+    
+Predicate checkers:
+ PredicateResolver and its child classes:
+    InitPredicateResolver
+     -able to generate area for placing objects
+    GoalPredicateResolver
+    SubgoalPredicateResolver
+"""
+
 import os
 import numpy as np
 import re
@@ -264,8 +309,8 @@ class OnTop(AreaPredicate):
         """
         Return True if obj1 is on top of obj2
         """
-        if os.path.splitext(os.path.basename(obj1.urdf_path))[0] == "towertarget":
-            return True # Above().check(obj1, obj2)
+        if self.is_target_obj(obj1):
+            return Above().check(obj1, obj2)
         
         obj1_min, obj1_max = get_bounding_box_limits(obj1)
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
@@ -328,6 +373,61 @@ class OnTop(AreaPredicate):
 
         bottom_offset = obj_pos[2] - obj_min[2]
         return bottom_offset
+    
+    @staticmethod
+    def is_target_obj(obj):
+        """
+        Return True if object has no collision shape (i.e. is a target marker object, not a solid object)
+        """
+        return len(obj.p.getCollisionShapeData(obj.uid, -1)) == 0
+
+
+class Above(AreaPredicate):
+    """
+    Check whether object1 is above object2
+    """
+    TOLERANCE = 0.02        # TODO might be too forgiving but works for now
+    MAX_PLACING_HEIGHT = 1
+
+    def check(self, obj1, obj2) -> bool:
+        """
+        Return True if obj1 is above obj2
+        """
+        obj1_min, obj1_max = get_bounding_box_limits(obj1)
+        obj2_min, obj2_max = get_bounding_box_limits(obj2)
+
+        # 1. obj1 bottom > obj2 top
+        if not (obj1_min[2] +self.TOLERANCE) > obj2_max[2]:
+            return False
+    
+        # 2. obj XY intersect
+        return aabb_overlap(obj1_min, obj1_max, obj2_min, obj2_max, 2)
+
+    def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
+        """
+        Return sampling area for obj1 origin so that obj1 is placed above obj2
+        """
+        sampling_area = OnTop().compute_area(obj1_urdf, obj2, env)
+
+        max_z = self.MAX_PLACING_HEIGHT
+        if sampling_area[-2] < max_z:
+            sampling_area[-1] = max_z
+        else:
+            print(f"WARNING: Not able to place {obj1_urdf} above {obj2.name}, max height exceeded.")
+            sampling_area = None
+        return sampling_area
+
+    
+class Below(Predicate):
+    """
+    Check whether object1 is below object2
+    """
+
+    def check(self, obj1, obj2) -> bool:
+        """
+        Return True if obj1 is below obj2
+        """
+        return Above().check(obj2, obj1)
 
 
 class Inside(Predicate):
@@ -349,6 +449,24 @@ class Inside(Predicate):
         return pos_inside_area(obj1_bottom, obj2_area)
 
 
+class Empty(Predicate):
+    """
+    Check if obj's position is empty (no other body's AABB currently overlaps it)
+    """
+
+    def check(self, obj) -> bool:
+        """
+        Return True if no body other than obj overlaps obj's AABB
+        """
+        obj_min, obj_max = get_bounding_box_limits(obj)
+        overlapping = obj.p.getOverlappingObjects(obj_min, obj_max)
+        if not overlapping:
+            return True
+
+        other_uids = {uid for uid, _link in overlapping if uid != obj.uid}
+        return len(other_uids) == 0
+
+
 class Near(Predicate):
     """
     Check whether obj1 is close to obj2
@@ -357,13 +475,30 @@ class Near(Predicate):
 
     def check(self, obj1, obj2) -> bool:
         """
-        Return True if obj1 and obj2 are close
+        Return True if obj1 and obj2 are close (BB almost touching)
         """
         obj1_min, obj1_max = get_bounding_box_limits(obj1)
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
         distance = get_aabb_distance(obj1_min, obj1_max, obj2_min, obj2_max)
         max_dist = self.MAX_DIST
         return distance < max_dist
+
+
+class Far(Predicate):
+    """
+    Check whether obj1 is far from obj2
+    """
+    MIN_DIST = 2  # TODO magic number
+
+    def check(self, obj1, obj2) -> bool:
+        """
+        Return True if obj1 and obj2 are far apart
+        """
+        obj1_min, obj1_max = get_bounding_box_limits(obj1)
+        obj2_min, obj2_max = get_bounding_box_limits(obj2)
+        distance = get_aabb_distance(obj1_min, obj1_max, obj2_min, obj2_max)
+        min_dist = self.MIN_DIST
+        return distance > min_dist
 
 
 class ObjectAt(Predicate):
@@ -382,6 +517,121 @@ class ObjectAt(Predicate):
         distance = get_point_distance(obj1_pos, obj2_pos)
         # separate dist when placing obj for z based on obj height?
         return distance < e
+
+
+class LeftOf(Predicate):
+    """
+    Check if obj1 is on the left of obj2
+    """
+    TOLERANCE = 0.1  # TODO magic number
+
+    def check(self, obj1, obj2) -> bool:
+        """
+        Return True if max obj1 Y <= min obj2 Y
+        """
+        if not InSimilarHeight().check(obj1, obj2):
+            return False
+        
+        _, obj1_max = get_bounding_box_limits(obj1)
+        obj2_min, _ = get_bounding_box_limits(obj2)
+
+        # 1. max obj1 Y <= min obj2 Y
+        return obj1_max[1] <= (obj2_min[1] +self.TOLERANCE)
+    
+
+class RightOf(Predicate):
+    """
+    Check if obj1 is on the right of obj2
+    """
+    TOLERANCE = 0.1  # TODO magic number
+
+    def check(self, obj1, obj2) -> bool:
+        """
+        Return True if min obj1 Y >= max obj2 Y
+        """
+        return LeftOf().check(obj2, obj1)
+
+
+class InFrontOF(Predicate):
+    """
+    Check if obj1 is in front of obj2
+    """
+    TOLERANCE = 0.1  # TODO magic number
+
+    def check(self, obj1, obj2) -> bool:
+        """
+        Return True if max obj1 X <= min obj2 X
+        """
+        if not InSimilarHeight().check(obj1, obj2):
+            return False
+        
+        _, obj1_max = get_bounding_box_limits(obj1)
+        obj2_min, _ = get_bounding_box_limits(obj2)
+
+        # 1. max obj1 X <= min obj2 X
+        return obj1_max[0] <= (obj2_min[0] +self.TOLERANCE)
+
+
+class Behind(Predicate):
+    """
+    Check if obj1 is behind obj2
+    """
+
+    def check(self, obj1, obj2) -> bool:
+        """
+        Return True if min obj1 X >= max obj2 X
+        """
+        return InFrontOF().check(obj2, obj1)
+
+
+class Nextto(Predicate):
+    """
+    objects are close at similar height
+    """
+
+    def check(self, obj1, obj2) -> bool:
+        """
+        """
+        if not InSimilarHeight().check(obj1, obj2):
+            return False
+        
+        return Near().check(obj1, obj2)
+
+
+class InSimilarHeight():
+    """
+    Check if objects are at similar height level
+    """
+
+    def check(self, obj1, obj2) -> bool:
+        """
+        Return True if obj1 and obj2 Z ranges overlap
+        """
+        obj1_min, obj1_max = get_bounding_box_limits(obj1)
+        obj2_min, obj2_max = get_bounding_box_limits(obj2)
+        return obj1_min[2] <= obj2_max[2] and obj1_max[2] >= obj2_min[2] 
+
+
+class Upright(Predicate):
+    """
+    Check if object is still in its base upright position (i.e. has not been tipped over)
+    """
+    TOLERANCE_DEG = 15  # TODO magic number, not tuned
+
+    def check(self, obj) -> bool:
+        """
+        Return True if obj's local up axis has not tilted away from its spawn orientation
+        beyond TOLERANCE_DEG (ignores rotation about the object's own vertical axis)
+        """
+        init_matrix = np.array(obj.p.getMatrixFromQuaternion(obj.init_orientation)).reshape(3, 3)
+        current_matrix = np.array(obj.p.getMatrixFromQuaternion(obj.get_orientation())).reshape(3, 3)
+
+        init_up = init_matrix @ np.array([0, 0, 1])
+        current_up = current_matrix @ np.array([0, 0, 1])
+
+        cos_angle = np.clip(np.dot(init_up, current_up), -1.0, 1.0)
+        angle_deg = np.degrees(np.arccos(cos_angle))
+        return angle_deg <= self.TOLERANCE_DEG
 
 
 class GripperStatus(Predicate):
@@ -512,6 +762,7 @@ class PredicateResolver:
         """
         Evaluate predicate and apply negation. Returns the final bool.
         """
+
         gripper = objects_by_name.get("gripper")
 
         if predicate.predicate == "GripperOpen":
@@ -521,6 +772,7 @@ class PredicateResolver:
         if predicate.predicate == "GripperClosed":
             status = "open" if predicate.negated else "close"
             return GripperStatus().check(gripper, status)
+
 
         if predicate.predicate == "Reachable":
             obj_name = predicate.args[0]
@@ -549,6 +801,46 @@ class PredicateResolver:
         elif predicate.predicate == "IsHolding":
             target_name = predicate.args[0]
             result = IsHolding().check(gripper, objects_by_name[target_name])
+
+        elif predicate.predicate == "Above":
+            obj1_name, obj2_name = predicate.args
+            result = Above().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
+
+        elif predicate.predicate == "Below":
+            obj1_name, obj2_name = predicate.args
+            result = Below().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
+
+        elif predicate.predicate == "LeftOf":
+            obj1_name, obj2_name = predicate.args
+            result = LeftOf().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
+
+        elif predicate.predicate == "RightOf":
+            obj1_name, obj2_name = predicate.args
+            result = RightOf().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
+
+        elif predicate.predicate == "InFrontOF":
+            obj1_name, obj2_name = predicate.args
+            result = InFrontOF().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
+
+        elif predicate.predicate == "Behind":
+            obj1_name, obj2_name = predicate.args
+            result = Behind().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
+
+        elif predicate.predicate == "Nextto":
+            obj1_name, obj2_name = predicate.args
+            result = Nextto().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
+
+        elif predicate.predicate == "Far":
+            obj1_name, obj2_name = predicate.args
+            result = Far().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
+
+        elif predicate.predicate == "Upright":
+            obj_name = predicate.args[0]
+            result = Upright().check(objects_by_name[obj_name])
+
+        elif predicate.predicate == "Empty":
+            obj_name = predicate.args[0]
+            result = Empty().check(objects_by_name[obj_name])
 
         else:
             raise ValueError(f"Unknown predicate: {predicate.predicate}")
