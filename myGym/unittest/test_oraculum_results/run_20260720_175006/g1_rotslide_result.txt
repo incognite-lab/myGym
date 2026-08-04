@@ -1,0 +1,41 @@
+SUMMARY
+================================================================================
+Robot: g1_rotslide
+Total configs tested: 5
+Successful: 4
+Failed: 1
+Overall trials passed: 479/500
+
+SUCCESSFULLY TESTED CONFIGS (ORACULUM)
+================================================================================
+ 1. OK AGMDW_predicates.json (100/100 successful)
+ 2. OK AGMD_predicates.json (100/100 successful)
+ 3. OK AG_predicates.json (100/100 successful)
+ 4. OK A_predicates.json (100/100 successful)
+
+FAILED CONFIGS
+================================================================================
+FAIL AGM_predicates.json (79/100 successful)
+  Failed subtask sequences:
+    Run 4: A: True, G: True, M: False
+    Run 6: A: True, G: True, M: False
+    Run 11: A: True, G: True, M: False
+    Run 17: A: True, G: True, M: False
+    Run 24: A: True, G: True, M: False
+    Run 25: A: True, G: True, M: False
+    Run 32: A: True, G: True, M: False
+    Run 45: A: True, G: True, M: False
+    Run 48: A: True, G: True, M: False
+    Run 49: A: True, G: True, M: False
+    Run 52: A: True, G: True, M: False
+    Run 54: A: True, G: True, M: False
+    Run 56: A: True, G: True, M: False
+    Run 60: A: True, G: True, M: False
+    Run 65: A: True, G: True, M: False
+    Run 66: A: True, G: True, M: False
+    Run 67: A: True, G: True, M: False
+    Run 68: A: True, G: True, M: False
+    Run 73: A: True, G: True, M: False
+    Run 84: A: True, G: True, M: False
+    Run 98: A: True, G: True, M: False
+  Error: Only 79/100 trials succeeded (minimum required: 85)

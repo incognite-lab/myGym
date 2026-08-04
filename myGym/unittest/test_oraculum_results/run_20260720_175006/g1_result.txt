@@ -1,15 +1,15 @@
 SUMMARY
 ================================================================================
-Robot: tiago_dual_rotslide
+Robot: g1
 Total configs tested: 5
 Successful: 5
 Failed: 0
-Overall trials passed: 490/500
+Overall trials passed: 481/500
 
 SUCCESSFULLY TESTED CONFIGS (ORACULUM)
 ================================================================================
- 1. OK AGMDW_predicates.json (100/100 successful)
- 2. OK AGMD_predicates.json (100/100 successful)
- 3. OK AGM_predicates.json (95/100 successful)
- 4. OK AG_predicates.json (95/100 successful)
+ 1. OK AGMDW_predicates.json (95/100 successful)
+ 2. OK AGMD_predicates.json (97/100 successful)
+ 3. OK AGM_predicates.json (93/100 successful)
+ 4. OK AG_predicates.json (96/100 successful)
  5. OK A_predicates.json (100/100 successful)

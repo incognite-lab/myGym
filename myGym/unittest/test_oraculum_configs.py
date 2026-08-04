@@ -152,6 +152,7 @@ def test_config_with_oraculum(
     """
 
     total_timeout = timeout * trials
+    clean_oraculum_results(oraculum_results_dir)
 
     try:
         # Run test.py with oraculum control
@@ -303,9 +304,50 @@ def return_configs_path(args: argparse.Namespace) -> list[str]:
 
         return [config_path] if os.path.exists(config_path) else []
 
-    else:
-        # Find all JSON config files in the configs directory
-        return sorted(glob.glob(os.path.join(configs_dir, "*.json")))
+    # Find all JSON config files in the configs directory
+    all_configs = sorted(glob.glob(os.path.join(configs_dir, "*.json")))
+
+    # A file that is "<prefix><other file's basename>" (e.g. pandaAG_predicates.json overriding
+    # AG_predicates.json) exists only to be picked up by resolve_robot_config() for a matching
+    # robot - it's never its own row, regardless of which robot(s) are actually being tested
+    basenames = [os.path.basename(f) for f in all_configs]
+    override_names = {
+        name
+        for name in basenames
+        for other in basenames
+        if _override_prefix(name, other)
+    }
+    return [f for f in all_configs if os.path.basename(f) not in override_names]
+
+def _override_prefix(candidate_name: str, base_name: str) -> str | None:
+    """Return the prefix P such that candidate_name == P + base_name (P non-empty), else None."""
+    if candidate_name == base_name or not candidate_name.endswith(base_name):
+        return None
+    return candidate_name[: -len(base_name)]
+
+def resolve_robot_config(config_path: str, robot: str | None) -> str:
+    """
+    If a robot-specific override config sits alongside config_path, named "<prefix><original
+    basename>" where robot starts with <prefix> (e.g. AG_predicates.json -> pandaAG_predicates.json
+    matches robot "panda" as well as any "panda*" variant like "panda_sgripper"), use it instead.
+    Lets a whole robot family need a different config (different object size, longer episode, ...)
+    with no extra CLI flags: the comparison table still keys rows by the original basename, so
+    results stay aligned across robots.
+    """
+    if not robot:
+        return config_path
+
+    directory = os.path.dirname(config_path)
+    base_name = os.path.basename(config_path)
+
+    best_prefix, best_path = "", config_path
+    for candidate in glob.glob(os.path.join(directory, f"*{base_name}")):
+        prefix = _override_prefix(os.path.basename(candidate), base_name)
+        if prefix and robot.startswith(prefix) and len(prefix) > len(best_prefix):
+            best_prefix, best_path = prefix, candidate
+
+    return best_path
+
 
 def make_run_dir(base_dir: str = TEST_RESULTS_DIR) -> str:
     """
@@ -543,10 +585,14 @@ def main() -> int:
         # Test each config file
         for idx, config_path in enumerate(config_files, 1):
             config_name = os.path.basename(config_path)
-            print(f"[{idx}/{len(config_files)}] Testing: {config_name}...", end=" ", flush=True)
+            actual_config_path = resolve_robot_config(config_path, robot)
+            label = config_name
+            if actual_config_path != config_path:
+                label += f" (using {os.path.basename(actual_config_path)})"
+            print(f"[{idx}/{len(config_files)}] Testing: {label}...", end=" ", flush=True)
 
             success, success_count, error, failed_subtasks = test_config_with_oraculum(
-                config_path,
+                actual_config_path,
                 oraculum_results_dir,
                 trials=args.trials,
                 timeout=args.timeout,
