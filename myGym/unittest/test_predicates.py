@@ -29,7 +29,7 @@ from contextlib import contextmanager
 
 from myGym.train import get_parser, get_arguments, automatic_argument_assignment, configure_env
 from myGym.envs import env_object
-from myGym.envs.predicates import IsReachable, Touching, OnTop, Inside, InitPredicateResolver
+from myGym.envs.predicates import IsReachable, Touching, OnTop, Above, Inside, InitPredicateResolver
 
 # ANSI colors for summary marks
 GREEN = "\033[92m"
@@ -189,11 +189,12 @@ def _call_with_timeout(fn, fallback, label: str, seconds: int = CHECK_TIMEOUT_SE
         return fallback
 
 
-def test_touching_and_on_top(env):
-    """Two tuna cans dropped one above the other should end up touching and stacked OnTop."""
+def test_touching_above_and_on_top(env):
+    """Two tuna cans dropped one above the other should end up touching, stacked OnTop, and Above each other."""
     table = env.static_scene_objects[env.workspace]
     on_top = OnTop()
     touching = Touching()
+    above = Above()
 
     table_area = on_top.compute_area(TUNA_CAN_URDF, table)
     bottom_pos = env_object.EnvObject.get_random_object_position(table_area)
@@ -203,6 +204,7 @@ def test_touching_and_on_top(env):
 
         assert touching.check(tuna_bottom, table), "tuna can should be touching the table after settling"
         assert on_top.check(tuna_bottom, table), "tuna can should be OnTop of the table after settling"
+        assert above.check(tuna_bottom, table), "tuna can should be Above the table after settling"
 
         top_pos = [bottom_pos[0], bottom_pos[1], bottom_pos[2] + 0.2]
         with spawned_object(env, TUNA_CAN_URDF, top_pos) as tuna_top:
@@ -211,21 +213,23 @@ def test_touching_and_on_top(env):
             assert touching.check(tuna_top, tuna_bottom), "stacked tuna cans should be touching"
             assert on_top.check(tuna_top, tuna_bottom), "top tuna can should be OnTop of the bottom one"
             assert not on_top.check(tuna_bottom, tuna_top), "bottom tuna can should not be OnTop of the top one"
+            assert above.check(tuna_top, tuna_bottom), "top tuna can should be Above the bottom one"
+            assert not above.check(tuna_bottom, tuna_top), "bottom tuna can should not be Above the top one"
 
-    print("PASS: test_touching_and_on_top")
+    print("PASS: test_touching_above_and_on_top")
 
 
 def test_is_reachable(env, trials: int):
     """An apple should fall inside the robot's reachable envelope."""
     for trial in range(trials):
         reachable = IsReachable()
-        table_area = reachable.compute_area(env.robot)
+        table_area = reachable.compute_area(env.robot, None)
         apple_pos = env_object.EnvObject.get_random_object_position(table_area)
 
-        with spawned_object(env, APPLE_URDF, apple_pos) as apple:
+        with spawned_object(env, APPLE_URDF, apple_pos, fixed=True) as apple:
             settle(env)
 
-            assert reachable.check(env.robot, apple), (
+            assert reachable.check(env.robot, apple, None), (
                 f"Trial {trial}: apple not reachable for apple_pos = {apple_pos}"
             )
 
@@ -236,8 +240,16 @@ def test_init_predicates_are_enforced(env, trials: int):
     """
     Randomized placements resolved by InitPredicateResolver must satisfy
     the init predicates they were sampled for, even after physics settles.
+
+    OnTop/Reachable/Above/Below constrain sampling area; the rest
+    (Far, Empty) is only checked to exercise new predicates.
     """
-    predicates = {"init": ["Reachable(apple)", "OnTop(apple,table)", "Reachable(tuna_can)"]}
+    predicates2 = {"init": ["Reachable(apple)", "OnTop(apple,table)",
+                            "Reachable(tuna_can)", "Above(tuna_can,apple)"]}
+    predicates = {"init": ["Reachable(apple)", "Above(apple, table)",
+                           "OnTop(tuna_can,table)", "Below(tuna_can,apple)"
+                           "Far(tuna_can,table): False", ""]}
+
     apple_info = {"urdf": APPLE_URDF, "obj_name": "apple"}
     tuna_can_info = {"urdf": TUNA_CAN_URDF, "obj_name": "tuna_can"}
 
@@ -249,13 +261,15 @@ def test_init_predicates_are_enforced(env, trials: int):
         apple_area = resolver.get_area(apple_info, table, robot, predicates)
         apple_pos = env_object.EnvObject.get_random_object_position(apple_area)
 
-        with spawned_object(env, APPLE_URDF, apple_pos) as apple:
-            tuna_can_area = resolver.get_area(tuna_can_info, table, robot, predicates)
+        with spawned_object(env, APPLE_URDF, apple_pos, fixed=True) as apple:
+            tuna_can_area = resolver.get_area(
+                tuna_can_info, table, robot, predicates, placed_objects={"apple": apple}
+            )
             tuna_can_pos = env_object.EnvObject.get_random_object_position(tuna_can_area)
 
-            with spawned_object(env, TUNA_CAN_URDF, tuna_can_pos) as tuna_can:
+            with spawned_object(env, TUNA_CAN_URDF, tuna_can_pos, fixed=True) as tuna_can:
                 settle(env)
-                satisfied = resolver.check({"init": apple, "goal": tuna_can}, env, predicates)
+                satisfied = resolver.check({"actual_state": apple, "goal_state": tuna_can}, env, predicates)
 
                 assert satisfied, (
                     f"Trial {trial}: init predicates not satisfied for "
@@ -481,6 +495,11 @@ def test_on_table(env):
     print(f"PASS: test_on_table ({passed}/{len(results)} of tested objects, report: {ON_TABLE_REPORT_PATH})")
 
 
+def test_above(env):
+    """
+    """
+
+
 def show_stacking(arg_dict):
     """
     Open a GUI env and inspected visually placing objects OnTop/Inside.
@@ -504,16 +523,16 @@ def main():
     arg_dict, trials = parse_args()
     env = build_env(arg_dict)
 
-    #test_touching_and_on_top(env)
+    #test_touching_above_and_on_top(env)
     #test_is_reachable(env, trials)
-    #test_init_predicates_are_enforced(env, trials)
+    test_init_predicates_are_enforced(env, trials)
     #test_on_table(env)
     #test_on_top(env)
     #test_inside_obj(env, os.path.join(HOUSEHOLD_URDF_DIR, "jug.urdf"))
 
     print("\nAll tests passed!")
 
-    show_stacking(arg_dict)
+    #show_stacking(arg_dict)
 
 if __name__ == '__main__':
     main()

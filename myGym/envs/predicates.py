@@ -62,6 +62,14 @@ Point3D = list[float] | tuple[float, float, float]
 # Bounding box format: ((x_min, y_min, z_min), (x_max, y_max, z_max))
 BBox = tuple[Point3D, Point3D]
 
+# TODO might need tuning
+TOLERANCE = 0.02       # tolerance for touching bounding boxes
+TOLERANCE_DEG = 15     # rotation tolerance for upright position
+CLOSE = 0.02           # max dist to be close enough
+FAR = 2                # min dist to be far enough
+MAX_HEIGHT = 1         # max sampling height for above predicate
+MIN_HEIGHT = -1        # max sampling height for under predicate
+
 
 # ---------- area / geometry helpers ----------
 
@@ -178,11 +186,11 @@ def get_desk_bounding_box(table_obj) -> BBox:
     obj_max = (desk_area[1], desk_area[3], desk_area[5])
     return obj_min, obj_max
 
-def get_desk_sampling_area(table_obj):
+def get_desk_sampling_area(table_obj) -> BBox:
     """
-    Return safety xy border for placing objects on the table desk
+    Return area on top of table desk for sampling
     """
-    # TODO border_size needs tuning
+    # TODO sampling border needs tuning
     ws_dict = get_workspace_dict()
     sampling_border = ws_dict[table_obj.name]["desk_sampling_border"]
     obj_min, obj_max = get_desk_bounding_box(table_obj)
@@ -274,20 +282,19 @@ class Touching(Predicate):
     """
     Check whether two objects are touching
     """
-    TOLERANCE = 0.01 # TODO tune and move somewhere alse
 
     def check(self, obj1, obj2) -> bool:
-        # NOTE: currently not in use, because the PyBullet contacts didnt work well enough
+        # NOTE: currently not in use, because the PyBullet contacts didn't work well enough
         """
         Return True if AABB overlap (with tolerance)
         """
         obj1_min, obj1_max = get_bounding_box_limits(obj1)
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
-        t = self.TOLERANCE
+        t = TOLERANCE
         if aabb_overlap(obj1_min, obj1_max, obj2_min, obj2_max, tolerance=t):
             return True
 
-        # NOTE: just for double check: doesnt work for some object comtinations
+        # NOTE: just for double check: doesnt work for some object combinations
         # PyBullet contacts
         contact_points = obj1.p.getContactPoints(
             bodyA=obj1.uid,
@@ -298,12 +305,8 @@ class Touching(Predicate):
 
 class OnTop(AreaPredicate):
     """
-    Check whether object1 is on to of object2
+    Check whether object1 is on top of object2
     """
-    # magic numbers
-    # TODO find more accurate ones and save it to helpers maybe
-    PLACING_MARGIN = 0.007  # seems small but worked with different objects
-    TOLERANCE = 0.02        # might be too forgiving but works for now
 
     def check(self, obj1, obj2) -> bool:
         """
@@ -318,7 +321,7 @@ class OnTop(AreaPredicate):
         obj1_center_y = (obj1_min[1] + obj1_max[1]) / 2
 
         # 1. obj1 bottom close to obj2 top
-        bottom_is_near_top = abs(obj1_min[2] - obj2_max[2]) < self.TOLERANCE
+        bottom_is_near_top = abs(obj1_min[2] - obj2_max[2]) < TOLERANCE
 
         # 2. obj1 AABB center inside obj2 xy bounds
         center_inside_support_xy = (
@@ -332,26 +335,23 @@ class OnTop(AreaPredicate):
         """
         Return sampling area for obj1 origin so that obj1 is placed on top of obj2
         """
-        obj1_bottom_offset = self._get_bottom_offset_from_urdf(obj1_urdf, obj2.p, env)
-        placing_height = obj1_bottom_offset + self.PLACING_MARGIN
         ws_dict = get_workspace_dict()
 
         if obj2.name in ws_dict:
             # place at random pos on top of the table
             xy_min, xy_max = get_desk_sampling_area(obj2)
-            placing_height += xy_max[2]
+            placing_height = xy_max[2]
 
         else:
-            # place at the xy center of the object
-            xy_min = obj2.get_position()
-            xy_max = xy_min
-            # place on top
-            _ , obj2_max = get_bounding_box_limits(obj2)
-            placing_height += obj2_max[2]
+            # place on top of the object at the xy center
+            xy_min = xy_max = obj2.get_position()
+            placing_height = obj2.get_bounding_box()[4][2]
 
+        placing_height += self._get_bottom_offset_from_urdf(obj1_urdf, obj2.p, env)
         sampling_area = [xy_min[0], xy_max[0],
                          xy_min[1], xy_max[1],
-                         placing_height, placing_height,]
+                         placing_height, placing_height]
+
         return sampling_area
 
     @staticmethod
@@ -386,8 +386,6 @@ class Above(AreaPredicate):
     """
     Check whether object1 is above object2
     """
-    TOLERANCE = 0.02        # TODO might be too forgiving but works for now
-    MAX_PLACING_HEIGHT = 1
 
     def check(self, obj1, obj2) -> bool:
         """
@@ -397,7 +395,7 @@ class Above(AreaPredicate):
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
 
         # 1. obj1 bottom > obj2 top
-        if not (obj1_min[2] +self.TOLERANCE) > obj2_max[2]:
+        if not (obj1_min[2] + TOLERANCE) > obj2_max[2]:
             return False
     
         # 2. obj XY intersect
@@ -409,16 +407,15 @@ class Above(AreaPredicate):
         """
         sampling_area = OnTop().compute_area(obj1_urdf, obj2, env)
 
-        max_z = self.MAX_PLACING_HEIGHT
-        if sampling_area[-2] < max_z:
-            sampling_area[-1] = max_z
+        if sampling_area[-2] < MAX_HEIGHT:
+            sampling_area[-1] = MAX_HEIGHT
         else:
             print(f"WARNING: Not able to place {obj1_urdf} above {obj2.name}, max height exceeded.")
             sampling_area = None
         return sampling_area
 
     
-class Below(Predicate):
+class Below(AreaPredicate):
     """
     Check whether object1 is below object2
     """
@@ -428,6 +425,54 @@ class Below(Predicate):
         Return True if obj1 is below obj2
         """
         return Above().check(obj2, obj1)
+
+    def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
+        """
+        Return sampling area for obj1 origin so that obj1 is placed below obj2
+        """
+        ws_dict = get_workspace_dict()
+
+        if obj2.name in ws_dict:
+            # place at random pos under the table
+            xy_min, xy_max = get_desk_sampling_area(obj2)
+            placing_height = xy_min[2]
+
+        else:
+            # place under the xy center of the object
+            xy_min = xy_max = obj2.get_position()
+            placing_height = obj2.get_bounding_box()[0][2]
+
+        placing_height -= self._get_top_offset_from_urdf(obj1_urdf, obj2.p, env)
+
+        if placing_height < MIN_HEIGHT:
+            print(f"WARNING: Not able to place {obj1_urdf} under {obj2.name}, min height exceeded.")
+            return None
+
+        sampling_area = [xy_min[0],  xy_max[0],
+                         xy_min[1],  xy_max[1],
+                         MIN_HEIGHT, placing_height]
+        return sampling_area
+
+
+    @staticmethod
+    def _get_top_offset_from_urdf(obj1_urdf: str, pybullet_client, env=None) -> float:
+        if os.path.splitext(os.path.basename(obj1_urdf))[0] == "towertarget":
+            obj1_urdf = env._get_urdf_filename("kostka")
+
+        temp_obj = env_object.EnvObject(
+            obj1_urdf,
+            position=[0.0, 0.0, 1.0],
+            orientation=[0.0, 0.0, 0.0, 1.0],
+            pybullet_client=pybullet_client,
+            fixed=True,
+        )
+
+        obj_top = temp_obj.get_bounding_box()[4]
+        obj_pos = temp_obj.get_position()
+        pybullet_client.removeBody(temp_obj.uid)
+
+        top_offset = obj_top[2] - obj_pos[2]
+        return top_offset
 
 
 class Inside(Predicate):
@@ -451,27 +496,38 @@ class Inside(Predicate):
 
 class Empty(Predicate):
     """
-    Check if obj's position is empty (no other body's AABB currently overlaps it)
+    Check if obj's interior is empty (no other object is Inside obj)
     """
 
     def check(self, obj) -> bool:
         """
-        Return True if no body other than obj overlaps obj's AABB
+        Return True if no other body's bottom-center point lies inside obj's bounding box
         """
         obj_min, obj_max = get_bounding_box_limits(obj)
+        obj_area = [obj_min, obj_max]
+
+        # broadphase pre-filter: only bodies whose AABB overlaps obj's at all can be Inside it
         overlapping = obj.p.getOverlappingObjects(obj_min, obj_max)
         if not overlapping:
             return True
 
         other_uids = {uid for uid, _link in overlapping if uid != obj.uid}
-        return len(other_uids) == 0
+        for uid in other_uids:
+            other_min, other_max = obj.p.getAABB(uid)
+            other_center_x = (other_min[0] + other_max[0]) / 2
+            other_center_y = (other_min[1] + other_max[1]) / 2
+            other_bottom = [other_center_x, other_center_y, other_min[2]]
+
+            if pos_inside_area(other_bottom, obj_area):
+                return False
+
+        return True
 
 
 class Near(Predicate):
     """
     Check whether obj1 is close to obj2
     """
-    MAX_DIST = 0.02  # TODO magic number
 
     def check(self, obj1, obj2) -> bool:
         """
@@ -480,15 +536,14 @@ class Near(Predicate):
         obj1_min, obj1_max = get_bounding_box_limits(obj1)
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
         distance = get_aabb_distance(obj1_min, obj1_max, obj2_min, obj2_max)
-        max_dist = self.MAX_DIST
-        return distance < max_dist
+        return distance < CLOSE
 
 
 class Far(Predicate):
     """
     Check whether obj1 is far from obj2
     """
-    MIN_DIST = 2  # TODO magic number
+    MIN_DIST = 2
 
     def check(self, obj1, obj2) -> bool:
         """
@@ -505,25 +560,22 @@ class ObjectAt(Predicate):
     """
     Check whether obj1/gripper is almost at the same position as obj2
     """
-    E = 0.02  # TODO magic number, not tuned
 
     def check(self, obj, target_obj) -> bool:
         """
         Return True if obj1 and obj2 are almost at the same position
         """
-        e = self.E
         obj1_pos = obj.get_position()
         obj2_pos = target_obj.get_position()
         distance = get_point_distance(obj1_pos, obj2_pos)
         # separate dist when placing obj for z based on obj height?
-        return distance < e
+        return distance < CLOSE
 
 
 class LeftOf(Predicate):
     """
     Check if obj1 is on the left of obj2
     """
-    TOLERANCE = 0.1  # TODO magic number
 
     def check(self, obj1, obj2) -> bool:
         """
@@ -536,14 +588,13 @@ class LeftOf(Predicate):
         obj2_min, _ = get_bounding_box_limits(obj2)
 
         # 1. max obj1 Y <= min obj2 Y
-        return obj1_max[1] <= (obj2_min[1] +self.TOLERANCE)
+        return obj1_max[1] <= (obj2_min[1] + TOLERANCE)
     
 
 class RightOf(Predicate):
     """
     Check if obj1 is on the right of obj2
     """
-    TOLERANCE = 0.1  # TODO magic number
 
     def check(self, obj1, obj2) -> bool:
         """
@@ -556,7 +607,6 @@ class InFrontOF(Predicate):
     """
     Check if obj1 is in front of obj2
     """
-    TOLERANCE = 0.1  # TODO magic number
 
     def check(self, obj1, obj2) -> bool:
         """
@@ -569,7 +619,7 @@ class InFrontOF(Predicate):
         obj2_min, _ = get_bounding_box_limits(obj2)
 
         # 1. max obj1 X <= min obj2 X
-        return obj1_max[0] <= (obj2_min[0] +self.TOLERANCE)
+        return obj1_max[0] <= (obj2_min[0] + TOLERANCE)
 
 
 class Behind(Predicate):
@@ -616,7 +666,6 @@ class Upright(Predicate):
     """
     Check if object is still in its base upright position (i.e. has not been tipped over)
     """
-    TOLERANCE_DEG = 15  # TODO magic number, not tuned
 
     def check(self, obj) -> bool:
         """
@@ -631,7 +680,7 @@ class Upright(Predicate):
 
         cos_angle = np.clip(np.dot(init_up, current_up), -1.0, 1.0)
         angle_deg = np.degrees(np.arccos(cos_angle))
-        return angle_deg <= self.TOLERANCE_DEG
+        return angle_deg <= TOLERANCE_DEG
 
 
 class GripperStatus(Predicate):
@@ -729,7 +778,7 @@ class PredicateResolver:
     @staticmethod
     def _parse_predicates(predicates: list[str]) -> list[PredicateCall]:
         """ 
-        Convert list of predicates tsrings to list predicates objects
+        Convert list of predicates strings to list predicates objects
         ['OnTop(apple,table)', ...] -> [PredicateCall(name='OnTop', args=['apple','table']), ...]
         """
         parsed_predicates = []
@@ -929,6 +978,26 @@ class InitPredicateResolver(PredicateResolver):
                 env=env,
             )
 
+        for above_predicate in predicate_map.get("Above", []):
+            area = self._apply_above_area(
+                current_area=area,
+                predicate=above_predicate,
+                table=table,
+                obj1_urdf=obj1_urdf,
+                placed_objects=placed_objects,
+                env=env,
+            )
+
+        for under_predicate in predicate_map.get("Below", []):
+            area = self._apply_under_area(
+                current_area=area,
+                predicate=under_predicate,
+                table=table,
+                obj1_urdf=obj1_urdf,
+                placed_objects=placed_objects,
+                env=env,
+            )
+
         for reachable_predicate in predicate_map.get("Reachable", []):
             area = self._apply_reachable_area(
                 current_area=area,
@@ -970,6 +1039,62 @@ class InitPredicateResolver(PredicateResolver):
         
         on_top_area = OnTop().compute_area(obj1_urdf, support_object, env)
         return get_range_intersection(current_area, on_top_area)
+
+    def _apply_above_area(
+            self, current_area: Area, predicate: PredicateCall, table, obj1_urdf: str, placed_objects, env=None
+            ) -> Area | None:
+        """
+        Apply Above(obj1, obj2) as an area constraint
+        The support object has to be already placed
+        """
+        if len(predicate.args) != 2:
+            raise ValueError(f"Above expects 2 arguments, got {predicate.args}")
+
+        obj1_name, obj2_name = predicate.args
+
+        if obj2_name == "table":
+            support_object = table
+        else:
+            support_object = placed_objects.get(obj2_name)
+            if not support_object:
+                raise ValueError(
+                    f"Cannot compute Above area for '{predicate.args[0]}'. "
+                    f"Supporting object '{obj2_name}' has not been placed yet."
+                )
+
+        above_area = Above().compute_area(obj1_urdf, support_object, env)
+        if above_area is None:
+            return None
+
+        return get_range_intersection(current_area, above_area)
+
+    def _apply_under_area(
+            self, current_area: Area, predicate: PredicateCall, table, obj1_urdf: str, placed_objects, env=None
+            ) -> Area | None:
+        """
+        Apply Below(obj1, obj2) as an area constraint
+        The reference object has to be already placed
+        """
+        if len(predicate.args) != 2:
+            raise ValueError(f"Below expects 2 arguments, got {predicate.args}")
+
+        obj1_name, obj2_name = predicate.args
+
+        if obj2_name == "table":
+            reference_object = table
+        else:
+            reference_object = placed_objects.get(obj2_name)
+            if not reference_object:
+                raise ValueError(
+                    f"Cannot compute Below area for '{predicate.args[0]}'. "
+                    f"Reference object '{obj2_name}' has not been placed yet."
+                )
+
+        under_area = Below().compute_area(obj1_urdf, reference_object, env)
+        if under_area is None:
+            return None
+
+        return get_range_intersection(current_area, under_area)
 
     def _apply_reachable_area(
         self, current_area: Area, predicate: PredicateCall, robot, grip_type: str | None = None
