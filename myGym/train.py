@@ -297,7 +297,7 @@ def get_parser():
     parser.add_argument("-yp", "--yolact_path", type=str, help="Path to a trained Yolact in 3dvu reward type")
     parser.add_argument("-yc", "--yolact_config", type=str, help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
     parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
-    parser.add_argument("--protorewards", type=str, default="protorewards.json",
+    parser.add_argument("--protorewards", type=str, default="relative.json",
                         help="Protorewards JSON filename (or absolute path) loaded by Rewarder")
     #Language
     parser.add_argument("-nl", "--natural_language", type=str, default="",
