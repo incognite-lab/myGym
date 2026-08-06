@@ -2,6 +2,7 @@ import copy
 from typing import List, Any
 
 from myGym.envs import robot, env_object
+from myGym.envs.robot import parse_range
 from myGym.envs import task as t
 from myGym.envs import distractor as d
 from myGym.envs.base_env import CameraEnv
@@ -117,8 +118,8 @@ class GymEnv(CameraEnv):
         self.network_switcher       = network_switcher
         self.robot_init_joint_poses = robot_init_joint_poses
         self.robot_action           = robot_action
-        self.max_velocity           = max_velocity
-        self.max_force              = max_force
+        self.max_velocity           = parse_range(max_velocity, default_min=0.0)
+        self.max_force              = parse_range(max_force, default_min=0.0)
         self.action_repeat          = action_repeat
         self.dimension_velocity     = dimension_velocity
         self.active_cameras         = active_cameras
@@ -310,8 +311,19 @@ class GymEnv(CameraEnv):
 
 
         elif "joints" in self.robot_action:
-            self.action_low = np.array(self.robot.joints_limits[0], dtype = np.float64)
-            self.action_high = np.array(self.robot.joints_limits[1], dtype = np.float64)
+            pos_low = np.array(self.robot.joints_limits[0], dtype=np.float64)
+            pos_high = np.array(self.robot.joints_limits[1], dtype=np.float64)
+
+            vel_range = self.max_velocity if (isinstance(self.max_velocity, (list, tuple, np.ndarray)) and len(self.max_velocity) >= 2) else [0.0, self.max_velocity if self.max_velocity is not None else 1.0]
+            vel_low = np.array([vel_range[0]] * self.robot.joints_num, dtype=np.float64)
+            vel_high = np.array([vel_range[1]] * self.robot.joints_num, dtype=np.float64)
+
+            force_range = self.max_force if (isinstance(self.max_force, (list, tuple, np.ndarray)) and len(self.max_force) >= 2) else [0.0, self.max_force if self.max_force is not None else 100.0]
+            force_low = np.array([force_range[0]] * self.robot.joints_num, dtype=np.float64)
+            force_high = np.array([force_range[1]] * self.robot.joints_num, dtype=np.float64)
+
+            self.action_low = np.concatenate([pos_low, vel_low, force_low])
+            self.action_high = np.concatenate([pos_high, vel_high, force_high])
 
         if "gripper" in self.robot_action:
             self.action_low = np.append(self.action_low, np.array(self.robot.gjoints_limits[0]))

@@ -13,8 +13,8 @@
     "robot"         :"g1",
     "robot_action"  :"joints_gripper",
     "robot_init"    : "default",
-    "max_velocity"  :1,
-    "max_force"     :80,
+    "max_velocity"  :[0.2, 10.0],
+    "max_force"     :[20.0, 150.0],
     "action_repeat" :1,
     #Task
     "task_type"             :"AG",

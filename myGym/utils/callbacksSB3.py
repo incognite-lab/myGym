@@ -121,6 +121,10 @@ class CustomEvalCallback(EvalCallback):
 
             srewardsteps = np.zeros(evaluation_env.unwrapped.reward.num_networks)
             srewardsuccess = np.zeros(evaluation_env.unwrapped.reward.num_networks)
+            subtask_solved_flags = [False] * evaluation_env.unwrapped.reward.num_networks
+            rewarder = getattr(evaluation_env.unwrapped, "reward", None)
+            subtask_max_owner = getattr(rewarder, "owner", -1) if rewarder is not None else -1
+            prev_owner = None
             while not done:
                 steps_sum += 1
                 #print("Episode:", e, "Step:", steps, "Network:", evaluation_env.unwrapped.reward.current_network)   
@@ -154,11 +158,27 @@ class CustomEvalCallback(EvalCallback):
                 print (info)
                 is_successful = not info['f']
 
+                # update subtask tracking (matching test.py pretrained model mode)
+                try:
+                    owner = getattr(rewarder, "owner", None)
+                    if owner is not None:
+                        subtask_max_owner = max(subtask_max_owner, owner)
+                        last = getattr(rewarder, "last_result", None)
+                        if last:
+                            arm_solved = bool(last.get("arm_solved", False))
+                            gripper_solved = bool(last.get("gripper_solved", False))
+                            if arm_solved and gripper_solved:
+                                completed_index = owner
+                                if prev_owner is not None and owner > prev_owner:
+                                    completed_index = owner - 1
+                                if 0 <= completed_index < len(subtask_solved_flags):
+                                    subtask_solved_flags[completed_index] = True
+                        prev_owner = owner
+                except Exception:
+                    pass
+
                 if evaluation_env.unwrapped.reward.current_network != last_network:
                     srewardsteps.put([last_network], steps - last_steps)
-                    # Count subgoal as finished only for episodes that finish successfully.
-                    if is_successful:
-                        srewardsuccess.put([last_network], 1)
                     last_network = evaluation_env.unwrapped.reward.current_network
                     last_steps = steps
                 #distance_error = self.eval_env.env.unwrapped.reward.get_distance_error(info['o'])
@@ -176,8 +196,13 @@ class CustomEvalCallback(EvalCallback):
                     evaluation_env.render()
                 steps += 1
             srewardsteps.put([last_network], steps - last_steps)
-            if is_successful:
-                srewardsuccess.put([last_network], 1)
+            for i in range(evaluation_env.unwrapped.reward.num_networks):
+                status = subtask_solved_flags[i] or (subtask_max_owner > i)
+                if i == evaluation_env.unwrapped.reward.num_networks - 1:
+                    is_term = terminated if 'terminated' in locals() else done
+                    status = status and is_term and is_successful
+                if status:
+                    srewardsuccess[i] = 1
             subrewards.append(evaluation_env.unwrapped.reward.network_rewards)
             subrewsteps.append(srewardsteps)
             subrewsuccess.append(srewardsuccess)
@@ -356,10 +381,14 @@ class MultiPPOEvalCallback(EvalCallback):
             last_steps = 0
             srewardsteps = np.zeros(env_reward.num_networks)
             srewardsuccess = np.zeros(env_reward.num_networks)
+            subtask_solved_flags = [False] * env_reward.num_networks
+            rewarder = env_reward
+            subtask_max_owner = getattr(rewarder, "owner", -1) if rewarder is not None else -1
+            prev_owner = None
             print("Episode:", e)
             while not done: #Carry out episode steps until the episode is done
                 steps_sum += 1
-                if isinstance(self.eval_env, SubprocVecEnv):
+                if hasattr(self.eval_env, "eval_step"):
                     action, state = model.eval_predict(obs, deterministic=deterministic) #Predict action in first environment
                     obs, reward, done, info, current_network = self.eval_env.eval_step(action)
                 else:
@@ -391,12 +420,28 @@ class MultiPPOEvalCallback(EvalCallback):
                 episode_reward += reward
                 is_successful = not info['f']
 
+                # update subtask tracking (matching test.py pretrained model mode)
+                try:
+                    owner = getattr(rewarder, "owner", None)
+                    if owner is not None:
+                        subtask_max_owner = max(subtask_max_owner, owner)
+                        last = getattr(rewarder, "last_result", None)
+                        if last:
+                            arm_solved = bool(last.get("arm_solved", False))
+                            gripper_solved = bool(last.get("gripper_solved", False))
+                            if arm_solved and gripper_solved:
+                                completed_index = owner
+                                if prev_owner is not None and owner > prev_owner:
+                                    completed_index = owner - 1
+                                if 0 <= completed_index < len(subtask_solved_flags):
+                                    subtask_solved_flags[completed_index] = True
+                        prev_owner = owner
+                except Exception:
+                    pass
+
                 if current_network != last_network:
                     if not done:
                         srewardsteps.put([last_network], steps - last_steps)
-                        # Count subgoal as finished only for episodes that finish successfully.
-                        if is_successful:
-                            srewardsuccess.put([last_network], 1)
                         last_network = current_network
                         last_steps = steps
 
@@ -414,8 +459,13 @@ class MultiPPOEvalCallback(EvalCallback):
 
             #Save all gathered eval episode values
             srewardsteps.put([last_network], steps - last_steps)
-            if is_successful:
-                srewardsuccess.put([last_network], 1)
+            for i in range(env_reward.num_networks):
+                status = subtask_solved_flags[i] or (subtask_max_owner > i)
+                if i == env_reward.num_networks - 1:
+                    is_term = terminated if 'terminated' in locals() else done
+                    status = status and is_term and is_successful
+                if status:
+                    srewardsuccess[i] = 1
             if isinstance(self.eval_env, VecEnv):
                 env_reward = self.eval_env.get_attr("reward")[0]
             else:
@@ -599,11 +649,15 @@ class PPOEvalCallback(EvalCallback):
 
             srewardsteps = np.zeros(env_reward.num_networks)
             srewardsuccess = np.zeros(env_reward.num_networks)
+            subtask_solved_flags = [False] * env_reward.num_networks
+            rewarder = env_reward
+            subtask_max_owner = getattr(rewarder, "owner", -1) if rewarder is not None else -1
+            prev_owner = None
             while not done:
                 steps_sum += 1
                 action, state = model.predict(obs, deterministic=deterministic)
 
-                if isinstance(self.eval_env, VecMonitor):
+                if hasattr(self.eval_env, "eval_step"):
                     obs, reward, done, info, current_network = self.eval_env.eval_step(action)
                 else:
                     obs, reward, terminated, truncated, info = self.eval_env.step(action)
@@ -631,12 +685,28 @@ class PPOEvalCallback(EvalCallback):
                                                       textColorRGB=[0.2, 0.8, 1])
                 episode_reward += reward
                 is_successful = not info['f']
+                # update subtask tracking (matching test.py pretrained model mode)
+                try:
+                    owner = getattr(rewarder, "owner", None)
+                    if owner is not None:
+                        subtask_max_owner = max(subtask_max_owner, owner)
+                        last = getattr(rewarder, "last_result", None)
+                        if last:
+                            arm_solved = bool(last.get("arm_solved", False))
+                            gripper_solved = bool(last.get("gripper_solved", False))
+                            if arm_solved and gripper_solved:
+                                completed_index = owner
+                                if prev_owner is not None and owner > prev_owner:
+                                    completed_index = owner - 1
+                                if 0 <= completed_index < len(subtask_solved_flags):
+                                    subtask_solved_flags[completed_index] = True
+                        prev_owner = owner
+                except Exception:
+                    pass
+
                 if current_network != last_network:
                     if not done:
                         srewardsteps.put([last_network], steps - last_steps)
-                        # Count subgoal as finished only for episodes that finish successfully.
-                        if is_successful:
-                            srewardsuccess.put([last_network], 1)
                         last_network = current_network
                         last_steps = steps
                 distance_error = env_reward.last_result["absolute_distance"]
@@ -656,8 +726,13 @@ class PPOEvalCallback(EvalCallback):
             else:
                 env_reward = self.eval_env.unwrapped.reward
             srewardsteps.put([last_network], steps - last_steps)
-            if is_successful:
-                srewardsuccess.put([last_network], 1)
+            for i in range(env_reward.num_networks):
+                status = subtask_solved_flags[i] or (subtask_max_owner > i)
+                if i == env_reward.num_networks - 1:
+                    is_term = terminated if 'terminated' in locals() else done
+                    status = status and is_term and is_successful
+                if status:
+                    srewardsuccess[i] = 1
 
             subrewards.append(env_reward.network_rewards)
             subrewsteps.append(srewardsteps)
