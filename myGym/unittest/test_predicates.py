@@ -29,7 +29,7 @@ from contextlib import contextmanager
 
 from myGym.train import get_parser, get_arguments, automatic_argument_assignment, configure_env
 from myGym.envs import env_object
-from myGym.envs.predicates import IsReachable, Touching, OnTop, Above, Inside, InitPredicateResolver
+from myGym.envs.predicates import IsReachable, Touching, OnTop, Above, Inside, Upright, InitPredicateResolver
 
 # ANSI colors for summary marks
 GREEN = "\033[92m"
@@ -219,6 +219,37 @@ def test_touching_above_and_on_top(env):
     print("PASS: test_touching_above_and_on_top")
 
 
+def test_upright(env):
+    """
+    Upright() checked on a fixed object with controlled rotations — no physics
+    settling involved, so results are deterministic (unlike a dropped/settled
+    object, which can roll/tip and make Upright flaky).
+    """
+    table = env.static_scene_objects[env.workspace]
+    upright = Upright()
+    on_top = OnTop()
+
+    table_area = on_top.compute_area(TUNA_CAN_URDF, table)
+    pos = env_object.EnvObject.get_random_object_position(table_area)
+
+    with spawned_object(env, TUNA_CAN_URDF, pos, fixed=True) as tuna_can:
+        assert upright.check(tuna_can), "freshly spawned tuna can should be upright"
+
+        tuna_can.rotate_euler([0, 0, 1.2])  # pure yaw spin
+        assert upright.check(tuna_can), "yaw-only rotation should still be upright"
+
+        tuna_can.rotate_euler([0, 0, 0])
+        tuna_can.set_orientation(env.p.getQuaternionFromEuler([0, 0, 0]))
+        tuna_can.rotate_euler([0.1, 0, 0])  # ~6deg tilt, within TOLERANCE_DEG
+        assert upright.check(tuna_can), "small tilt within tolerance should still be upright"
+
+        tuna_can.set_orientation(env.p.getQuaternionFromEuler([0, 0, 0]))
+        tuna_can.rotate_euler([0.79, 0, 0])  # ~45deg tilt, well beyond TOLERANCE_DEG
+        assert not upright.check(tuna_can), "large tilt should not be upright"
+
+    print("PASS: test_upright")
+
+
 def test_is_reachable(env, trials: int):
     """An apple should fall inside the robot's reachable envelope."""
     for trial in range(trials):
@@ -247,8 +278,8 @@ def test_init_predicates_are_enforced(env, trials: int):
     predicates2 = {"init": ["Reachable(apple)", "OnTop(apple,table)",
                             "Reachable(tuna_can)", "Above(tuna_can,apple)"]}
     predicates = {"init": ["Reachable(apple)", "Above(apple, table)",
-                           "OnTop(tuna_can,table)", "Below(tuna_can,apple)"
-                           "Far(tuna_can,table): False", ""]}
+                           "OnTop(tuna_can,table)", "Below(tuna_can,apple)",
+                           "Far(tuna_can,table): False"]}
 
     apple_info = {"urdf": APPLE_URDF, "obj_name": "apple"}
     tuna_can_info = {"urdf": TUNA_CAN_URDF, "obj_name": "tuna_can"}

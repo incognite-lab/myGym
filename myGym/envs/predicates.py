@@ -7,34 +7,36 @@ this file contains
 
 The implemented predicates are:
  unary predicates:
-    IsReachable
-     -able to generate area for placing objects
+    IsReachable (G)
     Upright
     Empty
     GripperAt
      -see ObjectAt
     GripperStatus
      -GripperClosed, GripperOpen
-    IsHolding TODO
+    IsHolding
 
  binary predicates:
     Touching
-    OnTop
-     -able to generate area for placing objects
-    Inside
-    Near
+    OnTop     (G)
+    Inside    (G)
+    Near      (G)
     Far
-    ObjectAt
-    Above
-     -able to generate area for placing objects
-    Below
-    LeftOf
-    RightOf
-    InFrontOF
-    Behind
-    Nextto
+    ObjectAt  (G)
+    Above     (G)
+    Below     (G)
+    LeftOf    (G)
+    RightOf   (G)
+    InFrontOF (G)
+    Behind    (G)
+    Nextto    (G)
 
-    
+ - (G) = able to generate sampling area for placing objects
+ - gripper predicates are used without gripper parameter in config file - GripperAt(obj)
+ - TODO! implement negation on predicates generating area at init 
+ - TODO? Stack (for pans), Rotated (for gen)
+
+
 Predicate checkers:
  PredicateResolver and its child classes:
     InitPredicateResolver
@@ -475,7 +477,7 @@ class Below(AreaPredicate):
         return top_offset
 
 
-class Inside(Predicate):
+class Inside(AreaPredicate):
     """
     Check whether object1 is inside of object2
     """
@@ -492,6 +494,39 @@ class Inside(Predicate):
         obj1_bottom = [obj1_center_x, obj1_center_y, obj1_min[2]]
         obj2_area = [obj2_min, obj2_max]
         return pos_inside_area(obj1_bottom, obj2_area)
+
+    def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
+        """
+        Return sampling area for obj1 so that obj1 is inside obj2,
+        obj1 center is at obj2 center
+        NOTE: use OnTop() instead for hollow containers (e.g. bowl) to drop obj inside
+        """
+        # 1. check obj1 fits inside obj2
+        # TODO
+        obj1_min, obj1_max = self._get_bounding_box_from_urdf(obj1_urdf, obj2.get_position(), obj2.p, env)
+        obj2_min, obj2_max = get_bounding_box_limits(obj2)
+        area
+
+        # 2. return obj2 pos
+        return ObjectAt().compute_area(obj2)
+
+
+    @staticmethod
+    def _get_bounding_box_from_urdf(obj1_urdf: str, obj_pos, pybullet_client, env=None) -> float:
+        if os.path.splitext(os.path.basename(obj1_urdf))[0] == "towertarget":
+            obj1_urdf = env._get_urdf_filename("kostka")
+
+        temp_obj = env_object.EnvObject(
+            obj1_urdf,
+            position=obj_pos,
+            orientation=[0.0, 0.0, 0.0, 1.0],
+            pybullet_client=pybullet_client,
+            fixed=True,
+        )
+
+        obj_min, obj_max = get_bounding_box_limits(temp_obj)
+        pybullet_client.removeBody(temp_obj.uid)
+        return obj_min, obj_max
 
 
 class Empty(Predicate):
@@ -524,7 +559,7 @@ class Empty(Predicate):
         return True
 
 
-class Near(Predicate):
+class Near(AreaPredicate):
     """
     Check whether obj1 is close to obj2
     """
@@ -537,6 +572,17 @@ class Near(Predicate):
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
         distance = get_aabb_distance(obj1_min, obj1_max, obj2_min, obj2_max)
         return distance < CLOSE
+
+    def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
+            """
+            Return sampling area for obj1 so that obj1 is next to obj2
+            NOTE: hight chance for object collision
+                  similar to NextTo(), but generates also on top
+            """
+            # TODO
+            # 1. if pos (Left, Behind, OnTop) not defined by other predicate,
+            #    choose randomly to avoid collision
+            # 2. return pos for obj1 near obj2 on that side
 
 
 class Far(Predicate):
@@ -556,7 +602,7 @@ class Far(Predicate):
         return distance > min_dist
 
 
-class ObjectAt(Predicate):
+class ObjectAt(AreaPredicate):
     """
     Check whether obj1/gripper is almost at the same position as obj2
     """
@@ -571,8 +617,17 @@ class ObjectAt(Predicate):
         # separate dist when placing obj for z based on obj height?
         return distance < CLOSE
 
+    def compute_area(self, obj2) -> Area:
+        """
+        Return sampling area for obj1 so that obj1 has the same position as obj2
+        """
+        # TODO: check
+        sampling_area = np.repeat(obj2.get_position(), 2)
+        return sampling_area.tolist()
 
-class LeftOf(Predicate):
+
+
+class LeftOf(AreaPredicate):
     """
     Check if obj1 is on the left of obj2
     """
@@ -589,9 +644,16 @@ class LeftOf(Predicate):
 
         # 1. max obj1 Y <= min obj2 Y
         return obj1_max[1] <= (obj2_min[1] + TOLERANCE)
+
+    def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
+            """
+            Return sampling area for obj1 so that obj1 is on the left of obj2
+            """
+            # TODO:
+            
     
 
-class RightOf(Predicate):
+class RightOf(AreaPredicate):
     """
     Check if obj1 is on the right of obj2
     """
@@ -602,8 +664,14 @@ class RightOf(Predicate):
         """
         return LeftOf().check(obj2, obj1)
 
+    def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
+        """
+        Return sampling area for obj1 so that obj1 is on the right of obj2
+        """
+        # TODO:
 
-class InFrontOF(Predicate):
+
+class InFrontOF(AreaPredicate):
     """
     Check if obj1 is in front of obj2
     """
@@ -621,8 +689,14 @@ class InFrontOF(Predicate):
         # 1. max obj1 X <= min obj2 X
         return obj1_max[0] <= (obj2_min[0] + TOLERANCE)
 
+    def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
+        """
+        Return sampling area for obj1 so that obj1 is in front of obj2
+        """
+        # TODO:
 
-class Behind(Predicate):
+
+class Behind(AreaPredicate):
     """
     Check if obj1 is behind obj2
     """
@@ -633,8 +707,14 @@ class Behind(Predicate):
         """
         return InFrontOF().check(obj2, obj1)
 
+    def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
+        """
+        Return sampling area for obj1 so that obj1 is behind obj2
+        """
+        # TODO:
 
-class Nextto(Predicate):
+
+class Nextto(AreaPredicate):
     """
     objects are close at similar height
     """
@@ -646,6 +726,16 @@ class Nextto(Predicate):
             return False
         
         return Near().check(obj1, obj2)
+
+    def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
+        """
+        Return sampling area for obj1 so that obj1 is next to obj2
+        NOTE: hight chance for object collision
+        """
+        # TODO
+        # 1. if side (Left, Behind, ...) not defined by other predicate,
+        #    choose randomly to avoid collision
+        # 2. return near pos on that side
 
 
 class InSimilarHeight():
@@ -691,7 +781,7 @@ class GripperStatus(Predicate):
 
     Note:
         GripperClosed() is not equivalent to not(GripperOpen()),
-        the gripper has also a neutral state
+        because the gripper has also a neutral state
     """
 
     def check(self, gripper, desired_status) -> bool:
