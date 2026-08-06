@@ -97,7 +97,7 @@ def generate_random_task_config(
     sequence_length: int,
     clear_output_dir: bool = True,
 ) -> str:
-    return
+    # (removed early return)
 
     os.makedirs(output_dir, exist_ok=True)
 
