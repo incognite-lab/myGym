@@ -272,8 +272,8 @@ class UniversalReward:
             q_default = Quaternion(q1[3], q1[0], q1[1], q1[2])  # (w, x, y, z)
             q_current = Quaternion(q2[3], q2[0], q2[1], q2[2])
 
-            roll_default, _, _ = q_default.yaw_pitch_roll
-            roll_current, _, _ = q_current.yaw_pitch_roll
+            yaw_default, pitch_default, roll_default = q_default.yaw_pitch_roll
+            yaw_current, pitch_current, roll_current = q_current.yaw_pitch_roll
 
             # Compute absolute difference in roll only
             roll_diff = abs(roll_current - roll_default)
