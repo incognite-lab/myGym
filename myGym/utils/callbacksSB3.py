@@ -10,7 +10,7 @@ import numpy as np
 from numpy import matrix
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.results_plotter import load_results, ts2xy
-from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor, VecEnv, sync_envs_normalization
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor, VecEnv, DummyVecEnv, sync_envs_normalization
 from tqdm.auto import tqdm
 from myGym.utils.helpers import PrintEveryNCalls
 import time
@@ -86,6 +86,7 @@ class CustomEvalCallback(EvalCallback):
             n_eval_episodes: int = 10,
             deterministic: bool = False,
     ):
+        debug = False
         start_timer = time.time()
         success_episodes_num = 0
         distance_error_sum = 0
@@ -129,7 +130,7 @@ class CustomEvalCallback(EvalCallback):
                     obs, reward, terminated, truncated, info = self.eval_env.step(action)
                     done = terminated or truncated
 
-                if evaluation_env.p.getConnectionInfo()["isConnected"] != 0:
+                if debug:
                     evaluation_env.p.addUserDebugText(
                         f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']), 5))}",
                         [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
@@ -354,7 +355,7 @@ class MultiPPOEvalCallback(EvalCallback):
             print("Episode:", e)
             while not done: #Carry out episode steps until the episode is done
                 steps_sum += 1
-                if isinstance(self.eval_env, VecEnv):
+                if isinstance(self.eval_env, SubprocVecEnv):
                     action, state = model.eval_predict(obs, deterministic=deterministic) #Predict action in first environment
                     obs, reward, done, info, current_network = self.eval_env.eval_step(action)
                 else:
@@ -393,7 +394,7 @@ class MultiPPOEvalCallback(EvalCallback):
                         last_network = current_network
                         last_steps = steps
 
-                distance_error = env_reward.get_distance_error(info['o']) #Compute how far from goal is the gripper/object
+                distance_error = env_reward.last_result["absolute_distance"] #Compute how far from goal is the gripper/object
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
                         render_info = self.eval_env.render(mode="rgb_array", camera_id=self.camera_id)
@@ -413,7 +414,7 @@ class MultiPPOEvalCallback(EvalCallback):
                 env_reward = self.eval_env.get_attr("reward")[0]
             else:
                 env_reward = self.eval_env.unwrapped.reward
-            subrewards.append(env_reward.eval_network_rewards)
+            subrewards.append(env_reward.network_rewards)
             subrewsteps.append(srewardsteps)
             subrewsuccess.append(srewardsuccess)
             episode_rewards.append(episode_reward)
@@ -557,7 +558,7 @@ class PPOEvalCallback(EvalCallback):
             n_eval_episodes: int = 10,
             deterministic: bool = False,
     ):
-
+        debug = False
         success_episodes_num = 0
         distance_error_sum = 0
         steps_sum = 0
@@ -603,7 +604,7 @@ class PPOEvalCallback(EvalCallback):
                     done = terminated or truncated
                     current_network = self.eval_env.unwrapped.reward.current_network
 
-                if env_p.getConnectionInfo()["isConnected"] != 0:
+                if debug:
                     env_p.addUserDebugText(
                         f"Endeff:{matrix(np.around(np.array(info['o']['additional_obs']['endeff_xyz']), 5))}",
                         [.8, .5, 0.1], textSize=1.0, lifeTime=0.5, textColorRGB=[0.0, 1, 0.0])
@@ -630,7 +631,7 @@ class PPOEvalCallback(EvalCallback):
                         srewardsuccess.put([last_network], 1)
                         last_network = current_network
                         last_steps = steps
-                distance_error = env_reward.get_distance_error(info['o'])
+                distance_error = env_reward.last_result["absolute_distance"]
 
                 if self.physics_engine == "pybullet":
                     if self.record and e == n_eval_episodes - 1 and len(images) < self.record_steps_limit:
@@ -650,7 +651,7 @@ class PPOEvalCallback(EvalCallback):
             if is_successful:
                 srewardsuccess.put([last_network], 1)
 
-            subrewards.append(env_reward.eval_network_rewards)
+            subrewards.append(env_reward.network_rewards)
             subrewsteps.append(srewardsteps)
             subrewsuccess.append(srewardsuccess)
             episode_rewards.append(episode_reward)

@@ -698,7 +698,7 @@ def main():
     parser.add_argument('--no-loop', action='store_true', help='Run once and exit (loop is default)')
     parser.add_argument('--once', action='store_true', help='Select & run first entry automatically (useful for scripting)')
     parser.add_argument('--print-only', action='store_true', help='Print discovered paths and exit')
-    parser.add_argument('--order', choices=['alpha', 'date'], default='alpha', help='Order listing: alpha or date (newest first)')
+    parser.add_argument('--order', choices=['alpha', 'date'], default='date', help='Order listing: alpha or date (newest first)')
     parser.add_argument('--no-gui', action='store_true', help='Run commands with GUI disabled (adds -g 0)')
     parser.add_argument('extra', nargs=argparse.REMAINDER, help='Extra args passed to test.py after --')
     args = parser.parse_args()

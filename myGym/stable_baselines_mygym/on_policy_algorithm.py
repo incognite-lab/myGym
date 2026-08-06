@@ -208,7 +208,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     model.policy.reset_noise(env.num_envs)
 
             # Choosing model based on observation
-            owner = self.approved(self._last_obs)
+            owner = self.approved()
             if isinstance(owner, list):  # MultiPPO
                 owner = np.array(owner)
                 for i in range(np.max(owner) + 1):
@@ -289,7 +289,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
 
         with th.no_grad():
             # Compute value for the last timestep
-            owner = self.approved(self._last_obs)
+            owner = self.approved()
             if isinstance(owner, list):
                 owner = np.array(owner)
                 for i in range(np.max(owner) + 1):

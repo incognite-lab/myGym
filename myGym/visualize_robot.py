@@ -49,6 +49,42 @@ def save_gripper_dict_to_helpers(gd, helpers_path):
     
     return True
 
+def check_gripper_status(gripper_values, close_gripper, open_gripper):
+    """
+    Check gripper status using Min-Max normalization.
+    Converts gripper joint values to a normalized 0-1 metric where 0 corresponds to
+    close_gripper and 1 corresponds to open_gripper.
+    
+    Parameters:
+        :param gripper_values: (list) Current gripper joint values
+        :param close_gripper: (list) Closed gripper joint values
+        :param open_gripper: (list) Open gripper joint values
+    Returns:
+        :return (status, metric): (tuple) Status string ("close", "open", or "neutral")
+                                  and normalized metric (0=closed, 1=open)
+    """
+    close_vec = np.array(close_gripper)
+    open_vec = np.array(open_gripper)
+    current_vec = np.array(gripper_values)
+    
+    # Min-Max normalization: 0 at close_gripper, 1 at open_gripper (element-wise)
+    range_vec = open_vec - close_vec
+    if np.allclose(range_vec, 0):
+        metric = 0.0
+    else:
+        # Element-wise normalization, then take mean
+        normalized = (current_vec - close_vec) / range_vec
+        metric = np.mean(np.clip(normalized, 0.0, 1.0))
+    
+    if metric <= 0.15:
+        status = "close"
+    elif metric >= 0.85:
+        status = "open"
+    else:
+        status = "neutral"
+    
+    return status, metric
+
 def save_robot_dict_to_helpers(rd, helpers_path):
     """Save updated robot dictionary back to helpers.py file."""
     # Read the current file
@@ -258,6 +294,20 @@ def main():
                 p.resetJointState(robot_id, joint_idx, default_joint_ori[i])
                 print(f"  Joint {joint_idx}: {default_joint_ori[i]}")
 
+    # Create velocity and force control sliders
+    velocity_slider = p.addUserDebugParameter(
+        paramName="Velocity",
+        rangeMin=0,
+        rangeMax=300,
+        startValue=100
+    )
+    force_slider = p.addUserDebugParameter(
+        paramName="Force",
+        rangeMin=0,
+        rangeMax=300,
+        startValue=500
+    )
+    
     # Get joint information
     sliders = []
     
@@ -328,6 +378,10 @@ def main():
     
     # Get gripper dictionary
     gd = get_gripper_dict()
+    
+    # Initialize timer for periodic gripper status printing
+    last_print_time = time.time()
+    print_interval = 0.5  # Print gripper status every 0.5 seconds
     
     try:
         while True:
@@ -449,6 +503,43 @@ def main():
                 else:
                     print("Failed to update helpers.py")
             
+            # Read velocity and force slider values
+            velocity = p.readUserDebugParameter(velocity_slider)
+            force = p.readUserDebugParameter(force_slider)
+            
+            # Calculate and print gripper status periodically (only for gjoints)
+            current_time = time.time()
+            if current_time - last_print_time >= print_interval:
+                # Get current gripper joint values
+                gjoint_values = []
+                gjoint_names = []
+                for joint_idx, slider_id in sliders:
+                    joint_info = p.getJointInfo(robot_id, joint_idx)
+                    joint_name = joint_info[1].decode("utf-8")
+                    if 'gjoint' in joint_name:
+                        value_deg = p.readUserDebugParameter(slider_id)
+                        joint_type = joint_info[2]
+                        if joint_type == p.JOINT_REVOLUTE:
+                            value = value_deg * 0.0174533  # Convert degrees to radians
+                        else:
+                            value = value_deg
+                        gjoint_values.append(value)
+                        gjoint_names.append(joint_name)
+                
+                # Calculate gripper status if gripper joints exist and gripper dict has open/close values
+                if gjoint_values and selected_robot in gd:
+                    if 'open' in gd[selected_robot] and 'close' in gd[selected_robot]:
+                        status, metric = check_gripper_status(
+                            gjoint_values, 
+                            gd[selected_robot]['close'], 
+                            gd[selected_robot]['open']
+                        )
+                        print(f"Gripper Status: {status} | Metric: {metric:.3f} | Values: {[round(v, 3) for v in gjoint_values]}")
+                    else:
+                        print(f"Gripper values: {[round(v, 3) for v in gjoint_values]} (no open/close reference - press 'o' and 'c' to set)")
+                
+                last_print_time = current_time
+            
             for joint_idx, slider_id in sliders:
                 value_deg = p.readUserDebugParameter(slider_id)
                 joint_info = p.getJointInfo(robot_id, joint_idx)
@@ -462,7 +553,8 @@ def main():
                     jointIndex=joint_idx,
                     controlMode=p.POSITION_CONTROL,
                     targetPosition=value,
-                    force=500
+                    force=force,
+                    maxVelocity=velocity
                 )
             time.sleep(0.01)
     except KeyboardInterrupt:

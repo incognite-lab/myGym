@@ -27,10 +27,10 @@ python3 myGym/unittest/test_robot_reachability.py
 python3 myGym/unittest/test_robot_reachability.py --robot kuka
 
 # Test with GUI visualization
-python3 myGym/unittest/test_robot_reachability.py --robot panda1 --gui
+python3 myGym/unittest/test_robot_reachability.py --robot panda --gui
 
 # Test with custom volume and step size
-python3 myGym/unittest/test_robot_reachability.py --robot ur5 --min 0.2 0.2 0.2 --max 0.8 0.8 0.8 --step 0.1
+python3 myGym/unittest/test_robot_reachability.py --robot ur3 --min 0.2 0.2 0.2 --max 0.8 0.8 0.8 --step 0.1
 
 # Test with orientation constraint (default: position-only IK)
 python3 myGym/unittest/test_robot_reachability.py --robot kuka --with-orientation --euler 0 0 1.57

@@ -43,7 +43,7 @@ class Robot:
                  use_fixed_base = True,
                  pybullet_client=None,
                  reward_type = None):
-        self.debug = True
+        self.debug = False
         self.p = pybullet_client
         self.name = robot
         self.robot_dict = get_robot_dict()
@@ -134,7 +134,7 @@ class Robot:
 
             self.robot_uid = self.p.loadURDF(
                 os.path.join(pkg_resources.files("myGym"), self.robot_path),
-                self.position, self.orientation, useFixedBase=self.use_fixed_base, flags=(self.p.URDF_USE_SELF_COLLISION))
+                self.position, self.orientation, useFixedBase=self.use_fixed_base, flags=(self.p.URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS))
         for jid in range(self.p.getNumJoints(self.robot_uid)):
                 self.p.changeDynamics(self.robot_uid, jid,  collisionMargin=0., contactProcessingThreshold=0.0, ccdSweptSphereRadius=0)
         # if 'jaco' in self.name: #@TODO jaco gripper has closed loop between finger and finger_tip that is not respected by the simulator
@@ -931,9 +931,9 @@ class Robot:
             metric = np.mean(np.clip(normalized, 0.0, 1.0))
         #print("Close vec:", close_vec, "Open vec:", open_vec, "Current vec:", current_vec)
         #print("Gripper metric:", metric)
-        if metric <= 0.1:
+        if metric <= 0.15:
             status = "close"
-        elif metric >= 0.9:
+        elif metric >= 0.85:
             status = "open"
         else:
             status = "neutral"
