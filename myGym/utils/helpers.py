@@ -57,7 +57,6 @@ def get_workspace_dict():
     
     return ws_dict
 
-
 def get_robot_dict():
     r_dict =   {
                              'g1': {'path': '/envs/robots/unitree/g1_mygym.urdf', 'position': np.array([-0.3, 0.0, 0.07]), 'orientation': [0.0, 0.0, 0.0], 'default_joint_ori': [0.33, -0.11, -0.16, 0.69, -1.42, -0.89, -0.17, -0.01, 0.19, 0.39, 0.72, 0.0, 0.0], 'ee_pos': [0.0, -0.2734, 0.3939], 'ee_ori': [-0.0075, -0.0165, 0.049], 'ee_quat_ori': [-0.0035, -0.0083, 0.0245, 0.9997], 'fixed': True, 'reachable': [-0.8, 0.3, -0.5, 0.2, -0.0, 0.8], 'reachable_back': [-0.8, 0.2, -0.4, 0.4, 0.4, 0.6], 'reachable_bottom': [-0.6, -0.0, -0.2, 0.2, 0.2, 0.4], 'reachable_front': [-0.6, -0.4, -0.4, 0.4, 0.2, 0.4], 'reachable_left': [-0.4, 0.4, -0.4, 0.4, -0.0, 0.6], 'reachable_right': [-0.4, 0.2, -0.4, 0.2, 0.2, 0.4], 'reachable_top': [-0.4, 0.4, -0.4, -0.0, -0.0, 0.4], 'volume': [[-0.8, -0.6, -0.0], [0.4, 0.2, 0.8]]},

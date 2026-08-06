@@ -1,0 +1,15 @@
+user guide commands:
+    user_guide/installation: working
+    user_guide/visualization: the command  python3 myGym/test.py fail because a file searched cant be find.
+    user_guide/basic_training: the command python3 myGym/train.py fail because dont find the file temp.json
+    user_guide/tutorial_parametric: the same error than the past one because use the same command changing the robot or the workspace, dont find the file temp.json
+    user_guide/tutorial_config: python train.py --config ./configs/train_example.json fails because that file dont exist.
+    user_guide/train_camera: i dont know how to create my own json file. to config the train.
+    user_guide/train_vae: the same fail than before i dont know howto config my own json file for the train config.
+    user_guide/train_with_distractors: 
+    user_guide/train_press: python train.py --config ./configs/train_press.json  fails because cant find the file whos searching for.
+    user_guide/train_switch: python train.py --config ./configs/train_switch.json fails because cant find the json file what is needed.
+    user_guide/train_turn: python train.py --config ./configs/train_turn.json  fails because cant find the json file what is needed.
+    user_guide/parallel_training: python train_parallel.py fails beacause dont find the train_parallel.py file.
+    user_guide/tensorboard: tensorboard --logdir ./trained_models/yourmodel a strange error happens.
+    user_guide/test_model: python3 myGym/test.py //congig path_to_the_copy_of_the_config_file/A.json unrecognized argument.                                                                     
