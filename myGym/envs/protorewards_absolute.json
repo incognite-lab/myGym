@@ -1,0 +1,90 @@
+{
+  "approach": {
+    "rot": false,
+    "gripper": "open",
+    "actual_state": ["additional_obs", "endeff_6D"],
+    "goal_state": ["actual_state"],
+    "armweight": 1,
+    "gripperweight": 1,
+    "absoluteweight": 0,
+    "relativeweight": 1,
+    "temporalweight": 0
+  },
+  "withdraw": {
+    "rot": false,
+    "gripper": "open",
+    "actual_state": ["additional_obs", "endeff_6D"],
+    "goal_state": ["additional_obs", "init_6D"],
+    "armweight": 1,
+    "gripperweight": 1,
+    "absoluteweight": 0,
+    "relativeweight": 1,
+    "temporalweight": 0
+  },
+  "grasp": {
+    "rot": false,
+    "gripper": "close",
+    "actual_state": ["additional_obs", "endeff_6D"],
+    "goal_state": ["actual_state"],
+    "armweight": 1,
+    "gripperweight": 1,
+    "absoluteweight": 0,
+    "relativeweight": 1,
+    "temporalweight": 0
+  },
+  "drop": {
+    "rot": false,
+    "gripper": "open",
+    "actual_state": ["additional_obs", "endeff_6D"],
+    "goal_state": ["actual_state"],
+    "armweight": 1,
+    "gripperweight": 1,
+    "absoluteweight": 0,
+    "relativeweight": 1,
+    "temporalweight": 0
+  },
+  "move": {
+    "rot": false,
+    "gripper": "close",
+    "actual_state": ["actual_state"],
+    "goal_state": ["goal_state"],
+    "armweight": 1,
+    "gripperweight": 1,
+    "absoluteweight": 0,
+    "relativeweight": 1,
+    "temporalweight": 0
+  },
+  "rotate": {
+    "rot": true,
+    "gripper": "close",
+    "actual_state": ["actual_state"],
+    "goal_state": ["goal_state"],
+    "armweight": 1,
+    "gripperweight": 1,
+    "absoluteweight": 0,
+    "relativeweight": 1,
+    "temporalweight": 0
+  },
+  "transform": {
+    "rot": true,
+    "gripper": "close",
+    "actual_state": ["actual_state"],
+    "goal_state": ["goal_state"],
+    "armweight": 1,
+    "gripperweight": 1,
+    "absoluteweight": 0,
+    "relativeweight": 1,
+    "temporalweight": 0
+  },
+  "follow": {
+    "rot": false,
+    "gripper": "close",
+    "actual_state": ["actual_state"],
+    "goal_state": ["goal_state"],
+    "armweight": 1,
+    "gripperweight": 1,
+    "absoluteweight": 0,
+    "relativeweight": 1,
+    "temporalweight": 0
+  }
+}

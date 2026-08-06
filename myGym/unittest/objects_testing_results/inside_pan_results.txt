@@ -1,0 +1,45 @@
+TEST INSIDE REPORT
+================================================================================
+Objects passed: 13 out of 21
+apple.urdf           on pan.urdf            : FAIL
+apple.urdf           in pan.urdf            : FAIL
+apple50.urdf         on pan.urdf            : FAIL
+apple50.urdf         in pan.urdf            : OK
+banana.urdf          on pan.urdf            : FAIL
+banana.urdf          in pan.urdf            : OK
+bottle.urdf          on pan.urdf            : FAIL
+bottle.urdf          in pan.urdf            : FAIL
+bowl.urdf            on pan.urdf            : FAIL
+bowl.urdf            in pan.urdf            : OK
+bowlycb.urdf         on pan.urdf            : FAIL
+bowlycb.urdf         in pan.urdf            : OK
+cracker_box.urdf     on pan.urdf            : FAIL
+cracker_box.urdf     in pan.urdf            : OK
+crackerbox.urdf      on pan.urdf            : FAIL
+crackerbox.urdf      in pan.urdf            : OK
+fork.urdf            on pan.urdf            : FAIL
+fork.urdf            in pan.urdf            : FAIL
+glass.urdf           on pan.urdf            : FAIL
+glass.urdf           in pan.urdf            : FAIL
+jug.urdf             on pan.urdf            : FAIL
+jug.urdf             in pan.urdf            : OK
+mug.urdf             on pan.urdf            : FAIL
+mug.urdf             in pan.urdf            : FAIL
+mugycb.urdf          on pan.urdf            : FAIL
+mugycb.urdf          in pan.urdf            : OK
+mustard.urdf         on pan.urdf            : FAIL
+mustard.urdf         in pan.urdf            : OK
+pan.urdf             on pan.urdf            : FAIL
+pan.urdf             in pan.urdf            : FAIL
+plate.urdf           on pan.urdf            : FAIL
+plate.urdf           in pan.urdf            : FAIL
+sharp_knife.urdf     on pan.urdf            : FAIL
+sharp_knife.urdf     in pan.urdf            : OK
+soup_can.urdf        on pan.urdf            : FAIL
+soup_can.urdf        in pan.urdf            : OK
+spatula.urdf         on pan.urdf            : OK
+spatula.urdf         in pan.urdf            : OK
+spoon.urdf           on pan.urdf            : FAIL
+spoon.urdf           in pan.urdf            : FAIL
+tuna_can.urdf        on pan.urdf            : FAIL
+tuna_can.urdf        in pan.urdf            : OK

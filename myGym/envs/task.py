@@ -32,6 +32,7 @@ class TaskModule():
         self.number_tasks = number_tasks
         self.current_task = 0
         self.subtask_over = False
+        self.current_subgoal = 1
         self.logdir = logdir
         self.env = env
         self.image = None
@@ -81,6 +82,7 @@ class TaskModule():
         self.last_distance = None
         self.init_distance = None
         self.subtask_over = False
+        self.current_subgoal = 1
         self.current_norm_distance = None
         self.vision_module.mask = {}
         self.vision_module.centroid = {}
@@ -221,9 +223,10 @@ class TaskModule():
         Returns:
             :return: (bool)
         """
-        if self.env.episode_steps == self.env.max_episode_steps:
+        if self.env.episode_steps >= self.env.max_episode_steps:
+            # Mark episode as failed/truncated and keep that state for the caller.
             self.end_episode_fail("Max amount of steps reached")
-        return False
+        return self.env.episode_failed
 
     def check_object_moved(self, object, threshold=0.3):
         """

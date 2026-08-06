@@ -24,15 +24,18 @@ class EnvObject:
         :param fixed: (bool) Whether the object should have fixed position and orientation
         :param pybullet_client: Which pybullet client the environment should refere to in case of parallel existence of multiple instances of this environment
     """
-    def __init__(self, urdf_path, position=[0, 0, 0],
-                 orientation=[0, 0, 0, 0], fixed=False,
-                 pybullet_client=None):
+    def __init__(self, urdf_path, obj_name=None,
+                 position=[0, 0, 0], orientation=[0, 0, 0, 0],
+                 fixed=False, pybullet_client=None):
         self.p = pybullet_client
         self.urdf_path = urdf_path
         self.init_position = position
         self.init_orientation = orientation
         self.fixed = fixed
-        self.name = os.path.splitext(os.path.basename(self.urdf_path))[0]
+        if obj_name:
+            self.name = obj_name
+        else:
+            self.name = os.path.splitext(os.path.basename(self.urdf_path))[0]
         self.virtual = True if "virtual" in self.name else False
         self.object_ldamping = 1
         self.object_adamping = 1

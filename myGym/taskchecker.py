@@ -82,7 +82,7 @@ def cli_select(entries: List[Entry]) -> Optional[Entry]:
     print("Discovered JSON configs:")
     for e in entries:
         print(f"[{e.idx}] {e.rel}  ({fmt_date(e.mtime)})")
-    print("Commands: <index>=run, o <index>=run with -ct oraculum, k <index>=run with -ct keyboard, s <index>=run with -ct slider, r <index>=run with -ct random, v <index>=view file, e <index>=edit file, c <index>=choose robot, q=quit.")
+    print("Commands: <index>=run, o <index>=run with -ct oraculum, k <index>=run with -ct keyboard, s <index>=run with -ct slider, r <index>=run with -ct random, v <index>=view file, e <index>=edit file, c <index>=choose robot (auto oraculum), q=quit.")
     while True:
         raw = input("Select: ").strip()
         lower = raw.lower()
@@ -180,7 +180,7 @@ def curses_select(entries: List[Entry], start_idx: int = 0) -> Optional[Entry]:
         while True:
             stdscr.clear()
             h, w = stdscr.getmaxyx()
-            stdscr.addstr(0, 0, f"Configs ({len(entries)}) - Enter: run  o: oraculum  k: keyboard  s: slider  r: random  v: view  e: edit  c: choose robot  q: quit")
+            stdscr.addstr(0, 0, f"Configs ({len(entries)}) - Enter: run  o: oraculum  k: keyboard  s: slider  r: random  v: view  e: edit  c: choose robot (auto oraculum)  q: quit")
             max_visible = h - 2
             start = 0
             if pos >= max_visible:
@@ -352,7 +352,7 @@ def main():
             if '-ct' not in extra_args and '--ct' not in extra_args:
                 extra_args += ['-ct', 'random']
         if selected.selected_robot:
-            if '-b' not in extra_args and '--b' not in extra_args:
+            if '-b' not in extra_args and '--robot' not in extra_args:
                 extra_args += ['-b', selected.selected_robot]
             if '-ct' not in extra_args and '--ct' not in extra_args:
                 extra_args += ['-ct', 'oraculum']

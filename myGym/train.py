@@ -72,6 +72,7 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "max_force": arg_dict["max_force"], "task_type": arg_dict["task_type"],
                      "action_repeat": arg_dict["action_repeat"],
                      "task_objects": arg_dict["task_objects"], "observation": arg_dict["observation"],
+                     "predicates": arg_dict.get("predicates", None),
                      "framework": "SB3",
                      "distractors": arg_dict["distractors"],
                      "num_networks": arg_dict.get("num_networks", 1),
@@ -84,7 +85,8 @@ def configure_env(arg_dict, model_logdir=None, for_train=True):
                      "natural_language": bool(arg_dict["natural_language"]),
                      "training": bool(for_train), "top_grasp": arg_dict["top_grasp"],
                      "max_ep_steps": arg_dict["max_episode_steps"],
-                     "gui_on": arg_dict["gui"]
+                     "gui_on": arg_dict["gui"],
+                     "protorewards": arg_dict.get("protorewards", "protorewards.json")
                      }
 
     if "network_switcher" in arg_dict.keys():
@@ -257,8 +259,8 @@ def get_parser():
                         help="Robot to train: kuka, panda, jaco ...")
     parser.add_argument("-bi", "--robot_init", nargs="*", help="Initial robot's end-effector position")
     parser.add_argument("-ba", "--robot_action", type=str, help="Robot's action control: step - end-effector relative position, absolute - end-effector absolute position, joints - joints' coordinates")
-    parser.add_argument("-mv", "--max_velocity", type=float, help="Maximum velocity of robotic arm")
-    parser.add_argument("-mf", "--max_force", type=float, help="Maximum force of robotic arm")
+    parser.add_argument("-mv", "--max_velocity", nargs="*", type=float, help="Maximum velocity of robotic arm (value or range)")
+    parser.add_argument("-mf", "--max_force", nargs="*", type=float, help="Maximum force of robotic arm (value or range)")
     parser.add_argument("-ar", "--action_repeat", type=int, help="Substeps of simulation without action from env")
     #Task
     parser.add_argument("-tt", "--task_type", type=str,  help="Type of task to learn: reach, push, throw, pick_and_place")
@@ -295,6 +297,8 @@ def get_parser():
     parser.add_argument("-yp", "--yolact_path", type=str, help="Path to a trained Yolact in 3dvu reward type")
     parser.add_argument("-yc", "--yolact_config", type=str, help="Path to saved config obj or name of an existing one in the data/Config script (e.g. 'yolact_base_config') or None for autodetection")
     parser.add_argument('-ptm', "--pretrained_model", type=str, help="Path to a model that you want to continue training")
+    parser.add_argument("--protorewards", type=str, default="relative.json",
+                        help="Protorewards JSON filename (or absolute path) loaded by Rewarder")
     #Language
     parser.add_argument("-nl", "--natural_language", type=str, default="",
                         help="If passed, instead of training the script will produce a natural language output "
@@ -317,6 +321,9 @@ def get_arguments(parser):
                     pass  # Keep string values as is
                 else:
                     arg_dict[key] = [float(arg_dict[key][i]) for i in range(len(arg_dict[key]))]
+            elif key in ["max_velocity", "max_force"]:
+                if isinstance(value, list):
+                    arg_dict[key] = [float(v) for v in value]
             elif type(value) is list and len(value) <= 1 and key != "task_objects":
                 arg_dict[key] = value[0]
     for key, value in vars(args).items():
@@ -339,6 +346,14 @@ def get_arguments(parser):
                             arg_dict[key] = [float(v) for v in value]
                         except (ValueError, TypeError):
                             arg_dict[key] = value  # Keep as is if conversion fails
+                elif key in ["max_velocity", "max_force"]:
+                    if isinstance(value, list):
+                        if len(value) == 1:
+                            arg_dict[key] = float(value[0])
+                        else:
+                            arg_dict[key] = [float(v) for v in value]
+                    else:
+                        arg_dict[key] = value
                 elif type(value) is list and len(value) <= 1:
                     arg_dict[key] = value[0]
                 else:
@@ -384,7 +399,12 @@ def automatic_argument_assignment(arg_dict):
     if task_type_str and isinstance(task_type_str, str):
         arg_dict["num_networks"] = len(task_type_str)
         arg_dict["reward"] = arg_dict["task_type"]
-        arg_dict["logdir"] = "./trained_models/"  + arg_dict["robot"] + "/" + arg_dict["task_type"]
+        adaptive = (
+            isinstance(arg_dict.get("max_velocity"), (list, tuple)) and len(arg_dict["max_velocity"]) >= 2 and
+            isinstance(arg_dict.get("max_force"), (list, tuple)) and len(arg_dict["max_force"]) >= 2
+        )
+        suffix = "_adaptive" if adaptive else ""
+        arg_dict["logdir"] = "./trained_models/"  + arg_dict["robot"] + "/" + arg_dict["task_type"] + suffix
         arg_dict["algo_steps"] = arg_dict["max_episode_steps"]
         print("Number of networks from task type is:", arg_dict["num_networks"])
         print("Reward type set to:", arg_dict["reward"])
@@ -422,8 +442,13 @@ def main():
     if not os.path.isabs(arg_dict["logdir"]):
         arg_dict["logdir"] = os.path.join("./", arg_dict["logdir"])
     os.makedirs(arg_dict["logdir"], exist_ok=True)
-    model_logdir_ori = os.path.join(arg_dict["logdir"], "_".join(
-        (arg_dict["robot_action"], arg_dict["algo"])))
+    protorewards_name = os.path.splitext(
+        os.path.basename(arg_dict.get("protorewards", "protorewards.json"))
+    )[0]
+    model_logdir_ori = os.path.join(
+        arg_dict["logdir"],
+        "_".join((arg_dict["robot_action"], arg_dict["algo"], protorewards_name)),
+    )
 
     model_logdir = model_logdir_ori
     add = 1

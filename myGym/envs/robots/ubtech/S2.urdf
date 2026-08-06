@@ -1098,12 +1098,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/left_thumb_1.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="left_thumb_1_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.01696 -0.02045 0.06635"/>
@@ -1127,12 +1129,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/left_thumb_2.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="left_thumb_2_joint" type="fixed">
     <origin rpy="1.5708 0 1.8361" xyz="0.010735 -0.0090002 -0.0065"/>
@@ -1156,12 +1160,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/left_thumb_3.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="left_thumb_3_joint" type="fixed">
     <origin rpy="0 0 0" xyz="-0.037617 0.041486 -0.0008"/>
@@ -1186,12 +1192,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/left_thumb_4.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="left_thumb_4_joint" type="fixed">
     <origin rpy="0 0 0" xyz="-0.014957 0.017012 -0.0012"/>
@@ -1216,12 +1224,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/left_index_1.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="left_index_1_joint" type="fixed">
     <origin rpy="1.6057 0 0" xyz="-0.00028533 -0.020275 0.13695"/>
@@ -1245,12 +1255,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/left_index_2.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="left_index_2_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.0080993 0.031095 0.001"/>
@@ -1275,12 +1287,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/left_middle_1.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="left_middle_1_joint" type="fixed">
     <origin rpy="1.5708 0 0" xyz="-0.00028533 -0.00095 0.1371"/>
@@ -1304,12 +1318,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/left_middle_2.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="left_middle_2_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.0080996 0.031095 0.001"/>
@@ -1334,12 +1350,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/left_ring_1.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="left_ring_1_joint" type="fixed">
     <origin rpy="1.5184 0 0" xyz="-0.00028533 0.018271 0.13628"/>
@@ -1363,12 +1381,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/left_ring_2.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="left_ring_2_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.0080989 0.031095 0.001"/>
@@ -1393,12 +1413,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/left_little_1.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="left_little_1_joint" type="fixed">
     <origin rpy="1.4661 0 0" xyz="-0.00028533 0.037422 0.13446"/>
@@ -1422,12 +1444,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/left_little_2.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="left_little_2_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.0080966 0.031096 0.001"/>
@@ -1479,12 +1503,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/right_thumb_1.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_thumb_1_gjoint" type="revolute">
     <origin rpy="0 0 0" xyz="0.01696 0.02045 0.06635"/>
@@ -1508,12 +1534,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/right_thumb_2.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_thumb_2_joint" type="fixed">
     <origin rpy="1.5708 0 1.3055" xyz="0.010735 0.0090002 -0.0065"/>
@@ -1537,12 +1565,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/right_thumb_3.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_thumb_3_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.037617 0.041486 -0.0008"/>
@@ -1567,12 +1597,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/right_thumb_4.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_thumb_4_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.014957 0.017012 -0.0012"/>
@@ -1597,12 +1629,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/right_index_1.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_index_1_gjoint" type="revolute">
     <origin rpy="1.5359 0 0" xyz="-0.000285 0.020275 0.136946"/>
@@ -1626,12 +1660,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/right_index_2.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_index_2_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.008099 0.031095 -0.001"/>
@@ -1656,12 +1692,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/right_middle_1.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_middle_1_gjoint" type="revolute">
     <origin rpy="1.5708 0 0" xyz="-0.000285 0.00295 0.1371"/>
@@ -1685,12 +1723,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/right_middle_2.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_middle_2_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.0081 0.031095 0.001"/>
@@ -1715,12 +1755,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/right_ring_1.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_ring_1_gjoint" type="revolute">
     <origin rpy="1.6232 0 0" xyz="-0.000285 -0.018271 0.136282"/>
@@ -1744,12 +1786,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/right_ring_2.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_ring_2_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.008099 0.031095 -0.001"/>
@@ -1774,12 +1818,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/right_little_1.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_little_1_gjoint" type="revolute">
     <origin rpy="1.6755 0 0" xyz="-0.000285 -0.037422 0.13446"/>
@@ -1803,12 +1849,14 @@
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
+    <!--
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://ubtech/meshes/right_little_2.STL"/>
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="right_little_2_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.008097 0.031096 -0.001"/>
@@ -1915,22 +1963,22 @@
   <joint name="endeffector_joint" type="fixed">
     	<parent link="gripper"/>
     	<child link="endeffector"/>
-    	<origin rpy="1.57 -1.57 -1.57" xyz="0.05 0.0 0.1"/>
+    	<origin rpy="1.57 -1.57 -1.57" xyz="0.1 0.0 0.1"/>
 	</joint>
 	<joint name="ee_z_axis_joint" type="fixed">
     	<parent link="gripper"/>
     	<child link="ee_z_axis"/>
-    	<origin rpy="0 1.57 0" xyz="0.05 0.0 0.1"/>
+    	<origin rpy="0 1.57 0" xyz="0.1 0.0 0.1"/>
 	</joint>
     	<joint name="ee_x_axis_joint" type="fixed">
     	<parent link="gripper"/>
     	<child link="ee_x_axis"/>
-    	<origin rpy="0 0 1.57" xyz="0.05 0.0 0.1"/>
+    	<origin rpy="0 0 1.57" xyz="0.1 0.0 0.1"/>
 	</joint>
     <joint name="ee_y_axis_joint" type="fixed">
     	<parent link="gripper"/>
     	<child link="ee_y_axis"/>
-    	<origin rpy="1.57 0 0" xyz="0.05 0.0 0.1"/>
+    	<origin rpy="1.57 0 0" xyz="0.1 0.0 0.1"/>
 	</joint>
 
 </robot>

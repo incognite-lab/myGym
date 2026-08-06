@@ -1,0 +1,45 @@
+TEST INSIDE plate REPORT
+================================================================================
+Objects passed: 14 out of 21
+apple.urdf           on plate.urdf          : FAIL
+apple.urdf           in plate.urdf          : OK
+apple50.urdf         on plate.urdf          : FAIL
+apple50.urdf         in plate.urdf          : OK
+banana.urdf          on plate.urdf          : FAIL
+banana.urdf          in plate.urdf          : OK
+bottle.urdf          on plate.urdf          : FAIL
+bottle.urdf          in plate.urdf          : FAIL
+bowl.urdf            on plate.urdf          : FAIL
+bowl.urdf            in plate.urdf          : OK
+bowlycb.urdf         on plate.urdf          : FAIL
+bowlycb.urdf         in plate.urdf          : OK
+cracker_box.urdf     on plate.urdf          : FAIL
+cracker_box.urdf     in plate.urdf          : OK
+crackerbox.urdf      on plate.urdf          : FAIL
+crackerbox.urdf      in plate.urdf          : OK
+fork.urdf            on plate.urdf          : FAIL
+fork.urdf            in plate.urdf          : OK
+glass.urdf           on plate.urdf          : FAIL
+glass.urdf           in plate.urdf          : FAIL
+jug.urdf             on plate.urdf          : FAIL
+jug.urdf             in plate.urdf          : FAIL
+mug.urdf             on plate.urdf          : FAIL
+mug.urdf             in plate.urdf          : FAIL
+mugycb.urdf          on plate.urdf          : FAIL
+mugycb.urdf          in plate.urdf          : OK
+mustard.urdf         on plate.urdf          : FAIL
+mustard.urdf         in plate.urdf          : FAIL
+pan.urdf             on plate.urdf          : FAIL
+pan.urdf             in plate.urdf          : OK
+plate.urdf           on plate.urdf          : FAIL
+plate.urdf           in plate.urdf          : OK
+sharp_knife.urdf     on plate.urdf          : FAIL
+sharp_knife.urdf     in plate.urdf          : OK
+soup_can.urdf        on plate.urdf          : FAIL
+soup_can.urdf        in plate.urdf          : FAIL
+spatula.urdf         on plate.urdf          : FAIL
+spatula.urdf         in plate.urdf          : OK
+spoon.urdf           on plate.urdf          : FAIL
+spoon.urdf           in plate.urdf          : FAIL
+tuna_can.urdf        on plate.urdf          : FAIL
+tuna_can.urdf        in plate.urdf          : OK

@@ -277,7 +277,7 @@ class MultiPPOSB3(OnPolicyAlgorithm):
     def approved(self):
         # based on current network, decide which model should be used
         if isinstance(self.env, (VecMonitor, DummyVecEnv, SubprocVecEnv)):
-            submodel_id = self.env.get_attr("reward")[0].current_network
+            submodel_id = [r.current_network for r in self.env.get_attr("reward")]
         else:
             submodel_id = self.env.unwrapped.reward.current_network
         return submodel_id
@@ -307,6 +307,9 @@ class MultiPPOSB3(OnPolicyAlgorithm):
         #Multiprocessing
         if isinstance(owner, list):
             owner = np.array(owner)
+            if isinstance(observation, np.ndarray) and observation.ndim == 1:
+                model = self.models[owner[0]]
+                return model.policy.predict(observation, state, episode_start, deterministic)
             actions = np.zeros((self.n_envs, self.action_space.shape[0]))
 
             for i in range(np.max(owner) + 1):
@@ -343,7 +346,8 @@ class MultiPPOSB3(OnPolicyAlgorithm):
             (used in recurrent policies)
         """
         owner = self.approved()
-        owner = owner[0]
+        if isinstance(owner, (list, tuple, np.ndarray)):
+            owner = owner[0]
         model = self.models[owner]
         action, state = model.policy.predict(observation, state, episode_start, deterministic)
         return action, state

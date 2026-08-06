@@ -261,11 +261,13 @@
                 <mesh filename="meshes/visual/finger.dae" />
             </geometry>
         </visual>
+        <!--
         <collision>
             <geometry>
                 <mesh filename="meshes/collision/finger.stl" />
             </geometry>
         </collision>
+        -->
     </link>
     <link name="panda_rightfinger"> <!--panda_rightfinger-->
         <visual>
@@ -275,12 +277,14 @@
                 <mesh filename="meshes/visual/finger.dae" />
             </geometry>
         </visual>
+        <!--
         <collision>
             <origin rpy="0 0 3.14159265359" xyz="0 0 0" />
             <geometry>
                 <mesh filename="meshes/collision/finger.stl" />
             </geometry>
         </collision>
+        -->
     </link>
     <joint name="panda_finger_gjoint1" type="prismatic">
         <parent link="gripper" />

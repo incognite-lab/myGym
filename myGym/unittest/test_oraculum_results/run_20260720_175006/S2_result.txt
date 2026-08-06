@@ -1,0 +1,245 @@
+SUMMARY
+================================================================================
+Robot: S2
+Total configs tested: 5
+Successful: 1
+Failed: 4
+Overall trials passed: 268/500
+
+SUCCESSFULLY TESTED CONFIGS (ORACULUM)
+================================================================================
+ 1. OK A_predicates.json (87/100 successful)
+
+FAILED CONFIGS
+================================================================================
+FAIL AGMDW_predicates.json (44/100 successful)
+  Failed subtask sequences:
+    Run 2: A: True, G: True, M: False, D: False, W: False
+    Run 3: A: True, G: False, M: False, D: False, W: False
+    Run 6: A: True, G: False, M: False, D: False, W: False
+    Run 8: A: True, G: False, M: False, D: False, W: False
+    Run 10: A: True, G: False, M: False, D: False, W: False
+    Run 11: A: True, G: False, M: False, D: False, W: False
+    Run 13: A: True, G: False, M: False, D: False, W: False
+    Run 14: A: True, G: True, M: True, D: False, W: False
+    Run 17: A: True, G: False, M: False, D: False, W: False
+    Run 18: A: True, G: True, M: False, D: False, W: False
+    Run 19: A: False, G: False, M: False, D: False, W: False
+    Run 20: A: False, G: False, M: False, D: False, W: False
+    Run 21: A: False, G: False, M: False, D: False, W: False
+    Run 23: A: True, G: False, M: False, D: False, W: False
+    Run 24: A: False, G: False, M: False, D: False, W: False
+    Run 28: A: True, G: False, M: False, D: False, W: False
+    Run 29: A: True, G: True, M: True, D: False, W: False
+    Run 30: A: True, G: False, M: False, D: False, W: False
+    Run 31: A: False, G: False, M: False, D: False, W: False
+    Run 32: A: True, G: False, M: False, D: False, W: False
+    Run 33: A: True, G: False, M: False, D: False, W: False
+    Run 36: A: True, G: False, M: False, D: False, W: False
+    Run 39: A: True, G: False, M: False, D: False, W: False
+    Run 40: A: True, G: False, M: False, D: False, W: False
+    Run 41: A: True, G: False, M: False, D: False, W: False
+    Run 42: A: True, G: True, M: True, D: False, W: False
+    Run 43: A: True, G: True, M: True, D: False, W: False
+    Run 44: A: True, G: False, M: False, D: False, W: False
+    Run 45: A: True, G: False, M: False, D: False, W: False
+    Run 46: A: True, G: False, M: False, D: False, W: False
+    Run 47: A: True, G: True, M: True, D: False, W: False
+    Run 48: A: True, G: False, M: False, D: False, W: False
+    Run 51: A: True, G: False, M: False, D: False, W: False
+    Run 52: A: True, G: False, M: False, D: False, W: False
+    Run 54: A: True, G: False, M: False, D: False, W: False
+    Run 55: A: True, G: False, M: False, D: False, W: False
+    Run 60: A: False, G: False, M: False, D: False, W: False
+    Run 65: A: False, G: False, M: False, D: False, W: False
+    Run 66: A: True, G: True, M: True, D: True, W: False
+    Run 67: A: True, G: True, M: False, D: False, W: False
+    Run 70: A: True, G: False, M: False, D: False, W: False
+    Run 72: A: True, G: True, M: False, D: False, W: False
+    Run 73: A: True, G: False, M: False, D: False, W: False
+    Run 76: A: True, G: False, M: False, D: False, W: False
+    Run 77: A: True, G: False, M: False, D: False, W: False
+    Run 80: A: True, G: True, M: True, D: False, W: False
+    Run 84: A: True, G: False, M: False, D: False, W: False
+    Run 85: A: True, G: True, M: False, D: False, W: False
+    Run 87: A: True, G: False, M: False, D: False, W: False
+    Run 89: A: True, G: False, M: False, D: False, W: False
+    Run 90: A: False, G: False, M: False, D: False, W: False
+    Run 91: A: True, G: False, M: False, D: False, W: False
+    Run 92: A: True, G: False, M: False, D: False, W: False
+    Run 94: A: True, G: True, M: False, D: False, W: False
+    Run 95: A: True, G: True, M: True, D: True, W: False
+    Run 100: A: True, G: True, M: False, D: False, W: False
+  Error: Only 44/100 trials succeeded (minimum required: 85)
+FAIL AGMD_predicates.json (39/100 successful)
+  Failed subtask sequences:
+    Run 1: A: True, G: False, M: False, D: False
+    Run 3: A: True, G: True, M: True, D: False
+    Run 4: A: True, G: True, M: True, D: False
+    Run 5: A: True, G: True, M: True, D: False
+    Run 7: A: True, G: False, M: False, D: False
+    Run 8: A: True, G: False, M: False, D: False
+    Run 9: A: True, G: True, M: False, D: False
+    Run 11: A: True, G: False, M: False, D: False
+    Run 13: A: True, G: False, M: False, D: False
+    Run 16: A: True, G: False, M: False, D: False
+    Run 18: A: True, G: False, M: False, D: False
+    Run 22: A: True, G: False, M: False, D: False
+    Run 23: A: True, G: False, M: False, D: False
+    Run 24: A: True, G: False, M: False, D: False
+    Run 25: A: True, G: False, M: False, D: False
+    Run 26: A: False, G: False, M: False, D: False
+    Run 27: A: False, G: False, M: False, D: False
+    Run 28: A: True, G: False, M: False, D: False
+    Run 29: A: False, G: False, M: False, D: False
+    Run 30: A: False, G: False, M: False, D: False
+    Run 32: A: True, G: False, M: False, D: False
+    Run 34: A: False, G: False, M: False, D: False
+    Run 36: A: False, G: False, M: False, D: False
+    Run 37: A: True, G: False, M: False, D: False
+    Run 39: A: True, G: True, M: False, D: False
+    Run 41: A: True, G: False, M: False, D: False
+    Run 43: A: False, G: False, M: False, D: False
+    Run 47: A: True, G: False, M: False, D: False
+    Run 49: A: False, G: False, M: False, D: False
+    Run 50: A: True, G: False, M: False, D: False
+    Run 51: A: True, G: False, M: False, D: False
+    Run 54: A: False, G: False, M: False, D: False
+    Run 56: A: False, G: False, M: False, D: False
+    Run 59: A: False, G: False, M: False, D: False
+    Run 60: A: True, G: False, M: False, D: False
+    Run 61: A: True, G: False, M: False, D: False
+    Run 62: A: True, G: True, M: True, D: False
+    Run 64: A: False, G: False, M: False, D: False
+    Run 65: A: True, G: False, M: False, D: False
+    Run 66: A: True, G: False, M: False, D: False
+    Run 67: A: True, G: False, M: False, D: False
+    Run 69: A: True, G: False, M: False, D: False
+    Run 70: A: True, G: True, M: True, D: False
+    Run 72: A: True, G: True, M: False, D: False
+    Run 74: A: False, G: False, M: False, D: False
+    Run 75: A: True, G: True, M: False, D: False
+    Run 76: A: False, G: False, M: False, D: False
+    Run 77: A: True, G: False, M: False, D: False
+    Run 83: A: False, G: False, M: False, D: False
+    Run 85: A: True, G: False, M: False, D: False
+    Run 87: A: True, G: False, M: False, D: False
+    Run 89: A: True, G: False, M: False, D: False
+    Run 90: A: True, G: False, M: False, D: False
+    Run 92: A: True, G: False, M: False, D: False
+    Run 93: A: False, G: False, M: False, D: False
+    Run 94: A: True, G: True, M: True, D: False
+    Run 95: A: True, G: True, M: False, D: False
+    Run 97: A: True, G: False, M: False, D: False
+    Run 98: A: False, G: False, M: False, D: False
+    Run 99: A: True, G: False, M: False, D: False
+    Run 100: A: True, G: True, M: False, D: False
+  Error: Only 39/100 trials succeeded (minimum required: 85)
+FAIL AGM_predicates.json (40/100 successful)
+  Failed subtask sequences:
+    Run 1: A: False, G: False, M: False
+    Run 2: A: True, G: False, M: False
+    Run 4: A: False, G: False, M: False
+    Run 5: A: True, G: False, M: False
+    Run 6: A: True, G: False, M: False
+    Run 7: A: True, G: False, M: False
+    Run 10: A: True, G: False, M: False
+    Run 12: A: True, G: False, M: False
+    Run 13: A: True, G: True, M: False
+    Run 15: A: True, G: True, M: False
+    Run 16: A: True, G: False, M: False
+    Run 17: A: True, G: True, M: False
+    Run 18: A: True, G: False, M: False
+    Run 19: A: True, G: False, M: False
+    Run 20: A: True, G: False, M: False
+    Run 21: A: True, G: True, M: False
+    Run 22: A: False, G: False, M: False
+    Run 23: A: True, G: False, M: False
+    Run 25: A: True, G: False, M: False
+    Run 27: A: True, G: False, M: False
+    Run 28: A: False, G: False, M: False
+    Run 29: A: True, G: False, M: False
+    Run 34: A: True, G: False, M: False
+    Run 36: A: False, G: False, M: False
+    Run 37: A: True, G: False, M: False
+    Run 40: A: False, G: False, M: False
+    Run 43: A: True, G: False, M: False
+    Run 48: A: True, G: False, M: False
+    Run 49: A: True, G: False, M: False
+    Run 50: A: True, G: False, M: False
+    Run 51: A: True, G: False, M: False
+    Run 53: A: True, G: True, M: False
+    Run 54: A: True, G: False, M: False
+    Run 55: A: True, G: True, M: False
+    Run 56: A: True, G: False, M: False
+    Run 57: A: True, G: True, M: False
+    Run 60: A: False, G: False, M: False
+    Run 64: A: True, G: False, M: False
+    Run 66: A: True, G: True, M: False
+    Run 69: A: True, G: False, M: False
+    Run 70: A: True, G: False, M: False
+    Run 71: A: True, G: False, M: False
+    Run 73: A: False, G: False, M: False
+    Run 74: A: True, G: False, M: False
+    Run 75: A: True, G: False, M: False
+    Run 80: A: False, G: False, M: False
+    Run 81: A: True, G: False, M: False
+    Run 82: A: False, G: False, M: False
+    Run 88: A: False, G: False, M: False
+    Run 89: A: True, G: False, M: False
+    Run 91: A: True, G: False, M: False
+    Run 92: A: True, G: False, M: False
+    Run 93: A: True, G: True, M: False
+    Run 94: A: True, G: True, M: False
+    Run 95: A: True, G: False, M: False
+    Run 96: A: False, G: False, M: False
+    Run 97: A: False, G: False, M: False
+    Run 98: A: False, G: False, M: False
+    Run 99: A: True, G: False, M: False
+    Run 100: A: False, G: False, M: False
+  Error: Only 40/100 trials succeeded (minimum required: 85)
+FAIL AG_predicates.json (58/100 successful)
+  Failed subtask sequences:
+    Run 3: A: True, G: False
+    Run 10: A: False, G: False
+    Run 11: A: True, G: False
+    Run 13: A: True, G: False
+    Run 18: A: True, G: False
+    Run 19: A: True, G: False
+    Run 20: A: True, G: False
+    Run 22: A: True, G: False
+    Run 24: A: True, G: False
+    Run 25: A: True, G: False
+    Run 29: A: False, G: False
+    Run 30: A: True, G: False
+    Run 32: A: True, G: False
+    Run 33: A: True, G: False
+    Run 34: A: True, G: False
+    Run 38: A: True, G: False
+    Run 41: A: True, G: False
+    Run 42: A: True, G: False
+    Run 43: A: True, G: False
+    Run 45: A: True, G: False
+    Run 47: A: True, G: False
+    Run 49: A: False, G: False
+    Run 50: A: True, G: False
+    Run 51: A: True, G: False
+    Run 54: A: True, G: False
+    Run 55: A: True, G: False
+    Run 60: A: True, G: False
+    Run 61: A: False, G: False
+    Run 62: A: False, G: False
+    Run 64: A: True, G: False
+    Run 65: A: True, G: False
+    Run 66: A: True, G: False
+    Run 68: A: True, G: False
+    Run 70: A: False, G: False
+    Run 76: A: True, G: False
+    Run 79: A: True, G: False
+    Run 84: A: False, G: False
+    Run 86: A: True, G: False
+    Run 94: A: True, G: False
+    Run 95: A: True, G: False
+    Run 98: A: False, G: False
+    Run 100: A: True, G: False
+  Error: Only 58/100 trials succeeded (minimum required: 85)

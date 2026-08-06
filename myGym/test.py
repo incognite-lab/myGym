@@ -15,7 +15,56 @@ import pandas as pd
 
 from myGym import oraculum
 from myGym.train import get_parser, get_arguments, configure_implemented_combos, configure_env, automatic_argument_assignment
-from myGym.utils.helpers import get_workspace_dict, get_gripper_dict
+from myGym.utils.helpers import get_workspace_dict, get_gripper_dict, get_robot_dict
+from myGym.envs.predicates import GoalPredicateResolver, SubgoalPredicateResolver
+
+
+def color_bool(val: bool) -> str:
+    GREEN = "\033[92m"
+    RED = "\033[91m"
+    RESET = "\033[0m"
+    return f"{GREEN}True{RESET}" if val else f"{RED}False{RESET}"
+
+
+def check_current_subgoal_predicates(rewarder, env) -> tuple[bool, list[str]]:
+    try:
+        if rewarder is None:
+            return False, []
+        unwrapped_env = env.unwrapped if hasattr(env, "unwrapped") else (env.env.unwrapped if hasattr(env, "env") else env)
+        if not hasattr(unwrapped_env, "_get_current_predicates"):
+            return False, []
+        current_preds = unwrapped_env._get_current_predicates()
+        params = getattr(rewarder, "params", {}) or {}
+        grip_type = params.get("grip_type", "any")
+
+        task = getattr(rewarder, "task", None)
+        current_subgoal = getattr(task, "current_subgoal", 0) if task is not None else 0
+        num_networks = getattr(rewarder, "num_networks", 1)
+        owner = getattr(rewarder, "owner", 0)
+
+        if owner < num_networks - 1:
+            resolver = SubgoalPredicateResolver(current_subgoal)
+        else:
+            resolver = GoalPredicateResolver()
+
+        is_passed = resolver.check(
+            placed_objects=unwrapped_env.env_objects,
+            env=unwrapped_env,
+            predicates=current_preds,
+            grip_type=grip_type,
+        )
+        failed_preds = resolver.get_failed_predicates(
+            placed_objects=unwrapped_env.env_objects,
+            env=unwrapped_env,
+            predicates=current_preds,
+            grip_type=grip_type,
+        ) if not is_passed else []
+
+        return is_passed, failed_preds
+    except Exception:
+        return False, []
+
+
 
 
 clear = lambda: os.system('clear')
@@ -24,23 +73,38 @@ AVAILABLE_SIMULATION_ENGINES = ["mujoco", "pybullet"]
 AVAILABLE_TRAINING_FRAMEWORKS = ["tensorflow", "pytorch"]
 
 def visualize_sampling_area(arg_dict: dict) -> None:
-    task_object = arg_dict["task_objects"][0]
-    goal_area = task_object["goal"]["sampling_area"]
+    robot_name = arg_dict.get("robot", "")
+    if isinstance(robot_name, list):
+        robot_name = robot_name[0]
 
-    # Calculate the half-extents (rx, ry, rz)
-    rx = (goal_area[0] - goal_area[1]) / 2
-    ry = (goal_area[2] - goal_area[3]) / 2
-    rz = (goal_area[4] - goal_area[5]) / 2
+    r_dict = get_robot_dict()
+    robot_info = r_dict.get(robot_name, {})
+    goal_area = robot_info.get("reachable", None)
+
+    if goal_area is None:
+        if "task_objects" in arg_dict and len(arg_dict["task_objects"]) > 0:
+            goal_area = arg_dict["task_objects"][0]["goal"]["sampling_area"]
+        else:
+            goal_area = [0.2, 0.6, -0.4, 0.4, -0.07, 0.4]
+
+    # Calculate the half-extents (rx, ry, rz) and center position
+    rx = abs(goal_area[1] - goal_area[0]) / 2.0
+    ry = abs(goal_area[3] - goal_area[2]) / 2.0
+    rz = abs(goal_area[5] - goal_area[4]) / 2.0
+
+    center_x = (goal_area[0] + goal_area[1]) / 2.0
+    center_y = (goal_area[2] + goal_area[3]) / 2.0
+    center_z = (goal_area[4] + goal_area[5]) / 2.0
 
     # Create a visual shape and multi-body for the sampling area
-    visual = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[rx, ry, rz], rgbaColor=[1, 0, 0, .2])
+    visual = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[rx, ry, rz], rgbaColor=[0, 0, 1, .1])
     collision = -1
 
     p.createMultiBody(
         baseVisualShapeIndex=visual,
         baseCollisionShapeIndex=collision,
         baseMass=0,
-        basePosition=[goal_area[0] - rx, goal_area[2] - ry, goal_area[4] - rz],
+        basePosition=[center_x, center_y, center_z],
     )
 
 
@@ -159,7 +223,7 @@ def test_env(env: object, arg_dict: dict) -> None:
     CAMERA_POS = ws_dict.get(workspace_name, {}).get("rendercamera", [1.2, 0, -30, [0.0, 0.5, 0.05]])
     
     obs, info = env.reset()
-    results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Success"])
+    results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Subtasks", "Success"])
     current_result = None
     env.render()
     global done
@@ -263,13 +327,20 @@ def test_env(env: object, arg_dict: dict) -> None:
                 positions = [info['o']['actual_state'],  None,
                               info['o']['goal_state']]
             else:
-                positions = [info['o']["additional_obs"]["endeff_xyz"],
-                             info['o']['actual_state'],
+                positions = [info['o']['actual_state'], None,
                              info['o']['goal_state']]
             current_result = [arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"],
                             np.round(np.array(positions[0]), 2) if positions[0] is not None else None,
                             np.round(np.array(positions[1]), 2) if positions[1] is not None else None,
                             np.round(np.array(positions[2]), 2) if positions[2] is not None else None]
+            # Prepare subtask tracking: one flag per char in task_type (e.g. 'AGM' -> [A,G,M])
+            task_type_str = str(arg_dict.get("task_type", ""))
+            subtask_solved_flags = [False] * len(task_type_str)
+            # track the maximum network owner index seen during the episode
+            rewarder = getattr(env.env.unwrapped, "reward", None)
+            subtask_max_owner = getattr(rewarder, "owner", -1) if rewarder is not None else -1
+            prev_owner = None
+
         for t in range(arg_dict["max_episode_steps"]):
             if arg_dict["control"] == "slider":
                 action = []
@@ -317,15 +388,43 @@ def test_env(env: object, arg_dict: dict) -> None:
             #print("observation shape:", len(obs))
 
             # Print task progress from Rewarder during oraculum testing
-            rewarder = env.env.unwrapped.reward
-            if hasattr(rewarder, 'last_result'):
+            rewarder = getattr(env.unwrapped if hasattr(env, "unwrapped") else (env.env.unwrapped if hasattr(env, "env") else env), "reward", None)
+            arm_solved = False
+            gripper_solved = False
+            predicates_solved = False
+            failed_predicates = []
+            if rewarder is not None and hasattr(rewarder, 'last_result'):
                 result = rewarder.last_result
+                arm_solved = bool(result.get('arm_solved', False))
+                gripper_solved = bool(result.get('gripper_solved', False))
+                predicates_solved, failed_predicates = check_current_subgoal_predicates(rewarder, env)
                 subgoal = rewarder.network_names[rewarder.owner]
                 print(f"Subgoal: {rewarder.network_name} ({rewarder.owner+1}/{rewarder.num_networks}) | "
                         f"Dist: {result['absolute_distance']:.4f} | "
                         f"Arm: {result['arm_progress']:.1f}% (solved={result['arm_solved']}) | "
                         f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
+                        f"Predicates: {predicates_solved} | "
                         f"Reward: {reward:.4f}", end ="\r", flush=True)
+
+            # update subtask tracking (if results_report enabled)
+            try:
+                owner = getattr(rewarder, "owner", None)
+                if owner is not None:
+                    subtask_max_owner = max(subtask_max_owner, owner)
+                    last = getattr(rewarder, "last_result", None)
+                    # mark subtask solved only if BOTH arm and gripper are solved for this owner
+                    if last:
+                        arm_solved_sub = bool(last.get("arm_solved", False))
+                        gripper_solved_sub = bool(last.get("gripper_solved", False))
+                        if arm_solved_sub and gripper_solved_sub:
+                            completed_index = owner
+                            if prev_owner is not None and owner > prev_owner:
+                                completed_index = owner - 1
+                            if 0 <= completed_index < len(subtask_solved_flags):
+                                subtask_solved_flags[completed_index] = True
+                    prev_owner = owner
+            except Exception:
+                pass
 
             n_p, last_call_time = n_pressed(last_call_time)
             if n_p:  # If key 'n' is pressed, switch to next task - useful if robot gets stuck
@@ -333,6 +432,29 @@ def test_env(env: object, arg_dict: dict) -> None:
                 done = True
 
             if arg_dict["results_report"] and done:
+                # Build subtasks status string like "A: True, G: False, M: True"
+                subtasks_str = ""
+                if 'subtask_solved_flags' in locals():
+                    task_chars = list(task_type_str)
+                    pairs = []
+                    for i, ch in enumerate(task_chars):
+                        status = False
+                        # consider solved if we observed owner advance past this index or flagged solved
+                        if i < len(subtask_solved_flags):
+                            status = subtask_solved_flags[i] or (subtask_max_owner > i)
+                        # the last subtask is the overall goal: the rewarder's distance
+                        # threshold alone ("arm_solved"/"gripper_solved") only triggers a
+                        # goal predicate check, it doesn't guarantee the goal predicates
+                        # actually held, so require the env's own verdict ("terminated")
+                        if i == len(task_chars) - 1:
+                            status = status and terminated
+                        pairs.append(f"{ch}: {str(bool(status))}")
+                    subtasks_str = ", ".join(pairs)
+                else:
+                    subtasks_str = None
+
+                current_result.append(subtasks_str)
+
                 if terminated:
                     current_result.append(True)
                 elif truncated:
@@ -383,7 +505,17 @@ def test_env(env: object, arg_dict: dict) -> None:
                 record_video(images, arg_dict, env, video_path, finalize=False)
 
             if done:
-                print("Episode finished after {} timesteps".format(t + 1))
+                res_str = "SUCCESS" if terminated else "FAILED"
+                res_color = "\033[92m" if terminated else "\033[91m"
+                stage_name = getattr(rewarder, "network_name", f"Stage {getattr(rewarder, 'owner', 0)+1}") if rewarder else "Unknown"
+                owner_idx = getattr(rewarder, "owner", 0) + 1 if rewarder else 1
+                num_nets = getattr(rewarder, "num_networks", 1) if rewarder else 1
+                failed_str = f" | Failed Predicates: {', '.join(failed_predicates)}" if (not predicates_solved and failed_predicates) else ""
+                print(f"\033[2K\rEpisode {e+1}/{eval_episodes} Finished [{res_color}{res_str}\033[0m] after {t+1} steps | "
+                      f"Last Stage: {stage_name} ({owner_idx}/{num_nets}) | "
+                      f"Arm: {color_bool(arm_solved)} | "
+                      f"Gripper: {color_bool(gripper_solved)} | "
+                      f"Predicates: {color_bool(predicates_solved)}{failed_str}")
                 break
     if arg_dict["results_report"]:
         # results = results.round(2)
@@ -516,6 +648,7 @@ def test_model(
             err = "invalid model_path argument"
         raise Exception(err)
 
+    results = pd.DataFrame(columns = ["Task type", "Workspace", "Robot", "Gripper init", "Object init", "Object goal", "Subtasks", "Success"])
     images = []  # Empty list for GIF images
     video_path = None
     success_episodes_num = 0
@@ -531,23 +664,99 @@ def test_model(
         is_successful = 0
         distance_error = 0
 
-        while not done:
+        # Store results if selected:
+        if arg_dict.get("results_report"):
+            if len(arg_dict["task_type"]) <= 2:  # A or AG task
+                positions = [info['o']['actual_state'], None, info['o']['goal_state']]
+            else:
+                positions = [info['o']['actual_state'], None, info['o']['goal_state']]
+            current_result = [arg_dict["task_type"], arg_dict["workspace"], arg_dict["robot"],
+                            np.round(np.array(positions[0]), 2) if positions[0] is not None else None,
+                            np.round(np.array(positions[1]), 2) if positions[1] is not None else None,
+                            np.round(np.array(positions[2]), 2) if positions[2] is not None else None]
+            # Prepare subtask tracking: one flag per char in task_type (e.g. 'AGM' -> [A,G,M])
+            task_type_str = str(arg_dict.get("task_type", ""))
+            subtask_solved_flags = [False] * len(task_type_str)
+            # track the maximum network owner index seen during the episode
+            rewarder = getattr(env.env.unwrapped, "reward", None)
+            subtask_max_owner = getattr(rewarder, "owner", -1) if rewarder is not None else -1
+            prev_owner = None
+
+        for t in range(arg_dict["max_episode_steps"]):
             steps_sum += 1
             action, _state = model.predict(obs, deterministic=deterministic)
             obs, reward, terminated, truncated, info = env.step(action)
-            rewarder = env.env.unwrapped.reward
-            if hasattr(rewarder, 'last_result'):
+            rewarder = getattr(env.unwrapped if hasattr(env, "unwrapped") else (env.env.unwrapped if hasattr(env, "env") else env), "reward", None)
+            arm_solved = False
+            gripper_solved = False
+            predicates_solved = False
+            failed_predicates = []
+            if rewarder is not None and hasattr(rewarder, 'last_result'):
                 result = rewarder.last_result
+                arm_solved = bool(result.get('arm_solved', False))
+                gripper_solved = bool(result.get('gripper_solved', False))
+                predicates_solved, failed_predicates = check_current_subgoal_predicates(rewarder, env)
                 subgoal = rewarder.network_names[rewarder.owner]
                 print(f"Subgoal: {rewarder.network_name} ({rewarder.owner+1}/{rewarder.num_networks}) | "
                         f"Dist: {result['absolute_distance']:.4f} | "
                         f"Arm: {result['arm_progress']:.1f}% (solved={result['arm_solved']}) | "
-                        f"Gripper: {result['gripper_distance']:.4f}, {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
+                        f"Gripper: {result['gripper_progress']:.1f}% (solved={result['gripper_solved']}) | "
+                        f"Predicates: {predicates_solved} | "
                         f"Reward: {reward:.4f}", end ="\r", flush=True)
-                
+
+            # update subtask tracking (if results_report enabled)
+            try:
+                owner = getattr(rewarder, "owner", None)
+                if owner is not None:
+                    subtask_max_owner = max(subtask_max_owner, owner)
+                    last = getattr(rewarder, "last_result", None)
+                    # mark subtask solved only if BOTH arm and gripper are solved for this owner
+                    if last:
+                        arm_solved_sub = bool(last.get("arm_solved", False))
+                        gripper_solved_sub = bool(last.get("gripper_solved", False))
+                        if arm_solved_sub and gripper_solved_sub:
+                            completed_index = owner
+                            if prev_owner is not None and owner > prev_owner:
+                                completed_index = owner - 1
+                            if 'subtask_solved_flags' in locals() and 0 <= completed_index < len(subtask_solved_flags):
+                                subtask_solved_flags[completed_index] = True
+                    prev_owner = owner
+            except Exception:
+                pass
+
             done = terminated or truncated
             is_successful = not info['f']
             distance_error = info['d']
+
+            if arg_dict.get("results_report") and done:
+                # Build subtasks status string like "A: True, G: False, M: True"
+                subtasks_str = ""
+                if 'subtask_solved_flags' in locals():
+                    task_chars = list(task_type_str)
+                    pairs = []
+                    for i, ch in enumerate(task_chars):
+                        status = False
+                        # consider solved if we observed owner advance past this index or flagged solved
+                        if i < len(subtask_solved_flags):
+                            status = subtask_solved_flags[i] or (subtask_max_owner > i)
+                        # the last subtask is the overall goal: require terminated
+                        if i == len(task_chars) - 1:
+                            status = status and terminated
+                        pairs.append(f"{ch}: {str(bool(status))}")
+                    subtasks_str = ", ".join(pairs)
+                else:
+                    subtasks_str = None
+
+                current_result.append(subtasks_str)
+
+                if terminated:
+                    current_result.append(True)
+                elif truncated:
+                    current_result.append(False)
+                else:
+                    current_result.append(False)
+                results.loc[len(results)] = current_result
+
             if arg_dict["vinfo"]:
                 visualize_infotext(action, env, info)
 
@@ -558,6 +767,20 @@ def test_model(
                     elif arg_dict["record"] == 2:
                         video_path = make_path(arg_dict, ".webm", True)
                 record_video(images, arg_dict, env, video_path, finalize=False)
+
+            if done:
+                res_str = "SUCCESS" if terminated else "FAILED"
+                res_color = "\033[92m" if terminated else "\033[91m"
+                stage_name = getattr(rewarder, "network_name", f"Stage {getattr(rewarder, 'owner', 0)+1}") if rewarder else "Unknown"
+                owner_idx = getattr(rewarder, "owner", 0) + 1 if rewarder else 1
+                num_nets = getattr(rewarder, "num_networks", 1) if rewarder else 1
+                failed_str = f" | Failed Predicates: {', '.join(failed_predicates)}" if (not predicates_solved and failed_predicates) else ""
+                print(f"\033[2K\rEpisode {e+1}/{arg_dict['eval_episodes']} Finished [{res_color}{res_str}\033[0m] after {t+1} steps | "
+                      f"Last Stage: {stage_name} ({owner_idx}/{num_nets}) | "
+                      f"Arm: {color_bool(arm_solved)} | "
+                      f"Gripper: {color_bool(gripper_solved)} | "
+                      f"Predicates: {color_bool(predicates_solved)}{failed_str}")
+                break
 
         success_episodes_num += is_successful
         distance_error_sum += distance_error
@@ -571,6 +794,19 @@ def test_model(
     print("Mean distance error is {:.2f}%".format(mean_distance_error * 100))
     print("Mean number of steps {}".format(mean_steps_num))
     print("#------------------------------------#")
+
+    if arg_dict.get("results_report"):
+        i = 1
+        print(results.dtypes)
+        print(results)
+        print(type(results))
+        os.makedirs("./evaluation_results", exist_ok=True)
+        while True:
+            filename = f"./evaluation_results/results{i}.csv"
+            if not(os.path.exists(filename)):
+                break
+            i += 1
+        results.to_csv(filename, index=False)
 
     file = open(os.path.join(model_logdir, "train_" + model_name + ".txt"), 'a')
     file.write("\n")
@@ -606,7 +842,7 @@ def main() -> None:
     parser.add_argument("-vt", "--vtrajectory", action="store_true", help="Visualize gripper trajectory.")
     parser.add_argument("-vn", "--vinfo", action="store_true", help="Visualize info. Valid arguments: True, False")
     parser.add_argument("-ns", "--network_switcher", default="gt", help="How does a robot switch to next network (gt or keyboard)")
-    parser.add_argument("-rr", "--results_report", default = False, help="Used only with oraculum - shows report of task feasibility at the end.")
+    parser.add_argument("-rr", "--results_report", default = False, help="Shows report of task feasibility and subtask breakdown at the end.")
     parser.add_argument("-tp", "--top_grasp",  default = False, help="Use top grasp when reaching objects with oraculum.")
     # parser.add_argument("-nl", "--natural_language", default=False, help="NL Valid arguments: True, False")
     arg_dict, commands = get_arguments(parser)
@@ -626,9 +862,9 @@ def main() -> None:
         print(f"Invalid simulation engine. Valid arguments: --engine {AVAILABLE_SIMULATION_ENGINES}.")
         return
     
-    # Check if results_report is used with oraculum control
-    if arg_dict["results_report"] and arg_dict.get("control") != "oraculum":
-        print("Results report cannot be used without oraculum.")
+    # Check if results_report is used with oraculum control or pretrained model evaluation
+    if arg_dict["results_report"] and arg_dict.get("control") != "oraculum" and arg_dict.get("pretrained_model") is None:
+        print("Results report can only be used with oraculum control or pretrained model evaluation.")
         arg_dict["results_report"] = False
     
     # Automatically adjust robot_action when oraculum control is selected
@@ -648,7 +884,7 @@ def main() -> None:
     
     if arg_dict.get("pretrained_model") is None:
         print_init_info(arg_dict)
-        arg_dict["gui"] = 1
+        #arg_dict["gui"] = 1
         arg_dict = automatic_argument_assignment(arg_dict)
         #arg_dict["robot_action"] = "absolute_gripper"
         env = configure_env(arg_dict, model_logdir=None, for_train=0)

@@ -7,9 +7,15 @@ can reach each point within a threshold distance of 0.05 (L-norm).
 """
 
 import argparse
+import json
 import os
+import re
 import sys
 import numpy as np
+try:
+    import pinocchio as pin
+except ImportError:
+    pin = None
 import pybullet as p
 import pybullet_data
 import matplotlib.pyplot as plt
@@ -22,6 +28,18 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.helpers import get_robot_dict, get_workspace_dict
 import importlib.resources as pkg_resources
+
+
+GRASP_EULERS = {
+    "top": [0.0, 0.0, 0.0],
+    "left": [np.pi / 2, 0.0, 0.0],
+    "right": [-np.pi / 2, 0.0, 0.0],
+    "back": [0.0, -np.pi / 2, 0.0],
+    "front": [0.0, np.pi / 2, 0.0],
+    "bottom": [np.pi, 0.0, 0.0],
+}
+
+GRASP_ORDER = ["any", "top", "left", "right", "back", "front", "bottom"]
 
 
 def get_controllable_arm_joints(robot_id, num_joints):
@@ -123,7 +141,165 @@ def reset_robot_to_home(robot_id, end_effector_idx, joint_idxs, robot_info):
     return joint_angles
 
 
-def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target_orientation=None, threshold=0.05):
+def update_robot_volume_in_helpers(robot_key, bbox_min, bbox_max, helpers_path, volume_key='reachable'):
+    """Update or add volume bounds for a robot entry in utils/helpers.py r_dict."""
+    if bbox_min is None or bbox_max is None:
+        return False
+
+    volume_value = [
+        round(float(bbox_min[0]), 4), round(float(bbox_max[0]), 4),
+        round(float(bbox_min[1]), 4), round(float(bbox_max[1]), 4),
+        round(float(bbox_min[2]), 4), round(float(bbox_max[2]), 4),
+    ]
+    volume_text = f"'{volume_key}': {volume_value}"
+
+    with open(helpers_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    updated = False
+    robot_marker = f"'{robot_key}': {{"
+    for i, line in enumerate(lines):
+        if robot_marker not in line:
+            continue
+
+        if f"'{volume_key}':" in line:
+            lines[i] = re.sub(
+                rf"'{re.escape(volume_key)}':\s*\[[^\]]*\]",
+                volume_text,
+                line,
+            )
+            updated = True
+            break
+
+        insert_at = line.rfind("},")
+        if insert_at == -1:
+            insert_at = line.rfind("}")
+        if insert_at == -1:
+            continue
+
+        prefix = line[:insert_at].rstrip()
+        suffix = line[insert_at:]
+        if not prefix.endswith(","):
+            prefix = prefix + ","
+        lines[i] = f"{prefix} {volume_text}{suffix}"
+        updated = True
+        break
+
+    if not updated:
+        return False
+
+    with open(helpers_path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+    return True
+
+
+def create_pinocchio_context(urdf_path, robot_id, joint_idxs, end_effector_link_name="endeffector"):
+    """Create Pinocchio model/data and mapping to controlled PyBullet joints."""
+    if pin is None:
+        raise ImportError("Pinocchio is not installed. Install package 'pin' to use --solver pinocchio")
+
+    model = pin.buildModelFromUrdf(urdf_path)
+    data = model.createData()
+
+    try:
+        ee_frame_id = model.getFrameId(end_effector_link_name)
+    except Exception:
+        ee_frame_id = None
+
+    if ee_frame_id is None or ee_frame_id >= model.nframes:
+        raise ValueError(f"End effector frame '{end_effector_link_name}' not found in Pinocchio model")
+
+    pb_joint_name_to_idx = {}
+    for pb_joint_idx in joint_idxs:
+        pb_joint_name = p.getJointInfo(robot_id, pb_joint_idx)[1].decode("utf-8")
+        pb_joint_name_to_idx[pb_joint_name] = pb_joint_idx
+
+    ordered_pb_joint_indices = []
+    ordered_pin_q_indices = []
+
+    for joint_id in range(1, model.njoints):
+        joint_name = model.names[joint_id]
+        if joint_name in pb_joint_name_to_idx:
+            joint_model = model.joints[joint_id]
+            if joint_model.nq != 1:
+                raise ValueError(
+                    f"Joint '{joint_name}' has nq={joint_model.nq}; this script expects 1-DOF joints"
+                )
+            ordered_pb_joint_indices.append(pb_joint_name_to_idx[joint_name])
+            ordered_pin_q_indices.append(joint_model.idx_q)
+
+    if not ordered_pb_joint_indices:
+        raise ValueError("No overlapping controllable joints between PyBullet and Pinocchio")
+
+    return {
+        "model": model,
+        "data": data,
+        "ee_frame_id": ee_frame_id,
+        "ordered_pb_joint_indices": ordered_pb_joint_indices,
+        "ordered_pin_q_indices": ordered_pin_q_indices,
+    }
+
+
+def solve_ik_pinocchio(pin_ctx, init_joint_angles, target_pos, target_orientation=None, max_iters=200, eps=1e-4, damp=1e-6):
+    """Solve IK with Pinocchio and return joint targets mapped by PyBullet joint index."""
+    model = pin_ctx["model"]
+    data = pin_ctx["data"]
+    ee_frame_id = pin_ctx["ee_frame_id"]
+    ordered_pb_joint_indices = pin_ctx["ordered_pb_joint_indices"]
+    ordered_pin_q_indices = pin_ctx["ordered_pin_q_indices"]
+
+    q = pin.neutral(model)
+    for q_idx, q_val in zip(ordered_pin_q_indices, init_joint_angles):
+        q[q_idx] = q_val
+
+    if target_orientation is not None:
+        target_rot = pin.Quaternion(np.array(target_orientation)).toRotationMatrix()
+        target_se3 = pin.SE3(target_rot, np.array(target_pos))
+
+    for _ in range(max_iters):
+        pin.forwardKinematics(model, data, q)
+        pin.updateFramePlacements(model, data)
+
+        current_se3 = data.oMf[ee_frame_id]
+
+        if target_orientation is not None:
+            err = pin.log6(current_se3.inverse() * target_se3).vector
+            if np.linalg.norm(err) < eps:
+                break
+            J = pin.computeFrameJacobian(
+                model,
+                data,
+                q,
+                ee_frame_id,
+                pin.ReferenceFrame.LOCAL,
+            )
+            regularizer = damp * np.eye(6)
+        else:
+            err = np.array(target_pos) - current_se3.translation
+            if np.linalg.norm(err) < eps:
+                break
+            full_J = pin.computeFrameJacobian(
+                model,
+                data,
+                q,
+                ee_frame_id,
+                pin.ReferenceFrame.LOCAL_WORLD_ALIGNED,
+            )
+            J = full_J[:3, :]
+            regularizer = damp * np.eye(3)
+
+        JJt = J @ J.T + regularizer
+        dq = J.T @ np.linalg.solve(JJt, err)
+        q = pin.integrate(model, q, dq)
+
+    solved_positions_by_pb_idx = {
+        pb_idx: float(q[q_idx])
+        for pb_idx, q_idx in zip(ordered_pb_joint_indices, ordered_pin_q_indices)
+    }
+    return solved_positions_by_pb_idx
+
+
+def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target_orientation=None, threshold=0.05, fast=False, solver="pybullet", pin_ctx=None, init_joint_angles=None):
     """
     Test if robot can reach target position.
     
@@ -138,15 +314,32 @@ def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target
     Returns:
         bool: True if position is reachable within threshold
     """
-    # Calculate IK
-    if target_orientation is not None:
-        ik_solution = p.calculateInverseKinematics(
-            robot_id, end_effector_idx, target_pos, target_orientation
+    # Keep the Cartesian target immutable for later error calculation.
+    target_pos_vec = np.array(target_pos, dtype=float)
+
+    # Calculate IK using selected solver
+    if solver == "pinocchio":
+        if pin_ctx is None:
+            raise ValueError("Pinocchio context is required when --solver pinocchio")
+        if init_joint_angles is None:
+            init_joint_angles = [0.0] * len(pin_ctx["ordered_pin_q_indices"])
+
+        ik_solution_map = solve_ik_pinocchio(
+            pin_ctx,
+            init_joint_angles,
+            target_pos,
+            target_orientation,
         )
+        ik_solution = [ik_solution_map.get(joint_idx, 0.0) for joint_idx in joint_idxs]
     else:
-        ik_solution = p.calculateInverseKinematics(
-            robot_id, end_effector_idx, target_pos
-        )
+        if target_orientation is not None:
+            ik_solution = p.calculateInverseKinematics(
+                robot_id, end_effector_idx, target_pos, target_orientation
+            )
+        else:
+            ik_solution = p.calculateInverseKinematics(
+                robot_id, end_effector_idx, target_pos
+            )
     
     # Apply IK solution to joints with joint limit checking
     joints_within_limits = True
@@ -175,24 +368,31 @@ def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target
                 target_positions.append(ik_value)
     
     # If any joint was outside limits, the IK solution is not valid
-    if not joints_within_limits:
-        return False
+    #if not joints_within_limits:
+    #    return False
     
-    # Set motor commands instead of resetting joint states
-    p.setJointMotorControlArray(
-        bodyUniqueId=robot_id,
-        jointIndices=joint_idxs,
-        controlMode=p.POSITION_CONTROL,
-        targetPositions=target_positions,
-        forces=[50] * len(joint_idxs),
-        targetVelocities=[1] * len(joint_idxs)
-    )
-    
-    # Run simulation for 100 steps to let motors reach target
-    for _ in range(300):
-        p.stepSimulation()
-        #time.sleep(0.01)
-    
+    if fast:
+        # Fast mode: set exact joint states directly and take one simulation step.
+        for joint_idx, target_joint_pos in zip(joint_idxs, target_positions):
+            p.resetJointState(robot_id, joint_idx, target_joint_pos)
+
+        for _ in range(1):
+            p.stepSimulation()
+            #time.sleep(0.01)
+    else:
+        # Default mode: command motors to move to IK target and allow settling.
+        p.setJointMotorControlArray(
+            bodyUniqueId=robot_id,
+            jointIndices=joint_idxs,
+            controlMode=p.POSITION_CONTROL,
+            targetPositions=target_positions,
+            forces=[50] * len(joint_idxs),
+            targetVelocities=[1] * len(joint_idxs)
+        )
+
+        for _ in range(300):
+            p.stepSimulation()
+            #time.sleep(0.01)
     # Check for collisions with all robot links
     #num_joints = p.getNumJoints(robot_id)
     #contact_points = p.getContactPoints(bodyA=robot_id)
@@ -206,12 +406,44 @@ def test_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, target
     
     # Get actual end effector position
     link_state = p.getLinkState(robot_id, end_effector_idx)
-    ee_pos = np.array(link_state[0])
     
     # Calculate distance
-    distance = np.linalg.norm(np.array(target_pos) - ee_pos)
-    
+    distance = np.linalg.norm(target_pos_vec - np.array(link_state[0], dtype=float))
+    #print(f"Target: {target_pos_vec}, Actual: {np.array(link_state[0], dtype=float)}, Distance: {distance:.4f}, Threshold: {threshold}")
     return distance <= threshold
+
+
+def test_grasp_reachability(robot_id, end_effector_idx, joint_idxs, target_pos, threshold=0.05, fast=False, solver="pybullet", pin_ctx=None, init_joint_angles=None):
+    """Test reachability for all configured grasp orientations at a single point."""
+    grasp_results = {
+        "any": test_reachability(
+            robot_id,
+            end_effector_idx,
+            joint_idxs,
+            target_pos,
+            None,
+            threshold,
+            fast,
+            solver,
+            pin_ctx,
+            init_joint_angles,
+        )
+    }
+    for grasp_name, grasp_euler in GRASP_EULERS.items():
+        grasp_quat = p.getQuaternionFromEuler(grasp_euler)
+        grasp_results[grasp_name] = test_reachability(
+            robot_id,
+            end_effector_idx,
+            joint_idxs,
+            target_pos,
+            grasp_quat,
+            threshold,
+            fast,
+            solver,
+            pin_ctx,
+            init_joint_angles,
+        )
+    return grasp_results
 
 
 def generate_grid_points(min_coords, max_coords, step):
@@ -472,7 +704,7 @@ def create_bbox_visual(bbox_min, bbox_max, rgba_color):
     return line_ids
 
 
-def visualize_in_pybullet(robot_id, reachable_points, bbox_min, bbox_max):
+def visualize_in_pybullet(robot_id, reachable_points, bbox_min, bbox_max, robot_name):
     """Visualize reachable volume in PyBullet with transparent meshes.
     
     Args:
@@ -485,54 +717,9 @@ def visualize_in_pybullet(robot_id, reachable_points, bbox_min, bbox_max):
     print("Press 'q' in terminal to quit visualization")
     
     # Create transparent bounding box (green)
-    if bbox_min is not None and bbox_max is not None:
-        bbox_lines = create_bbox_visual(bbox_min, bbox_max, [0, 1, 0, 0.7])
-        print("Created green bounding box visualization")
+
+
     
-    # Create convex hull visualization (blue)
-    hull_visual_id = None
-    if len(reachable_points) >= 4:
-        try:
-            hull = ConvexHull(reachable_points)
-            
-            # Create mesh from convex hull vertices and simplices
-            vertices = reachable_points[hull.vertices]
-            
-            # Calculate center of hull for positioning
-            center = np.mean(vertices, axis=0)
-            
-            # Create vertices relative to center
-            relative_vertices = vertices - center
-            
-            # Create mesh indices (triangles)
-            indices = hull.simplices.flatten().tolist()
-            
-            # Create collision and visual shapes
-            collision_shape = p.createCollisionShape(
-                shapeType=p.GEOM_MESH,
-                vertices=relative_vertices.tolist(),
-                indices=indices
-            )
-            
-            visual_shape = p.createVisualShape(
-                shapeType=p.GEOM_MESH,
-                vertices=relative_vertices.tolist(),
-                indices=indices,
-                rgbaColor=[0, 0, 1, 0.3]  # Transparent blue
-            )
-            
-            # Create multibody with the mesh
-            hull_visual_id = p.createMultiBody(
-                baseMass=0,
-                baseCollisionShapeIndex=collision_shape,
-                baseVisualShapeIndex=visual_shape,
-                basePosition=center.tolist()
-            )
-            
-            print("Created blue convex hull visualization")
-            
-        except Exception as e:
-            print(f"Warning: Could not create convex hull visualization: {e}")
     
     # Visualize reachable points as small spheres
     point_visual_ids = []
@@ -552,6 +739,31 @@ def visualize_in_pybullet(robot_id, reachable_points, bbox_min, bbox_max):
         point_visual_ids.append(point_id)
     
     print(f"Created {len(point_visual_ids)} point visualizations (sampled)")
+
+    if bbox_min is not None and bbox_max is not None:
+        create_bbox_visual(bbox_min, bbox_max, [0, 1, 0, 0.7])
+        print("Created green bounding box visualization")
+
+    # Save screenshot with the currently visualized reachable volume.
+    try:
+        cam = p.getDebugVisualizerCamera()
+        width = int(cam[0])
+        height = int(cam[1])
+        view_matrix = cam[2]
+        projection_matrix = cam[3]
+        _, _, rgb_pixels, _, _ = p.getCameraImage(
+            width=width,
+            height=height,
+            viewMatrix=view_matrix,
+            projectionMatrix=projection_matrix,
+            renderer=p.ER_BULLET_HARDWARE_OPENGL,
+        )
+        rgb_img = np.reshape(rgb_pixels, (height, width, 4))[:, :, :3]
+        screenshot_path = f"./unittest/{robot_name}_volume.png"
+        plt.imsave(screenshot_path, rgb_img)
+        print(f"Saved screenshot to {screenshot_path}")
+    except Exception as e:
+        print(f"Warning: Could not save GUI screenshot: {e}")
     
     # Keep visualization open until user quits
     print("\nVisualization active. Press Ctrl+C or close the PyBullet window to continue...")
@@ -695,6 +907,18 @@ def test_robot_reachability(robot_key, r_dict, args):
         return 1
     
     print(f"End effector link index: {end_effector_idx}")
+
+    pin_ctx = None
+    if args.solver == "pinocchio":
+        try:
+            pin_ctx = create_pinocchio_context(urdf_path, robot_id, joint_idxs, "endeffector")
+            print("Using IK solver: pinocchio")
+        except Exception as ex:
+            print(f"Error initializing Pinocchio IK model: {ex}")
+            p.disconnect()
+            return 1
+    else:
+        print("Using IK solver: pybullet")
     
     # Reset robot to home position
     print(f"Resetting robot to home position using default_joint_ori")
@@ -708,6 +932,9 @@ def test_robot_reachability(robot_key, r_dict, args):
         print(f"Using orientation constraint: Euler={args.euler}, Quat={target_orientation}")
     else:
         print("Using position-only IK (no orientation constraint)")
+
+    if args.all_grasps:
+        print("Using all grasp orientations plus orientation-unconstrained IK ('any')")
     
     # Create IK target visualization object
     box_size = 0.02
@@ -730,6 +957,9 @@ def test_robot_reachability(robot_key, r_dict, args):
     
     # Test reachability for each point
     reachable_points = []
+    reachable_points_per_grasp = {grasp_name: [] for grasp_name in GRASP_ORDER}
+    point_grasp_stats = []
+    grasp_summary = {grasp_name: {"reachable": 0, "tested": 0} for grasp_name in GRASP_ORDER}
     
     # Visual marker lists (only used in GUI mode)
     reachable_visual_ids = []
@@ -738,15 +968,38 @@ def test_robot_reachability(robot_key, r_dict, args):
     for i, point in enumerate(grid_points):
         # Update visualization
         p.resetBasePositionAndOrientation(box_id, point, [0, 0, 0, 1])
-        
         # Test reachability
-        is_reachable = test_reachability(
-            robot_id, end_effector_idx, joint_idxs,
-            point, target_orientation, args.threshold
-        )
+        if args.all_grasps:
+            grasp_results = test_grasp_reachability(
+                robot_id,
+                end_effector_idx,
+                joint_idxs,
+                point,
+                args.threshold,
+                args.fast,
+                args.solver,
+                pin_ctx,
+                init_joint_angles,
+            )
+            is_reachable = any(grasp_results.values())
+            point_grasp_stats.append({
+                "point": [float(coord) for coord in point],
+                "results": {name: bool(value) for name, value in grasp_results.items()},
+            })
+            for grasp_name, grasp_reachable in grasp_results.items():
+                grasp_summary[grasp_name]["tested"] += 1
+                if grasp_reachable:
+                    grasp_summary[grasp_name]["reachable"] += 1
+                    reachable_points_per_grasp[grasp_name].append(point)
+        else:
+            grasp_results = None
+            is_reachable = test_reachability(
+                robot_id, end_effector_idx, joint_idxs,
+                point, target_orientation, args.threshold, args.fast,
+                args.solver, pin_ctx, init_joint_angles
+            )
         
-        # Reset robot to home position after each test
-        reset_robot_with_joint_angles(robot_id, joint_idxs, init_joint_angles)
+        
         if is_reachable:
             reachable_points.append(point)
             
@@ -786,9 +1039,34 @@ def test_robot_reachability(robot_key, r_dict, args):
             reachable_count = len(reachable_points)
             print(f"Progress: {i+1}/{total_points} ({progress:.1f}%) - "
                   f"Reachable: {reachable_count} ({reachable_count/(i+1)*100:.1f}%)")
+            if args.all_grasps:
+                grasp_counts = ", ".join(
+                    f"{grasp_name}={grasp_summary[grasp_name]['reachable']}"
+                    for grasp_name in GRASP_ORDER
+                )
+                print(f"  Grasp reachability so far: {grasp_counts}")
+        # Reset robot to home position after each test
+        reset_robot_with_joint_angles(robot_id, joint_idxs, init_joint_angles)
     
     # Compute bounding box
     bbox_min, bbox_max = compute_bounding_box(reachable_points)
+
+    # Persist reachable volume bounds into helpers r_dict only when requested.
+    if args.store_volume:
+        helpers_path = os.path.join(base_dir, "utils", "helpers.py")
+        if args.all_grasps:
+            for grasp_name in GRASP_ORDER:
+                g_bbox_min, g_bbox_max = compute_bounding_box(reachable_points_per_grasp[grasp_name])
+                vkey = 'reachable' if grasp_name == 'any' else f"reachable_{grasp_name}"
+                if update_robot_volume_in_helpers(robot_key, g_bbox_min, g_bbox_max, helpers_path, volume_key=vkey):
+                    print(f"Updated {vkey} in helpers.py for robot '{robot_key}'")
+                else:
+                    print(f"Warning: Could not update {vkey} in helpers.py for robot '{robot_key}'")
+        elif bbox_min is not None and bbox_max is not None:
+            if update_robot_volume_in_helpers(robot_key, bbox_min, bbox_max, helpers_path):
+                print(f"Updated reachable in helpers.py for robot '{robot_key}'")
+            else:
+                print(f"Warning: Could not update reachable in helpers.py for robot '{robot_key}'")
     
     # Get robot kinematic tree for visualization
     robot_links = get_robot_kinematic_tree(robot_id)
@@ -801,6 +1079,38 @@ def test_robot_reachability(robot_key, r_dict, args):
     print(f"Workspace: {workspace_key}")
     print(f"Total points tested: {total_points}")
     print(f"Reachable points: {len(reachable_points)} ({len(reachable_points)/total_points*100:.2f}%)")
+
+    if args.all_grasps:
+        print("\nPer-grasp summary:")
+        for grasp_name in GRASP_ORDER:
+            tested = grasp_summary[grasp_name]["tested"]
+            reachable = grasp_summary[grasp_name]["reachable"]
+            ratio = (reachable / tested * 100.0) if tested else 0.0
+            print(f"  {grasp_name:>6}: {reachable}/{tested} ({ratio:.2f}%)")
+
+        #grasp_report_path = f"./unittest/reachability_{robot_key}_grasps.json"
+        #grasp_report = {
+        #    "robot": robot_key,
+        #    "workspace": workspace_key,
+        #    "tested_min": list(map(float, args.min)),
+        #    "tested_max": list(map(float, args.max)),
+        #    "step": float(args.step),
+        #    "threshold": float(args.threshold),
+        #    "orientation_any": "IK called without orientation parameter",
+        #    "grasp_eulers": {name: [float(v) for v in euler] for name, euler in GRASP_EULERS.items()},
+        #    "point_statistics": point_grasp_stats,
+        #    "summary": {
+        #        name: {
+        #            "reachable": int(data["reachable"]),
+        #            "tested": int(data["tested"]),
+        #            "ratio": (data["reachable"] / data["tested"] if data["tested"] else 0.0),
+        #        }
+        #        for name, data in grasp_summary.items()
+        #    },
+        #}
+        #with open(grasp_report_path, "w", encoding="utf-8") as report_file:
+        #    json.dump(grasp_report, report_file, indent=2)
+        #print(f"Per-point grasp statistics saved to {grasp_report_path}")
     
     if bbox_min is not None and bbox_max is not None:
         print(f"\n3D Bounding Box of Reachable Volume:")
@@ -825,42 +1135,12 @@ def test_robot_reachability(robot_key, r_dict, args):
         print("\nGenerating 3D plot...")
         plot_reachable_volume(reachable_points, bbox_min, bbox_max, robot_key, args.min, args.max, initial_robot_links)
     
-    # PyBullet visualization if requested
-    if args.visualize_pybullet and len(reachable_points) > 0:
-        # Reconnect to GUI if not already in GUI mode
-        if not args.gui:
-            p.disconnect()
-            physics_client = p.connect(p.GUI)
-            p.setAdditionalSearchPath(pybullet_data.getDataPath())
-            p.setGravity(0, 0, -9.81)
-            
-            # Reload scene
-            floor_id = p.loadURDF(floor_path, useFixedBase=True)
-            if os.path.exists(workspace_urdf_path):
-                workspace_id = p.loadURDF(
-                    workspace_urdf_path,
-                    transform['position'],
-                    p.getQuaternionFromEuler(transform['orientation']),
-                    useFixedBase=True
-                )
-            
-            # Reload robot
-            robot_id = p.loadURDF(
-                urdf_path,
-                useFixedBase=True,
-                basePosition=robot_base_pos,
-                baseOrientation=robot_base_quat,
-                flags=p.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT
-            )
-            
-            p.resetDebugVisualizerCamera(
-                cameraDistance=2.0,
-                cameraYaw=45,
-                cameraPitch=-30,
-                cameraTargetPosition=[0, 0, 0.5]
-            )
-        
-        visualize_in_pybullet(robot_id, np.array(reachable_points), bbox_min, bbox_max)
+    # PyBullet volume visualization: only when GUI is active.
+    if len(reachable_points) > 0:
+        if args.gui:
+            visualize_in_pybullet(robot_id, np.array(reachable_points), bbox_min, bbox_max, robot_key)
+        else:
+            print("GUI is off: skipping PyBullet volume plotting.")
     
     # Cleanup
     p.disconnect()
@@ -886,6 +1166,11 @@ def main():
         "--with-orientation",
         action="store_true",
         help="Use orientation constraint in IK (default: position only)"
+    )
+    parser.add_argument(
+        "--all-grasps",
+        action="store_true",
+        help="Test all basic grasp orientations at each grid point"
     )
     parser.add_argument(
         "--euler",
@@ -921,9 +1206,22 @@ def main():
         help="Distance threshold for reachability (default: 0.05)"
     )
     parser.add_argument(
-        "--visualize-pybullet",
+        "--store-volume",
+        "-store-volume",
         action="store_true",
-        help="Visualize reachable volume in PyBullet after test (default: off)"
+        help="Store reachable volume bbox to helpers.py (and save GUI screenshot if GUI is on)"
+    )
+    parser.add_argument(
+        "--fast",
+        action="store_true",
+        help="Use fast IK application (resetJointState + 1 step). Default uses motor control + 300 steps"
+    )
+    parser.add_argument(
+        "--solver",
+        type=str,
+        default="pybullet",
+        choices=["pybullet", "pinocchio"],
+        help="IK solver backend (default: pybullet)"
     )
     
     args = parser.parse_args()

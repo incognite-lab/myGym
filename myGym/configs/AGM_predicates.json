@@ -1,0 +1,59 @@
+{
+    #Environment
+    "env_name"  :"Gym-v0",
+    "workspace" :"table_complex",
+    "engine"    :"pybullet",
+    "render"    :"opengl",
+    "seed"      :1,
+    "camera"    :0,
+    "gui"       :0,
+    "visualize" :0,
+    "visgym"    :0,
+    #Robot
+    "robot"         :"g1",
+    "robot_action"  :"joints_gripper",
+    "robot_init"    : "default",
+    "max_velocity"  :[0.2, 10.0],
+    "max_force"     :[20.0, 150.0],
+    "action_repeat" :1,
+    #Task
+    "task_type"             :"AGM",
+    "natural_language"      :0,
+    "task_objects"          :[{"init":{"obj_name":"apple1", "urdf_name":"apple", "fixed":0,"rand_rot":0}, 
+                               "goal":{"obj_name":"apple2", "urdf_name":"apple","fixed":1,"rand_rot":0},
+                               "used_objects":[]}],
+    "predicates"            :[{"init":["Reachable(apple1): True", "OnTop(apple1,table): True", "Reachable(apple2): True", "OnTop(apple2,table): True"],
+                                "subgoal1": ["GripperAt(apple1): True", "GripperOpen(): True"],
+                                "subgoal2": ["GripperAt(apple1): True", "IsHolding(apple1): True"],
+                                "goal":["Near(apple1,apple2): True", "GripperAt(apple1): True", "IsHolding(apple1): True"]}],
+    "color_dict"            : {"apple1":["green"], "target":["gray"]},
+    "used_objects"          : {"num_range": [0, 0],
+                               "obj_list": []},
+
+    // Observation
+    // actual_state options (pick one): "endeff_xyz", "endeff_6D" (robot end effector), "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
+    // goal_state options (pick one): "obj_xyz", "obj_6D", "vae", "yolact", "voxel" or "dope"
+    // additional_obs options (pick none/one/more): "joints_xyz", "joints_angles", "endeff_xyz", "endeff_6D", "touch", "distractor"
+    "observation"           : {"actual_state":"obj_6D", "goal_state":"obj_6D", "additional_obs":["endeff_6D","joints_angles","gjoints_angles","gjoints_states","init_6D"]},
+    #Distractor
+    "distractors"           : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
+                                       "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
+    #Reward
+    "distance_type" :"euclidean",
+    "vae_path"      :null,
+    "yolact_path"   :null,
+    "yolact_config" :null,
+    #Train
+    "train_framework"   :"pytorch",
+    "algo"              :"ppo",
+    "max_episode_steps" :2048,
+    "algo_steps"        :2048,
+    "steps"             :15000000,
+    "pretrained_model"  :null,
+    "multiprocessing"   :null,
+    #Evaluation
+    "eval_freq"     :500000,
+    "eval_episodes" :50,
+    #Saving and logging
+    "record"    :0
+    }

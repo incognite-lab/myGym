@@ -298,14 +298,14 @@ def main():
     velocity_slider = p.addUserDebugParameter(
         paramName="Velocity",
         rangeMin=0,
-        rangeMax=300,
-        startValue=100
+        rangeMax=20,
+        startValue=1
     )
     force_slider = p.addUserDebugParameter(
         paramName="Force",
         rangeMin=0,
-        rangeMax=300,
-        startValue=500
+        rangeMax=120,
+        startValue=50
     )
     
     # Get joint information
