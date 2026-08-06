@@ -155,7 +155,7 @@ class CustomEvalCallback(EvalCallback):
                                                       [.8, .5, 0.55], textSize=1.0, lifeTime=0.5,
                                                       textColorRGB=[0.2, 0.8, 1])
                 episode_reward += reward
-                print (info)
+                # print(info)  # enable only when debugging
                 is_successful = not info['f']
 
                 # update subtask tracking (matching test.py pretrained model mode)
