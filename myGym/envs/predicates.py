@@ -20,7 +20,7 @@ The implemented predicates are:
     Touching
     OnTop     (G)
     Inside    (G)
-    Near      (G)
+    Near
     Far
     ObjectAt  (G)
     Above     (G)
@@ -29,13 +29,10 @@ The implemented predicates are:
     RightOf   (G)
     InFrontOF (G)
     Behind    (G)
-    Nextto    (G)
+    NextTo    (G)
 
  - (G) = able to generate sampling area for placing objects
  - gripper predicates are used without gripper parameter in config file - GripperAt(obj)
- - TODO! implement negation on predicates generating area at init 
- - TODO? Stack (for pans), Rotated (for gen)
-
 
 Predicate checkers:
  PredicateResolver and its child classes:
@@ -45,8 +42,20 @@ Predicate checkers:
     SubgoalPredicateResolver
 """
 
+"""
+Problems with the current logic:TODO
+ 1. No negation of predicates generating area at init 
+ 2. Any area can only be rectangular
+    - objs represented as bounding boxes
+    - reachable area not accurate
+    - position of already sampled objects cannot be excluded form sampling area
+        -> hight chance of collision from sampling NextTo(obj1, obj2), it is solved
+           by randomly selecting side, but in cost of big limitation (see NextTo)
+"""
+
 import os
 import numpy as np
+import random
 import re
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
@@ -84,6 +93,14 @@ def get_infinite_area() -> Area:
         -float("inf"), float("inf"),
         -float("inf"), float("inf"),
     ]
+
+def get_unconstrained_working_area() -> Area:
+    """
+    Return an unconstrained 3D area for sampling objects
+    """
+    return [-2, 2,
+            -2, 2,
+            -2, 2]
 
 def get_range_intersection(area_a: Area, area_b: Area) -> Area|None:
     """
@@ -167,6 +184,38 @@ def get_bounding_box_limits(obj) -> BBox:
     else:
         obj_min, obj_max = obj.get_bounding_box()[0], obj.get_bounding_box()[4]
     return obj_min, obj_max
+
+def get_object_extent_from_urdf(obj1_urdf: str, pybullet_client, env=None) -> tuple[Point3D, Point3D, Point3D]:
+    """
+    Briefly spawn obj1 to measure its own bounding box and origin position.
+    Used by predicates that need to know obj1's size before placing it
+    (e.g. to offset a sampling boundary by obj1's own extent).
+    Returns (obj_min, obj_max, obj_pos).
+    """
+    if os.path.splitext(os.path.basename(obj1_urdf))[0] == "towertarget":
+        obj1_urdf = env._get_urdf_filename("kostka")
+
+    temp_obj = env_object.EnvObject(
+        obj1_urdf,
+        position=[0.0, 0.0, 1.0],
+        orientation=[0.0, 0.0, 0.0, 1.0],
+        pybullet_client=pybullet_client,
+        fixed=True,
+    )
+
+    obj_min, obj_max = get_bounding_box_limits(temp_obj)
+    obj_pos = temp_obj.get_position()
+    pybullet_client.removeBody(temp_obj.uid)
+
+    return obj_min, obj_max, obj_pos
+
+def get_edge_offset_from_urdf(obj1_urdf: str, pybullet_client, axis: int, edge: str, env=None) -> float:
+    """
+    Return the distance from obj1's own origin to one edge of its bounding
+    box. axis: 0=X, 1=Y, 2=Z. edge: "min" or "max".
+    """
+    obj_min, obj_max, obj_pos = get_object_extent_from_urdf(obj1_urdf, pybullet_client, env)
+    return (obj_pos[axis] - obj_min[axis]) if edge == "min" else (obj_max[axis] - obj_pos[axis])
 
 def get_desk_area(table_obj) -> Area:
     """
@@ -349,33 +398,13 @@ class OnTop(AreaPredicate):
             xy_min = xy_max = obj2.get_position()
             placing_height = obj2.get_bounding_box()[4][2]
 
-        placing_height += self._get_bottom_offset_from_urdf(obj1_urdf, obj2.p, env)
+        placing_height += get_edge_offset_from_urdf(obj1_urdf, obj2.p, axis=2, edge="min", env=env)
         sampling_area = [xy_min[0], xy_max[0],
                          xy_min[1], xy_max[1],
                          placing_height, placing_height]
 
         return sampling_area
 
-    @staticmethod
-    def _get_bottom_offset_from_urdf(obj1_urdf: str, pybullet_client, env=None) -> float:
-        if os.path.splitext(os.path.basename(obj1_urdf))[0] == "towertarget":
-            obj1_urdf = env._get_urdf_filename("kostka")
-
-        temp_obj = env_object.EnvObject(
-            obj1_urdf,
-            position=[0.0, 0.0, 1.0],
-            orientation=[0.0, 0.0, 0.0, 1.0],
-            pybullet_client=pybullet_client,
-            fixed=True,
-        )
-
-        obj_min = temp_obj.get_bounding_box()[0]
-        obj_pos = temp_obj.get_position()
-        pybullet_client.removeBody(temp_obj.uid)
-
-        bottom_offset = obj_pos[2] - obj_min[2]
-        return bottom_offset
-    
     @staticmethod
     def is_target_obj(obj):
         """
@@ -431,6 +460,8 @@ class Below(AreaPredicate):
     def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
         """
         Return sampling area for obj1 origin so that obj1 is placed below obj2
+        WARNING: use Above(obj2, obj1) + OnTop(obj1, table) instead if possible,
+                 there is no logic to leave room on the table for obj1 when placing obj2
         """
         ws_dict = get_workspace_dict()
 
@@ -444,7 +475,7 @@ class Below(AreaPredicate):
             xy_min = xy_max = obj2.get_position()
             placing_height = obj2.get_bounding_box()[0][2]
 
-        placing_height -= self._get_top_offset_from_urdf(obj1_urdf, obj2.p, env)
+        placing_height -= get_edge_offset_from_urdf(obj1_urdf, obj2.p, axis=2, edge="max", env=env)
 
         if placing_height < MIN_HEIGHT:
             print(f"WARNING: Not able to place {obj1_urdf} under {obj2.name}, min height exceeded.")
@@ -454,27 +485,6 @@ class Below(AreaPredicate):
                          xy_min[1],  xy_max[1],
                          MIN_HEIGHT, placing_height]
         return sampling_area
-
-
-    @staticmethod
-    def _get_top_offset_from_urdf(obj1_urdf: str, pybullet_client, env=None) -> float:
-        if os.path.splitext(os.path.basename(obj1_urdf))[0] == "towertarget":
-            obj1_urdf = env._get_urdf_filename("kostka")
-
-        temp_obj = env_object.EnvObject(
-            obj1_urdf,
-            position=[0.0, 0.0, 1.0],
-            orientation=[0.0, 0.0, 0.0, 1.0],
-            pybullet_client=pybullet_client,
-            fixed=True,
-        )
-
-        obj_top = temp_obj.get_bounding_box()[4]
-        obj_pos = temp_obj.get_position()
-        pybullet_client.removeBody(temp_obj.uid)
-
-        top_offset = obj_top[2] - obj_pos[2]
-        return top_offset
 
 
 class Inside(AreaPredicate):
@@ -501,11 +511,14 @@ class Inside(AreaPredicate):
         obj1 center is at obj2 center
         NOTE: use OnTop() instead for hollow containers (e.g. bowl) to drop obj inside
         """
-        # 1. check obj1 fits inside obj2
-        # TODO
+        # TODO check
+        # 1. check if obj1 fits inside obj2
         obj1_min, obj1_max = self._get_bounding_box_from_urdf(obj1_urdf, obj2.get_position(), obj2.p, env)
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
-        area
+        fits = np.all(np.array([obj2_min, obj1_max]) < np.array([obj1_min, obj2_max]))
+        if not fits:
+            print(f"WARNING: Not able to place {obj1_urdf} inside {obj2.name}.")
+            return None
 
         # 2. return obj2 pos
         return ObjectAt().compute_area(obj2)
@@ -559,7 +572,7 @@ class Empty(Predicate):
         return True
 
 
-class Near(AreaPredicate):
+class Near(Predicate):
     """
     Check whether obj1 is close to obj2
     """
@@ -572,17 +585,6 @@ class Near(AreaPredicate):
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
         distance = get_aabb_distance(obj1_min, obj1_max, obj2_min, obj2_max)
         return distance < CLOSE
-
-    def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
-            """
-            Return sampling area for obj1 so that obj1 is next to obj2
-            NOTE: hight chance for object collision
-                  similar to NextTo(), but generates also on top
-            """
-            # TODO
-            # 1. if pos (Left, Behind, OnTop) not defined by other predicate,
-            #    choose randomly to avoid collision
-            # 2. return pos for obj1 near obj2 on that side
 
 
 class Far(Predicate):
@@ -636,8 +638,6 @@ class LeftOf(AreaPredicate):
         """
         Return True if max obj1 Y <= min obj2 Y
         """
-        if not InSimilarHeight().check(obj1, obj2):
-            return False
         
         _, obj1_max = get_bounding_box_limits(obj1)
         obj2_min, _ = get_bounding_box_limits(obj2)
@@ -646,12 +646,20 @@ class LeftOf(AreaPredicate):
         return obj1_max[1] <= (obj2_min[1] + TOLERANCE)
 
     def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
-            """
-            Return sampling area for obj1 so that obj1 is on the left of obj2
-            """
-            # TODO:
-            
-    
+        """
+        Return sampling area for obj1 so that obj1 is on the left of obj2
+        """
+        # TODO: check
+        max_y = obj2.get_bounding_box()[0][1]
+        max_y -= get_edge_offset_from_urdf(obj1_urdf, obj2.p, axis=1, edge="max", env=env)
+
+        sampling_area = get_unconstrained_working_area()
+        if not sampling_area[2] < max_y:
+            sampling_area = get_infinite_area()
+
+        sampling_area[3] = max_y
+        return sampling_area
+
 
 class RightOf(AreaPredicate):
     """
@@ -668,7 +676,16 @@ class RightOf(AreaPredicate):
         """
         Return sampling area for obj1 so that obj1 is on the right of obj2
         """
-        # TODO:
+        # TODO: check
+        min_y = obj2.get_bounding_box()[4][1]
+        min_y += get_edge_offset_from_urdf(obj1_urdf, obj2.p, axis=1, edge="min", env=env)
+
+        sampling_area = get_unconstrained_working_area()
+        if not min_y < sampling_area[3]:
+            sampling_area = get_infinite_area()
+
+        sampling_area[2] = min_y
+        return sampling_area
 
 
 class InFrontOF(AreaPredicate):
@@ -680,8 +697,6 @@ class InFrontOF(AreaPredicate):
         """
         Return True if max obj1 X <= min obj2 X
         """
-        if not InSimilarHeight().check(obj1, obj2):
-            return False
         
         _, obj1_max = get_bounding_box_limits(obj1)
         obj2_min, _ = get_bounding_box_limits(obj2)
@@ -693,7 +708,16 @@ class InFrontOF(AreaPredicate):
         """
         Return sampling area for obj1 so that obj1 is in front of obj2
         """
-        # TODO:
+        # TODO: check
+        max_x = obj2.get_bounding_box()[0][0]
+        max_x -= get_edge_offset_from_urdf(obj1_urdf, obj2.p, axis=0, edge="max", env=env)
+
+        sampling_area = get_unconstrained_working_area()
+        if not sampling_area[0] < max_x:
+            sampling_area = get_infinite_area()
+
+        sampling_area[1] = max_x
+        return sampling_area         
 
 
 class Behind(AreaPredicate):
@@ -711,31 +735,69 @@ class Behind(AreaPredicate):
         """
         Return sampling area for obj1 so that obj1 is behind obj2
         """
-        # TODO:
+        # TODO: check
+        min_x = obj2.get_bounding_box()[4][0]
+        min_x += get_edge_offset_from_urdf(obj1_urdf, obj2.p, axis=0, edge="min", env=env)
+
+        sampling_area = get_unconstrained_working_area()
+        if not min_x < sampling_area[1]:
+            sampling_area = get_infinite_area()
+
+        sampling_area[0] = min_x
+        return sampling_area
 
 
-class Nextto(AreaPredicate):
+class NextTo(AreaPredicate):
     """
     objects are close at similar height
     """
 
     def check(self, obj1, obj2) -> bool:
         """
+        Check whether obj1 is next to obj2
         """
         if not InSimilarHeight().check(obj1, obj2):
             return False
         
-        return Near().check(obj1, obj2)
+        obj1_min, obj1_max = get_bounding_box_limits(obj1)
+        obj2_min, obj2_max = get_bounding_box_limits(obj2)
+        distance = get_aabb_distance(obj1_min, obj1_max, obj2_min, obj2_max)
+        return distance < 3*CLOSE
 
     def compute_area(self, obj1_urdf: str, obj2, env=None) -> Area:
         """
-        Return sampling area for obj1 so that obj1 is next to obj2
-        NOTE: hight chance for object collision
+        Return base sampling area for obj1 close to obj2, at obj2's own height.
+        WARNING: high chance of collision between the objects - meant to be
+                 further restricted to one side (LeftOf/RightOf/InFrontOF/Behind,
+                 or _apply_on_random_side) before sampling from it
         """
-        # TODO
-        # 1. if side (Left, Behind, ...) not defined by other predicate,
-        #    choose randomly to avoid collision
-        # 2. return near pos on that side
+        obj2_min, obj2_max = get_bounding_box_limits(obj2)
+        margin = self._get_side_offset_from_urdf(obj1_urdf, obj2.p, env) + 2*TOLERANCE
+
+        return [
+            obj2_min[0] - margin,    obj2_max[0] + margin,
+            obj2_min[1] - margin,    obj2_max[1] + margin,
+            obj2_min[2] - TOLERANCE, obj2_max[2] + TOLERANCE,
+        ]
+
+    @staticmethod
+    def _get_side_offset_from_urdf(obj1_urdf: str, pybullet_client, env=None) -> float:
+        """
+        Return the largest of obj1's own front/back/left/right offsets (origin
+        to bounding-box edge), used as NextTo's margin so the base area always
+        contains whichever precise boundary LeftOf/RightOf/InFrontOF/Behind end
+        up computing for obj1 (their per-direction offsets can differ if obj1's
+        origin isn't exactly centered).
+        Measures obj1 once (unlike calling get_edge_offset_from_urdf 4x, which
+        would spawn 4 separate temp objects for the same measurement).
+        """
+        obj_min, obj_max, obj_pos = get_object_extent_from_urdf(obj1_urdf, pybullet_client, env)
+
+        front_offset = obj_pos[0] - obj_min[0]
+        back_offset = obj_max[0] - obj_pos[0]
+        left_offset = obj_pos[1] - obj_min[1]
+        right_offset = obj_max[1] - obj_pos[1]
+        return max(front_offset, back_offset, left_offset, right_offset)
 
 
 class InSimilarHeight():
@@ -749,7 +811,8 @@ class InSimilarHeight():
         """
         obj1_min, obj1_max = get_bounding_box_limits(obj1)
         obj2_min, obj2_max = get_bounding_box_limits(obj2)
-        return obj1_min[2] <= obj2_max[2] and obj1_max[2] >= obj2_min[2] 
+        return (obj1_min[2] <= obj2_max[2] + TOLERANCE and
+                obj2_min[2] <= obj1_max[2] + TOLERANCE)
 
 
 class Upright(Predicate):
@@ -849,30 +912,6 @@ class PredicateResolver:
                 return False
 
         return True
-
-    def get_failed_predicates(self, placed_objects: dict, env, predicates: dict, grip_type: str | None = None) -> list[str]:
-        """
-        Return list of selected predicate strings that evaluated to False
-        """
-        if self.predicate_key is None:
-            return []
-
-        selected_predicates = predicates.get(self.predicate_key, []) if predicates else []
-
-        if not selected_predicates:
-            return []
-
-        failed = []
-        try:
-            objects_by_name = self._build_object_lookup(env, placed_objects)
-            for raw_str, predicate in zip(selected_predicates, self._parse_predicates(selected_predicates)):
-                if not self._check_predicate(predicate, objects_by_name, grip_type):
-                    failed.append(raw_str)
-        except Exception:
-            pass
-
-        return failed
-
     
     
     @staticmethod
@@ -989,9 +1028,9 @@ class PredicateResolver:
             obj1_name, obj2_name = predicate.args
             result = Behind().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
 
-        elif predicate.predicate == "Nextto":
+        elif predicate.predicate == "NextTo":
             obj1_name, obj2_name = predicate.args
-            result = Nextto().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
+            result = NextTo().check(objects_by_name[obj1_name], objects_by_name[obj2_name])
 
         elif predicate.predicate == "Far":
             obj1_name, obj2_name = predicate.args
@@ -1092,6 +1131,49 @@ class InitPredicateResolver(PredicateResolver):
                 env=env,
             )
 
+        for next_to_predicate in predicate_map.get("NextTo", []):
+            # base reference: narrow to close to obj2 first, then pick a side
+            area = self._apply_nextto_area(
+                current_area=area,
+                predicate=next_to_predicate,
+                table=table,
+                obj1_urdf=obj1_urdf,
+                placed_objects=placed_objects,
+                env=env,
+            )
+            has_side = self._has_matching_side(
+                predicate_map, ("LeftOf", "RightOf", "InFrontOF", "Behind"), next_to_predicate.args[1]
+            )
+            if not has_side:
+                area = self._apply_on_random_side(
+                    current_area=area,
+                    predicate=next_to_predicate,
+                    table=table,
+                    obj1_urdf=obj1_urdf,
+                    placed_objects=placed_objects,
+                    env=env,
+                )
+
+        for leftof_predicate in predicate_map.get("LeftOf", []):
+            area = self._apply_side_area(
+                LeftOf, "LeftOf", area, leftof_predicate, table, obj1_urdf, placed_objects, env
+            )
+
+        for rightof_predicate in predicate_map.get("RightOf", []):
+            area = self._apply_side_area(
+                RightOf, "RightOf", area, rightof_predicate, table, obj1_urdf, placed_objects, env
+            )
+
+        for infrontof_predicate in predicate_map.get("InFrontOF", []):
+            area = self._apply_side_area(
+                InFrontOF, "InFrontOF", area, infrontof_predicate, table, obj1_urdf, placed_objects, env
+            )
+
+        for behind_predicate in predicate_map.get("Behind", []):
+            area = self._apply_side_area(
+                Behind, "Behind", area, behind_predicate, table, obj1_urdf, placed_objects, env
+            )
+
         for above_predicate in predicate_map.get("Above", []):
             area = self._apply_above_area(
                 current_area=area,
@@ -1127,7 +1209,19 @@ class InitPredicateResolver(PredicateResolver):
             return default_table_area
 
         return area
-    
+
+    @staticmethod
+    def _has_matching_side(predicate_map, side_names, obj2_name) -> bool:
+        """
+        Return True if any predicate under one of side_names targets the same obj2_name
+        as the NextTo predicate (e.g. NextTo(obj1,X) should only skip the random-side
+        step for LeftOf(obj1,X), not LeftOf(obj1,Y) referencing a different object)
+        """
+        return any(
+            len(p.args) == 2 and p.args[1] == obj2_name
+            for name in side_names
+            for p in predicate_map.get(name, [])
+        )
 
     def _apply_on_top_area(
             self, current_area: Area, predicate: PredicateCall, table, obj1_urdf: str, placed_objects, env=None
@@ -1209,6 +1303,55 @@ class InitPredicateResolver(PredicateResolver):
             return None
 
         return get_range_intersection(current_area, under_area)
+
+    @staticmethod
+    def _apply_side_area(
+            predicate_cls, predicate_name: str, current_area: Area, predicate: PredicateCall,
+            table, obj1_urdf: str, placed_objects, env=None
+            ) -> Area | None:
+        """
+        Shared logic for LeftOf/RightOf/InFrontOF/Behind area constraints:
+        resolve the reference object, compute_area() with predicate_cls, intersect.
+        """
+        if len(predicate.args) != 2:
+            raise ValueError(f"{predicate_name} expects 2 arguments, got {predicate.args}")
+
+        obj1_name, obj2_name = predicate.args
+
+        if obj2_name == "table":
+            reference_object = table
+        else:
+            reference_object = placed_objects.get(obj2_name)
+            if not reference_object:
+                raise ValueError(
+                    f"Cannot compute {predicate_name} area for '{predicate.args[0]}'. "
+                    f"Reference object '{obj2_name}' has not been placed yet."
+                )
+
+        side_area = predicate_cls().compute_area(obj1_urdf, reference_object, env)
+        if side_area is None:
+            return None
+
+        return get_range_intersection(current_area, side_area)
+
+    def _apply_on_random_side(
+            self, current_area: Area, predicate: PredicateCall, table, obj1_urdf: str, placed_objects, env=None
+            ) -> Area | None:
+        """
+        Choose a random side (Left/Right/InFront/Behind) to avoid collision of obj1 and obj2
+        """
+        side_predicate = random.choice([LeftOf, RightOf, InFrontOF, Behind])
+        side_name = side_predicate.__name__
+        return self._apply_side_area(side_predicate, side_name, current_area, predicate, table, obj1_urdf, placed_objects, env)
+
+    def _apply_nextto_area(
+            self, current_area: Area, predicate: PredicateCall, table, obj1_urdf: str, placed_objects, env=None
+            ) -> Area | None:
+        """
+        Apply NextTo(obj1, obj2) as an area constraint (base reference, narrow
+        to close to obj2 before optionally picking a side with _apply_on_random_side)
+        """
+        return self._apply_side_area(NextTo, "NextTo", current_area, predicate, table, obj1_urdf, placed_objects, env)
 
     def _apply_reachable_area(
         self, current_area: Area, predicate: PredicateCall, robot, grip_type: str | None = None
