@@ -1,0 +1,13 @@
+*.py[cod]
+__pycache__
+.vscode
+dist/
+.pdm-python
+.VSCodeCounter/
+*eff*.csv
+*eff*.csv#
+*.csv
+*geneff*.png
+tests/*.csv
+tests/*.png
+.idea/

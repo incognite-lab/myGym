@@ -1,0 +1,39 @@
+atomic_actions:
+  approach:
+    predicate: "(g: Gripper, o: TargetObject)"  # declaration of function "signature" with 'param_name: param_type' argument definitions
+    evaluation: euclidean_distance(g, o)  # function to evaluate progress (reward)
+    init: "!near(g, o)" # 'not near' - initial condition (precondition)
+    # if a variable is used, it is expected to exist; e.g., 'near(g, o)' implies also 'exists(o) & exists(g)'
+    goal: near(g, o) # 'g' is close to (dist under some threshold) 'o'
+  grasp:
+    predicate: "(g: Gripper, o: TargetObject)"
+    evaluation: euclidean_distance(g, o)
+    init: "!holding(g, o)" # not holding
+    goal: holding(g, o) # 'g' is holding 'o'
+  drop:
+    predicate: "(g: Gripper, o: TargetObject)"
+    evaluation: euclidean_distance(g, o)
+    init: holding(g, o)
+    goal: "!holding(g, o)"
+  move:
+    predicate: "(o: TargetObject, t: TargetLocation)"
+    evaluation: euclidean_distance(o, t)
+    init: "!at(o, t)" # not at
+    goal: at(o, t) # 'o' is at location 't'
+tasks:
+  point:
+    formula: reach(g, o1) -> leave(g, o1)
+  lift:
+    formula: reach(g, o1) -> [grasp(g, o1) & move(o1, t)]
+    comment: "A -> B == execute B after A (or execute A then B)"
+  push:
+    formula: reach(g, o1) & move(o1, t)
+    comment: "& == logical and; uses 'lazy' evaluation => reach must be satisfied first, then move is performed"
+  pick_n_place:
+    formula: reach(g, o1) -> [grasp(g, o1) & move(o1, t)] -> release(g, o1)
+  pick_n_rotate:
+    formula: reach(g, o1) -> [grasp(g, o1) & rotate(o1, t)] -> release(g, o1)
+  poke:
+    comment:
+      - what does "reach + reach mean?" How to reach more? Maybe "touch" is missing from the elementary actions?
+      - or how to deal with "short move"

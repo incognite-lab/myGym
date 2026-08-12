@@ -1,0 +1,143 @@
+from typing import (Any, Callable, ClassVar, Generic, Iterable, Optional, Type,
+                    TypeVar)
+
+import numpy as np
+import yaml
+
+from rddl import Variable
+from rddl.action import AtomicAction
+from rddl.entity import Gripper, Location, ObjectEntity
+from rddl.operator import SequentialAndOp, SequentialOp
+from rddl.predicate import IsHolding, Near, Not
+from rddl.rddl_parser import RDDL
+
+
+# FUNCTIONS (will be defined outside, depending on specific implementation usage) #
+def euclidean_distance(point_A: np.ndarray, point_B: np.ndarray) -> float:
+    return np.linalg.norm(point_A - point_B)
+
+
+def is_holding(gripper, obj) -> bool:
+    return gripper.is_holding(obj)
+
+
+functions = {
+    "is_holding": is_holding,
+    "euclidean_distance": euclidean_distance
+}
+
+# CONSTANTS
+NEAR_THRESHOLD = 0.01
+
+
+# """ ACTION CLASSES """
+# class Reach(Action):
+
+#     def __init__(self, gripper: Gripper, obj: ObjectEntity) -> None:
+#         self._gripper = gripper
+#         self._obj = obj
+#         self._predicate = Near(self._gripper, self._obj)
+
+#     def __repr__(self) -> str:
+#         return f"Reach({self._gripper}, {self._obj})"
+
+
+# class Grasp(Action):
+
+#     def __init__(self, gripper: Gripper, obj: ObjectEntity) -> None:
+#         self._gripper = gripper
+#         self._obj = obj
+#         self._predicate = IsHolding(self._gripper, self._obj)
+
+#     def __repr__(self) -> str:
+#         return f"Grasp({self._gripper}, {self._obj})"
+
+
+# class Move(Action):
+
+#     def __init__(self, gripper: Gripper, obj: ObjectEntity) -> None:
+#         self._gripper = gripper
+#         self._obj = obj
+#         self._predicate = EuclideanDistance(self._gripper, self._obj)
+
+#     def __repr__(self) -> str:
+#         return f"Move({self._gripper}, {self._obj})"
+
+
+# class Release(Action):
+
+#     def __init__(self, gripper: Gripper, obj: ObjectEntity) -> None:
+#         self._gripper = gripper
+#         self._obj = obj
+#         self._predicate = Not(IsHolding(self._gripper, self._obj))
+
+#     def __repr__(self) -> str:
+#         return f"Release({self._gripper}, {self._obj})"
+
+
+# class Leave(Action):
+
+#     def __init__(self, gripper: Gripper, obj: ObjectEntity) -> None:
+#         self._gripper = gripper
+#         self._obj = obj
+#         self._predicate = Not(Near(self._gripper, self._obj))
+
+#     def __repr__(self) -> str:
+#         return f"Leave({self._gripper}, {self._obj})"
+
+
+class Approach(AtomicAction):
+    _VARIABLES = {
+        "gripper": Gripper,
+        "object": ObjectEntity
+    }
+
+    # def __init__(self, g: Gripper, o: ObjectEntity):
+    def __init__(self):
+        super().__init__()
+        self._predicate = Near(self.gripper, self.object)
+        self._initial = Not(self._predicate)
+
+
+if __name__ == "__main__":
+    with open("../example_def.yaml", 'r') as f:
+        action_def_config = yaml.safe_load(f)
+
+    atomic_action_def = action_def_config["atomic_actions"]
+    tasks = action_def_config["tasks"]
+
+    rddl = RDDL(
+        combinator_mapping={
+            "&": SequentialAndOp,
+            "->": SequentialOp
+        },
+        predicate_mapping={
+            "reach": Approach
+        },
+        type_definitions={
+            "Gripper": Gripper,
+            "ObjectEntity": ObjectEntity,
+        }
+    )
+    # rddl.load_definitions(atomic_action_def)
+
+
+    # gripper = Gripper()
+    # apple = ObjectEntity()
+    # loc = Location()
+    # action_pick_n_place = SequentialOp(
+    #     SequentialOp(
+    #         SequentialOp(
+    #             AndOp(
+    #                 Reach(gripper, apple),
+    #                 Grasp(gripper, apple)
+    #             ),
+    #             Move(apple, loc)
+    #         ),
+    #         Release(gripper, apple)
+    #     ),
+    #     Leave(gripper, apple)
+    # )
+    # action = "reach(gripper, apple) & grasp(gripper, apple) -> move(apple, loc) -> release(gripper, apple) -> leave(gripper, apple)"
+    # print(action_pick_n_place.decide())
+    # print(action_pick_n_place.evaluate())

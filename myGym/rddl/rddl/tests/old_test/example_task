@@ -1,0 +1,534 @@
+import numpy as np
+from typing import Any, Iterable, TypeVar, Generic, Optional, ClassVar, Callable, Type
+from abc import ABCMeta, abstractmethod
+import re
+from collections import deque
+import yaml
+
+
+# FUNCTIONS (will be defined outside, depending on specific implementation usage) #
+def euclidean_distance(point_A: np.ndarray, point_B: np.ndarray) -> float:
+    return np.linalg.norm(point_A - point_B)
+
+
+def is_holding(gripper, obj) -> bool:
+    return gripper.is_holding(obj)
+
+
+functions = {
+    "is_holding": is_holding,
+    "euclidean_distance": euclidean_distance
+}
+
+# CONSTANTS
+NEAR_THRESHOLD = 0.01
+
+
+class Entity(metaclass=ABCMeta):
+    pass
+
+
+""" BASIC CLASSES """
+
+
+variable_class = TypeVar('variable_class', bound=Entity)
+
+
+class Variable(Generic[variable_class]):
+
+    def __init__(self, name: str, typ: type[variable_class]):
+        self._name = name
+        self._type: type[variable_class] = typ
+        self._value: Optional[variable_class] = None
+
+    def bind(self, value: variable_class) -> None:
+        self._value = value
+
+    def get(self) -> variable_class:
+        return self()
+
+    def type(self) -> type[variable_class]:
+        return self._type
+
+    def __getattr__(self, __name: str) -> Any:
+        if not self._is_bound():
+            raise ValueError(f"Variable {self._name} was not bound, yet!")
+        if not hasattr(self._type, __name):
+            raise AttributeError(f"Variable of type {self._name} has no attribute '{__name}'")
+        return getattr(self._value, __name)
+
+    def _is_bound(self) -> bool:
+        return self._value is not None
+
+    def __call__(self) -> variable_class:
+        if not self._is_bound:
+            raise ValueError(f"Variable {self._name} was not bound, yet!")
+        return self._value
+
+    def __repr__(self):
+        if self._value is None:
+            return f"Unbound variable {self._name}: {self._type}"
+        else:
+            return f"Variable {self._name}: {self._type} = {self._value})"
+
+
+class Location(Entity):
+
+    def __init__(self) -> None:
+        self._loc = np.random.randn(3)
+
+    def location(self) -> Iterable[float]:
+        return self._loc
+
+
+class ObjectEntity(Location):
+
+    def __init__(self, name: str) -> None:
+        super().__init__()
+        self._name = name
+
+    @property
+    def name(self):
+        return self._name
+
+
+class Gripper(ObjectEntity):
+
+    def is_holding(self, obj: ObjectEntity) -> bool:
+        return np.random.randn() < 0  # FIXME: implement real gripper
+
+
+""" OPERANDS AND OPERATORS """
+
+
+class Operand(metaclass=ABCMeta):
+
+    @abstractmethod
+    def decide(self) -> bool:
+        raise NotImplementedError("decide not implemented for generic operand")
+
+    @abstractmethod
+    def evaluate(self) -> float:
+        raise NotImplementedError("evaluate not implemented for generic operand")
+
+    def __call__(self) -> bool:
+        return self.decide()
+
+    def _register_variable(self, var: Variable) -> None:
+        pass
+
+
+class Predicate(Operand, metaclass=ABCMeta):
+    pass
+
+
+class AtomicAction(Operand, metaclass=ABCMeta):
+
+    def __init__(self) -> None:
+        self._predicate: Predicate
+
+    def decide(self):
+        print(f"Checking action {str(self.__class__)}")
+        return self._predicate.decide()
+
+    def evaluate(self):
+        print(f"Evaluating action {str(self.__class__)}")
+        return self._predicate.evaluate()
+
+
+class Operator(Operand, metaclass=ABCMeta):
+    _ARITY: ClassVar[int]
+    _SYMBOL: ClassVar[str]
+
+    def __init_subclass__(cls) -> None:
+        dd = dir(cls)
+        if '_SYMBOL' not in dd:
+            raise ValueError(f"Class '{cls}' does not have a '_SYMBOL' attribute! Every sub-class of 'Operator' must define a '_SYMBOL' that defines its string representation!")
+        if '_ARITY' not in dd:
+            raise ValueError(f"Class '{cls}' does not have a '_ARITY' attribute! Every sub-class of 'Operator' must define a '_ARITY' that defines arity of the operation!")
+        return super().__init_subclass__()
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    @classmethod
+    @property
+    def SYMBOL(cls) -> str:
+        return cls._SYMBOL
+
+    @classmethod
+    @property
+    def ARITY(cls) -> int:
+        return cls._ARITY
+
+
+class UnaryOperator(Operator):
+    _ARITY = 1
+
+    def __init__(self, operand: Operand) -> None:
+        super().__init__()
+        self._operand = operand
+
+    def __repr__(self) -> str:
+        return f"{self._SYMBOL}{self._operand}"
+
+
+class BinaryOperator(Operator):
+    _ARITY = 2
+
+    def __init__(self, left: Operand, right: Operand) -> None:
+        super().__init__()
+        self._left: Operand = left
+        self._right: Operand = right
+
+    def __repr__(self) -> str:
+        return f"{self._left} {self._SYMBOL} {self._right}"
+
+
+"""   CLASSES """
+LocationType = TypeVar("LocationType", bound=Location)
+
+
+class IsHolding(Predicate):
+    _HOLDING_PREDICATE = functions["is_holding"]
+
+    def __init__(self, gripper: Variable[Gripper], obj: Variable[ObjectEntity]) -> None:
+        super().__init__()
+        self._gripper = gripper
+        self._obj = obj
+
+    def decide(self):
+        print("Checking holding predicate")
+        return IsHolding._HOLDING_PREDICATE(self._gripper(), self._obj())
+
+    def evaluate(self):
+        print("Evaluating holding predicate")
+        return IsHolding._HOLDING_PREDICATE(self._gripper(), self._obj())
+
+
+class EuclideanDistance(Predicate):
+    _EDISTANCE_PREDICATE = functions["euclidean_distance"]
+
+    def __init__(self, object_A: Variable[LocationType], object_B: Variable[LocationType]) -> None:
+        self.object_A = object_A
+        self.object_B = object_B
+
+    def decide(self):    # how to handle, if it makes no sense?
+        print("Checking euclidean distance predicate")
+        return EuclideanDistance._EDISTANCE_PREDICATE(self.object_A().location(), self.object_B().location()) > 0
+
+    def evaluate(self):
+        print("Evaluating euclidean distance predicate")
+        return EuclideanDistance._EDISTANCE_PREDICATE(self.object_A().location(), self.object_B().location())
+
+
+class Near(Predicate):
+    _EDISTANCE_PREDICATE = functions["euclidean_distance"]
+
+    def __init__(self, object_A: Variable[LocationType], object_B: Variable[LocationType]) -> None:
+        self.object_A = object_A
+        self.object_B = object_B
+
+    def decide(self):
+        print("Checking near predicate")
+        return Near._EDISTANCE_PREDICATE(self.object_A().location(), self.object_B().location()) < NEAR_THRESHOLD
+
+    def evaluate(self):
+        print("Evaluating near predicate")
+        return Near._EDISTANCE_PREDICATE(self.object_A().location(), self.object_B().location()) - NEAR_THRESHOLD
+
+
+class Not(Predicate):
+
+    def __init__(self, predicate: Predicate) -> None:
+        self._predicate = predicate
+
+    def decide(self):
+        print("Checking not predicate")
+        return not self._predicate.decide()
+
+    def evaluate(self):
+        print("Evaluating not predicate")
+        return -self._predicate.evaluate()
+
+
+# """ ACTION CLASSES """
+# class Reach(Action):
+
+#     def __init__(self, gripper: Gripper, obj: ObjectEntity) -> None:
+#         self._gripper = gripper
+#         self._obj = obj
+#         self._predicate = Near(self._gripper, self._obj)
+
+#     def __repr__(self) -> str:
+#         return f"Reach({self._gripper}, {self._obj})"
+
+
+# class Grasp(Action):
+
+#     def __init__(self, gripper: Gripper, obj: ObjectEntity) -> None:
+#         self._gripper = gripper
+#         self._obj = obj
+#         self._predicate = IsHolding(self._gripper, self._obj)
+
+#     def __repr__(self) -> str:
+#         return f"Grasp({self._gripper}, {self._obj})"
+
+
+# class Move(Action):
+
+#     def __init__(self, gripper: Gripper, obj: ObjectEntity) -> None:
+#         self._gripper = gripper
+#         self._obj = obj
+#         self._predicate = EuclideanDistance(self._gripper, self._obj)
+
+#     def __repr__(self) -> str:
+#         return f"Move({self._gripper}, {self._obj})"
+
+
+# class Release(Action):
+
+#     def __init__(self, gripper: Gripper, obj: ObjectEntity) -> None:
+#         self._gripper = gripper
+#         self._obj = obj
+#         self._predicate = Not(IsHolding(self._gripper, self._obj))
+
+#     def __repr__(self) -> str:
+#         return f"Release({self._gripper}, {self._obj})"
+
+
+# class Leave(Action):
+
+#     def __init__(self, gripper: Gripper, obj: ObjectEntity) -> None:
+#         self._gripper = gripper
+#         self._obj = obj
+#         self._predicate = Not(Near(self._gripper, self._obj))
+
+#     def __repr__(self) -> str:
+#         return f"Leave({self._gripper}, {self._obj})"
+
+
+""" OPERATOR CLASSES """
+
+
+class AndOp(BinaryOperator):
+    _SYMBOL = "&"
+
+    def __init__(self, left: Operand, right: Operand) -> None:
+        super().__init__(left, right)
+
+    def decide(self):
+        left_check = self._left.decide()
+        right_check = self._right.decide()
+        print(f"Checking and operator; left: {left_check}, right: {right_check}, result: {left_check and right_check}")
+        result = left_check and right_check
+        return result
+
+    def evaluate(self):
+        left_eval = self._left.evaluate()
+        right_eval = self._right.evaluate()
+        print(f"Evaluating and operator; left: {left_eval}, right: {right_eval}, result: {left_eval + right_eval}")
+        result = left_eval + right_eval
+        return result
+
+
+class SequentialOp(BinaryOperator):
+    _SYMBOL = "->"
+
+    def __init__(self, left: Operand, right: Operand) -> None:
+        super().__init__(left, right)
+
+    def decide(self):
+        first_result = self._left.decide()
+        after_result = self._right.decide()
+        print(f"Checking sequential operator; first: {first_result}, after: {after_result}")
+        return after_result
+
+    def evaluate(self):
+        first_evaluation = self._left.evaluate()
+        after_evaluation = self._right.evaluate()
+        print(f"Evaluating sequential operator; first: {first_evaluation}, after: {after_evaluation}")
+        return first_evaluation + after_evaluation if self._left.decide() else first_evaluation
+
+
+class Reach(AtomicAction):
+
+    # def __init__(self, g: Gripper, o: ObjectEntity):
+    def __init__(self):
+        self._g = Variable("gripper", Gripper)
+        self._o = Variable("object", ObjectEntity)
+        self._predicate = Near(self._g, self._o)
+
+    def bind(self, value: dict) -> None:
+        self._g.bind(value["gripper"])
+        self._o.bind(value["object"])
+
+    # def g(self):
+    #     return self._g()
+
+    # def o(self):
+    #     return self._o()
+
+    def __repr__(self) -> str:
+        return f"Reach({self.g}, {self.o})"
+
+
+EntityType = TypeVar("EntityType", bound=Entity)  # all subclasses of Entity
+OperatorType = TypeVar("OperatorType", bound=Operator, covariant=True)  # all subclasses of Operator
+PredicateType = TypeVar("PredicateType", bound=Operand, covariant=True)  # all subclasses of Predicate  #FIXME: maybe should be predicate?
+
+
+class RDDLParser:
+    pred_ex = re.compile(r'(?P<predicate>\w\S*)\(')
+    arg_ex = re.compile(r'(?P<args>\w\S*)(?P<end>\s*[,\)]\s*)')
+    var_ex = re.compile(r'(?P<var>\w\S*)\:(?P<type>\w\S*)(?P<end>\s*[,\)]\s*)')
+
+    def __init__(self, combinator_mapping: dict[str, type[OperatorType]], predicate_mapping: dict[str, type[PredicateType]], type_definitions: dict[str, type[EntityType]]):
+        self.combinator_mapping = combinator_mapping
+        self.predicate_mapping = predicate_mapping
+        self.type_definitions = type_definitions
+        self.all_ops = '|'.join([f'({op})' for op in combinator_mapping.keys()])
+        self.op_ex = re.compile(fr'\s*(?P<op>{self.all_ops})\s*')
+
+    def _get_operand(self, name) -> type[Operand]:
+        if name not in self.predicate_mapping:
+            raise ValueError(f"Unknown function {name}! The mapping provided does not define such function!")
+        return self.predicate_mapping[name]
+
+    def _get_operator(self, symbol) -> type[Operator]:
+        if symbol not in self.combinator_mapping:
+            raise ValueError(f"Unknown operator {symbol}! The mapping provided does not define such operator!")
+        return self.combinator_mapping[symbol]
+
+    @staticmethod
+    def match_and_trim(regex, text):
+        match = regex.match(text)
+        if match:
+            text = text[match.end():]
+        return match, text
+
+    @staticmethod
+    def match_predicate(text):
+        predicate, args = None, None
+        match, text = RDDLParser.match_and_trim(RDDLParser.pred_ex, text)
+        if match:
+            predicate = match.group('predicate')
+            args = []
+            while True:
+                match, text = RDDLParser.match_and_trim(RDDLParser.arg_ex, text)
+                if match:
+                    args.append(match.group('args'))
+                    if ")" in match.group('end'):
+                        break
+            print(f"{predicate}: {args}")
+        return predicate, args, text
+
+    # def create_predicate(self, predicate, args):
+    #     true_args = [self.entity_bindings[arg] for arg in args]
+    #     return self._get_function(predicate)(*true_args)
+
+    def create_predicate(self, predicate, args):
+        true_args = None  # [self.entity_bindings[arg] for arg in args]
+        return self._get_operand(predicate)(*true_args)
+
+    def parse_action_predicate(self, text):
+        expression_stack = deque()
+
+        while True:
+            predicate, args, text = RDDLParser.match_predicate(text)
+            if predicate:
+                current_predicate: Operand = self.create_predicate(predicate, args)
+                expression_stack.append(current_predicate)
+            else:
+                break
+
+    def parse(self, text):
+        expression_stack = deque()
+        operator_stack = deque()
+
+        while True:
+            predicate, args, text = RDDLParser.match_predicate(text)
+            if predicate:
+                current_predicate = self.create_predicate(predicate, args)
+                expression_stack.append(current_predicate)
+            else:
+                break
+            match, text = RDDLParser.match_and_trim(self.op_ex, text)
+            if match:
+                operator: type[Operator] = self._get_operator(match.group('op'))
+                operator_stack.append(operator)
+            else:
+                break
+
+        while operator_stack:
+            operator = operator_stack.popleft()
+            operands = [expression_stack.popleft() for _ in range(operator.ARITY)]
+            expression_stack.appendleft(operator(*operands))
+
+        full_expression = expression_stack.pop()
+        return full_expression
+
+
+class RDDL:
+
+    def __init__(self, combinator_mapping: dict[str, type[OperatorType]], predicate_mapping: dict[str, type[PredicateType]], type_definitions: dict[str, type[EntityType]]):
+        self._parser = RDDLParser(combinator_mapping, predicate_mapping, type_definitions)
+
+    def load_definitions(self, aa_definitions: dict[str, dict]):
+        for action_name, aa_def in aa_definitions.items():
+            if action_name in self._parser.predicate_mapping:
+                raise ValueError(f"The name {action_name} is already defined as a function!")
+            action = self._extract_action(action_name, aa_def)
+            self._parser.predicate_mapping[action_name] = action
+
+    def _extract_action(self, action_name: str, action_def: dict[str, dict[str, str]]) -> type[AtomicAction]:
+        if "predicate" not in action_def:
+            raise ValueError(f"Action {action_name} does not have a predicate!")
+        predicate = self._parser.parse_action_predicate(action_def["predicate"])
+
+        return type(action_name, (AtomicAction,), {
+            "_predicate": predicate,
+        })
+
+
+if __name__ == "__main__":
+    with open("../example_def.yaml", 'r') as f:
+        action_def_config = yaml.safe_load(f)
+
+    atomic_action_def = action_def_config["atomic_actions"]
+    tasks = action_def_config["tasks"]
+
+    rddl = RDDL(
+        combinator_mapping={
+            "&": AndOp,
+            "->": SequentialOp
+        },
+        predicate_mapping={
+            "reach": Reach
+        },
+        type_definitions={
+            "Gripper": Gripper,
+            "ObjectEntity": ObjectEntity,
+        }
+    )
+    rddl.load_definitions(atomic_action_def)
+
+    # gripper = Gripper()
+    # apple = ObjectEntity()
+    # loc = Location()
+    # action_pick_n_place = SequentialOp(
+    #     SequentialOp(
+    #         SequentialOp(
+    #             AndOp(
+    #                 Reach(gripper, apple),
+    #                 Grasp(gripper, apple)
+    #             ),
+    #             Move(apple, loc)
+    #         ),
+    #         Release(gripper, apple)
+    #     ),
+    #     Leave(gripper, apple)
+    # )
+    # action = "reach(gripper, apple) & grasp(gripper, apple) -> move(apple, loc) -> release(gripper, apple) -> leave(gripper, apple)"
+    # print(action_pick_n_place.decide())
+    # print(action_pick_n_place.evaluate())

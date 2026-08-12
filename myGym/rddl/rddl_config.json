@@ -1,0 +1,60 @@
+{
+    "env_name"  :"Gym-v0",
+    "workspace" :"table_complex",
+    "engine"    :"pybullet",
+    "render"    :"opengl",
+    "seed"      :1,
+    "camera"    :0,
+    "gui"       :0,
+    "visualize" :0,
+    "visgym"    :0,
+
+    "robot"         :"g1",
+    "robot_action"  :"joints_gripper",
+    "robot_init"    : "default",
+    "max_velocity": [0.2, 10.0],
+    "max_force": [20.0, 150.0],
+    "action_repeat" :1,
+    
+    "sequence_lengths": [2, 3, 4, 5],
+    "n_repeats": 10,
+    "allowed_actions": ["Approach", "Grasp", "Move", "Drop", "Withdraw"],
+    "allowed_entities": ["TiagoGripper", "Table", "apple"],
+    "allowed_predicates": ["GripperOpen", "Reachable", "OnTop", "Touching", "Near", "ObjectAt", "GripperAt", "IsHolding"],
+
+    "method": "one-shot",
+    "sample_single_object_per_class": false,
+    "action_weights": null,
+    "object_weights": {"apple": 2.0},
+    "weight_mode": [],
+    "add_robots": true,
+    "retry_ad_infinitum": true,
+
+    "task_type"             :"",
+    "natural_language"      :0,
+    "task_objects"          :[],
+    "predicates"            :[],
+    "color_dict"            : {},
+    "used_objects"          : {},
+
+    "observation"           : {"actual_state":"obj_6D", "goal_state":"obj_6D", "additional_obs":["endeff_6D","joints_angles","gjoints_angles","gjoints_states","init_6D"]},
+    "distractors"           : {"list":null, "moveable":1, "constant_speed":0, "movement_dims":3,
+                                       "movement_endpoints":[-0.3, 0.3, 0.4, 0.7, 0.1, 0.3]},
+    "distance_type" :"euclidean",
+    "vae_path"      :null,
+    "yolact_path"   :null,
+    "yolact_config" :null,
+
+    "train_framework"   :"pytorch",
+    "algo"              :"ppo",
+    "max_episode_steps" :1024,
+    "algo_steps"        :1024,
+    "steps"             :15000000,
+    "pretrained_model"  :null,
+    "multiprocessing"   :null,
+
+    "eval_freq"     :500000,
+    "eval_episodes" :50,
+
+    "record"    :0
+    }

@@ -1,0 +1,2195 @@
+metadata:
+  generated_at: '2026-07-16T18:52:10'
+  domain: testing_utils
+  method: one-shot
+  detail: detailed
+  seed: 42
+  sequence_lengths:
+  - 2
+  - 3
+  - 4
+  - 5
+  n_repeats: 10
+  n_samples: null
+  total_tasks: 40
+tasks:
+  2:
+  - action_list:
+    - Approach
+    - Withdraw
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1
+        object: entity_CerealBox_3
+        table: entity_Table_4
+      predicates:
+      - GripperAt(entity_TiagoGripper_1, entity_CerealBox_3) -> True
+      - GripperOpen(entity_TiagoGripper_1) -> True
+      - IsReachable(entity_TiagoGripper_1, entity_CerealBox_3) -> True
+      - OnTop(entity_CerealBox_3, entity_Table_4) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1
+        object: entity_CerealBox_3
+      predicates:
+      - GripperAt(entity_TiagoGripper_1, entity_CerealBox_3) -> False
+      - GripperOpen(entity_TiagoGripper_1) -> True
+      - IsReachable(entity_TiagoGripper_1, entity_CerealBox_3) -> True
+      - OnTop(entity_CerealBox_3, entity_Table_4) -> True
+    all_objects:
+      entity_TiagoGripper_1: TiagoGripper
+      entity_CerealBox_3: CerealBox
+      entity_Table_4: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_1, entity_CerealBox_3) -> False
+    - GripperOpen(entity_TiagoGripper_1) -> True
+    - IsReachable(entity_TiagoGripper_1, entity_CerealBox_3) -> True
+    - OnTop(entity_CerealBox_3, entity_Table_4) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_1, entity_CerealBox_3) -> False
+    - GripperOpen(entity_TiagoGripper_1) -> True
+    - IsReachable(entity_TiagoGripper_1, entity_CerealBox_3) -> True
+    - OnTop(entity_CerealBox_3, entity_Table_4) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_23
+        object: entity_CerealBox_25
+        table: entity_Table_26
+      predicates:
+      - GripperAt(entity_TiagoGripper_23, entity_CerealBox_25) -> True
+      - GripperOpen(entity_TiagoGripper_23) -> True
+      - IsReachable(entity_TiagoGripper_23, entity_CerealBox_25) -> True
+      - OnTop(entity_CerealBox_25, entity_Table_26) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_23
+        object: entity_CerealBox_25
+      predicates:
+      - GripperAt(entity_TiagoGripper_23, entity_CerealBox_25) -> True
+      - GripperOpen(entity_TiagoGripper_23) -> False
+      - IsHolding(entity_TiagoGripper_23, entity_CerealBox_25) -> True
+      - IsReachable(entity_TiagoGripper_23, entity_CerealBox_25) -> True
+      - OnTop(entity_CerealBox_25, entity_Table_26) -> True
+    all_objects:
+      entity_TiagoGripper_23: TiagoGripper
+      entity_CerealBox_25: CerealBox
+      entity_Table_26: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_23, entity_CerealBox_25) -> False
+    - GripperOpen(entity_TiagoGripper_23) -> True
+    - IsReachable(entity_TiagoGripper_23, entity_CerealBox_25) -> True
+    - OnTop(entity_CerealBox_25, entity_Table_26) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_23, entity_CerealBox_25) -> True
+    - GripperOpen(entity_TiagoGripper_23) -> False
+    - IsHolding(entity_TiagoGripper_23, entity_CerealBox_25) -> True
+    - IsReachable(entity_TiagoGripper_23, entity_CerealBox_25) -> True
+    - OnTop(entity_CerealBox_25, entity_Table_26) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_51
+        object: entity_Apple_53
+        table: entity_Table_54
+      predicates:
+      - GripperAt(entity_TiagoGripper_51, entity_Apple_53) -> True
+      - GripperOpen(entity_TiagoGripper_51) -> True
+      - IsReachable(entity_TiagoGripper_51, entity_Apple_53) -> True
+      - OnTop(entity_Apple_53, entity_Table_54) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_51
+        object: entity_Apple_53
+      predicates:
+      - GripperAt(entity_TiagoGripper_51, entity_Apple_53) -> False
+      - GripperOpen(entity_TiagoGripper_51) -> True
+      - IsReachable(entity_TiagoGripper_51, entity_Apple_53) -> True
+      - OnTop(entity_Apple_53, entity_Table_54) -> True
+    all_objects:
+      entity_TiagoGripper_51: TiagoGripper
+      entity_Apple_53: Apple
+      entity_Table_54: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_51, entity_Apple_53) -> False
+    - GripperOpen(entity_TiagoGripper_51) -> True
+    - IsReachable(entity_TiagoGripper_51, entity_Apple_53) -> True
+    - OnTop(entity_Apple_53, entity_Table_54) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_51, entity_Apple_53) -> False
+    - GripperOpen(entity_TiagoGripper_51) -> True
+    - IsReachable(entity_TiagoGripper_51, entity_Apple_53) -> True
+    - OnTop(entity_Apple_53, entity_Table_54) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_79
+        object: entity_CerealBox_81
+        table: entity_Table_82
+      predicates:
+      - GripperAt(entity_TiagoGripper_79, entity_CerealBox_81) -> True
+      - GripperOpen(entity_TiagoGripper_79) -> True
+      - IsReachable(entity_TiagoGripper_79, entity_CerealBox_81) -> True
+      - OnTop(entity_CerealBox_81, entity_Table_82) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_79
+        object: entity_CerealBox_81
+      predicates:
+      - GripperAt(entity_TiagoGripper_79, entity_CerealBox_81) -> False
+      - GripperOpen(entity_TiagoGripper_79) -> True
+      - IsReachable(entity_TiagoGripper_79, entity_CerealBox_81) -> True
+      - OnTop(entity_CerealBox_81, entity_Table_82) -> True
+    all_objects:
+      entity_TiagoGripper_79: TiagoGripper
+      entity_CerealBox_81: CerealBox
+      entity_Table_82: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_79, entity_CerealBox_81) -> False
+    - GripperOpen(entity_TiagoGripper_79) -> True
+    - IsReachable(entity_TiagoGripper_79, entity_CerealBox_81) -> True
+    - OnTop(entity_CerealBox_81, entity_Table_82) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_79, entity_CerealBox_81) -> False
+    - GripperOpen(entity_TiagoGripper_79) -> True
+    - IsReachable(entity_TiagoGripper_79, entity_CerealBox_81) -> True
+    - OnTop(entity_CerealBox_81, entity_Table_82) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_98
+        object: entity_Bowl_100
+        table: entity_Table_101
+      predicates:
+      - GripperAt(entity_TiagoGripper_98, entity_Bowl_100) -> True
+      - GripperOpen(entity_TiagoGripper_98) -> True
+      - IsReachable(entity_TiagoGripper_98, entity_Bowl_100) -> True
+      - OnTop(entity_Bowl_100, entity_Table_101) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_98
+        object: entity_Bowl_100
+      predicates:
+      - GripperAt(entity_TiagoGripper_98, entity_Bowl_100) -> False
+      - GripperOpen(entity_TiagoGripper_98) -> True
+      - IsReachable(entity_TiagoGripper_98, entity_Bowl_100) -> True
+      - OnTop(entity_Bowl_100, entity_Table_101) -> True
+    all_objects:
+      entity_TiagoGripper_98: TiagoGripper
+      entity_Bowl_100: Bowl
+      entity_Table_101: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_98, entity_Bowl_100) -> False
+    - GripperOpen(entity_TiagoGripper_98) -> True
+    - IsReachable(entity_TiagoGripper_98, entity_Bowl_100) -> True
+    - OnTop(entity_Bowl_100, entity_Table_101) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_98, entity_Bowl_100) -> False
+    - GripperOpen(entity_TiagoGripper_98) -> True
+    - IsReachable(entity_TiagoGripper_98, entity_Bowl_100) -> True
+    - OnTop(entity_Bowl_100, entity_Table_101) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_117
+        object: entity_CerealBox_119
+        table: entity_Table_120
+      predicates:
+      - GripperAt(entity_TiagoGripper_117, entity_CerealBox_119) -> True
+      - GripperOpen(entity_TiagoGripper_117) -> True
+      - IsReachable(entity_TiagoGripper_117, entity_CerealBox_119) -> True
+      - OnTop(entity_CerealBox_119, entity_Table_120) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_117
+        object: entity_CerealBox_119
+      predicates:
+      - GripperAt(entity_TiagoGripper_117, entity_CerealBox_119) -> False
+      - GripperOpen(entity_TiagoGripper_117) -> True
+      - IsReachable(entity_TiagoGripper_117, entity_CerealBox_119) -> True
+      - OnTop(entity_CerealBox_119, entity_Table_120) -> True
+    all_objects:
+      entity_TiagoGripper_117: TiagoGripper
+      entity_CerealBox_119: CerealBox
+      entity_Table_120: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_117, entity_CerealBox_119) -> False
+    - GripperOpen(entity_TiagoGripper_117) -> True
+    - IsReachable(entity_TiagoGripper_117, entity_CerealBox_119) -> True
+    - OnTop(entity_CerealBox_119, entity_Table_120) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_117, entity_CerealBox_119) -> False
+    - GripperOpen(entity_TiagoGripper_117) -> True
+    - IsReachable(entity_TiagoGripper_117, entity_CerealBox_119) -> True
+    - OnTop(entity_CerealBox_119, entity_Table_120) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_145
+        object: entity_Bowl_147
+        table: entity_Table_148
+      predicates:
+      - GripperAt(entity_TiagoGripper_145, entity_Bowl_147) -> True
+      - GripperOpen(entity_TiagoGripper_145) -> True
+      - IsReachable(entity_TiagoGripper_145, entity_Bowl_147) -> True
+      - OnTop(entity_Bowl_147, entity_Table_148) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_145
+        object: entity_Bowl_147
+      predicates:
+      - GripperAt(entity_TiagoGripper_145, entity_Bowl_147) -> True
+      - GripperOpen(entity_TiagoGripper_145) -> False
+      - IsHolding(entity_TiagoGripper_145, entity_Bowl_147) -> True
+      - IsReachable(entity_TiagoGripper_145, entity_Bowl_147) -> True
+      - OnTop(entity_Bowl_147, entity_Table_148) -> True
+    all_objects:
+      entity_TiagoGripper_145: TiagoGripper
+      entity_Bowl_147: Bowl
+      entity_Table_148: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_145, entity_Bowl_147) -> False
+    - GripperOpen(entity_TiagoGripper_145) -> True
+    - IsReachable(entity_TiagoGripper_145, entity_Bowl_147) -> True
+    - OnTop(entity_Bowl_147, entity_Table_148) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_145, entity_Bowl_147) -> True
+    - GripperOpen(entity_TiagoGripper_145) -> False
+    - IsHolding(entity_TiagoGripper_145, entity_Bowl_147) -> True
+    - IsReachable(entity_TiagoGripper_145, entity_Bowl_147) -> True
+    - OnTop(entity_Bowl_147, entity_Table_148) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_167
+        object: entity_Bowl_169
+        table: entity_Table_170
+      predicates:
+      - GripperAt(entity_TiagoGripper_167, entity_Bowl_169) -> True
+      - GripperOpen(entity_TiagoGripper_167) -> True
+      - IsReachable(entity_TiagoGripper_167, entity_Bowl_169) -> True
+      - OnTop(entity_Bowl_169, entity_Table_170) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_167
+        object: entity_Bowl_169
+      predicates:
+      - GripperAt(entity_TiagoGripper_167, entity_Bowl_169) -> False
+      - GripperOpen(entity_TiagoGripper_167) -> True
+      - IsReachable(entity_TiagoGripper_167, entity_Bowl_169) -> True
+      - OnTop(entity_Bowl_169, entity_Table_170) -> True
+    all_objects:
+      entity_TiagoGripper_167: TiagoGripper
+      entity_Bowl_169: Bowl
+      entity_Table_170: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_167, entity_Bowl_169) -> False
+    - GripperOpen(entity_TiagoGripper_167) -> True
+    - IsReachable(entity_TiagoGripper_167, entity_Bowl_169) -> True
+    - OnTop(entity_Bowl_169, entity_Table_170) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_167, entity_Bowl_169) -> False
+    - GripperOpen(entity_TiagoGripper_167) -> True
+    - IsReachable(entity_TiagoGripper_167, entity_Bowl_169) -> True
+    - OnTop(entity_Bowl_169, entity_Table_170) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_189
+        object: entity_Bowl_191
+        table: entity_Table_192
+      predicates:
+      - GripperAt(entity_TiagoGripper_189, entity_Bowl_191) -> True
+      - GripperOpen(entity_TiagoGripper_189) -> True
+      - IsReachable(entity_TiagoGripper_189, entity_Bowl_191) -> True
+      - OnTop(entity_Bowl_191, entity_Table_192) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_189
+        object: entity_Bowl_191
+      predicates:
+      - GripperAt(entity_TiagoGripper_189, entity_Bowl_191) -> False
+      - GripperOpen(entity_TiagoGripper_189) -> True
+      - IsReachable(entity_TiagoGripper_189, entity_Bowl_191) -> True
+      - OnTop(entity_Bowl_191, entity_Table_192) -> True
+    all_objects:
+      entity_TiagoGripper_189: TiagoGripper
+      entity_Bowl_191: Bowl
+      entity_Table_192: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_189, entity_Bowl_191) -> False
+    - GripperOpen(entity_TiagoGripper_189) -> True
+    - IsReachable(entity_TiagoGripper_189, entity_Bowl_191) -> True
+    - OnTop(entity_Bowl_191, entity_Table_192) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_189, entity_Bowl_191) -> False
+    - GripperOpen(entity_TiagoGripper_189) -> True
+    - IsReachable(entity_TiagoGripper_189, entity_Bowl_191) -> True
+    - OnTop(entity_Bowl_191, entity_Table_192) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_217
+        object: entity_CerealBox_219
+        table: entity_Table_220
+      predicates:
+      - GripperAt(entity_TiagoGripper_217, entity_CerealBox_219) -> True
+      - GripperOpen(entity_TiagoGripper_217) -> True
+      - IsReachable(entity_TiagoGripper_217, entity_CerealBox_219) -> True
+      - OnTop(entity_CerealBox_219, entity_Table_220) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_217
+        object: entity_CerealBox_219
+      predicates:
+      - GripperAt(entity_TiagoGripper_217, entity_CerealBox_219) -> False
+      - GripperOpen(entity_TiagoGripper_217) -> True
+      - IsReachable(entity_TiagoGripper_217, entity_CerealBox_219) -> True
+      - OnTop(entity_CerealBox_219, entity_Table_220) -> True
+    all_objects:
+      entity_TiagoGripper_217: TiagoGripper
+      entity_CerealBox_219: CerealBox
+      entity_Table_220: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_217, entity_CerealBox_219) -> False
+    - GripperOpen(entity_TiagoGripper_217) -> True
+    - IsReachable(entity_TiagoGripper_217, entity_CerealBox_219) -> True
+    - OnTop(entity_CerealBox_219, entity_Table_220) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_217, entity_CerealBox_219) -> False
+    - GripperOpen(entity_TiagoGripper_217) -> True
+    - IsReachable(entity_TiagoGripper_217, entity_CerealBox_219) -> True
+    - OnTop(entity_CerealBox_219, entity_Table_220) -> True
+  3:
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_236
+        object: entity_Apple_238
+        table: entity_Table_239
+      predicates:
+      - GripperAt(entity_TiagoGripper_236, entity_Apple_238) -> True
+      - GripperOpen(entity_TiagoGripper_236) -> True
+      - IsReachable(entity_TiagoGripper_236, entity_Apple_238) -> True
+      - OnTop(entity_Apple_238, entity_Table_239) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_236
+        object: entity_Apple_238
+      predicates:
+      - GripperAt(entity_TiagoGripper_236, entity_Apple_238) -> False
+      - GripperOpen(entity_TiagoGripper_236) -> True
+      - IsReachable(entity_TiagoGripper_236, entity_Apple_238) -> True
+      - OnTop(entity_Apple_238, entity_Table_239) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_236
+        object: entity_Apple_238
+        table: entity_Table_239
+      predicates:
+      - GripperAt(entity_TiagoGripper_236, entity_Apple_238) -> True
+      - GripperOpen(entity_TiagoGripper_236) -> True
+      - IsReachable(entity_TiagoGripper_236, entity_Apple_238) -> True
+      - OnTop(entity_Apple_238, entity_Table_239) -> True
+    all_objects:
+      entity_TiagoGripper_236: TiagoGripper
+      entity_Apple_238: Apple
+      entity_Table_239: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_236, entity_Apple_238) -> False
+    - GripperOpen(entity_TiagoGripper_236) -> True
+    - IsReachable(entity_TiagoGripper_236, entity_Apple_238) -> True
+    - OnTop(entity_Apple_238, entity_Table_239) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_236, entity_Apple_238) -> True
+    - GripperOpen(entity_TiagoGripper_236) -> True
+    - IsReachable(entity_TiagoGripper_236, entity_Apple_238) -> True
+    - OnTop(entity_Apple_238, entity_Table_239) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    - Drop
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_279
+        object: entity_CerealBox_281
+        table: entity_Table_282
+      predicates:
+      - GripperAt(entity_TiagoGripper_279, entity_CerealBox_281) -> True
+      - GripperOpen(entity_TiagoGripper_279) -> True
+      - IsReachable(entity_TiagoGripper_279, entity_CerealBox_281) -> True
+      - OnTop(entity_CerealBox_281, entity_Table_282) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_279
+        object: entity_CerealBox_281
+      predicates:
+      - GripperAt(entity_TiagoGripper_279, entity_CerealBox_281) -> True
+      - GripperOpen(entity_TiagoGripper_279) -> False
+      - IsHolding(entity_TiagoGripper_279, entity_CerealBox_281) -> True
+      - IsReachable(entity_TiagoGripper_279, entity_CerealBox_281) -> True
+      - OnTop(entity_CerealBox_281, entity_Table_282) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_279
+        object: entity_CerealBox_281
+      predicates:
+      - GripperAt(entity_TiagoGripper_279, entity_CerealBox_281) -> True
+      - GripperOpen(entity_TiagoGripper_279) -> True
+      - IsHolding(entity_TiagoGripper_279, entity_CerealBox_281) -> False
+      - IsReachable(entity_TiagoGripper_279, entity_CerealBox_281) -> True
+      - OnTop(entity_CerealBox_281, entity_Table_282) -> True
+    all_objects:
+      entity_TiagoGripper_279: TiagoGripper
+      entity_CerealBox_281: CerealBox
+      entity_Table_282: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_279, entity_CerealBox_281) -> False
+    - GripperOpen(entity_TiagoGripper_279) -> True
+    - IsReachable(entity_TiagoGripper_279, entity_CerealBox_281) -> True
+    - OnTop(entity_CerealBox_281, entity_Table_282) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_279, entity_CerealBox_281) -> True
+    - GripperOpen(entity_TiagoGripper_279) -> True
+    - IsHolding(entity_TiagoGripper_279, entity_CerealBox_281) -> False
+    - IsReachable(entity_TiagoGripper_279, entity_CerealBox_281) -> True
+    - OnTop(entity_CerealBox_281, entity_Table_282) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_319
+        object: entity_Bowl_321
+        table: entity_Table_322
+      predicates:
+      - GripperAt(entity_TiagoGripper_319, entity_Bowl_321) -> True
+      - GripperOpen(entity_TiagoGripper_319) -> True
+      - IsReachable(entity_TiagoGripper_319, entity_Bowl_321) -> True
+      - OnTop(entity_Bowl_321, entity_Table_322) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_319
+        object: entity_Bowl_321
+      predicates:
+      - GripperAt(entity_TiagoGripper_319, entity_Bowl_321) -> False
+      - GripperOpen(entity_TiagoGripper_319) -> True
+      - IsReachable(entity_TiagoGripper_319, entity_Bowl_321) -> True
+      - OnTop(entity_Bowl_321, entity_Table_322) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_319
+        object: entity_Bowl_321
+        table: entity_Table_322
+      predicates:
+      - GripperAt(entity_TiagoGripper_319, entity_Bowl_321) -> True
+      - GripperOpen(entity_TiagoGripper_319) -> True
+      - IsReachable(entity_TiagoGripper_319, entity_Bowl_321) -> True
+      - OnTop(entity_Bowl_321, entity_Table_322) -> True
+    all_objects:
+      entity_TiagoGripper_319: TiagoGripper
+      entity_Bowl_321: Bowl
+      entity_Table_322: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_319, entity_Bowl_321) -> False
+    - GripperOpen(entity_TiagoGripper_319) -> True
+    - IsReachable(entity_TiagoGripper_319, entity_Bowl_321) -> True
+    - OnTop(entity_Bowl_321, entity_Table_322) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_319, entity_Bowl_321) -> True
+    - GripperOpen(entity_TiagoGripper_319) -> True
+    - IsReachable(entity_TiagoGripper_319, entity_Bowl_321) -> True
+    - OnTop(entity_Bowl_321, entity_Table_322) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    - Drop
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_347
+        object: entity_Bowl_349
+        table: entity_Table_350
+      predicates:
+      - GripperAt(entity_TiagoGripper_347, entity_Bowl_349) -> True
+      - GripperOpen(entity_TiagoGripper_347) -> True
+      - IsReachable(entity_TiagoGripper_347, entity_Bowl_349) -> True
+      - OnTop(entity_Bowl_349, entity_Table_350) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_347
+        object: entity_Bowl_349
+      predicates:
+      - GripperAt(entity_TiagoGripper_347, entity_Bowl_349) -> True
+      - GripperOpen(entity_TiagoGripper_347) -> False
+      - IsHolding(entity_TiagoGripper_347, entity_Bowl_349) -> True
+      - IsReachable(entity_TiagoGripper_347, entity_Bowl_349) -> True
+      - OnTop(entity_Bowl_349, entity_Table_350) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_347
+        object: entity_Bowl_349
+      predicates:
+      - GripperAt(entity_TiagoGripper_347, entity_Bowl_349) -> True
+      - GripperOpen(entity_TiagoGripper_347) -> True
+      - IsHolding(entity_TiagoGripper_347, entity_Bowl_349) -> False
+      - IsReachable(entity_TiagoGripper_347, entity_Bowl_349) -> True
+      - OnTop(entity_Bowl_349, entity_Table_350) -> True
+    all_objects:
+      entity_TiagoGripper_347: TiagoGripper
+      entity_Bowl_349: Bowl
+      entity_Table_350: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_347, entity_Bowl_349) -> False
+    - GripperOpen(entity_TiagoGripper_347) -> True
+    - IsReachable(entity_TiagoGripper_347, entity_Bowl_349) -> True
+    - OnTop(entity_Bowl_349, entity_Table_350) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_347, entity_Bowl_349) -> True
+    - GripperOpen(entity_TiagoGripper_347) -> True
+    - IsHolding(entity_TiagoGripper_347, entity_Bowl_349) -> False
+    - IsReachable(entity_TiagoGripper_347, entity_Bowl_349) -> True
+    - OnTop(entity_Bowl_349, entity_Table_350) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_387
+        object: entity_CerealBox_389
+        table: entity_Table_390
+      predicates:
+      - GripperAt(entity_TiagoGripper_387, entity_CerealBox_389) -> True
+      - GripperOpen(entity_TiagoGripper_387) -> True
+      - IsReachable(entity_TiagoGripper_387, entity_CerealBox_389) -> True
+      - OnTop(entity_CerealBox_389, entity_Table_390) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_387
+        object: entity_CerealBox_389
+      predicates:
+      - GripperAt(entity_TiagoGripper_387, entity_CerealBox_389) -> False
+      - GripperOpen(entity_TiagoGripper_387) -> True
+      - IsReachable(entity_TiagoGripper_387, entity_CerealBox_389) -> True
+      - OnTop(entity_CerealBox_389, entity_Table_390) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_387
+        object: entity_CerealBox_389
+        table: entity_Table_390
+      predicates:
+      - GripperAt(entity_TiagoGripper_387, entity_CerealBox_389) -> True
+      - GripperOpen(entity_TiagoGripper_387) -> True
+      - IsReachable(entity_TiagoGripper_387, entity_CerealBox_389) -> True
+      - OnTop(entity_CerealBox_389, entity_Table_390) -> True
+    all_objects:
+      entity_TiagoGripper_387: TiagoGripper
+      entity_CerealBox_389: CerealBox
+      entity_Table_390: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_387, entity_CerealBox_389) -> False
+    - GripperOpen(entity_TiagoGripper_387) -> True
+    - IsReachable(entity_TiagoGripper_387, entity_CerealBox_389) -> True
+    - OnTop(entity_CerealBox_389, entity_Table_390) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_387, entity_CerealBox_389) -> True
+    - GripperOpen(entity_TiagoGripper_387) -> True
+    - IsReachable(entity_TiagoGripper_387, entity_CerealBox_389) -> True
+    - OnTop(entity_CerealBox_389, entity_Table_390) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_421
+        object: entity_Bowl_423
+        table: entity_Table_424
+      predicates:
+      - GripperAt(entity_TiagoGripper_421, entity_Bowl_423) -> True
+      - GripperOpen(entity_TiagoGripper_421) -> True
+      - IsReachable(entity_TiagoGripper_421, entity_Bowl_423) -> True
+      - OnTop(entity_Bowl_423, entity_Table_424) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_421
+        object: entity_Bowl_423
+      predicates:
+      - GripperAt(entity_TiagoGripper_421, entity_Bowl_423) -> False
+      - GripperOpen(entity_TiagoGripper_421) -> True
+      - IsReachable(entity_TiagoGripper_421, entity_Bowl_423) -> True
+      - OnTop(entity_Bowl_423, entity_Table_424) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_421
+        object: entity_Bowl_423
+        table: entity_Table_424
+      predicates:
+      - GripperAt(entity_TiagoGripper_421, entity_Bowl_423) -> True
+      - GripperOpen(entity_TiagoGripper_421) -> True
+      - IsReachable(entity_TiagoGripper_421, entity_Bowl_423) -> True
+      - OnTop(entity_Bowl_423, entity_Table_424) -> True
+    all_objects:
+      entity_TiagoGripper_421: TiagoGripper
+      entity_Bowl_423: Bowl
+      entity_Table_424: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_421, entity_Bowl_423) -> False
+    - GripperOpen(entity_TiagoGripper_421) -> True
+    - IsReachable(entity_TiagoGripper_421, entity_Bowl_423) -> True
+    - OnTop(entity_Bowl_423, entity_Table_424) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_421, entity_Bowl_423) -> True
+    - GripperOpen(entity_TiagoGripper_421) -> True
+    - IsReachable(entity_TiagoGripper_421, entity_Bowl_423) -> True
+    - OnTop(entity_Bowl_423, entity_Table_424) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    - Drop
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_449
+        object: entity_Bowl_451
+        table: entity_Table_452
+      predicates:
+      - GripperAt(entity_TiagoGripper_449, entity_Bowl_451) -> True
+      - GripperOpen(entity_TiagoGripper_449) -> True
+      - IsReachable(entity_TiagoGripper_449, entity_Bowl_451) -> True
+      - OnTop(entity_Bowl_451, entity_Table_452) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_449
+        object: entity_Bowl_451
+      predicates:
+      - GripperAt(entity_TiagoGripper_449, entity_Bowl_451) -> True
+      - GripperOpen(entity_TiagoGripper_449) -> False
+      - IsHolding(entity_TiagoGripper_449, entity_Bowl_451) -> True
+      - IsReachable(entity_TiagoGripper_449, entity_Bowl_451) -> True
+      - OnTop(entity_Bowl_451, entity_Table_452) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_449
+        object: entity_Bowl_451
+      predicates:
+      - GripperAt(entity_TiagoGripper_449, entity_Bowl_451) -> True
+      - GripperOpen(entity_TiagoGripper_449) -> True
+      - IsHolding(entity_TiagoGripper_449, entity_Bowl_451) -> False
+      - IsReachable(entity_TiagoGripper_449, entity_Bowl_451) -> True
+      - OnTop(entity_Bowl_451, entity_Table_452) -> True
+    all_objects:
+      entity_TiagoGripper_449: TiagoGripper
+      entity_Bowl_451: Bowl
+      entity_Table_452: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_449, entity_Bowl_451) -> False
+    - GripperOpen(entity_TiagoGripper_449) -> True
+    - IsReachable(entity_TiagoGripper_449, entity_Bowl_451) -> True
+    - OnTop(entity_Bowl_451, entity_Table_452) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_449, entity_Bowl_451) -> True
+    - GripperOpen(entity_TiagoGripper_449) -> True
+    - IsHolding(entity_TiagoGripper_449, entity_Bowl_451) -> False
+    - IsReachable(entity_TiagoGripper_449, entity_Bowl_451) -> True
+    - OnTop(entity_Bowl_451, entity_Table_452) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    - Drop
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_486
+        object: entity_CerealBox_488
+        table: entity_Table_489
+      predicates:
+      - GripperAt(entity_TiagoGripper_486, entity_CerealBox_488) -> True
+      - GripperOpen(entity_TiagoGripper_486) -> True
+      - IsReachable(entity_TiagoGripper_486, entity_CerealBox_488) -> True
+      - OnTop(entity_CerealBox_488, entity_Table_489) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_486
+        object: entity_CerealBox_488
+      predicates:
+      - GripperAt(entity_TiagoGripper_486, entity_CerealBox_488) -> True
+      - GripperOpen(entity_TiagoGripper_486) -> False
+      - IsHolding(entity_TiagoGripper_486, entity_CerealBox_488) -> True
+      - IsReachable(entity_TiagoGripper_486, entity_CerealBox_488) -> True
+      - OnTop(entity_CerealBox_488, entity_Table_489) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_486
+        object: entity_CerealBox_488
+      predicates:
+      - GripperAt(entity_TiagoGripper_486, entity_CerealBox_488) -> True
+      - GripperOpen(entity_TiagoGripper_486) -> True
+      - IsHolding(entity_TiagoGripper_486, entity_CerealBox_488) -> False
+      - IsReachable(entity_TiagoGripper_486, entity_CerealBox_488) -> True
+      - OnTop(entity_CerealBox_488, entity_Table_489) -> True
+    all_objects:
+      entity_TiagoGripper_486: TiagoGripper
+      entity_CerealBox_488: CerealBox
+      entity_Table_489: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_486, entity_CerealBox_488) -> False
+    - GripperOpen(entity_TiagoGripper_486) -> True
+    - IsReachable(entity_TiagoGripper_486, entity_CerealBox_488) -> True
+    - OnTop(entity_CerealBox_488, entity_Table_489) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_486, entity_CerealBox_488) -> True
+    - GripperOpen(entity_TiagoGripper_486) -> True
+    - IsHolding(entity_TiagoGripper_486, entity_CerealBox_488) -> False
+    - IsReachable(entity_TiagoGripper_486, entity_CerealBox_488) -> True
+    - OnTop(entity_CerealBox_488, entity_Table_489) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    - Drop
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_523
+        object: entity_Apple_525
+        table: entity_Table_526
+      predicates:
+      - GripperAt(entity_TiagoGripper_523, entity_Apple_525) -> True
+      - GripperOpen(entity_TiagoGripper_523) -> True
+      - IsReachable(entity_TiagoGripper_523, entity_Apple_525) -> True
+      - OnTop(entity_Apple_525, entity_Table_526) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_523
+        object: entity_Apple_525
+      predicates:
+      - GripperAt(entity_TiagoGripper_523, entity_Apple_525) -> True
+      - GripperOpen(entity_TiagoGripper_523) -> False
+      - IsHolding(entity_TiagoGripper_523, entity_Apple_525) -> True
+      - IsReachable(entity_TiagoGripper_523, entity_Apple_525) -> True
+      - OnTop(entity_Apple_525, entity_Table_526) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_523
+        object: entity_Apple_525
+      predicates:
+      - GripperAt(entity_TiagoGripper_523, entity_Apple_525) -> True
+      - GripperOpen(entity_TiagoGripper_523) -> True
+      - IsHolding(entity_TiagoGripper_523, entity_Apple_525) -> False
+      - IsReachable(entity_TiagoGripper_523, entity_Apple_525) -> True
+      - OnTop(entity_Apple_525, entity_Table_526) -> True
+    all_objects:
+      entity_TiagoGripper_523: TiagoGripper
+      entity_Apple_525: Apple
+      entity_Table_526: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_523, entity_Apple_525) -> False
+    - GripperOpen(entity_TiagoGripper_523) -> True
+    - IsReachable(entity_TiagoGripper_523, entity_Apple_525) -> True
+    - OnTop(entity_Apple_525, entity_Table_526) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_523, entity_Apple_525) -> True
+    - GripperOpen(entity_TiagoGripper_523) -> True
+    - IsHolding(entity_TiagoGripper_523, entity_Apple_525) -> False
+    - IsReachable(entity_TiagoGripper_523, entity_Apple_525) -> True
+    - OnTop(entity_Apple_525, entity_Table_526) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_563
+        object: entity_CerealBox_565
+        table: entity_Table_566
+      predicates:
+      - GripperAt(entity_TiagoGripper_563, entity_CerealBox_565) -> True
+      - GripperOpen(entity_TiagoGripper_563) -> True
+      - IsReachable(entity_TiagoGripper_563, entity_CerealBox_565) -> True
+      - OnTop(entity_CerealBox_565, entity_Table_566) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_563
+        object: entity_CerealBox_565
+      predicates:
+      - GripperAt(entity_TiagoGripper_563, entity_CerealBox_565) -> False
+      - GripperOpen(entity_TiagoGripper_563) -> True
+      - IsReachable(entity_TiagoGripper_563, entity_CerealBox_565) -> True
+      - OnTop(entity_CerealBox_565, entity_Table_566) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_563
+        object: entity_CerealBox_565
+        table: entity_Table_566
+      predicates:
+      - GripperAt(entity_TiagoGripper_563, entity_CerealBox_565) -> True
+      - GripperOpen(entity_TiagoGripper_563) -> True
+      - IsReachable(entity_TiagoGripper_563, entity_CerealBox_565) -> True
+      - OnTop(entity_CerealBox_565, entity_Table_566) -> True
+    all_objects:
+      entity_TiagoGripper_563: TiagoGripper
+      entity_CerealBox_565: CerealBox
+      entity_Table_566: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_563, entity_CerealBox_565) -> False
+    - GripperOpen(entity_TiagoGripper_563) -> True
+    - IsReachable(entity_TiagoGripper_563, entity_CerealBox_565) -> True
+    - OnTop(entity_CerealBox_565, entity_Table_566) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_563, entity_CerealBox_565) -> True
+    - GripperOpen(entity_TiagoGripper_563) -> True
+    - IsReachable(entity_TiagoGripper_563, entity_CerealBox_565) -> True
+    - OnTop(entity_CerealBox_565, entity_Table_566) -> True
+  4:
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    - Grasp
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_600
+        object: entity_CerealBox_602
+        table: entity_Table_603
+      predicates:
+      - GripperAt(entity_TiagoGripper_600, entity_CerealBox_602) -> True
+      - GripperOpen(entity_TiagoGripper_600) -> True
+      - IsReachable(entity_TiagoGripper_600, entity_CerealBox_602) -> True
+      - OnTop(entity_CerealBox_602, entity_Table_603) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_600
+        object: entity_CerealBox_602
+      predicates:
+      - GripperAt(entity_TiagoGripper_600, entity_CerealBox_602) -> False
+      - GripperOpen(entity_TiagoGripper_600) -> True
+      - IsReachable(entity_TiagoGripper_600, entity_CerealBox_602) -> True
+      - OnTop(entity_CerealBox_602, entity_Table_603) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_600
+        object: entity_CerealBox_602
+        table: entity_Table_603
+      predicates:
+      - GripperAt(entity_TiagoGripper_600, entity_CerealBox_602) -> True
+      - GripperOpen(entity_TiagoGripper_600) -> True
+      - IsReachable(entity_TiagoGripper_600, entity_CerealBox_602) -> True
+      - OnTop(entity_CerealBox_602, entity_Table_603) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_600
+        object: entity_CerealBox_602
+      predicates:
+      - GripperAt(entity_TiagoGripper_600, entity_CerealBox_602) -> True
+      - GripperOpen(entity_TiagoGripper_600) -> False
+      - IsHolding(entity_TiagoGripper_600, entity_CerealBox_602) -> True
+      - IsReachable(entity_TiagoGripper_600, entity_CerealBox_602) -> True
+      - OnTop(entity_CerealBox_602, entity_Table_603) -> True
+    all_objects:
+      entity_TiagoGripper_600: TiagoGripper
+      entity_CerealBox_602: CerealBox
+      entity_Table_603: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_600, entity_CerealBox_602) -> False
+    - GripperOpen(entity_TiagoGripper_600) -> True
+    - IsReachable(entity_TiagoGripper_600, entity_CerealBox_602) -> True
+    - OnTop(entity_CerealBox_602, entity_Table_603) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_600, entity_CerealBox_602) -> True
+    - GripperOpen(entity_TiagoGripper_600) -> False
+    - IsHolding(entity_TiagoGripper_600, entity_CerealBox_602) -> True
+    - IsReachable(entity_TiagoGripper_600, entity_CerealBox_602) -> True
+    - OnTop(entity_CerealBox_602, entity_Table_603) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    - Drop
+    - Grasp
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_646
+        object: entity_Bowl_648
+        table: entity_Table_649
+      predicates:
+      - GripperAt(entity_TiagoGripper_646, entity_Bowl_648) -> True
+      - GripperOpen(entity_TiagoGripper_646) -> True
+      - IsReachable(entity_TiagoGripper_646, entity_Bowl_648) -> True
+      - OnTop(entity_Bowl_648, entity_Table_649) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_646
+        object: entity_Bowl_648
+      predicates:
+      - GripperAt(entity_TiagoGripper_646, entity_Bowl_648) -> True
+      - GripperOpen(entity_TiagoGripper_646) -> False
+      - IsHolding(entity_TiagoGripper_646, entity_Bowl_648) -> True
+      - IsReachable(entity_TiagoGripper_646, entity_Bowl_648) -> True
+      - OnTop(entity_Bowl_648, entity_Table_649) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_646
+        object: entity_Bowl_648
+      predicates:
+      - GripperAt(entity_TiagoGripper_646, entity_Bowl_648) -> True
+      - GripperOpen(entity_TiagoGripper_646) -> True
+      - IsHolding(entity_TiagoGripper_646, entity_Bowl_648) -> False
+      - IsReachable(entity_TiagoGripper_646, entity_Bowl_648) -> True
+      - OnTop(entity_Bowl_648, entity_Table_649) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_646
+        object: entity_Bowl_648
+      predicates:
+      - GripperAt(entity_TiagoGripper_646, entity_Bowl_648) -> True
+      - GripperOpen(entity_TiagoGripper_646) -> False
+      - IsHolding(entity_TiagoGripper_646, entity_Bowl_648) -> True
+      - IsReachable(entity_TiagoGripper_646, entity_Bowl_648) -> True
+      - OnTop(entity_Bowl_648, entity_Table_649) -> True
+    all_objects:
+      entity_TiagoGripper_646: TiagoGripper
+      entity_Bowl_648: Bowl
+      entity_Table_649: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_646, entity_Bowl_648) -> False
+    - GripperOpen(entity_TiagoGripper_646) -> True
+    - IsReachable(entity_TiagoGripper_646, entity_Bowl_648) -> True
+    - OnTop(entity_Bowl_648, entity_Table_649) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_646, entity_Bowl_648) -> True
+    - GripperOpen(entity_TiagoGripper_646) -> False
+    - IsHolding(entity_TiagoGripper_646, entity_Bowl_648) -> True
+    - IsReachable(entity_TiagoGripper_646, entity_Bowl_648) -> True
+    - OnTop(entity_Bowl_648, entity_Table_649) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    - Grasp
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_695
+        object: entity_Bowl_697
+        table: entity_Table_698
+      predicates:
+      - GripperAt(entity_TiagoGripper_695, entity_Bowl_697) -> True
+      - GripperOpen(entity_TiagoGripper_695) -> True
+      - IsReachable(entity_TiagoGripper_695, entity_Bowl_697) -> True
+      - OnTop(entity_Bowl_697, entity_Table_698) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_695
+        object: entity_Bowl_697
+      predicates:
+      - GripperAt(entity_TiagoGripper_695, entity_Bowl_697) -> False
+      - GripperOpen(entity_TiagoGripper_695) -> True
+      - IsReachable(entity_TiagoGripper_695, entity_Bowl_697) -> True
+      - OnTop(entity_Bowl_697, entity_Table_698) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_695
+        object: entity_Bowl_697
+        table: entity_Table_698
+      predicates:
+      - GripperAt(entity_TiagoGripper_695, entity_Bowl_697) -> True
+      - GripperOpen(entity_TiagoGripper_695) -> True
+      - IsReachable(entity_TiagoGripper_695, entity_Bowl_697) -> True
+      - OnTop(entity_Bowl_697, entity_Table_698) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_695
+        object: entity_Bowl_697
+      predicates:
+      - GripperAt(entity_TiagoGripper_695, entity_Bowl_697) -> True
+      - GripperOpen(entity_TiagoGripper_695) -> False
+      - IsHolding(entity_TiagoGripper_695, entity_Bowl_697) -> True
+      - IsReachable(entity_TiagoGripper_695, entity_Bowl_697) -> True
+      - OnTop(entity_Bowl_697, entity_Table_698) -> True
+    all_objects:
+      entity_TiagoGripper_695: TiagoGripper
+      entity_Bowl_697: Bowl
+      entity_Table_698: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_695, entity_Bowl_697) -> False
+    - GripperOpen(entity_TiagoGripper_695) -> True
+    - IsReachable(entity_TiagoGripper_695, entity_Bowl_697) -> True
+    - OnTop(entity_Bowl_697, entity_Table_698) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_695, entity_Bowl_697) -> True
+    - GripperOpen(entity_TiagoGripper_695) -> False
+    - IsHolding(entity_TiagoGripper_695, entity_Bowl_697) -> True
+    - IsReachable(entity_TiagoGripper_695, entity_Bowl_697) -> True
+    - OnTop(entity_Bowl_697, entity_Table_698) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    - Grasp
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_741
+        object: entity_Bowl_743
+        table: entity_Table_744
+      predicates:
+      - GripperAt(entity_TiagoGripper_741, entity_Bowl_743) -> True
+      - GripperOpen(entity_TiagoGripper_741) -> True
+      - IsReachable(entity_TiagoGripper_741, entity_Bowl_743) -> True
+      - OnTop(entity_Bowl_743, entity_Table_744) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_741
+        object: entity_Bowl_743
+      predicates:
+      - GripperAt(entity_TiagoGripper_741, entity_Bowl_743) -> False
+      - GripperOpen(entity_TiagoGripper_741) -> True
+      - IsReachable(entity_TiagoGripper_741, entity_Bowl_743) -> True
+      - OnTop(entity_Bowl_743, entity_Table_744) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_741
+        object: entity_Bowl_743
+        table: entity_Table_744
+      predicates:
+      - GripperAt(entity_TiagoGripper_741, entity_Bowl_743) -> True
+      - GripperOpen(entity_TiagoGripper_741) -> True
+      - IsReachable(entity_TiagoGripper_741, entity_Bowl_743) -> True
+      - OnTop(entity_Bowl_743, entity_Table_744) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_741
+        object: entity_Bowl_743
+      predicates:
+      - GripperAt(entity_TiagoGripper_741, entity_Bowl_743) -> True
+      - GripperOpen(entity_TiagoGripper_741) -> False
+      - IsHolding(entity_TiagoGripper_741, entity_Bowl_743) -> True
+      - IsReachable(entity_TiagoGripper_741, entity_Bowl_743) -> True
+      - OnTop(entity_Bowl_743, entity_Table_744) -> True
+    all_objects:
+      entity_TiagoGripper_741: TiagoGripper
+      entity_Bowl_743: Bowl
+      entity_Table_744: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_741, entity_Bowl_743) -> False
+    - GripperOpen(entity_TiagoGripper_741) -> True
+    - IsReachable(entity_TiagoGripper_741, entity_Bowl_743) -> True
+    - OnTop(entity_Bowl_743, entity_Table_744) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_741, entity_Bowl_743) -> True
+    - GripperOpen(entity_TiagoGripper_741) -> False
+    - IsHolding(entity_TiagoGripper_741, entity_Bowl_743) -> True
+    - IsReachable(entity_TiagoGripper_741, entity_Bowl_743) -> True
+    - OnTop(entity_Bowl_743, entity_Table_744) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    - Drop
+    - Grasp
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_784
+        object: entity_Bowl_786
+        table: entity_Table_787
+      predicates:
+      - GripperAt(entity_TiagoGripper_784, entity_Bowl_786) -> True
+      - GripperOpen(entity_TiagoGripper_784) -> True
+      - IsReachable(entity_TiagoGripper_784, entity_Bowl_786) -> True
+      - OnTop(entity_Bowl_786, entity_Table_787) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_784
+        object: entity_Bowl_786
+      predicates:
+      - GripperAt(entity_TiagoGripper_784, entity_Bowl_786) -> True
+      - GripperOpen(entity_TiagoGripper_784) -> False
+      - IsHolding(entity_TiagoGripper_784, entity_Bowl_786) -> True
+      - IsReachable(entity_TiagoGripper_784, entity_Bowl_786) -> True
+      - OnTop(entity_Bowl_786, entity_Table_787) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_784
+        object: entity_Bowl_786
+      predicates:
+      - GripperAt(entity_TiagoGripper_784, entity_Bowl_786) -> True
+      - GripperOpen(entity_TiagoGripper_784) -> True
+      - IsHolding(entity_TiagoGripper_784, entity_Bowl_786) -> False
+      - IsReachable(entity_TiagoGripper_784, entity_Bowl_786) -> True
+      - OnTop(entity_Bowl_786, entity_Table_787) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_784
+        object: entity_Bowl_786
+      predicates:
+      - GripperAt(entity_TiagoGripper_784, entity_Bowl_786) -> True
+      - GripperOpen(entity_TiagoGripper_784) -> False
+      - IsHolding(entity_TiagoGripper_784, entity_Bowl_786) -> True
+      - IsReachable(entity_TiagoGripper_784, entity_Bowl_786) -> True
+      - OnTop(entity_Bowl_786, entity_Table_787) -> True
+    all_objects:
+      entity_TiagoGripper_784: TiagoGripper
+      entity_Bowl_786: Bowl
+      entity_Table_787: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_784, entity_Bowl_786) -> False
+    - GripperOpen(entity_TiagoGripper_784) -> True
+    - IsReachable(entity_TiagoGripper_784, entity_Bowl_786) -> True
+    - OnTop(entity_Bowl_786, entity_Table_787) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_784, entity_Bowl_786) -> True
+    - GripperOpen(entity_TiagoGripper_784) -> False
+    - IsHolding(entity_TiagoGripper_784, entity_Bowl_786) -> True
+    - IsReachable(entity_TiagoGripper_784, entity_Bowl_786) -> True
+    - OnTop(entity_Bowl_786, entity_Table_787) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    - Grasp
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_827
+        object: entity_CerealBox_829
+        table: entity_Table_830
+      predicates:
+      - GripperAt(entity_TiagoGripper_827, entity_CerealBox_829) -> True
+      - GripperOpen(entity_TiagoGripper_827) -> True
+      - IsReachable(entity_TiagoGripper_827, entity_CerealBox_829) -> True
+      - OnTop(entity_CerealBox_829, entity_Table_830) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_827
+        object: entity_CerealBox_829
+      predicates:
+      - GripperAt(entity_TiagoGripper_827, entity_CerealBox_829) -> False
+      - GripperOpen(entity_TiagoGripper_827) -> True
+      - IsReachable(entity_TiagoGripper_827, entity_CerealBox_829) -> True
+      - OnTop(entity_CerealBox_829, entity_Table_830) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_827
+        object: entity_CerealBox_829
+        table: entity_Table_830
+      predicates:
+      - GripperAt(entity_TiagoGripper_827, entity_CerealBox_829) -> True
+      - GripperOpen(entity_TiagoGripper_827) -> True
+      - IsReachable(entity_TiagoGripper_827, entity_CerealBox_829) -> True
+      - OnTop(entity_CerealBox_829, entity_Table_830) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_827
+        object: entity_CerealBox_829
+      predicates:
+      - GripperAt(entity_TiagoGripper_827, entity_CerealBox_829) -> True
+      - GripperOpen(entity_TiagoGripper_827) -> False
+      - IsHolding(entity_TiagoGripper_827, entity_CerealBox_829) -> True
+      - IsReachable(entity_TiagoGripper_827, entity_CerealBox_829) -> True
+      - OnTop(entity_CerealBox_829, entity_Table_830) -> True
+    all_objects:
+      entity_TiagoGripper_827: TiagoGripper
+      entity_CerealBox_829: CerealBox
+      entity_Table_830: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_827, entity_CerealBox_829) -> False
+    - GripperOpen(entity_TiagoGripper_827) -> True
+    - IsReachable(entity_TiagoGripper_827, entity_CerealBox_829) -> True
+    - OnTop(entity_CerealBox_829, entity_Table_830) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_827, entity_CerealBox_829) -> True
+    - GripperOpen(entity_TiagoGripper_827) -> False
+    - IsHolding(entity_TiagoGripper_827, entity_CerealBox_829) -> True
+    - IsReachable(entity_TiagoGripper_827, entity_CerealBox_829) -> True
+    - OnTop(entity_CerealBox_829, entity_Table_830) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    - Grasp
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_870
+        object: entity_Bowl_872
+        table: entity_Table_873
+      predicates:
+      - GripperAt(entity_TiagoGripper_870, entity_Bowl_872) -> True
+      - GripperOpen(entity_TiagoGripper_870) -> True
+      - IsReachable(entity_TiagoGripper_870, entity_Bowl_872) -> True
+      - OnTop(entity_Bowl_872, entity_Table_873) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_870
+        object: entity_Bowl_872
+      predicates:
+      - GripperAt(entity_TiagoGripper_870, entity_Bowl_872) -> False
+      - GripperOpen(entity_TiagoGripper_870) -> True
+      - IsReachable(entity_TiagoGripper_870, entity_Bowl_872) -> True
+      - OnTop(entity_Bowl_872, entity_Table_873) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_870
+        object: entity_Bowl_872
+        table: entity_Table_873
+      predicates:
+      - GripperAt(entity_TiagoGripper_870, entity_Bowl_872) -> True
+      - GripperOpen(entity_TiagoGripper_870) -> True
+      - IsReachable(entity_TiagoGripper_870, entity_Bowl_872) -> True
+      - OnTop(entity_Bowl_872, entity_Table_873) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_870
+        object: entity_Bowl_872
+      predicates:
+      - GripperAt(entity_TiagoGripper_870, entity_Bowl_872) -> True
+      - GripperOpen(entity_TiagoGripper_870) -> False
+      - IsHolding(entity_TiagoGripper_870, entity_Bowl_872) -> True
+      - IsReachable(entity_TiagoGripper_870, entity_Bowl_872) -> True
+      - OnTop(entity_Bowl_872, entity_Table_873) -> True
+    all_objects:
+      entity_TiagoGripper_870: TiagoGripper
+      entity_Bowl_872: Bowl
+      entity_Table_873: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_870, entity_Bowl_872) -> False
+    - GripperOpen(entity_TiagoGripper_870) -> True
+    - IsReachable(entity_TiagoGripper_870, entity_Bowl_872) -> True
+    - OnTop(entity_Bowl_872, entity_Table_873) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_870, entity_Bowl_872) -> True
+    - GripperOpen(entity_TiagoGripper_870) -> False
+    - IsHolding(entity_TiagoGripper_870, entity_Bowl_872) -> True
+    - IsReachable(entity_TiagoGripper_870, entity_Bowl_872) -> True
+    - OnTop(entity_Bowl_872, entity_Table_873) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    - Drop
+    - Grasp
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_919
+        object: entity_Bowl_921
+        table: entity_Table_922
+      predicates:
+      - GripperAt(entity_TiagoGripper_919, entity_Bowl_921) -> True
+      - GripperOpen(entity_TiagoGripper_919) -> True
+      - IsReachable(entity_TiagoGripper_919, entity_Bowl_921) -> True
+      - OnTop(entity_Bowl_921, entity_Table_922) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_919
+        object: entity_Bowl_921
+      predicates:
+      - GripperAt(entity_TiagoGripper_919, entity_Bowl_921) -> True
+      - GripperOpen(entity_TiagoGripper_919) -> False
+      - IsHolding(entity_TiagoGripper_919, entity_Bowl_921) -> True
+      - IsReachable(entity_TiagoGripper_919, entity_Bowl_921) -> True
+      - OnTop(entity_Bowl_921, entity_Table_922) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_919
+        object: entity_Bowl_921
+      predicates:
+      - GripperAt(entity_TiagoGripper_919, entity_Bowl_921) -> True
+      - GripperOpen(entity_TiagoGripper_919) -> True
+      - IsHolding(entity_TiagoGripper_919, entity_Bowl_921) -> False
+      - IsReachable(entity_TiagoGripper_919, entity_Bowl_921) -> True
+      - OnTop(entity_Bowl_921, entity_Table_922) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_919
+        object: entity_Bowl_921
+      predicates:
+      - GripperAt(entity_TiagoGripper_919, entity_Bowl_921) -> True
+      - GripperOpen(entity_TiagoGripper_919) -> False
+      - IsHolding(entity_TiagoGripper_919, entity_Bowl_921) -> True
+      - IsReachable(entity_TiagoGripper_919, entity_Bowl_921) -> True
+      - OnTop(entity_Bowl_921, entity_Table_922) -> True
+    all_objects:
+      entity_TiagoGripper_919: TiagoGripper
+      entity_Bowl_921: Bowl
+      entity_Table_922: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_919, entity_Bowl_921) -> False
+    - GripperOpen(entity_TiagoGripper_919) -> True
+    - IsReachable(entity_TiagoGripper_919, entity_Bowl_921) -> True
+    - OnTop(entity_Bowl_921, entity_Table_922) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_919, entity_Bowl_921) -> True
+    - GripperOpen(entity_TiagoGripper_919) -> False
+    - IsHolding(entity_TiagoGripper_919, entity_Bowl_921) -> True
+    - IsReachable(entity_TiagoGripper_919, entity_Bowl_921) -> True
+    - OnTop(entity_Bowl_921, entity_Table_922) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    - Drop
+    - Grasp
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_953
+        object: entity_Apple_955
+        table: entity_Table_956
+      predicates:
+      - GripperAt(entity_TiagoGripper_953, entity_Apple_955) -> True
+      - GripperOpen(entity_TiagoGripper_953) -> True
+      - IsReachable(entity_TiagoGripper_953, entity_Apple_955) -> True
+      - OnTop(entity_Apple_955, entity_Table_956) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_953
+        object: entity_Apple_955
+      predicates:
+      - GripperAt(entity_TiagoGripper_953, entity_Apple_955) -> True
+      - GripperOpen(entity_TiagoGripper_953) -> False
+      - IsHolding(entity_TiagoGripper_953, entity_Apple_955) -> True
+      - IsReachable(entity_TiagoGripper_953, entity_Apple_955) -> True
+      - OnTop(entity_Apple_955, entity_Table_956) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_953
+        object: entity_Apple_955
+      predicates:
+      - GripperAt(entity_TiagoGripper_953, entity_Apple_955) -> True
+      - GripperOpen(entity_TiagoGripper_953) -> True
+      - IsHolding(entity_TiagoGripper_953, entity_Apple_955) -> False
+      - IsReachable(entity_TiagoGripper_953, entity_Apple_955) -> True
+      - OnTop(entity_Apple_955, entity_Table_956) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_953
+        object: entity_Apple_955
+      predicates:
+      - GripperAt(entity_TiagoGripper_953, entity_Apple_955) -> True
+      - GripperOpen(entity_TiagoGripper_953) -> False
+      - IsHolding(entity_TiagoGripper_953, entity_Apple_955) -> True
+      - IsReachable(entity_TiagoGripper_953, entity_Apple_955) -> True
+      - OnTop(entity_Apple_955, entity_Table_956) -> True
+    all_objects:
+      entity_TiagoGripper_953: TiagoGripper
+      entity_Apple_955: Apple
+      entity_Table_956: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_953, entity_Apple_955) -> False
+    - GripperOpen(entity_TiagoGripper_953) -> True
+    - IsReachable(entity_TiagoGripper_953, entity_Apple_955) -> True
+    - OnTop(entity_Apple_955, entity_Table_956) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_953, entity_Apple_955) -> True
+    - GripperOpen(entity_TiagoGripper_953) -> False
+    - IsHolding(entity_TiagoGripper_953, entity_Apple_955) -> True
+    - IsReachable(entity_TiagoGripper_953, entity_Apple_955) -> True
+    - OnTop(entity_Apple_955, entity_Table_956) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    - Drop
+    - Grasp
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_999
+        object: entity_Apple_1001
+        table: entity_Table_1002
+      predicates:
+      - GripperAt(entity_TiagoGripper_999, entity_Apple_1001) -> True
+      - GripperOpen(entity_TiagoGripper_999) -> True
+      - IsReachable(entity_TiagoGripper_999, entity_Apple_1001) -> True
+      - OnTop(entity_Apple_1001, entity_Table_1002) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_999
+        object: entity_Apple_1001
+      predicates:
+      - GripperAt(entity_TiagoGripper_999, entity_Apple_1001) -> True
+      - GripperOpen(entity_TiagoGripper_999) -> False
+      - IsHolding(entity_TiagoGripper_999, entity_Apple_1001) -> True
+      - IsReachable(entity_TiagoGripper_999, entity_Apple_1001) -> True
+      - OnTop(entity_Apple_1001, entity_Table_1002) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_999
+        object: entity_Apple_1001
+      predicates:
+      - GripperAt(entity_TiagoGripper_999, entity_Apple_1001) -> True
+      - GripperOpen(entity_TiagoGripper_999) -> True
+      - IsHolding(entity_TiagoGripper_999, entity_Apple_1001) -> False
+      - IsReachable(entity_TiagoGripper_999, entity_Apple_1001) -> True
+      - OnTop(entity_Apple_1001, entity_Table_1002) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_999
+        object: entity_Apple_1001
+      predicates:
+      - GripperAt(entity_TiagoGripper_999, entity_Apple_1001) -> True
+      - GripperOpen(entity_TiagoGripper_999) -> False
+      - IsHolding(entity_TiagoGripper_999, entity_Apple_1001) -> True
+      - IsReachable(entity_TiagoGripper_999, entity_Apple_1001) -> True
+      - OnTop(entity_Apple_1001, entity_Table_1002) -> True
+    all_objects:
+      entity_TiagoGripper_999: TiagoGripper
+      entity_Apple_1001: Apple
+      entity_Table_1002: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_999, entity_Apple_1001) -> False
+    - GripperOpen(entity_TiagoGripper_999) -> True
+    - IsReachable(entity_TiagoGripper_999, entity_Apple_1001) -> True
+    - OnTop(entity_Apple_1001, entity_Table_1002) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_999, entity_Apple_1001) -> True
+    - GripperOpen(entity_TiagoGripper_999) -> False
+    - IsHolding(entity_TiagoGripper_999, entity_Apple_1001) -> True
+    - IsReachable(entity_TiagoGripper_999, entity_Apple_1001) -> True
+    - OnTop(entity_Apple_1001, entity_Table_1002) -> True
+  5:
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    - Grasp
+    - Drop
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1051
+        object: entity_CerealBox_1053
+        table: entity_Table_1054
+      predicates:
+      - GripperAt(entity_TiagoGripper_1051, entity_CerealBox_1053) -> True
+      - GripperOpen(entity_TiagoGripper_1051) -> True
+      - IsReachable(entity_TiagoGripper_1051, entity_CerealBox_1053) -> True
+      - OnTop(entity_CerealBox_1053, entity_Table_1054) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1051
+        object: entity_CerealBox_1053
+      predicates:
+      - GripperAt(entity_TiagoGripper_1051, entity_CerealBox_1053) -> False
+      - GripperOpen(entity_TiagoGripper_1051) -> True
+      - IsReachable(entity_TiagoGripper_1051, entity_CerealBox_1053) -> True
+      - OnTop(entity_CerealBox_1053, entity_Table_1054) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1051
+        object: entity_CerealBox_1053
+        table: entity_Table_1054
+      predicates:
+      - GripperAt(entity_TiagoGripper_1051, entity_CerealBox_1053) -> True
+      - GripperOpen(entity_TiagoGripper_1051) -> True
+      - IsReachable(entity_TiagoGripper_1051, entity_CerealBox_1053) -> True
+      - OnTop(entity_CerealBox_1053, entity_Table_1054) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1051
+        object: entity_CerealBox_1053
+      predicates:
+      - GripperAt(entity_TiagoGripper_1051, entity_CerealBox_1053) -> True
+      - GripperOpen(entity_TiagoGripper_1051) -> False
+      - IsHolding(entity_TiagoGripper_1051, entity_CerealBox_1053) -> True
+      - IsReachable(entity_TiagoGripper_1051, entity_CerealBox_1053) -> True
+      - OnTop(entity_CerealBox_1053, entity_Table_1054) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1051
+        object: entity_CerealBox_1053
+      predicates:
+      - GripperAt(entity_TiagoGripper_1051, entity_CerealBox_1053) -> True
+      - GripperOpen(entity_TiagoGripper_1051) -> True
+      - IsHolding(entity_TiagoGripper_1051, entity_CerealBox_1053) -> False
+      - IsReachable(entity_TiagoGripper_1051, entity_CerealBox_1053) -> True
+      - OnTop(entity_CerealBox_1053, entity_Table_1054) -> True
+    all_objects:
+      entity_TiagoGripper_1051: TiagoGripper
+      entity_CerealBox_1053: CerealBox
+      entity_Table_1054: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_1051, entity_CerealBox_1053) -> False
+    - GripperOpen(entity_TiagoGripper_1051) -> True
+    - IsReachable(entity_TiagoGripper_1051, entity_CerealBox_1053) -> True
+    - OnTop(entity_CerealBox_1053, entity_Table_1054) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_1051, entity_CerealBox_1053) -> True
+    - GripperOpen(entity_TiagoGripper_1051) -> True
+    - IsHolding(entity_TiagoGripper_1051, entity_CerealBox_1053) -> False
+    - IsReachable(entity_TiagoGripper_1051, entity_CerealBox_1053) -> True
+    - OnTop(entity_CerealBox_1053, entity_Table_1054) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    - Grasp
+    - Drop
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1106
+        object: entity_Bowl_1108
+        table: entity_Table_1109
+      predicates:
+      - GripperAt(entity_TiagoGripper_1106, entity_Bowl_1108) -> True
+      - GripperOpen(entity_TiagoGripper_1106) -> True
+      - IsReachable(entity_TiagoGripper_1106, entity_Bowl_1108) -> True
+      - OnTop(entity_Bowl_1108, entity_Table_1109) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1106
+        object: entity_Bowl_1108
+      predicates:
+      - GripperAt(entity_TiagoGripper_1106, entity_Bowl_1108) -> False
+      - GripperOpen(entity_TiagoGripper_1106) -> True
+      - IsReachable(entity_TiagoGripper_1106, entity_Bowl_1108) -> True
+      - OnTop(entity_Bowl_1108, entity_Table_1109) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1106
+        object: entity_Bowl_1108
+        table: entity_Table_1109
+      predicates:
+      - GripperAt(entity_TiagoGripper_1106, entity_Bowl_1108) -> True
+      - GripperOpen(entity_TiagoGripper_1106) -> True
+      - IsReachable(entity_TiagoGripper_1106, entity_Bowl_1108) -> True
+      - OnTop(entity_Bowl_1108, entity_Table_1109) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1106
+        object: entity_Bowl_1108
+      predicates:
+      - GripperAt(entity_TiagoGripper_1106, entity_Bowl_1108) -> True
+      - GripperOpen(entity_TiagoGripper_1106) -> False
+      - IsHolding(entity_TiagoGripper_1106, entity_Bowl_1108) -> True
+      - IsReachable(entity_TiagoGripper_1106, entity_Bowl_1108) -> True
+      - OnTop(entity_Bowl_1108, entity_Table_1109) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1106
+        object: entity_Bowl_1108
+      predicates:
+      - GripperAt(entity_TiagoGripper_1106, entity_Bowl_1108) -> True
+      - GripperOpen(entity_TiagoGripper_1106) -> True
+      - IsHolding(entity_TiagoGripper_1106, entity_Bowl_1108) -> False
+      - IsReachable(entity_TiagoGripper_1106, entity_Bowl_1108) -> True
+      - OnTop(entity_Bowl_1108, entity_Table_1109) -> True
+    all_objects:
+      entity_TiagoGripper_1106: TiagoGripper
+      entity_Bowl_1108: Bowl
+      entity_Table_1109: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_1106, entity_Bowl_1108) -> False
+    - GripperOpen(entity_TiagoGripper_1106) -> True
+    - IsReachable(entity_TiagoGripper_1106, entity_Bowl_1108) -> True
+    - OnTop(entity_Bowl_1108, entity_Table_1109) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_1106, entity_Bowl_1108) -> True
+    - GripperOpen(entity_TiagoGripper_1106) -> True
+    - IsHolding(entity_TiagoGripper_1106, entity_Bowl_1108) -> False
+    - IsReachable(entity_TiagoGripper_1106, entity_Bowl_1108) -> True
+    - OnTop(entity_Bowl_1108, entity_Table_1109) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    - Drop
+    - Withdraw
+    - Approach
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1170
+        object: entity_CerealBox_1172
+        table: entity_Table_1173
+      predicates:
+      - GripperAt(entity_TiagoGripper_1170, entity_CerealBox_1172) -> True
+      - GripperOpen(entity_TiagoGripper_1170) -> True
+      - IsReachable(entity_TiagoGripper_1170, entity_CerealBox_1172) -> True
+      - OnTop(entity_CerealBox_1172, entity_Table_1173) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1170
+        object: entity_CerealBox_1172
+      predicates:
+      - GripperAt(entity_TiagoGripper_1170, entity_CerealBox_1172) -> True
+      - GripperOpen(entity_TiagoGripper_1170) -> False
+      - IsHolding(entity_TiagoGripper_1170, entity_CerealBox_1172) -> True
+      - IsReachable(entity_TiagoGripper_1170, entity_CerealBox_1172) -> True
+      - OnTop(entity_CerealBox_1172, entity_Table_1173) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1170
+        object: entity_CerealBox_1172
+      predicates:
+      - GripperAt(entity_TiagoGripper_1170, entity_CerealBox_1172) -> True
+      - GripperOpen(entity_TiagoGripper_1170) -> True
+      - IsHolding(entity_TiagoGripper_1170, entity_CerealBox_1172) -> False
+      - IsReachable(entity_TiagoGripper_1170, entity_CerealBox_1172) -> True
+      - OnTop(entity_CerealBox_1172, entity_Table_1173) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1170
+        object: entity_CerealBox_1172
+      predicates:
+      - GripperAt(entity_TiagoGripper_1170, entity_CerealBox_1172) -> False
+      - GripperOpen(entity_TiagoGripper_1170) -> True
+      - IsHolding(entity_TiagoGripper_1170, entity_CerealBox_1172) -> False
+      - IsReachable(entity_TiagoGripper_1170, entity_CerealBox_1172) -> True
+      - OnTop(entity_CerealBox_1172, entity_Table_1173) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1170
+        object: entity_CerealBox_1172
+        table: entity_Table_1173
+      predicates:
+      - GripperAt(entity_TiagoGripper_1170, entity_CerealBox_1172) -> True
+      - GripperOpen(entity_TiagoGripper_1170) -> True
+      - IsHolding(entity_TiagoGripper_1170, entity_CerealBox_1172) -> False
+      - IsReachable(entity_TiagoGripper_1170, entity_CerealBox_1172) -> True
+      - OnTop(entity_CerealBox_1172, entity_Table_1173) -> True
+    all_objects:
+      entity_TiagoGripper_1170: TiagoGripper
+      entity_CerealBox_1172: CerealBox
+      entity_Table_1173: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_1170, entity_CerealBox_1172) -> False
+    - GripperOpen(entity_TiagoGripper_1170) -> True
+    - IsReachable(entity_TiagoGripper_1170, entity_CerealBox_1172) -> True
+    - OnTop(entity_CerealBox_1172, entity_Table_1173) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_1170, entity_CerealBox_1172) -> True
+    - GripperOpen(entity_TiagoGripper_1170) -> True
+    - IsHolding(entity_TiagoGripper_1170, entity_CerealBox_1172) -> False
+    - IsReachable(entity_TiagoGripper_1170, entity_CerealBox_1172) -> True
+    - OnTop(entity_CerealBox_1172, entity_Table_1173) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    - Withdraw
+    - Approach
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1219
+        object: entity_Bowl_1221
+        table: entity_Table_1222
+      predicates:
+      - GripperAt(entity_TiagoGripper_1219, entity_Bowl_1221) -> True
+      - GripperOpen(entity_TiagoGripper_1219) -> True
+      - IsReachable(entity_TiagoGripper_1219, entity_Bowl_1221) -> True
+      - OnTop(entity_Bowl_1221, entity_Table_1222) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1219
+        object: entity_Bowl_1221
+      predicates:
+      - GripperAt(entity_TiagoGripper_1219, entity_Bowl_1221) -> False
+      - GripperOpen(entity_TiagoGripper_1219) -> True
+      - IsReachable(entity_TiagoGripper_1219, entity_Bowl_1221) -> True
+      - OnTop(entity_Bowl_1221, entity_Table_1222) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1219
+        object: entity_Bowl_1221
+        table: entity_Table_1222
+      predicates:
+      - GripperAt(entity_TiagoGripper_1219, entity_Bowl_1221) -> True
+      - GripperOpen(entity_TiagoGripper_1219) -> True
+      - IsReachable(entity_TiagoGripper_1219, entity_Bowl_1221) -> True
+      - OnTop(entity_Bowl_1221, entity_Table_1222) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1219
+        object: entity_Bowl_1221
+      predicates:
+      - GripperAt(entity_TiagoGripper_1219, entity_Bowl_1221) -> False
+      - GripperOpen(entity_TiagoGripper_1219) -> True
+      - IsReachable(entity_TiagoGripper_1219, entity_Bowl_1221) -> True
+      - OnTop(entity_Bowl_1221, entity_Table_1222) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1219
+        object: entity_Bowl_1221
+        table: entity_Table_1222
+      predicates:
+      - GripperAt(entity_TiagoGripper_1219, entity_Bowl_1221) -> True
+      - GripperOpen(entity_TiagoGripper_1219) -> True
+      - IsReachable(entity_TiagoGripper_1219, entity_Bowl_1221) -> True
+      - OnTop(entity_Bowl_1221, entity_Table_1222) -> True
+    all_objects:
+      entity_TiagoGripper_1219: TiagoGripper
+      entity_Bowl_1221: Bowl
+      entity_Table_1222: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_1219, entity_Bowl_1221) -> False
+    - GripperOpen(entity_TiagoGripper_1219) -> True
+    - IsReachable(entity_TiagoGripper_1219, entity_Bowl_1221) -> True
+    - OnTop(entity_Bowl_1221, entity_Table_1222) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_1219, entity_Bowl_1221) -> True
+    - GripperOpen(entity_TiagoGripper_1219) -> True
+    - IsReachable(entity_TiagoGripper_1219, entity_Bowl_1221) -> True
+    - OnTop(entity_Bowl_1221, entity_Table_1222) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    - Grasp
+    - Drop
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1274
+        object: entity_Apple_1276
+        table: entity_Table_1277
+      predicates:
+      - GripperAt(entity_TiagoGripper_1274, entity_Apple_1276) -> True
+      - GripperOpen(entity_TiagoGripper_1274) -> True
+      - IsReachable(entity_TiagoGripper_1274, entity_Apple_1276) -> True
+      - OnTop(entity_Apple_1276, entity_Table_1277) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1274
+        object: entity_Apple_1276
+      predicates:
+      - GripperAt(entity_TiagoGripper_1274, entity_Apple_1276) -> False
+      - GripperOpen(entity_TiagoGripper_1274) -> True
+      - IsReachable(entity_TiagoGripper_1274, entity_Apple_1276) -> True
+      - OnTop(entity_Apple_1276, entity_Table_1277) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1274
+        object: entity_Apple_1276
+        table: entity_Table_1277
+      predicates:
+      - GripperAt(entity_TiagoGripper_1274, entity_Apple_1276) -> True
+      - GripperOpen(entity_TiagoGripper_1274) -> True
+      - IsReachable(entity_TiagoGripper_1274, entity_Apple_1276) -> True
+      - OnTop(entity_Apple_1276, entity_Table_1277) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1274
+        object: entity_Apple_1276
+      predicates:
+      - GripperAt(entity_TiagoGripper_1274, entity_Apple_1276) -> True
+      - GripperOpen(entity_TiagoGripper_1274) -> False
+      - IsHolding(entity_TiagoGripper_1274, entity_Apple_1276) -> True
+      - IsReachable(entity_TiagoGripper_1274, entity_Apple_1276) -> True
+      - OnTop(entity_Apple_1276, entity_Table_1277) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1274
+        object: entity_Apple_1276
+      predicates:
+      - GripperAt(entity_TiagoGripper_1274, entity_Apple_1276) -> True
+      - GripperOpen(entity_TiagoGripper_1274) -> True
+      - IsHolding(entity_TiagoGripper_1274, entity_Apple_1276) -> False
+      - IsReachable(entity_TiagoGripper_1274, entity_Apple_1276) -> True
+      - OnTop(entity_Apple_1276, entity_Table_1277) -> True
+    all_objects:
+      entity_TiagoGripper_1274: TiagoGripper
+      entity_Apple_1276: Apple
+      entity_Table_1277: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_1274, entity_Apple_1276) -> False
+    - GripperOpen(entity_TiagoGripper_1274) -> True
+    - IsReachable(entity_TiagoGripper_1274, entity_Apple_1276) -> True
+    - OnTop(entity_Apple_1276, entity_Table_1277) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_1274, entity_Apple_1276) -> True
+    - GripperOpen(entity_TiagoGripper_1274) -> True
+    - IsHolding(entity_TiagoGripper_1274, entity_Apple_1276) -> False
+    - IsReachable(entity_TiagoGripper_1274, entity_Apple_1276) -> True
+    - OnTop(entity_Apple_1276, entity_Table_1277) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    - Drop
+    - Withdraw
+    - Approach
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1329
+        object: entity_CerealBox_1331
+        table: entity_Table_1332
+      predicates:
+      - GripperAt(entity_TiagoGripper_1329, entity_CerealBox_1331) -> True
+      - GripperOpen(entity_TiagoGripper_1329) -> True
+      - IsReachable(entity_TiagoGripper_1329, entity_CerealBox_1331) -> True
+      - OnTop(entity_CerealBox_1331, entity_Table_1332) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1329
+        object: entity_CerealBox_1331
+      predicates:
+      - GripperAt(entity_TiagoGripper_1329, entity_CerealBox_1331) -> True
+      - GripperOpen(entity_TiagoGripper_1329) -> False
+      - IsHolding(entity_TiagoGripper_1329, entity_CerealBox_1331) -> True
+      - IsReachable(entity_TiagoGripper_1329, entity_CerealBox_1331) -> True
+      - OnTop(entity_CerealBox_1331, entity_Table_1332) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1329
+        object: entity_CerealBox_1331
+      predicates:
+      - GripperAt(entity_TiagoGripper_1329, entity_CerealBox_1331) -> True
+      - GripperOpen(entity_TiagoGripper_1329) -> True
+      - IsHolding(entity_TiagoGripper_1329, entity_CerealBox_1331) -> False
+      - IsReachable(entity_TiagoGripper_1329, entity_CerealBox_1331) -> True
+      - OnTop(entity_CerealBox_1331, entity_Table_1332) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1329
+        object: entity_CerealBox_1331
+      predicates:
+      - GripperAt(entity_TiagoGripper_1329, entity_CerealBox_1331) -> False
+      - GripperOpen(entity_TiagoGripper_1329) -> True
+      - IsHolding(entity_TiagoGripper_1329, entity_CerealBox_1331) -> False
+      - IsReachable(entity_TiagoGripper_1329, entity_CerealBox_1331) -> True
+      - OnTop(entity_CerealBox_1331, entity_Table_1332) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1329
+        object: entity_CerealBox_1331
+        table: entity_Table_1332
+      predicates:
+      - GripperAt(entity_TiagoGripper_1329, entity_CerealBox_1331) -> True
+      - GripperOpen(entity_TiagoGripper_1329) -> True
+      - IsHolding(entity_TiagoGripper_1329, entity_CerealBox_1331) -> False
+      - IsReachable(entity_TiagoGripper_1329, entity_CerealBox_1331) -> True
+      - OnTop(entity_CerealBox_1331, entity_Table_1332) -> True
+    all_objects:
+      entity_TiagoGripper_1329: TiagoGripper
+      entity_CerealBox_1331: CerealBox
+      entity_Table_1332: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_1329, entity_CerealBox_1331) -> False
+    - GripperOpen(entity_TiagoGripper_1329) -> True
+    - IsReachable(entity_TiagoGripper_1329, entity_CerealBox_1331) -> True
+    - OnTop(entity_CerealBox_1331, entity_Table_1332) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_1329, entity_CerealBox_1331) -> True
+    - GripperOpen(entity_TiagoGripper_1329) -> True
+    - IsHolding(entity_TiagoGripper_1329, entity_CerealBox_1331) -> False
+    - IsReachable(entity_TiagoGripper_1329, entity_CerealBox_1331) -> True
+    - OnTop(entity_CerealBox_1331, entity_Table_1332) -> True
+  - action_list:
+    - Approach
+    - Grasp
+    - Drop
+    - Grasp
+    - Drop
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1396
+        object: entity_Apple_1398
+        table: entity_Table_1399
+      predicates:
+      - GripperAt(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+      - GripperOpen(entity_TiagoGripper_1396) -> True
+      - IsReachable(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+      - OnTop(entity_Apple_1398, entity_Table_1399) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1396
+        object: entity_Apple_1398
+      predicates:
+      - GripperAt(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+      - GripperOpen(entity_TiagoGripper_1396) -> False
+      - IsHolding(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+      - IsReachable(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+      - OnTop(entity_Apple_1398, entity_Table_1399) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1396
+        object: entity_Apple_1398
+      predicates:
+      - GripperAt(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+      - GripperOpen(entity_TiagoGripper_1396) -> True
+      - IsHolding(entity_TiagoGripper_1396, entity_Apple_1398) -> False
+      - IsReachable(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+      - OnTop(entity_Apple_1398, entity_Table_1399) -> True
+    - action: 'Grasp(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1396
+        object: entity_Apple_1398
+      predicates:
+      - GripperAt(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+      - GripperOpen(entity_TiagoGripper_1396) -> False
+      - IsHolding(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+      - IsReachable(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+      - OnTop(entity_Apple_1398, entity_Table_1399) -> True
+    - action: 'Drop(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1396
+        object: entity_Apple_1398
+      predicates:
+      - GripperAt(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+      - GripperOpen(entity_TiagoGripper_1396) -> True
+      - IsHolding(entity_TiagoGripper_1396, entity_Apple_1398) -> False
+      - IsReachable(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+      - OnTop(entity_Apple_1398, entity_Table_1399) -> True
+    all_objects:
+      entity_TiagoGripper_1396: TiagoGripper
+      entity_Apple_1398: Apple
+      entity_Table_1399: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_1396, entity_Apple_1398) -> False
+    - GripperOpen(entity_TiagoGripper_1396) -> True
+    - IsReachable(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+    - OnTop(entity_Apple_1398, entity_Table_1399) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+    - GripperOpen(entity_TiagoGripper_1396) -> True
+    - IsHolding(entity_TiagoGripper_1396, entity_Apple_1398) -> False
+    - IsReachable(entity_TiagoGripper_1396, entity_Apple_1398) -> True
+    - OnTop(entity_Apple_1398, entity_Table_1399) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    - Withdraw
+    - Approach
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1454
+        object: entity_Bowl_1456
+        table: entity_Table_1457
+      predicates:
+      - GripperAt(entity_TiagoGripper_1454, entity_Bowl_1456) -> True
+      - GripperOpen(entity_TiagoGripper_1454) -> True
+      - IsReachable(entity_TiagoGripper_1454, entity_Bowl_1456) -> True
+      - OnTop(entity_Bowl_1456, entity_Table_1457) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1454
+        object: entity_Bowl_1456
+      predicates:
+      - GripperAt(entity_TiagoGripper_1454, entity_Bowl_1456) -> False
+      - GripperOpen(entity_TiagoGripper_1454) -> True
+      - IsReachable(entity_TiagoGripper_1454, entity_Bowl_1456) -> True
+      - OnTop(entity_Bowl_1456, entity_Table_1457) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1454
+        object: entity_Bowl_1456
+        table: entity_Table_1457
+      predicates:
+      - GripperAt(entity_TiagoGripper_1454, entity_Bowl_1456) -> True
+      - GripperOpen(entity_TiagoGripper_1454) -> True
+      - IsReachable(entity_TiagoGripper_1454, entity_Bowl_1456) -> True
+      - OnTop(entity_Bowl_1456, entity_Table_1457) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1454
+        object: entity_Bowl_1456
+      predicates:
+      - GripperAt(entity_TiagoGripper_1454, entity_Bowl_1456) -> False
+      - GripperOpen(entity_TiagoGripper_1454) -> True
+      - IsReachable(entity_TiagoGripper_1454, entity_Bowl_1456) -> True
+      - OnTop(entity_Bowl_1456, entity_Table_1457) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1454
+        object: entity_Bowl_1456
+        table: entity_Table_1457
+      predicates:
+      - GripperAt(entity_TiagoGripper_1454, entity_Bowl_1456) -> True
+      - GripperOpen(entity_TiagoGripper_1454) -> True
+      - IsReachable(entity_TiagoGripper_1454, entity_Bowl_1456) -> True
+      - OnTop(entity_Bowl_1456, entity_Table_1457) -> True
+    all_objects:
+      entity_TiagoGripper_1454: TiagoGripper
+      entity_Bowl_1456: Bowl
+      entity_Table_1457: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_1454, entity_Bowl_1456) -> False
+    - GripperOpen(entity_TiagoGripper_1454) -> True
+    - IsReachable(entity_TiagoGripper_1454, entity_Bowl_1456) -> True
+    - OnTop(entity_Bowl_1456, entity_Table_1457) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_1454, entity_Bowl_1456) -> True
+    - GripperOpen(entity_TiagoGripper_1454) -> True
+    - IsReachable(entity_TiagoGripper_1454, entity_Bowl_1456) -> True
+    - OnTop(entity_Bowl_1456, entity_Table_1457) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    - Withdraw
+    - Approach
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1509
+        object: entity_Bowl_1511
+        table: entity_Table_1512
+      predicates:
+      - GripperAt(entity_TiagoGripper_1509, entity_Bowl_1511) -> True
+      - GripperOpen(entity_TiagoGripper_1509) -> True
+      - IsReachable(entity_TiagoGripper_1509, entity_Bowl_1511) -> True
+      - OnTop(entity_Bowl_1511, entity_Table_1512) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1509
+        object: entity_Bowl_1511
+      predicates:
+      - GripperAt(entity_TiagoGripper_1509, entity_Bowl_1511) -> False
+      - GripperOpen(entity_TiagoGripper_1509) -> True
+      - IsReachable(entity_TiagoGripper_1509, entity_Bowl_1511) -> True
+      - OnTop(entity_Bowl_1511, entity_Table_1512) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1509
+        object: entity_Bowl_1511
+        table: entity_Table_1512
+      predicates:
+      - GripperAt(entity_TiagoGripper_1509, entity_Bowl_1511) -> True
+      - GripperOpen(entity_TiagoGripper_1509) -> True
+      - IsReachable(entity_TiagoGripper_1509, entity_Bowl_1511) -> True
+      - OnTop(entity_Bowl_1511, entity_Table_1512) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1509
+        object: entity_Bowl_1511
+      predicates:
+      - GripperAt(entity_TiagoGripper_1509, entity_Bowl_1511) -> False
+      - GripperOpen(entity_TiagoGripper_1509) -> True
+      - IsReachable(entity_TiagoGripper_1509, entity_Bowl_1511) -> True
+      - OnTop(entity_Bowl_1511, entity_Table_1512) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1509
+        object: entity_Bowl_1511
+        table: entity_Table_1512
+      predicates:
+      - GripperAt(entity_TiagoGripper_1509, entity_Bowl_1511) -> True
+      - GripperOpen(entity_TiagoGripper_1509) -> True
+      - IsReachable(entity_TiagoGripper_1509, entity_Bowl_1511) -> True
+      - OnTop(entity_Bowl_1511, entity_Table_1512) -> True
+    all_objects:
+      entity_TiagoGripper_1509: TiagoGripper
+      entity_Bowl_1511: Bowl
+      entity_Table_1512: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_1509, entity_Bowl_1511) -> False
+    - GripperOpen(entity_TiagoGripper_1509) -> True
+    - IsReachable(entity_TiagoGripper_1509, entity_Bowl_1511) -> True
+    - OnTop(entity_Bowl_1511, entity_Table_1512) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_1509, entity_Bowl_1511) -> True
+    - GripperOpen(entity_TiagoGripper_1509) -> True
+    - IsReachable(entity_TiagoGripper_1509, entity_Bowl_1511) -> True
+    - OnTop(entity_Bowl_1511, entity_Table_1512) -> True
+  - action_list:
+    - Approach
+    - Withdraw
+    - Approach
+    - Withdraw
+    - Approach
+    sequence:
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1564
+        object: entity_CerealBox_1566
+        table: entity_Table_1567
+      predicates:
+      - GripperAt(entity_TiagoGripper_1564, entity_CerealBox_1566) -> True
+      - GripperOpen(entity_TiagoGripper_1564) -> True
+      - IsReachable(entity_TiagoGripper_1564, entity_CerealBox_1566) -> True
+      - OnTop(entity_CerealBox_1566, entity_Table_1567) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1564
+        object: entity_CerealBox_1566
+      predicates:
+      - GripperAt(entity_TiagoGripper_1564, entity_CerealBox_1566) -> False
+      - GripperOpen(entity_TiagoGripper_1564) -> True
+      - IsReachable(entity_TiagoGripper_1564, entity_CerealBox_1566) -> True
+      - OnTop(entity_CerealBox_1566, entity_Table_1567) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1564
+        object: entity_CerealBox_1566
+        table: entity_Table_1567
+      predicates:
+      - GripperAt(entity_TiagoGripper_1564, entity_CerealBox_1566) -> True
+      - GripperOpen(entity_TiagoGripper_1564) -> True
+      - IsReachable(entity_TiagoGripper_1564, entity_CerealBox_1566) -> True
+      - OnTop(entity_CerealBox_1566, entity_Table_1567) -> True
+    - action: 'Withdraw(gripper: Gripper, object: GraspableObject)'
+      action_objects:
+        gripper: entity_TiagoGripper_1564
+        object: entity_CerealBox_1566
+      predicates:
+      - GripperAt(entity_TiagoGripper_1564, entity_CerealBox_1566) -> False
+      - GripperOpen(entity_TiagoGripper_1564) -> True
+      - IsReachable(entity_TiagoGripper_1564, entity_CerealBox_1566) -> True
+      - OnTop(entity_CerealBox_1566, entity_Table_1567) -> True
+    - action: 'Approach(gripper: Gripper, object: GraspableObject, table: Table)'
+      action_objects:
+        gripper: entity_TiagoGripper_1564
+        object: entity_CerealBox_1566
+        table: entity_Table_1567
+      predicates:
+      - GripperAt(entity_TiagoGripper_1564, entity_CerealBox_1566) -> True
+      - GripperOpen(entity_TiagoGripper_1564) -> True
+      - IsReachable(entity_TiagoGripper_1564, entity_CerealBox_1566) -> True
+      - OnTop(entity_CerealBox_1566, entity_Table_1567) -> True
+    all_objects:
+      entity_TiagoGripper_1564: TiagoGripper
+      entity_CerealBox_1566: CerealBox
+      entity_Table_1567: Table
+    initial_state:
+    - GripperAt(entity_TiagoGripper_1564, entity_CerealBox_1566) -> False
+    - GripperOpen(entity_TiagoGripper_1564) -> True
+    - IsReachable(entity_TiagoGripper_1564, entity_CerealBox_1566) -> True
+    - OnTop(entity_CerealBox_1566, entity_Table_1567) -> True
+    final_state:
+    - GripperAt(entity_TiagoGripper_1564, entity_CerealBox_1566) -> True
+    - GripperOpen(entity_TiagoGripper_1564) -> True
+    - IsReachable(entity_TiagoGripper_1564, entity_CerealBox_1566) -> True
+    - OnTop(entity_CerealBox_1566, entity_Table_1567) -> True

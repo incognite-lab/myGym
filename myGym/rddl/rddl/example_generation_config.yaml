@@ -1,0 +1,37 @@
+# Example configuration for generate.py
+#
+# Keys are the long CLI option names with underscores. Any value here is an *initial*
+# value: an explicit command-line option of the same name overrides it, and anything left
+# out falls back to the built-in / RDDLWorld defaults.
+#
+#   python generate.py -c example_generation_config.yaml -o tasks.yaml
+#   python generate.py -c example_generation_config.yaml -s 123 -o tasks.yaml   # override seed
+
+# --- domain (registers the simulator function mapping + entity classes) ---
+domain: testing_utils
+
+# --- what to generate ---
+method: one-shot          # one-shot | recursive
+sequence_lengths: [2, 3, 4, 5]
+n_repeats: 10             # one-shot: samples per length
+# n_samples: 20           # recursive: tasks per length
+seed: 42
+
+# --- world composition (RDDLWorld constructor parameters) ---
+allowed_actions: [Approach, Grasp, Move, Drop, Withdraw]
+allowed_initial_actions: [Approach]
+allowed_entities: [TiagoGripper, Apple, Bowl, CerealBox, Table]
+sample_single_object_per_class: false
+action_weights: [2.0, 1.0, 1.0, 1.0, 1.0]   # must match len(allowed_actions)
+object_weights: {Apple: 2.0, Bowl: 0.5}
+weight_mode: [weight, sequence, random]      # initial|weight|sequence|random|max-noise|none
+
+# --- behaviour ---
+add_robots: true
+retry_ad_infinitum: true
+
+# --- output detail ---
+# concise (default): action sequence + bound objects per step + the object set
+# full:              + the task's initial-state and final-state predicates
+# detailed:          + the predicate state after each individual action
+detail: detailed

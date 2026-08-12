@@ -5,15 +5,18 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 import yaml
 
 RDDL_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(RDDL_DIR)
-CONFIG_BODY_PATH = os.path.join(RDDL_DIR, "config_body.json")
-EXAMPLE_TASKS_PATH = os.path.join(RDDL_DIR, "example_out.yaml")
+CONFIG_PATH = os.path.join(RDDL_DIR, "rddl_config.json")
+TASKS_PATH = os.path.join(RDDL_DIR, "generated_tasks.yaml")
+GENERATOR_SCRIPT = os.path.join(RDDL_DIR, "rddl", "generate.py")
 TEST_SCRIPT = os.path.join(PROJECT_ROOT, "test.py")
 ORACULUM_RESULTS_DIR = os.path.join(PROJECT_ROOT, "oraculum_results")
+GENERATED_CONFIGS_DIR = os.path.join(RDDL_DIR, "generated_configs")
 
 # Maps rddl action names to the single-letter codes used in myGym task_type strings
 ACTION_TO_CODE = {
@@ -33,6 +36,36 @@ PREDICATE_RENAME = {
 }
 
 _PREDICATE_RE = re.compile(r"^(\w+)\(([^)]*)\)\s*->\s*(True|False)$")
+
+
+def generate_tasks(config_path: str = CONFIG_PATH, output: str = TASKS_PATH) -> int:
+    """Run the RDDL generator using params from config_body, writing results to output."""
+    with open(config_path) as f:
+        cfg = json.load(f)
+
+    def flags(flag, values): return sum([[flag, str(v)] for v in values], [])
+    def bool_flag(true_flag, false_flag, value): return [true_flag] if value else [false_flag]
+
+    cmd = (
+        [sys.executable, GENERATOR_SCRIPT]
+        + flags("-l", cfg.get("sequence_lengths", [4]))
+        + ["-n", str(cfg.get("n_repeats", 1))]
+        + ["-m", cfg.get("method", "one-shot")]
+        + flags("-a", cfg.get("allowed_actions", []))
+        + flags("-e", cfg.get("allowed_entities", []))
+        + flags("-W", cfg.get("action_weights") or [])
+        + flags("-O", [f"{n}={w}" for n, w in cfg.get("object_weights", {}).items()])
+        + flags("-w", cfg.get("weight_mode", []))
+        + bool_flag("--single-object", "--multi-object", cfg.get("sample_single_object_per_class", False))
+        + bool_flag("--robots", "--no-robots", cfg.get("add_robots", True))
+        + bool_flag("--retry", "--no-retry", cfg.get("retry_ad_infinitum", True))
+        + ["-i", "Approach", "-D", "detailed", "--output", output]
+    )
+    result = subprocess.run(cmd, cwd=os.path.dirname(GENERATOR_SCRIPT), capture_output=True, text=True)
+    if result.returncode != 0:
+        tail = "\n".join((result.stdout + result.stderr).splitlines()[-50:])
+        print(f"Generator failed:\n{tail}")
+    return result.returncode
 
 
 def _load_first_task(tasks_yaml_path: str) -> dict:
@@ -78,38 +111,58 @@ def _convert_predicate_list(predicates: list, name_map: dict, exclude: set = fro
     return converted
 
 
-def build_config(config_body_path: str = CONFIG_BODY_PATH, tasks_yaml_path: str = EXAMPLE_TASKS_PATH) -> dict:
+# Keys in config_body that are only for the RDDL generator and must not be passed to train.py
+_GENERATION_ONLY_KEYS = {
+    "sequence_lengths", "n_repeats", "allowed_actions", "allowed_entities", "allowed_predicates",
+    "method", "sample_single_object_per_class", "action_weights", "object_weights",
+    "weight_mode", "add_robots", "retry_ad_infinitum",
+}
+
+
+def build_config_from_task(task: dict, config_path: str = CONFIG_PATH) -> dict:
     """
-    Build a myGym training config dict from config_body.json, filled in with the
-    first task found in tasks_yaml_path (a generate.py output file), producing a
-    config in the same "*_predicates.json" structure as configs/AG_predicates.json.
+    Build a myGym training config dict from a single task dict (as yielded by iter_tasks),
+    producing a config in the same "*_predicates.json" structure as configs/AG_predicates.json.
     """
-    with open(config_body_path, "r", encoding="utf-8") as f:
+    with open(config_path, "r", encoding="utf-8") as f:
         config = json.load(f)
+    for key in _GENERATION_ONLY_KEYS:
+        config.pop(key, None)
 
-    task = _load_first_task(tasks_yaml_path)
+    task_type = "".join(ACTION_TO_CODE[action.lower()] for action in task["action_list"])
+
     type_map = _entity_name_map(task["all_objects"])
-    object_types = list(dict.fromkeys(type_map.values()))
+    # Exclude location types from init/goal assignment — only graspable objects go here
+    object_types = list(dict.fromkeys(v for v in type_map.values() if v != "table"))
 
-    # task_objects requires both "init" and "goal" to be real, non-null objects. When the rddl
-    # task only involves one object type, reuse it for both slots (like configs/AGM_predicates.json
-    # does with apple1/apple2) instead of leaving goal as a "null" placeholder.
-    if len(object_types) > 1:
+    # Two distinct objects only when Move is involved (needs a target) and RDDL provided two types.
+    # All other tasks (AG, AW, AGW, …) manipulate a single object, so goal is a duplicate placeholder.
+    if "M" in task_type and len(object_types) > 1:
         init_urdf, goal_urdf = object_types[0], object_types[1]
         init_obj_name, goal_obj_name = init_urdf, goal_urdf
     else:
         init_urdf = goal_urdf = object_types[0]
-        init_obj_name, goal_obj_name = f"{init_urdf}1", f"{goal_urdf}2"
+        init_obj_name, goal_obj_name = f"{init_urdf}1", f"{init_urdf}2"
 
-    # Predicates only ever reference the manipulated (init) object, never the goal placeholder
-    name_map = {entity: init_obj_name for entity, obj_type in type_map.items() if obj_type == init_urdf}
+    # Init-type entities → named init object; all others (table etc.) keep their type name for predicate args
+    name_map = {
+        entity: (init_obj_name if obj_type == init_urdf else obj_type)
+        for entity, obj_type in type_map.items()
+    }
 
-    task_type = "".join(ACTION_TO_CODE[action.lower()] for action in task["action_list"])
+    # Reachable(...) is excluded from "init": it is not restated in later subgoals/goal.
+    # GripperOpen(...) is excluded: the gripper always starts open, rddl-reported state is irrelevant.
+    # OnTop(...) is excluded: RDDL outputs it but the table arg would be mangled; we inject it correctly below.
+    predicates = {"init": _convert_predicate_list(task["initial_state"], name_map, exclude={"GripperOpen", "OnTop"})}
 
-    # Reachable(...) is a precondition established in "init" and is not restated in later subgoals/goal.
-    # GripperOpen(...) is excluded from "init" too: the gripper always starts closed, so its rddl-reported
-    # initial state doesn't matter.
-    predicates = {"init": _convert_predicate_list(task["initial_state"], name_map, exclude={"GripperOpen"})}
+    # Inject OnTop(obj, table) for every reachable init object
+    for pred in list(predicates["init"]):
+        if pred.startswith("Reachable("):
+            obj = pred[len("Reachable("):pred.index(")")]
+            on_top = f"OnTop({obj},table): True"
+            if on_top not in predicates["init"]:
+                predicates["init"].append(on_top)
+
     sequence = task["sequence"]
     for i, step in enumerate(sequence, start=1):
         key = "goal" if i == len(sequence) else f"subgoal{i}"
@@ -129,6 +182,11 @@ def build_config(config_body_path: str = CONFIG_BODY_PATH, tasks_yaml_path: str 
     config["used_objects"] = {"num_range": [0, 0], "obj_list": []}
 
     return config
+
+
+def build_config(config_path: str = CONFIG_PATH, tasks_yaml_path: str = TASKS_PATH) -> dict:
+    """Build a myGym config from the first task in tasks_yaml_path. Convenience wrapper around build_config_from_task."""
+    return build_config_from_task(_load_first_task(tasks_yaml_path), config_path)
 
 
 # Maps keyword argument names to their CLI flags in train.py / test.py (shared)
@@ -195,7 +253,33 @@ _TEST_STORE_TRUE_FLAGS = {
     "vinfo": "-vn",
 }
 
-GENERATED_CONFIG_PATH = os.path.join(RDDL_DIR, "generated_config.json")
+
+
+
+def mark_task(tasks_yaml_path: str, length, idx: int, feasible: bool) -> None:
+    """Set the feasible flag on a single task in the YAML (true/false; absent = untested)."""
+    with open(tasks_yaml_path) as f:
+        data = yaml.safe_load(f)
+    data["tasks"][length][idx]["feasible"] = feasible
+    with open(tasks_yaml_path, "w", encoding="utf-8") as f:
+        yaml.dump(data, f, allow_unicode=True, sort_keys=False)
+
+
+def iter_tasks(tasks_yaml_path: str, status: str = "all"):
+    """Yield (length, idx, task) for tasks in the YAML.
+
+    status: 'all' | 'untested' (feasible field absent) | 'feasible' (feasible == True)
+    """
+    with open(tasks_yaml_path) as f:
+        data = yaml.safe_load(f)
+    for length, task_list in data["tasks"].items():
+        for idx, task in enumerate(task_list):
+            f = task.get("feasible")
+            if status == "untested" and f is not None:
+                continue
+            if status == "feasible" and f is not True:
+                continue
+            yield length, idx, task
 
 
 def write_config(config: dict, output_path: str) -> str:
@@ -209,10 +293,23 @@ def write_config(config: dict, output_path: str) -> str:
 def main():
     import argparse
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("-o", "--output", default=GENERATED_CONFIG_PATH,
-                         help="Where to write the config generated from config_body.json + example_out.yaml")
+    parser.add_argument("--no-generate", action="store_true",
+                        help="Skip task generation and use existing generated_tasks.yaml")
+    parser.add_argument("--mode", default="untested", choices=["untested", "feasible", "both"],
+                        help="untested: only new tasks; feasible: retrain passed tasks; both: all except failed")
+    parser.add_argument("--save-configs", action="store_true",
+                        help=f"Save each generated config to {GENERATED_CONFIGS_DIR}/")
+    parser.add_argument("-g", "--gui", type=int, default=0,
+                        help="Enable GUI for both feasibility check and training (0/1)")
     args, remaining = parser.parse_known_args()
-    sys.exit(run_generated_config(args.output, _extra=remaining))
+
+    if not args.no_generate:
+        if generate_tasks() != 0:
+            print("Task generation failed.")
+            sys.exit(1)
+
+    sys.exit(run_generated_config(mode=args.mode, save_configs=args.save_configs,
+                                  gui=bool(args.gui), _extra=remaining))
 
 
 def _parse_latest_oraculum_results(results_dir: str):
@@ -238,7 +335,7 @@ def _parse_latest_oraculum_results(results_dir: str):
     return success_count, failed_subtask_sequences, None
 
 
-def check_feasibility(config_path: str, trials: int = 3, min_success: int = 3, timeout: int = 60):
+def check_feasibility(config_path: str, trials: int = 3, min_success: int = 3, timeout: int = 60, gui: bool = False):
     """
     Probe whether config_path is solvable at all, by running test.py's oraculum (oracle) controller
     against it before spending time on real training. Same technique as
@@ -256,7 +353,7 @@ def check_feasibility(config_path: str, trials: int = 3, min_success: int = 3, t
         "--config", config_path,
         "-ct", "oraculum",
         "-ba", "absolute_gripper",
-        "-g", "0",  # No GUI
+        "-g", "1" if gui else "0",
         "--eval_episodes", str(trials),
         "-rr", "True",  # Enable results report
     ]
@@ -277,17 +374,56 @@ def check_feasibility(config_path: str, trials: int = 3, min_success: int = 3, t
     return True, success_count, None
 
 
-def run_generated_config(output_path: str = GENERATED_CONFIG_PATH, _extra: list = None, **kwargs) -> int:
-    config = build_config()
-    write_config(config, output_path)
+def run_generated_config(mode: str = "untested", save_configs: bool = False,
+                         gui: bool = False, _extra: list = None, **kwargs) -> int:
+    """Run the full pipeline over tasks in generated_tasks.yaml.
 
-    feasible, success_count, error = check_feasibility(output_path)
-    if not feasible:
-        print(f"Feasibility check failed ({success_count} successful oraculum trials): {error}")
-        return 1
+    mode: 'untested'  — test and train only tasks not yet checked
+          'feasible'  — retrain only tasks already marked feasible (skip feasibility check)
+          'both'      — untested + feasible
+    save_configs: write each task's config to generated_configs/ with a descriptive filename
+    """
+    if save_configs:
+        os.makedirs(GENERATED_CONFIGS_DIR, exist_ok=True)
 
-    print(f"Feasibility check passed ({success_count} successful oraculum trials), starting training.")
-    return run_config(output_path, _extra=_extra, **kwargs)
+    for length, idx, task in iter_tasks(TASKS_PATH, status="all"):
+        already_feasible = task.get("feasible") is True
+        already_failed = task.get("feasible") is False
+        is_untested = task.get("feasible") is None
+
+        if already_failed:
+            continue
+        if mode == "untested" and not is_untested:
+            continue
+        if mode == "feasible" and not already_feasible:
+            continue
+
+        config = build_config_from_task(task)
+        if save_configs:
+            config_path = os.path.join(GENERATED_CONFIGS_DIR, f"{config['task_type']}_len{length}_idx{idx}.json")
+            write_config(config, config_path)
+        else:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+                json.dump(config, tmp, indent=4)
+                config_path = tmp.name
+
+        try:
+            if already_feasible:
+                print(f"Task [{length}][{idx}] already marked feasible, starting training.")
+                run_config(config_path, _extra=_extra, gui=int(gui), **kwargs)
+            else:
+                feasible, n, err = check_feasibility(config_path, gui=gui)
+                mark_task(TASKS_PATH, length, idx, feasible)
+                if feasible:
+                    print(f"Task [{length}][{idx}] feasibility check passed ({n} trials), starting training.")
+                    run_config(config_path, _extra=_extra, gui=int(gui), **kwargs)
+                else:
+                    print(f"Task [{length}][{idx}] feasibility check failed: {err}")
+        finally:
+            if not save_configs:
+                os.unlink(config_path)
+
+    return 0
 
 
 def run_test(config_path: str, _extra: list = None, **kwargs) -> int:
