@@ -976,7 +976,7 @@ class PredicateResolver:
             return GripperStatus().check(gripper, status)
 
 
-        if predicate.predicate == "Reachable":
+        if predicate.predicate == "IsReachable":
             obj_name = predicate.args[0]
             result = IsReachable().check(objects_by_name["robot"], objects_by_name[obj_name], grip_type)
 
@@ -1194,7 +1194,7 @@ class InitPredicateResolver(PredicateResolver):
                 env=env,
             )
 
-        for reachable_predicate in predicate_map.get("Reachable", []):
+        for reachable_predicate in predicate_map.get("IsReachable", []):
             area = self._apply_reachable_area(
                 current_area=area,
                 predicate=reachable_predicate,
@@ -1357,10 +1357,10 @@ class InitPredicateResolver(PredicateResolver):
         self, current_area: Area, predicate: PredicateCall, robot, grip_type: str | None = None
         ) -> Area | None:
         """
-        Apply Reachable(obj) as an area constraint
+        Apply IsReachable(obj) as an area constraint
         """
         if len(predicate.args) != 1:
-            raise ValueError(f"Reachable expects 1 argument, got {predicate.args}")
+            raise ValueError(f"IsReachable expects 1 argument, got {predicate.args}")
 
         reachable_area = IsReachable().compute_area(robot, grip_type)
         final_area = get_range_intersection(current_area, reachable_area)

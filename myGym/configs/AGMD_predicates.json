@@ -21,7 +21,7 @@
     "natural_language"      :0,
     "task_objects"          :[{"init":{"obj_name":"apple","fixed":0,"rand_rot":0}, 
                             "goal":{"obj_name":"tuna_can","fixed":1,"rand_rot":0}}],
-    "predicates"            :[{"init":["Reachable(apple)", "OnTop(apple,table)", "Reachable(tuna_can)", "OnTop(tuna_can,table)"],
+    "predicates"            :[{"init":["IsReachable(apple)", "OnTop(apple,table)", "IsReachable(tuna_can)", "OnTop(tuna_can,table)"],
                                "subgoal1": ["GripperAt(apple): True", "GripperOpen(): True"],
                                "subgoal2": ["GripperAt(apple): True", "IsHolding(apple): True"],
                                "subgoal3":["Near(apple,tuna_can): True", "GripperAt(apple): True", "IsHolding(apple): True"],

@@ -22,7 +22,7 @@
     "task_objects"          :[{"init":{"obj_name":"apple1", "urdf_name":"apple", "fixed":0,"rand_rot":0}, 
                                "goal":{"obj_name":"apple2", "urdf_name":"apple","fixed":1,"rand_rot":0},
                                "used_objects":[]}],
-    "predicates"            :[{"init":["Reachable(apple1): True", "OnTop(apple1,table): True", "Reachable(apple2): True", "OnTop(apple2,table): True"],
+    "predicates"            :[{"init":["IsReachable(apple1): True", "OnTop(apple1,table): True", "IsReachable(apple2): True", "OnTop(apple2,table): True"],
                                 "subgoal1": ["GripperAt(apple1): True", "GripperOpen(): True"],
                                 "subgoal2": ["GripperAt(apple1): True", "IsHolding(apple1): True"],
                                 "goal":["Near(apple1,apple2): True", "GripperAt(apple1): True", "IsHolding(apple1): True"]}],

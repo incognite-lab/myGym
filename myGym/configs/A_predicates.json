@@ -21,7 +21,7 @@
     "natural_language"      :0,
     "task_objects"          :[{"init":{"obj_name":"apple","fixed":0,"rand_rot":0}, 
                             "goal":{"obj_name":"tuna_can","fixed":1,"rand_rot":0}}],
-    "predicates"            :[{"init":["Reachable(apple)", "OnTop(apple,table)"],
+    "predicates"            :[{"init":["IsReachable(apple)", "OnTop(apple,table)"],
                             "goal":["GripperAt(apple)", "GripperOpen()"]}],
     "color_dict"            : {"apple":["green"], "target":["gray"]},
     "used_objects"          :{"num_range":[0,0], "obj_list":[]},
