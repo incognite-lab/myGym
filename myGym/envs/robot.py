@@ -314,7 +314,12 @@ class Robot:
         #joint_poses = np.clip(joint_poses, self.gjoints_limits[0], self.gjoints_limits[1])
         for jid in range(len(self.gripper_indices)):
             self.p.resetJointState(self.robot_uid, self.gripper_indices[jid], joint_poses[jid])
-        #self._run_motors(joint_poses)
+        # Re-point the gripper's own position-control motors at the reset pose too -
+        # resetJointState() only teleports the joint for one instant; without this the
+        # motors keep driving toward whatever target was last commanded (e.g. "closed"
+        # from the previous episode's grasp), pulling the gripper shut on the very next
+        # p.stepSimulation() call.
+        self._move_gripper(joint_poses)
 
 
     def get_joints_limits(self,indices):
