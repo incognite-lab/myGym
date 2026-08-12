@@ -19,7 +19,7 @@
     "sequence_lengths": [2, 3, 4, 5],
     "n_repeats": 10,
     "allowed_actions": ["Approach", "Grasp", "Move", "Drop", "Withdraw"],
-    "allowed_entities": ["TiagoGripper", "Table", "apple"],
+    "allowed_entities": ["TiagoGripper", "apple", "tuna_can", "banana", "kostka"],
     "allowed_predicates": ["GripperOpen", "Reachable", "OnTop", "Touching", "Near", "ObjectAt", "GripperAt", "IsHolding"],
 
     "method": "one-shot",

@@ -410,13 +410,13 @@ def run_generated_config(mode: str = "untested", save_configs: bool = False,
         try:
             if already_feasible:
                 print(f"Task [{length}][{idx}] already marked feasible, starting training.")
-                run_config(config_path, _extra=_extra, gui=int(gui), **kwargs)
+                #run_config(config_path, _extra=_extra, gui=int(gui), **kwargs)
             else:
                 feasible, n, err = check_feasibility(config_path, gui=gui)
                 mark_task(TASKS_PATH, length, idx, feasible)
                 if feasible:
                     print(f"Task [{length}][{idx}] feasibility check passed ({n} trials), starting training.")
-                    run_config(config_path, _extra=_extra, gui=int(gui), **kwargs)
+                    #run_config(config_path, _extra=_extra, gui=int(gui), **kwargs)
                 else:
                     print(f"Task [{length}][{idx}] feasibility check failed: {err}")
         finally:

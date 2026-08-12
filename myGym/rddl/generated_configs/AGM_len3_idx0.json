@@ -1,0 +1,114 @@
+{
+    "env_name": "Gym-v0",
+    "workspace": "table_complex",
+    "engine": "pybullet",
+    "render": "opengl",
+    "seed": 1,
+    "camera": 0,
+    "gui": 0,
+    "visualize": 0,
+    "visgym": 0,
+    "robot": "g1",
+    "robot_action": "joints_gripper",
+    "robot_init": "default",
+    "max_velocity": [
+        0.2,
+        10.0
+    ],
+    "max_force": [
+        20.0,
+        150.0
+    ],
+    "action_repeat": 1,
+    "task_type": "AGM",
+    "natural_language": 0,
+    "task_objects": [
+        {
+            "init": {
+                "obj_name": "kostka",
+                "fixed": 0,
+                "rand_rot": 0
+            },
+            "goal": {
+                "obj_name": "tuna_can",
+                "fixed": 1,
+                "rand_rot": 0
+            }
+        }
+    ],
+    "predicates": [
+        {
+            "init": [
+                "Reachable(kostka)",
+                "OnTop(kostka,table): True"
+            ],
+            "subgoal1": [
+                "GripperAt(kostka)",
+                "GripperOpen()"
+            ],
+            "subgoal2": [
+                "GripperAt(kostka)",
+                "IsHolding(kostka)"
+            ],
+            "goal": [
+                "GripperAt(kostka)",
+                "IsHolding(kostka)",
+                "ObjectAt(kostka,tuna_can)"
+            ]
+        }
+    ],
+    "color_dict": {
+        "kostka": [
+            "green"
+        ],
+        "target": [
+            "gray"
+        ]
+    },
+    "used_objects": {
+        "num_range": [
+            0,
+            0
+        ],
+        "obj_list": []
+    },
+    "observation": {
+        "actual_state": "obj_6D",
+        "goal_state": "obj_6D",
+        "additional_obs": [
+            "endeff_6D",
+            "joints_angles",
+            "gjoints_angles",
+            "gjoints_states",
+            "init_6D"
+        ]
+    },
+    "distractors": {
+        "list": null,
+        "moveable": 1,
+        "constant_speed": 0,
+        "movement_dims": 3,
+        "movement_endpoints": [
+            -0.3,
+            0.3,
+            0.4,
+            0.7,
+            0.1,
+            0.3
+        ]
+    },
+    "distance_type": "euclidean",
+    "vae_path": null,
+    "yolact_path": null,
+    "yolact_config": null,
+    "train_framework": "pytorch",
+    "algo": "ppo",
+    "max_episode_steps": 1024,
+    "algo_steps": 1024,
+    "steps": 15000000,
+    "pretrained_model": null,
+    "multiprocessing": null,
+    "eval_freq": 500000,
+    "eval_episodes": 50,
+    "record": 0
+}

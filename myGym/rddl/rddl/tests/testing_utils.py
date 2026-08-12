@@ -144,6 +144,24 @@ class Can(GraspableObject, EnvObjectProxy):
         super().__init__(self._get_generic_reference() if reference is None else reference, "can")
 
 
+class Tuna_Can(GraspableObject, EnvObjectProxy):
+
+    def __init__(self, reference: Optional[str] = None):
+        super().__init__(self._get_generic_reference() if reference is None else reference, "tuna_can")
+
+
+class Banana(GraspableObject, EnvObjectProxy):
+
+    def __init__(self, reference: Optional[str] = None):
+        super().__init__(self._get_generic_reference() if reference is None else reference, "banana")
+
+
+class Kostka(GraspableObject, EnvObjectProxy):
+
+    def __init__(self, reference: Optional[str] = None):
+        super().__init__(self._get_generic_reference() if reference is None else reference, "kostka")
+
+
 class CerealBox(GraspableObject, EnvObjectProxy):
 
     def __init__(self, reference: Optional[str] = None):

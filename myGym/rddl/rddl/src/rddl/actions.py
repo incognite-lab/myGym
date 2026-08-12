@@ -20,10 +20,10 @@ from enum import Enum
 from typing import Callable
 
 from rddl import AtomicAction, Reward, Variable
-from rddl.entities import AbstractRotation, GraspableObject, Gripper, Location, Table
+from rddl.entities import AbstractRotation, GraspableObject, Gripper, Location
 from rddl.operators import NotOp, ParallelAndOp
 from rddl.predicates import (Exists, GripperAt, GripperOpen, IsHolding, IsReachable,
-                             Near, ObjectAt, ObjectAtPose, OnTop)
+                             Near, ObjectAt, ObjectAtPose)
 from rddl.rewards import (ApproachReward, DropReward, FollowReward, GraspReward, MoveReward,
                           RotateReward, TransformReward, WithdrawReward)
 
@@ -47,18 +47,16 @@ class <Some>AtomicAction(AtomicAction):
 
 
 class Approach(AtomicAction):
-    """Move an open gripper to a reachable object resting on the table.
+    """Move an open gripper to a reachable object.
 
-    Precondition: ``IsReachable(g, obj) AND GripperOpen(g) AND NOT GripperAt(g, obj)
-    AND OnTop(obj, table)``.
+    Precondition: ``IsReachable(g, obj) AND GripperOpen(g) AND NOT GripperAt(g, obj)``.
     Effect (goal): ``GripperAt(g, obj)``.
     Reward: ``ApproachReward.RELATIVE_REWARD`` (delta-distance shaping with open bonus).
     """
 
     _VARIABLES = {
         "gripper": Gripper,
-        "object": GraspableObject,
-        "table": Table
+        "object": GraspableObject
     }
     REWARD_CLASS: Enum = ApproachReward.RELATIVE_REWARD
 
@@ -66,22 +64,13 @@ class Approach(AtomicAction):
         super().__init__(**kwds)
         gripper = self.get_argument("gripper")
         obj = self.get_argument("object")
-        table = self.get_argument("table")
         self._predicate = GripperAt(gripper=gripper, object=obj)  # goal: gripper reaches the object
-        # precondition: object reachable, gripper open, not already at the object, and on the table
+        # precondition: object reachable, gripper open, and not already at the object
         self._initial = ParallelAndOp(
             left=IsReachable(gripper=gripper, location=obj),
-            right=ParallelAndOp(
-                left=GripperOpen(gripper=gripper),
-                right=ParallelAndOp(
-                    left=NotOp(operand=self._predicate),
-                    right=OnTop(object_A=obj, object_B=table)
-                )
-            )
+            right=ParallelAndOp(left=GripperOpen(gripper=gripper), right=NotOp(operand=self._predicate))
         )
-        # setup_reward() splats every action variable into REWARD_CLASS; ApproachReward
-        # variants only take gripper/object, so build it manually to exclude "table".
-        self._reward = self.REWARD_CLASS.value(gripper=gripper, object=obj)
+        self.setup_reward()
         # self._reward = self.REWARD_CLASS.value(gripper, obj)
 
 

@@ -20,7 +20,7 @@ seed: 42
 # --- world composition (RDDLWorld constructor parameters) ---
 allowed_actions: [Approach, Grasp, Move, Drop, Withdraw]
 allowed_initial_actions: [Approach]
-allowed_entities: [TiagoGripper, Apple, Bowl, CerealBox, Table]
+allowed_entities: [TiagoGripper, Apple, Bowl, CerealBox]
 sample_single_object_per_class: false
 action_weights: [2.0, 1.0, 1.0, 1.0, 1.0]   # must match len(allowed_actions)
 object_weights: {Apple: 2.0, Bowl: 0.5}
