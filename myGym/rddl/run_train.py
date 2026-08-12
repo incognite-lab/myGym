@@ -30,10 +30,7 @@ ACTION_TO_CODE = {
     "follow": "F",
 }
 
-# myGym predicate names differ slightly from the rddl domain's predicate names
-PREDICATE_RENAME = {
-    "IsReachable": "Reachable",
-}
+PREDICATE_RENAME: dict = {}  # no renames needed currently
 
 _PREDICATE_RE = re.compile(r"^(\w+)\(([^)]*)\)\s*->\s*(True|False)$")
 
@@ -85,17 +82,16 @@ def _entity_name_map(all_objects: dict) -> dict:
 
 
 def _convert_predicate(pred_str: str, name_map: dict):
-    """Convert a single 'Name(args) -> True/False' rddl predicate string to myGym format, or None if it's False."""
+    """Convert a single 'Name(args) -> True/False' rddl predicate string to myGym format."""
     match = _PREDICATE_RE.match(pred_str.strip())
     if not match:
         raise ValueError(f"Unrecognized predicate format: {pred_str}")
     name, raw_args, value = match.groups()
-    if value == "False":
-        return None
     name = PREDICATE_RENAME.get(name, name)
     args = [a.strip() for a in raw_args.split(",") if a.strip()]
     mapped_args = [name_map[a] for a in args if a in name_map]
-    return f"{name}({','.join(mapped_args)})"
+    suffix = ": True" if value == "True" else ": False"
+    return f"{name}({','.join(mapped_args)}){suffix}"
 
 
 def _convert_predicate_list(predicates: list, name_map: dict, exclude: set = frozenset()) -> list:
@@ -135,30 +131,32 @@ def build_config_from_task(task: dict, config_path: str = CONFIG_PATH) -> dict:
     # Exclude location types from init/goal assignment — only graspable objects go here
     object_types = list(dict.fromkeys(v for v in type_map.values() if v != "table"))
 
-    # Two distinct objects only when Move is involved (needs a target) and RDDL provided two types.
-    # All other tasks (AG, AW, AGW, …) manipulate a single object, so goal is a duplicate placeholder.
+    # Object names always include a number; urdf_name is the bare type without the number.
+    # Move with two distinct types: apple1 + banana1; all other tasks: kostka1 + kostka2 (placeholder).
     if "M" in task_type and len(object_types) > 1:
         init_urdf, goal_urdf = object_types[0], object_types[1]
-        init_obj_name, goal_obj_name = init_urdf, goal_urdf
+        init_obj_name, goal_obj_name = f"{init_urdf}1", f"{goal_urdf}1"
     else:
         init_urdf = goal_urdf = object_types[0]
         init_obj_name, goal_obj_name = f"{init_urdf}1", f"{init_urdf}2"
 
-    # Init-type entities → named init object; all others (table etc.) keep their type name for predicate args
-    name_map = {
-        entity: (init_obj_name if obj_type == init_urdf else obj_type)
-        for entity, obj_type in type_map.items()
-    }
+    # Number entities sequentially per type (kostka1, kostka2, …); table stays unnumbered.
+    type_counters: dict = {}
+    name_map = {}
+    for entity, obj_type in type_map.items():
+        if obj_type == "table":
+            name_map[entity] = "table"
+        else:
+            type_counters[obj_type] = type_counters.get(obj_type, 0) + 1
+            name_map[entity] = f"{obj_type}{type_counters[obj_type]}"
 
-    # Reachable(...) is excluded from "init": it is not restated in later subgoals/goal.
-    # GripperOpen(...) is excluded: the gripper always starts open, rddl-reported state is irrelevant.
-    # OnTop(...) is excluded: RDDL outputs it but the table arg would be mangled; we inject it correctly below.
-    predicates = {"init": _convert_predicate_list(task["initial_state"], name_map, exclude={"GripperOpen", "OnTop"})}
+    # OnTop(...) is excluded: RDDL doesn't output it; we inject it manually below based on Reachable.
+    predicates = {"init": _convert_predicate_list(task["initial_state"], name_map, exclude={"OnTop"})}
 
     # Inject OnTop(obj, table) for every reachable init object
     for pred in list(predicates["init"]):
-        if pred.startswith("Reachable("):
-            obj = pred[len("Reachable("):pred.index(")")]
+        if pred.startswith("IsReachable("):
+            obj = pred[len("IsReachable("):pred.index(")")]
             on_top = f"OnTop({obj},table): True"
             if on_top not in predicates["init"]:
                 predicates["init"].append(on_top)
@@ -166,14 +164,10 @@ def build_config_from_task(task: dict, config_path: str = CONFIG_PATH) -> dict:
     sequence = task["sequence"]
     for i, step in enumerate(sequence, start=1):
         key = "goal" if i == len(sequence) else f"subgoal{i}"
-        predicates[key] = _convert_predicate_list(step["predicates"], name_map, exclude={"Reachable"})
+        predicates[key] = _convert_predicate_list(step["predicates"], name_map, exclude=set())
 
-    init_obj = {"obj_name": init_obj_name, "fixed": 0, "rand_rot": 0}
-    goal_obj = {"obj_name": goal_obj_name, "fixed": 1, "rand_rot": 0}
-    if init_obj_name != init_urdf:
-        init_obj["urdf_name"] = init_urdf
-    if goal_obj_name != goal_urdf:
-        goal_obj["urdf_name"] = goal_urdf
+    init_obj = {"obj_name": init_obj_name, "fixed": 0, "rand_rot": 0, "urdf_name": init_urdf}
+    goal_obj = {"obj_name": goal_obj_name, "fixed": 1, "rand_rot": 0, "urdf_name": goal_urdf}
 
     config["task_type"] = task_type
     config["task_objects"] = [{"init": init_obj, "goal": goal_obj}]
