@@ -1,3 +1,5 @@
+import argparse
+import contextlib
 import csv
 import glob
 import json
@@ -6,7 +8,6 @@ import re
 import subprocess
 import sys
 import tempfile
-
 import yaml
 
 RDDL_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -15,6 +16,7 @@ CONFIG_PATH = os.path.join(RDDL_DIR, "rddl_config.json")
 TASKS_PATH = os.path.join(RDDL_DIR, "generated_tasks.yaml")
 GENERATOR_SCRIPT = os.path.join(RDDL_DIR, "rddl", "generate.py")
 TEST_SCRIPT = os.path.join(PROJECT_ROOT, "test.py")
+TRAIN_SCRIPT = os.path.join(PROJECT_ROOT, "train.py")
 ORACULUM_RESULTS_DIR = os.path.join(PROJECT_ROOT, "oraculum_results")
 GENERATED_CONFIGS_DIR = os.path.join(RDDL_DIR, "generated_configs")
 
@@ -29,8 +31,6 @@ ACTION_TO_CODE = {
     "transform": "T",
     "follow": "F",
 }
-
-PREDICATE_RENAME: dict = {}  # no renames needed currently
 
 _PREDICATE_RE = re.compile(r"^(\w+)\(([^)]*)\)\s*->\s*(True|False)$")
 
@@ -87,7 +87,6 @@ def _convert_predicate(pred_str: str, name_map: dict):
     if not match:
         raise ValueError(f"Unrecognized predicate format: {pred_str}")
     name, raw_args, value = match.groups()
-    name = PREDICATE_RENAME.get(name, name)
     args = [a.strip() for a in raw_args.split(",") if a.strip()]
     mapped_args = [name_map[a] for a in args if a in name_map]
     suffix = ": True" if value == "True" else ": False"
@@ -183,73 +182,6 @@ def build_config(config_path: str = CONFIG_PATH, tasks_yaml_path: str = TASKS_PA
     return build_config_from_task(_load_first_task(tasks_yaml_path), config_path)
 
 
-# Maps keyword argument names to their CLI flags in train.py / test.py (shared)
-_ARG_FLAGS = {
-    "config": "-cfg",
-    "env_name": "-n",
-    "workspace": "-ws",
-    "engine": "-p",
-    "seed": "-sd",
-    "render": "-d",
-    "camera": "-c",
-    "visualize": "-vi",
-    "visgym": "-vg",
-    "gui": "-g",
-    "robot": "-b",
-    "robot_init": "-bi",
-    "robot_action": "-ba",
-    "max_velocity": "-mv",
-    "max_force": "-mf",
-    "action_repeat": "-ar",
-    "task_type": "-tt",
-    "task_objects": "-to",
-    "used_objects": "-u",
-    "distractors": "-di",
-    "distractor_moveable": "-dm",
-    "distractor_constant_speed": "-ds",
-    "distractor_movement_dimensions": "-dd",
-    "distractor_movement_endpoints": "-de",
-    "observed_links_num": "-no",
-    "reward": "-re",
-    "distance_type": "-dt",
-    "train_framework": "-w",
-    "algo": "-a",
-    "steps": "-s",
-    "max_episode_steps": "-ms",
-    "algo_steps": "-ma",
-    "eval_freq": "-ef",
-    "eval_episodes": "-e",
-    "logdir": "-l",
-    "record": "-r",
-    "multiprocessing": "-i",
-    "vectorized_envs": "-v",
-    "model_path": "-m",
-    "vae_path": "-vp",
-    "yolact_path": "-yp",
-    "yolact_config": "-yc",
-    "pretrained_model": "-ptm",
-    "natural_language": "-nl",
-}
-
-
-# test.py-only flags (in addition to all _ARG_FLAGS)
-_TEST_ARG_FLAGS = {
-    "control": "-ct",
-    "network_switcher": "-ns",
-    "results_report": "-rr",
-    "top_grasp": "-tp",
-}
-
-# store_true flags: value=True appends the flag, value=False omits it
-_TEST_STORE_TRUE_FLAGS = {
-    "vsampling": "-vs",
-    "vtrajectory": "-vt",
-    "vinfo": "-vn",
-}
-
-
-
-
 def mark_task(tasks_yaml_path: str, length, idx: int, feasible: bool) -> None:
     """Set the feasible flag on a single task in the YAML (true/false; absent = untested)."""
     with open(tasks_yaml_path) as f:
@@ -284,28 +216,6 @@ def write_config(config: dict, output_path: str) -> str:
     return output_path
 
 
-def main():
-    import argparse
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--no-generate", action="store_true",
-                        help="Skip task generation and use existing generated_tasks.yaml")
-    parser.add_argument("--mode", default="untested", choices=["untested", "feasible", "both"],
-                        help="untested: only new tasks; feasible: retrain passed tasks; both: all except failed")
-    parser.add_argument("--save-configs", action="store_true",
-                        help=f"Save each generated config to {GENERATED_CONFIGS_DIR}/")
-    parser.add_argument("-g", "--gui", type=int, default=0,
-                        help="Enable GUI for both feasibility check and training (0/1)")
-    args, remaining = parser.parse_known_args()
-
-    if not args.no_generate:
-        if generate_tasks() != 0:
-            print("Task generation failed.")
-            sys.exit(1)
-
-    sys.exit(run_generated_config(mode=args.mode, save_configs=args.save_configs,
-                                  gui=bool(args.gui), _extra=remaining))
-
-
 def _parse_latest_oraculum_results(results_dir: str):
     """Read the most recent oraculum results*.csv, returning (success_count, failed_subtask_sequences, error)."""
     result_files = glob.glob(os.path.join(results_dir, "results*.csv"))
@@ -329,6 +239,28 @@ def _parse_latest_oraculum_results(results_dir: str):
     return success_count, failed_subtask_sequences, None
 
 
+def run_test(config_path: str, extra: list = None, capture_output: bool = False,
+             timeout: float = None) -> subprocess.CompletedProcess:
+    """Run test.py against config_path. extra: raw CLI args forwarded as-is (e.g. ["-g", "1"]) —
+    test.py's own argparse (myGym.train.get_parser plus its test-only flags) interprets them.
+
+    capture_output: capture stdout/stderr as text (result.stdout/.stderr) instead of letting the
+    subprocess print straight to the terminal — needed by callers that inspect the output.
+    timeout: forwarded to subprocess.run; raises subprocess.TimeoutExpired if exceeded.
+    """
+    cmd = [sys.executable, TEST_SCRIPT, "-cfg", config_path] + (extra or [])
+    return subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=capture_output,
+                          text=capture_output, timeout=timeout)
+
+
+def run_train(config_path: str, extra: list = None) -> int:
+    """Run train.py against config_path. extra: raw CLI args forwarded as-is (e.g. ["-g", "1"]) —
+    train.py's own argparse (myGym.train.get_parser) interprets them."""
+    cmd = [sys.executable, TRAIN_SCRIPT, "-cfg", config_path] + (extra or [])
+    result = subprocess.run(cmd, cwd=PROJECT_ROOT)
+    return result.returncode
+
+
 def check_feasibility(config_path: str, trials: int = 3, min_success: int = 3, timeout: int = 60, gui: bool = False):
     """
     Probe whether config_path is solvable at all, by running test.py's oraculum (oracle) controller
@@ -342,9 +274,7 @@ def check_feasibility(config_path: str, trials: int = 3, min_success: int = 3, t
     for stale_file in glob.glob(os.path.join(ORACULUM_RESULTS_DIR, "results*.csv")):
         os.remove(stale_file)
 
-    cmd = [
-        sys.executable, TEST_SCRIPT,
-        "--config", config_path,
+    extra = [
         "-ct", "oraculum",
         "-ba", "absolute_gripper",
         "-g", "1" if gui else "0",
@@ -353,7 +283,7 @@ def check_feasibility(config_path: str, trials: int = 3, min_success: int = 3, t
     ]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=PROJECT_ROOT)
+        result = run_test(config_path, extra, capture_output=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return False, 0, f"Feasibility check timed out after {timeout} seconds"
 
@@ -368,91 +298,90 @@ def check_feasibility(config_path: str, trials: int = 3, min_success: int = 3, t
     return True, success_count, None
 
 
-def run_generated_config(mode: str = "untested", save_configs: bool = False,
-                         gui: bool = False, _extra: list = None, **kwargs) -> int:
-    """Run the full pipeline over tasks in generated_tasks.yaml.
+def _task_selected(task: dict, mode: str) -> bool:
+    """Whether `mode` selects this task for testing/training.
 
-    mode: 'untested'  — test and train only tasks not yet checked
-          'feasible'  — retrain only tasks already marked feasible (skip feasibility check)
-          'both'      — untested + feasible
-    save_configs: write each task's config to generated_configs/ with a descriptive filename
+    mode: 'untested' — only tasks not yet checked
+          'feasible' — only tasks already marked feasible (retrain, skip feasibility check)
+          'both'     — untested + feasible
+    Tasks already marked infeasible are never selected.
     """
+    feasible = task.get("feasible")
+    if feasible is False:
+        return False
+    if mode == "untested":
+        return feasible is None
+    if mode == "feasible":
+        return feasible is True
+    return True  # mode == "both"
+
+
+@contextlib.contextmanager
+def _task_config_path(task: dict, length, idx: int, save_configs: bool):
+    """Build task's myGym config, write it to disk, and yield its path.
+
+    save_configs: write to generated_configs/ with a descriptive filename and keep it;
+    otherwise write to a temp file that's deleted on exit.
+    """
+    config = build_config_from_task(task)
     if save_configs:
         os.makedirs(GENERATED_CONFIGS_DIR, exist_ok=True)
+        config_path = os.path.join(GENERATED_CONFIGS_DIR, f"{config['task_type']}_len{length}_idx{idx}.json")
+        write_config(config, config_path)
+    else:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+            json.dump(config, tmp, indent=4)
+            config_path = tmp.name
+
+    try:
+        yield config_path
+    finally:
+        if not save_configs:
+            os.unlink(config_path)
+
+
+def _parse_args():
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--no-generate", action="store_true",
+                        help="Skip task generation and use existing generated_tasks.yaml")
+    parser.add_argument("--mode", default="untested", choices=["untested", "feasible", "both"],
+                        help="untested: only new tasks; feasible: retrain passed tasks; both: all except failed")
+    parser.add_argument("--save-configs", action="store_true",
+                        help=f"Save each generated config to {GENERATED_CONFIGS_DIR}/")
+    parser.add_argument("-g", "--gui", type=int, default=0,
+                        help="Enable GUI for both feasibility check and training (0/1)")
+    return parser.parse_known_args()
+
+
+def main():
+    args, remaining = _parse_args()
+    gui = bool(args.gui)
+
+    if not args.no_generate and generate_tasks() != 0:
+        print("Task generation failed.")
+        sys.exit(1)
+
+    extra = ["-g", "1" if gui else "0"] + remaining
 
     for length, idx, task in iter_tasks(TASKS_PATH, status="all"):
-        already_feasible = task.get("feasible") is True
-        already_failed = task.get("feasible") is False
-        is_untested = task.get("feasible") is None
-
-        if already_failed:
-            continue
-        if mode == "untested" and not is_untested:
-            continue
-        if mode == "feasible" and not already_feasible:
+        if not _task_selected(task, args.mode):
             continue
 
-        config = build_config_from_task(task)
-        if save_configs:
-            config_path = os.path.join(GENERATED_CONFIGS_DIR, f"{config['task_type']}_len{length}_idx{idx}.json")
-            write_config(config, config_path)
-        else:
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
-                json.dump(config, tmp, indent=4)
-                config_path = tmp.name
-
-        try:
-            if already_feasible:
+        with _task_config_path(task, length, idx, args.save_configs) as config_path:
+            if task.get("feasible") is True:
                 print(f"Task [{length}][{idx}] already marked feasible, starting training.")
-                #run_config(config_path, _extra=_extra, gui=int(gui), **kwargs)
+                run_train(config_path, extra)
+                continue
+
+            feasible, n, err = check_feasibility(config_path, gui=gui)
+            mark_task(TASKS_PATH, length, idx, feasible)
+            if feasible:
+                print(f"Task [{length}][{idx}] feasibility check passed ({n} trials), starting training.")
+                run_train(config_path, extra)
             else:
-                feasible, n, err = check_feasibility(config_path, gui=gui)
-                mark_task(TASKS_PATH, length, idx, feasible)
-                if feasible:
-                    print(f"Task [{length}][{idx}] feasibility check passed ({n} trials), starting training.")
-                    #run_config(config_path, _extra=_extra, gui=int(gui), **kwargs)
-                else:
-                    print(f"Task [{length}][{idx}] feasibility check failed: {err}")
-        finally:
-            if not save_configs:
-                os.unlink(config_path)
+                print(f"Task [{length}][{idx}] feasibility check failed: {err}")
 
-    return 0
-
-
-def run_test(config_path: str, _extra: list = None, **kwargs) -> int:
-    test_script = os.path.join(PROJECT_ROOT, "test.py")
-    cmd = [sys.executable, test_script, "-cfg", config_path]
-    all_flags = {**_ARG_FLAGS, **_TEST_ARG_FLAGS}
-    for key, value in kwargs.items():
-        if key in _TEST_STORE_TRUE_FLAGS:
-            if value:
-                cmd.append(_TEST_STORE_TRUE_FLAGS[key])
-        else:
-            flag = all_flags[key]
-            if isinstance(value, list):
-                cmd += [flag] + [str(v) for v in value]
-            else:
-                cmd += [flag, str(value)]
-    if _extra:
-        cmd += _extra
-    result = subprocess.run(cmd, cwd=PROJECT_ROOT)
-    return result.returncode
-
-
-def run_config(config_path: str, _extra: list = None, **kwargs) -> int:
-    train_script = os.path.join(os.path.dirname(__file__), "..", "train.py")
-    cmd = [sys.executable, train_script, "-cfg", config_path]
-    for key, value in kwargs.items():
-        flag = _ARG_FLAGS[key]
-        if isinstance(value, list):
-            cmd += [flag] + [str(v) for v in value]
-        else:
-            cmd += [flag, str(value)]
-    if _extra:
-        cmd += _extra
-    result = subprocess.run(cmd, cwd=os.path.dirname(train_script))
-    return result.returncode
+    sys.exit(0)
 
 
 if __name__ == "__main__":
