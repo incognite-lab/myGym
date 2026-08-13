@@ -173,20 +173,23 @@ def _task_selected(task: dict, select: str) -> bool:
 
 
 @contextlib.contextmanager
-def _task_config_path(task: dict, length, idx: int, save_configs: bool):
-    """Build task's config, write it to disk, and yield its path.
-
-    save_configs: keep it in generated_configs/; otherwise use a temp dir removed on exit.
-    """
+def _task_config_path(task: dict):
+    """Build task's config, write it to a temp file, and yield (config, config_path)."""
     config = build_config_from_task(task)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        yield config, write_config(config, os.path.join(tmp_dir, "config.json"))
 
-    if save_configs:
-        os.makedirs(GENERATED_CONFIGS_DIR, exist_ok=True)
-        config_path = os.path.join(GENERATED_CONFIGS_DIR, f"{config['task_type']}_len{length}_idx{idx}.json")
-        yield write_config(config, config_path)
-    else:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            yield write_config(config, os.path.join(tmp_dir, "config.json"))
+
+def _maybe_save_config(config: dict, length, idx: int, save_mode: str, feasible: bool) -> None:
+    """Persist a copy of config to generated_configs/, per save_mode:
+
+    'none' (default) -> never; 'all' -> always; 'feasible' -> only if feasible is True.
+    """
+    if save_mode == "none" or (save_mode == "feasible" and not feasible):
+        return
+    os.makedirs(GENERATED_CONFIGS_DIR, exist_ok=True)
+    config_path = os.path.join(GENERATED_CONFIGS_DIR, f"{config['task_type']}_len{length}_idx{idx}.json")
+    write_config(config, config_path)
 
 
 def _should_generate(reuse: bool, tasks_yaml_path: str) -> bool:
@@ -200,8 +203,11 @@ def _parse_args():
     parser.add_argument("--reuse-tasks", dest="select", default=None, choices=["untested", "feasible", "both"],
                         help="Reuse generated_tasks.yaml (skip regeneration unless missing); act on: "
                              "untested (new only), feasible (retrain), or both.")
-    parser.add_argument("--save-configs", action="store_true",
-                        help=f"Save each generated config to {GENERATED_CONFIGS_DIR}/")
+    parser.add_argument("--save-configs", default="none", choices=["none", "all", "feasible"],
+                        help=f"Persist configs to {GENERATED_CONFIGS_DIR}/: none (default), all, "
+                             "or only those that pass the feasibility check.")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Run only feasibility checks without training.")
     # Unrecognized flags (e.g. -e, -ct) fall through to `remaining` and get forwarded as-is.
     return parser.parse_known_args()
 
@@ -218,19 +224,26 @@ def main():
         if not _task_selected(task, select):
             continue
 
-        with _task_config_path(task, length, idx, args.save_configs) as config_path:
+        with _task_config_path(task) as (config, config_path):
             if task.get("feasible") is True:
-                print(f"Task [{length}][{idx}] already marked feasible, starting training.")
-                run_train(config_path, remaining)
+                feasible, status = True, "already marked feasible"
+            else:
+                feasible, n, err = check_feasibility(config_path, remaining)
+                mark_task(TASKS_PATH, length, idx, feasible)
+                status = f"feasibility check passed ({n} trials)" if feasible else f"feasibility check failed: {err}"
+
+            _maybe_save_config(config, length, idx, args.save_configs, feasible)
+
+            if not feasible:
+                print(f"Task [{length}][{idx}] {status}.")
                 continue
 
-            feasible, n, err = check_feasibility(config_path, remaining)
-            mark_task(TASKS_PATH, length, idx, feasible)
-            if feasible:
-                print(f"Task [{length}][{idx}] feasibility check passed ({n} trials), starting training.")
-                run_train(config_path, remaining)
-            else:
-                print(f"Task [{length}][{idx}] feasibility check failed: {err}")
+            if args.dry_run:
+                print(f"Task [{length}][{idx}] {status}, dry run: skipping training.")
+                continue
+
+            print(f"Task [{length}][{idx}] {status}, starting training.")
+            run_train(config_path, remaining)
 
     sys.exit(0)
 
