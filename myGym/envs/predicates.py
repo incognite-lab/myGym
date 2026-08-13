@@ -1111,11 +1111,14 @@ class InitPredicateResolver(PredicateResolver):
         placed_objects.setdefault("table", table)
         placed_objects.setdefault("workspace", table)
         obj1_urdf = obj_info["urdf"]
-        default_table_area = OnTop().compute_area(obj1_urdf, table, env)
         predicates = self._filter_obj_predicates(predicates, obj_info["obj_name"])
 
         if not predicates:
-            return default_table_area
+            # return reachable area on table if not specified
+            table_area = OnTop().compute_area(obj1_urdf, table, env)
+            reachable_area = IsReachable().compute_area(robot, grip_type)
+            reachable_table_area = get_range_intersection(table_area, reachable_area)
+            return reachable_table_area if reachable_table_area is not None else table_area
 
         area = get_infinite_area()
         predicate_calls = self._parse_predicates(predicates)
@@ -1206,7 +1209,7 @@ class InitPredicateResolver(PredicateResolver):
         if area is None:
             # Keep reset robust when predicate constraints do not overlap
             # (common with new robot/workspace combinations).
-            return default_table_area
+            return OnTop().compute_area(obj1_urdf, table, env)
 
         return area
 
