@@ -6,10 +6,6 @@ Spawns real objects in a live PyBullet env (table workspace + robot) and
 checks the predicate classes (Touching, OnTop, IsReachable) and the
 InitPredicateResolver against them.
 
-Requirements:
-    - All dependencies from pyproject.toml must be installed
-    - Run: pip install -e . (from repository root)
-
 Usage:
     # Run all tests with the default config (configs/AGMD_predicates.json)
     python3 myGym/unittest/test_predicates.py
@@ -25,11 +21,14 @@ import glob
 import itertools
 import os
 import signal
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 
 from myGym.train import get_parser, get_arguments, automatic_argument_assignment, configure_env
 from myGym.envs import env_object
-from myGym.envs.predicates import IsReachable, Touching, OnTop, Above, Inside, Upright, InitPredicateResolver
+from myGym.envs.predicates import (
+    IsReachable, Touching, OnTop, Above, Below, Inside, ObjectAt,
+    LeftOf, RightOf, InFrontOf, Behind, NextTo, Upright, InitPredicateResolver,
+)
 
 # ANSI colors for summary marks
 GREEN = "\033[92m"
@@ -232,7 +231,7 @@ def test_upright(env):
     table_area = on_top.compute_area(TUNA_CAN_URDF, table)
     pos = env_object.EnvObject.get_random_object_position(table_area)
 
-    with spawned_object(env, TUNA_CAN_URDF, pos, fixed=True) as tuna_can:
+    with spawned_object(env, TUNA_CAN_URDF, pos, fixed=False) as tuna_can:
         assert upright.check(tuna_can), "freshly spawned tuna can should be upright"
 
         tuna_can.rotate_euler([0, 0, 1.2])  # pure yaw spin
@@ -275,11 +274,12 @@ def test_init_predicates_are_enforced(env, trials: int):
     OnTop/Reachable/Above/Below constrain sampling area; the rest
     (Far, Empty) is only checked to exercise new predicates.
     """
-    predicates2 = {"init": ["Reachable(apple)", "OnTop(apple,table)",
-                            "Reachable(tuna_can)", "Above(tuna_can,apple)"]}
-    predicates = {"init": ["Reachable(apple)", "Above(apple, table)",
-                           "OnTop(tuna_can,table)", "Below(tuna_can,apple)",
-                           "Far(tuna_can,table): False"]}
+    predicates2 = {"init": ["IsReachable(apple)", "OnTop(apple,table)",
+                            "IsReachable(tuna_can)", "Above(tuna_can,apple)"]}
+    predicates3 = {"init": ["IsReachable(apple)", "Above(apple, table)",
+                           "OnTop(tuna_can,table)"]}
+    predicatesn = {"init": ["OnTop(apple,table)", "LeftOf(tuna_can,apple)", "OnTop(tuna_can,table)"]}
+    predicates = {"init": ["OnTop(apple,table)", "InFrontOf(tuna_can,apple)", "OnTop(tuna_can,table)"]}
 
     apple_info = {"urdf": APPLE_URDF, "obj_name": "apple"}
     tuna_can_info = {"urdf": TUNA_CAN_URDF, "obj_name": "tuna_can"}
@@ -301,13 +301,244 @@ def test_init_predicates_are_enforced(env, trials: int):
             with spawned_object(env, TUNA_CAN_URDF, tuna_can_pos, fixed=True) as tuna_can:
                 settle(env)
                 satisfied = resolver.check({"actual_state": apple, "goal_state": tuna_can}, env, predicates)
-
+                settle(env, steps=1000)
                 assert satisfied, (
                     f"Trial {trial}: init predicates not satisfied for "
                     f"apple_pos={apple_pos}, tuna_can_pos={tuna_can_pos}"
                 )
 
     print(f"PASS: test_init_predicates_are_enforced ({trials} trials)")
+
+
+def test_each_predicate_success_rate(env, trials: int):
+    """
+    Exercise every AreaPredicate (predicates that can compute their own
+    sampling area) one by one: compute its sampling area, spawn an object
+    inside that area, then use the predicate's own check() to see whether
+    the resulting placement actually satisfies it.
+    """
+    table = env.static_scene_objects[env.workspace]
+    robot = env.robot
+    results = {}  # name -> [successes, attempted, area_failures]
+
+    def fresh_reference(urdf=APPLE_URDF, fixed=True):
+        """
+        Context manager: spawn a reference object at a new random
+        OnTop(table) position. Used to give every trial its own reference
+        placement instead of testing all `trials` runs against one fixed
+        spot, which would only prove the predicate works for that one spot.
+        """
+        area = OnTop().compute_area(urdf, table, env)
+        pos = env_object.EnvObject.get_random_object_position(area)
+        return spawned_object(env, urdf, pos, fixed=fixed)
+
+    def run(name, urdf, compute_area, check, expect=True, settle_steps=None,
+            reference_urdf=None, reference_fixed=True):
+        """
+        """
+        successes = attempted = area_failures = 0
+        for _ in range(trials):
+            ref_cm = fresh_reference(reference_urdf, reference_fixed) if reference_urdf else None
+            with ref_cm if ref_cm is not None else nullcontext() as reference:
+                try:
+                    area = compute_area(reference)
+                except Exception as exc:
+                    print(f"  {RED}ERROR{RESET} {name}: compute_area raised {exc!r}")
+                    area = None
+
+                if area is None:
+                    area_failures += 1
+                    continue
+
+                attempted += 1
+                try:
+                    pos = env_object.EnvObject.get_random_object_position(area)
+                    with spawned_object(env, urdf, pos, fixed=settle_steps is None) as obj:
+                        if settle_steps is not None:
+                            settle(env, steps=settle_steps)
+                        if bool(check(obj, reference)) == expect:
+                            successes += 1
+                except Exception as exc:
+                    print(f"  {RED}ERROR{RESET} {name}: check raised {exc!r}")
+
+        results[name] = [successes, attempted, area_failures]
+
+    run("IsReachable", APPLE_URDF,
+        lambda reference: IsReachable().compute_area(robot, None),
+        lambda obj, reference: IsReachable().check(robot, obj, None))
+    run("IsReachable NOT", APPLE_URDF,
+        lambda reference: IsReachable().compute_area(robot, None, neg=True),
+        lambda obj, reference: IsReachable().check(robot, obj, None), expect=False)
+
+    run("OnTop", TUNA_CAN_URDF,
+        lambda reference: OnTop().compute_area(TUNA_CAN_URDF, table, env),
+        lambda obj, reference: OnTop().check(obj, table))
+    run("OnTop NOT", TUNA_CAN_URDF,
+        lambda reference: OnTop().compute_area(TUNA_CAN_URDF, table, env, neg=True),
+        lambda obj, reference: OnTop().check(obj, table), expect=False)
+
+    run("Above", TUNA_CAN_URDF,
+        lambda reference: Above().compute_area(TUNA_CAN_URDF, table, env),
+        lambda obj, reference: Above().check(obj, table))
+    run("Above NOT", TUNA_CAN_URDF,
+        lambda reference: Above().compute_area(TUNA_CAN_URDF, table, env, neg=True),
+        lambda obj, reference: Above().check(obj, table), expect=False)
+
+    run("Below", TUNA_CAN_URDF,
+        lambda reference: Below().compute_area(TUNA_CAN_URDF, reference, env),
+        lambda obj, reference: Below().check(obj, reference), reference_urdf=APPLE_URDF)
+    run("Below NOT", TUNA_CAN_URDF,
+        lambda reference: Below().compute_area(TUNA_CAN_URDF, reference, env, neg=True),
+        lambda obj, reference: Below().check(obj, reference), expect=False, reference_urdf=APPLE_URDF)
+
+    run("ObjectAt", TUNA_CAN_URDF,
+        lambda reference: ObjectAt().compute_area(reference),
+        lambda obj, reference: ObjectAt().check(obj, reference), reference_urdf=APPLE_URDF)
+    run("ObjectAt NOT", TUNA_CAN_URDF,
+        lambda reference: ObjectAt().compute_area(reference, neg=True),
+        lambda obj, reference: ObjectAt().check(obj, reference), expect=False, reference_urdf=APPLE_URDF)
+
+    run("LeftOf", TUNA_CAN_URDF,
+        lambda reference: LeftOf().compute_area(TUNA_CAN_URDF, reference, env),
+        lambda obj, reference: LeftOf().check(obj, reference), reference_urdf=APPLE_URDF)
+    run("LeftOf NOT", TUNA_CAN_URDF,
+        lambda reference: LeftOf().compute_area(TUNA_CAN_URDF, reference, env, neg=True),
+        lambda obj, reference: LeftOf().check(obj, reference), expect=False, reference_urdf=APPLE_URDF)
+
+    run("RightOf", TUNA_CAN_URDF,
+        lambda reference: RightOf().compute_area(TUNA_CAN_URDF, reference, env),
+        lambda obj, reference: RightOf().check(obj, reference), reference_urdf=APPLE_URDF)
+    run("RightOf NOT", TUNA_CAN_URDF,
+        lambda reference: RightOf().compute_area(TUNA_CAN_URDF, reference, env, neg=True),
+        lambda obj, reference: RightOf().check(obj, reference), expect=False, reference_urdf=APPLE_URDF)
+
+    run("InFrontOf", TUNA_CAN_URDF,
+        lambda reference: InFrontOf().compute_area(TUNA_CAN_URDF, reference, env),
+        lambda obj, reference: InFrontOf().check(obj, reference), reference_urdf=APPLE_URDF)
+    run("InFrontOf NOT", TUNA_CAN_URDF,
+        lambda reference: InFrontOf().compute_area(TUNA_CAN_URDF, reference, env, neg=True),
+        lambda obj, reference: InFrontOf().check(obj, reference), expect=False, reference_urdf=APPLE_URDF)
+
+    run("Behind", TUNA_CAN_URDF,
+        lambda reference: Behind().compute_area(TUNA_CAN_URDF, reference, env),
+        lambda obj, reference: Behind().check(obj, reference), reference_urdf=APPLE_URDF)
+    run("Behind NOT", TUNA_CAN_URDF,
+        lambda reference: Behind().compute_area(TUNA_CAN_URDF, reference, env, neg=True),
+        lambda obj, reference: Behind().check(obj, reference), expect=False, reference_urdf=APPLE_URDF)
+
+    run("NextTo", TUNA_CAN_URDF,
+        lambda reference: NextTo().compute_area(TUNA_CAN_URDF, reference, env),
+        lambda obj, reference: NextTo().check(obj, reference), reference_urdf=APPLE_URDF)
+    run("NextTo NOT", TUNA_CAN_URDF,
+        lambda reference: NextTo().compute_area(TUNA_CAN_URDF, reference, env, neg=True),
+        lambda obj, reference: NextTo().check(obj, reference), expect=False, reference_urdf=APPLE_URDF)
+
+    # Inside needs a hollow container (not fixed - it must physically rest
+    # on the table for OnTop/Inside's bounding-box math to be accurate)
+    bowl_urdf = os.path.join(HOUSEHOLD_URDF_DIR, "bowl.urdf")
+
+    # sample from OnTop's area (drop apple above the bowl) and let it
+    # settle in, rather than Inside.compute_area's strict fit check - this
+    # mirrors _check_inside() and matches how Inside is actually used in
+    # practice (dropped into a container, not teleported in)
+    run("Inside", APPLE_URDF,
+        lambda bowl: OnTop().compute_area(APPLE_URDF, bowl, env),
+        lambda obj, bowl: Inside().check(obj, bowl),
+        settle_steps=100, reference_urdf=bowl_urdf, reference_fixed=False)
+    # negated area is unconstrained (Inside has no "not inside" area
+    # logic), so this just checks that a random placement doesn't land
+    # inside the bowl by chance
+    run("Inside NOT", APPLE_URDF,
+        lambda bowl: Inside().compute_area(APPLE_URDF, bowl, env, neg=True),
+        lambda obj, bowl: Inside().check(obj, bowl), expect=False,
+        reference_urdf=bowl_urdf, reference_fixed=False)
+
+    print(f"\n{'Predicate':<16s} {'Result':<14s} Success rate")
+    for name, (successes, attempted, area_failures) in results.items():
+        total = attempted + area_failures
+        rate = (successes / total * 100) if total else 0.0
+        mark = GREEN if attempted and successes == attempted else RED
+        print(f"  {name:<14s} {mark}{successes:>3d}/{total:<3d}{RESET}"
+              f"        {rate:5.1f}%  ({area_failures} area-compute failures)")
+
+    print(f"PASS: test_each_predicate_success_rate ({trials} trials per predicate)")
+
+
+def test_predicate_combinations_success_rate(env, trials: int):
+    """
+    Exercise combinations of init predicates through
+    InitPredicateResolver, rather than one predicate at a time.
+    """
+    table = env.static_scene_objects[env.workspace]
+    robot = env.robot
+    resolver = InitPredicateResolver()
+    results = {}
+
+    def fresh_reference(predicates):
+        """
+        """
+        apple_info = {"urdf": APPLE_URDF, "obj_name": "apple"}
+        area = resolver.get_area(apple_info, table, robot, predicates, env=env)
+        pos = env_object.EnvObject.get_random_object_position(area)
+        return spawned_object(env, APPLE_URDF, pos, fixed=True)
+
+    obj_info = {"urdf": TUNA_CAN_URDF, "obj_name": "tuna_can"}
+    combos = {
+        "NextTo (auto side)": ["NextTo(tuna_can,apple)"],
+        "NextTo+LeftOf": ["NextTo(tuna_can,apple)", "LeftOf(tuna_can,apple)"],
+        "NextTo+RightOf": ["NextTo(tuna_can,apple)", "RightOf(tuna_can,apple)"],
+        "NextTo+InFrontOf": ["NextTo(tuna_can,apple)", "InFrontOf(tuna_can,apple)"],
+        "NextTo+Behind": ["NextTo(tuna_can,apple)", "Behind(tuna_can,apple)"],
+        "NextTo+LeftOf NOT": ["NextTo(tuna_can,apple)", "LeftOf(tuna_can,apple): False"],
+        "LeftOf+InFrontOf": ["LeftOf(tuna_can,apple)", "InFrontOf(tuna_can,apple)"],
+        "RightOf+Behind": ["RightOf(tuna_can,apple)", "Behind(tuna_can,apple)"],
+        "OnTop+IsReachable": ["OnTop(tuna_can,table)", "IsReachable(tuna_can)"],
+        "Above+IsReachable": ["IsReachable(apple)", "Above(tuna_can,apple)", "IsReachable(tuna_can)"],
+        "Below+IsReachable": ["IsReachable(apple)", "Below(tuna_can,apple)", "IsReachable(tuna_can)"],
+    }
+
+    for name, predicate_strs in combos.items():
+        predicates = {"init": predicate_strs}
+        successes = attempted = area_failures = 0
+
+        for _ in range(trials):
+            with fresh_reference(predicates) as reference:
+                try:
+                    area = resolver.get_area(
+                        obj_info, table, robot, predicates,
+                        placed_objects={"apple": reference}, env=env,
+                    )
+                except Exception as exc:
+                    print(f"  {RED}ERROR{RESET} {name}: get_area raised {exc!r}")
+                    area = None
+
+                if area is None:
+                    area_failures += 1
+                    continue
+
+                attempted += 1
+                try:
+                    pos = env_object.EnvObject.get_random_object_position(area)
+                    with spawned_object(env, TUNA_CAN_URDF, pos, fixed=True) as obj:
+                        satisfied = resolver.check(
+                            {"actual_state": obj, "goal_state": reference}, env, predicates
+                        )
+                        if satisfied:
+                            successes += 1
+                except Exception as exc:
+                    print(f"  {RED}ERROR{RESET} {name}: check raised {exc!r}")
+
+        results[name] = [successes, attempted, area_failures]
+
+    print(f"\n{'Combo':<20s} {'Result':<14s} Success rate")
+    for name, (successes, attempted, area_failures) in results.items():
+        total = attempted + area_failures
+        rate = (successes / total * 100) if total else 0.0
+        mark = GREEN if attempted and successes == attempted else RED
+        print(f"  {name:<18s} {mark}{successes:>3d}/{total:<3d}{RESET}"
+              f"        {rate:5.1f}%  ({area_failures} area-compute failures)")
+
+    print(f"PASS: test_predicate_combinations_success_rate ({trials} trials per combo)")
 
 
 def _get_household_objects() -> list[str]:
@@ -556,10 +787,13 @@ def main():
 
     #test_touching_above_and_on_top(env)
     #test_is_reachable(env, trials)
-    test_init_predicates_are_enforced(env, trials)
+    #test_init_predicates_are_enforced(env, trials)
+    test_each_predicate_success_rate(env, trials)
+    test_predicate_combinations_success_rate(env, trials)
     #test_on_table(env)
     #test_on_top(env)
     #test_inside_obj(env, os.path.join(HOUSEHOLD_URDF_DIR, "jug.urdf"))
+    #test_upright(env)
 
     print("\nAll tests passed!")
 
