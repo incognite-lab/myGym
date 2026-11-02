@@ -7,6 +7,16 @@ from utils.helpers import get_robot_dict, get_workspace_dict, get_gripper_dict
 import importlib.resources as pkg_resources
 import os
 
+def read_debug_parameter(slider_id):
+    """Retry transient GUI read failures, while surfacing persistent errors."""
+    for attempt in range(4):
+        try:
+            return p.readUserDebugParameter(slider_id)
+        except p.error:
+            if attempt == 3 or not p.isConnected():
+                raise
+            time.sleep(0.005)
+
 def save_gripper_dict_to_helpers(gd, helpers_path):
     """Save updated gripper dictionary back to helpers.py file."""
     # Read the current file
@@ -246,6 +256,8 @@ def main():
     try:
         robot_info = rd[selected_robot]
         urdf = robot_info['path']
+        if urdf.startswith('/envs/') and not os.path.exists(urdf):
+            urdf = os.path.join(currentdir, urdf[len('/envs/'):])
         robot_base_pos = list(np.array(robot_info.get('position', [0.0, 0.0, 0.0])).astype(float))
         robot_base_orientation = robot_info.get('orientation', [0.0, 0.0, 0.0])
         robot_base_quat = p.getQuaternionFromEuler(robot_base_orientation)
@@ -404,7 +416,7 @@ def main():
                     joint_info = p.getJointInfo(robot_id, joint_idx)
                     joint_name = joint_info[1].decode("utf-8")
                     if 'gjoint' in joint_name:
-                        value_deg = p.readUserDebugParameter(slider_id)
+                        value_deg = read_debug_parameter(slider_id)
                         joint_type = joint_info[2]
                         if joint_type == p.JOINT_REVOLUTE:
                             value = value_deg * 0.0174533  # Convert degrees to radians
@@ -438,7 +450,7 @@ def main():
                     joint_info = p.getJointInfo(robot_id, joint_idx)
                     joint_name = joint_info[1].decode("utf-8")
                     if 'gjoint' in joint_name:
-                        value_deg = p.readUserDebugParameter(slider_id)
+                        value_deg = read_debug_parameter(slider_id)
                         joint_type = joint_info[2]
                         if joint_type == p.JOINT_REVOLUTE:
                             value = value_deg * 0.0174533  # Convert degrees to radians
@@ -468,7 +480,7 @@ def main():
                 # Print current joint values
                 joint_values = []
                 for joint_idx, slider_id in sliders:
-                    value_deg = p.readUserDebugParameter(slider_id)
+                    value_deg = read_debug_parameter(slider_id)
                     joint_info = p.getJointInfo(robot_id, joint_idx)
                     joint_type = joint_info[2]
                     if joint_type == p.JOINT_REVOLUTE:
@@ -504,8 +516,8 @@ def main():
                     print("Failed to update helpers.py")
             
             # Read velocity and force slider values
-            velocity = p.readUserDebugParameter(velocity_slider)
-            force = p.readUserDebugParameter(force_slider)
+            velocity = read_debug_parameter(velocity_slider)
+            force = read_debug_parameter(force_slider)
             
             # Calculate and print gripper status periodically (only for gjoints)
             current_time = time.time()
@@ -517,7 +529,7 @@ def main():
                     joint_info = p.getJointInfo(robot_id, joint_idx)
                     joint_name = joint_info[1].decode("utf-8")
                     if 'gjoint' in joint_name:
-                        value_deg = p.readUserDebugParameter(slider_id)
+                        value_deg = read_debug_parameter(slider_id)
                         joint_type = joint_info[2]
                         if joint_type == p.JOINT_REVOLUTE:
                             value = value_deg * 0.0174533  # Convert degrees to radians
@@ -541,7 +553,7 @@ def main():
                 last_print_time = current_time
             
             for joint_idx, slider_id in sliders:
-                value_deg = p.readUserDebugParameter(slider_id)
+                value_deg = read_debug_parameter(slider_id)
                 joint_info = p.getJointInfo(robot_id, joint_idx)
                 joint_type = joint_info[2]
                 if joint_type == p.JOINT_REVOLUTE:
@@ -558,7 +570,10 @@ def main():
                 )
             time.sleep(0.01)
     except KeyboardInterrupt:
-        p.disconnect()
+        pass
+    finally:
+        if p.isConnected():
+            p.disconnect()
 
 if __name__ == "__main__":
     main()
